@@ -35,7 +35,7 @@ por_id = {r.get('id'): r for r in resp}
 
 assert por_id[1]['result']['serverInfo']['name'] == 'a11y-toolkit'
 nombres = [t['name'] for t in por_id[2]['result']['tools']]
-assert len(nombres) == 5, nombres
+assert len(nombres) == 6 and 'a11y_audit_url' in nombres, nombres
 d = json.loads(por_id[3]['result']['content'][0]['text'])
 assert abs(d['ratio'] - 2.85) < 0.02 and d['veredictos'][0]['cumple'] is False
 decl = por_id[4]['result']['content'][0]['text']
