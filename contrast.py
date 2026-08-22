@@ -228,22 +228,35 @@ def image_contrast(ruta, texto_color, region=None, sample=4, lang='es'):
         x, y, rw, rh = 0, 0, w, h
 
     sample = max(1, int(sample))
+    # Guardián de rendimiento: regiones gigantes aumentan el paso automáticamente.
+    presupuesto = 2_000_000
+    if (rw // sample) * (rh // sample) > presupuesto:
+        sample = max(sample, int(((rw * rh) / presupuesto) ** 0.5) + 1)
     l_texto = luminancia(c)
     ratios = []
+    usar_grid = rw >= 99 and rh >= 99
+    celdas = [[0, 0] for _ in range(9)]  # [pasa45, total] por celda 3×3
     for j in range(y, y + rh, sample):
         fila = j * w
+        cy = ((j - y) * 3) // rh if usar_grid else 0
         for i in range(x, x + rw, sample):
             o = (fila + i) * 3
             lpix = (0.2126 * _lin(rgb[o]) + 0.7152 * _lin(rgb[o + 1])
                     + 0.0722 * _lin(rgb[o + 2]))
             l1, l2 = (l_texto, lpix) if l_texto > lpix else (lpix, l_texto)
-            ratios.append((l1 + 0.05) / (l2 + 0.05))
+            r = (l1 + 0.05) / (l2 + 0.05)
+            ratios.append(r)
+            if usar_grid:
+                cx = ((i - x) * 3) // rw
+                celdas[cy * 3 + cx][1] += 1
+                if r >= 4.5:
+                    celdas[cy * 3 + cx][0] += 1
     if not ratios:
         return {'error': t9['sin_pixeles']}
 
     pasa45 = sum(1 for v in ratios if v >= 4.5)
     pasa30 = sum(1 for v in ratios if v >= 3.0)
-    return {
+    out = {
         'imagen': os.path.basename(ruta),
         'color_texto': hexs(c),
         'region': {'x': x, 'y': y, 'ancho': rw, 'alto': rh,
@@ -255,6 +268,16 @@ def image_contrast(ruta, texto_color, region=None, sample=4, lang='es'):
         'area_pasa_aa_minimo_3_0': round(100.0 * pasa30 / len(ratios), 1),
         'interpretacion': t9['interp'],
     }
+    if usar_grid:
+        peor = min(range(9), key=lambda k: (celdas[k][0] / celdas[k][1]) if celdas[k][1] else 1)
+        py_, px_ = peor // 3, peor % 3
+        out['zona_peor'] = {
+            'celda': f'{["superior","central","inferior"][py_]}-{["izquierda","centro","derecha"][px_]}',
+            'x': x + (rw * px_) // 3, 'y': y + (rh * py_) // 3,
+            'ancho': rw // 3, 'alto': rh // 3,
+            'pct_pasa_aa': round(100.0 * celdas[peor][0] / celdas[peor][1], 1) if celdas[peor][1] else None,
+        }
+    return out
 
 # ---------------------------------------------------------------- CLI -------
 

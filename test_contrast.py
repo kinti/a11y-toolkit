@@ -69,3 +69,19 @@ assert r_en['sugerencia_aa']['accion'] == 'darkening'
 r_es = pair('#999999', '#ffffff', lang='es')
 assert r_es['veredictos'][0]['criterio'].startswith('1.4.3 Contraste')
 print('MULTILINGUE PAR OK ✓')
+
+# 7. Grid de zona hostil (región ≥99×99)
+import tempfile as _tf
+with _tf.NamedTemporaryFile(suffix='.ppm', delete=False) as _f:
+    _w, _h = 300, 150
+    _f.write(b'P6\n%d %d\n255\n' % (_w, _h))
+    for _j in range(_h):
+        for _i in range(_w):
+            _v = int(255 * _i / _w)
+            _f.write(bytes([_v, _v, _v]))
+    _ruta = _f.name
+_g = image_contrast(_ruta, '#ffffff', sample=3)
+os.unlink(_ruta)
+assert _g['zona_peor']['celda'] == 'superior-derecha', _g['zona_peor']
+assert _g['zona_peor']['pct_pasa_aa'] < 10
+print('GRID ZONA HOSTIL OK ✓')

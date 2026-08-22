@@ -14,3 +14,4 @@ jobs:
       - run: pip install pillow
       - run: python test_contrast.py
       - run: python test_mcp.py
+      - run: python test_audit.py

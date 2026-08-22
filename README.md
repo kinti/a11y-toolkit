@@ -14,7 +14,7 @@ y exacto (luminancia relativa oficial de la especificación).
 > **English below** · Herramientas en español orientadas a WCAG 2.2, RD 1112/2018
 > y Ley 11/2023 (European Accessibility Act).
 
-## Herramientas (5)
+## Herramientas (6)
 
 | Herramienta MCP | Qué hace |
 |---|---|
@@ -22,11 +22,13 @@ y exacto (luminancia relativa oficial de la especificación).
 | `a11y_contrast_image` | **Texto sobre imagen**: muestrea píxel a píxel el fondo real tras el texto → ratio peor/mediana/p95 y % de área que pasa AA. Lo que ningún verificador de pares hace. |
 | `a11y_suggest_color` | Color más cercano a uno dado que alcanza el ratio objetivo. |
 | `a11y_generate_declaration` | **Declaración de Accesibilidad** legal en HTML: art. 10 del RD 1112/2018 (sector público) o variante Ley 11/2023/EAA (empresas). |
+| `a11y_audit_url` | **Auditoría exprés de una URL**: alt, nombres accesibles, labels, lang/title, saltos de encabezados, zoom bloqueado, tabindex>0, iframes sin title — hallazgos por severidad (filtro, no veredicto). |
 | `a11y_aria_live_snippet` | Código del monitor de anuncios `aria-live` (inyectable como bookmarklet o `page.evaluate`): registra hora, cortesía, rol y texto. |
 
 Además, en el mismo repo (CLI, no MCP):
 - **`declaracion.py`** — generador de declaraciones por línea de comandos.
 - **`a11ydiff.py`** — diff de accesibilidad entre builds (snapshots con Playwright: interactivos + nombres accesibles + orden de foco real).
+- **`a11yaudit.py`** — auditoría exprés de una URL (también como herramienta MCP `a11y_audit_url`).
 
 ## Instalación como MCP
 
@@ -66,7 +68,8 @@ python3 declaracion.py --entidad "Nome" --url "https://…" --estado parcial \
 python3 a11ydiff.py snapshot https://miweb --out antes.json   # requiere: pip install playwright && playwright install chromium
 python3 a11ydiff.py diff antes.json despues.json
 
-python3 test_contrast.py && python3 test_mcp.py               # tests
+python3 a11yaudit.py --url https://example.com               # auditoría exprés
+python3 test_contrast.py && python3 test_mcp.py && python3 test_audit.py  # tests
 ```
 
 ## Cómo interpretar el modo imagen

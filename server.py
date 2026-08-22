@@ -24,6 +24,7 @@ sys.path.insert(0, AQUI)
 
 from contrast import pair as pair_fn, image_contrast, sugerir, parse_color  # noqa: E402
 from declaracion import generar as declaracion_fn  # noqa: E402
+from a11yaudit import audit_url as audit_url_fn  # noqa: E402
 
 TOOLS = [
     {
@@ -77,6 +78,19 @@ TOOLS = [
         }, 'required': ['entidad', 'url', 'estado']},
     },
     {
+        'name': 'a11y_audit_url',
+        'description': ('Express accessibility audit of a URL: fetches the page and checks '
+                        'automatic WCAG 2.2 signals — images without alt (1.1.1), controls '
+                        'without accessible names (4.1.2), form fields without labels (3.3.2), '
+                        'missing lang/title (3.1.1, 2.4.2), heading level skips (1.3.1), blocked '
+                        'zoom (1.4.4), positive tabindex (2.4.3), untitled iframes. Returns '
+                        'findings by severity. Filter, not verdict: automation covers ~1/3 of WCAG.'),
+        'inputSchema': {'type': 'object', 'properties': {
+            'url': {'type': 'string'},
+            'lang': {'type': 'string', 'enum': ['es', 'en']},
+        }, 'required': ['url']},
+    },
+    {
         'name': 'a11y_aria_live_snippet',
         'description': ('Devuelve el código JavaScript del monitor de anuncios aria-live para '
                         'inyectar en una página (bookmarklet o page.evaluate): registra cada '
@@ -124,6 +138,12 @@ def llamar(nombre, args):
             return _texto({'guardado_en': salida, 'resumen': res['resumen']})
         return {'content': [{'type': 'text', 'text': res['html']}]}
     if nombre == 'a11y_aria_live_snippet':
+    if nombre == 'a11y_audit_url':
+        try:
+            return _texto(audit_url_fn(args['url']))
+        except Exception as e:  # noqa: BLE001
+            return {'content': [{'type': 'text', 'text': f'error: {e}'}], 'isError': True}
+    if nombre == 'a11y_aria_live_snippet':
         with open(os.path.join(AQUI, 'arialive.js'), encoding='utf-8') as f:
             js = f.read()
         if args.get('lang') == 'en':
@@ -150,7 +170,7 @@ def main():
                 resp = {'jsonrpc': '2.0', 'id': mid, 'result': {
                     'protocolVersion': msg.get('params', {}).get('protocolVersion', '2024-11-05'),
                     'capabilities': {'tools': {}},
-                    'serverInfo': {'name': 'a11y-toolkit', 'version': '2.1.0'},
+                    'serverInfo': {'name': 'a11y-toolkit', 'version': '2.2.0'},
                 }}
             elif metodo == 'ping':
                 resp = {'jsonrpc': '2.0', 'id': mid, 'result': {}}
