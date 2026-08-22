@@ -1,5 +1,10 @@
 # a11y-toolkit MCP
 
+[![CI](https://github.com/kinti/a11y-toolkit/actions/workflows/ci.yml/badge.svg)](https://github.com/kinti/a11y-toolkit/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![Python 3.9+](https://img.shields.io/badge/python-3.9%2B-blue.svg)](pyproject.toml)
+[![MCP](https://img.shields.io/badge/Model%20Context%20Protocol-server-purple)](https://modelcontextprotocol.io)
+
 Suite de accesibilidad **WCAG 2.2** como servidor MCP (Model Context Protocol)
 para agentes de IA — y como CLI. **Multilenguaje `es`/`en`** en todas las
 herramientas (la declaración EN usa la terminología de las Directivas (UE)
