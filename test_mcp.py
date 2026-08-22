@@ -45,3 +45,19 @@ assert 'alm-panel' in snip and "closest('.alm-panel')" in snip
 assert por_id[6]['result'].get('isError') is True
 
 print('TESTS MCP PASAN ✓ (handshake, 5 herramientas, errores con isError)')
+
+REQ2 = [
+    {'jsonrpc': '2.0', 'id': 10, 'method': 'initialize', 'params': {'protocolVersion': '2024-11-05', 'capabilities': {}, 'clientInfo': {'name': 't'}}},
+    {'jsonrpc': '2.0', 'id': 11, 'method': 'tools/call', 'params': {'name': 'a11y_contrast_pair', 'arguments': {'fg': '#999999', 'bg': '#ffffff', 'lang': 'en'}}},
+    {'jsonrpc': '2.0', 'id': 12, 'method': 'tools/call', 'params': {'name': 'a11y_generate_declaration', 'arguments': {'entidad': 'Acme', 'url': 'https://acme.eu', 'estado': 'parcial', 'contenido_no_accesible': ['Old videos without captions'], 'marco': 'eaa', 'lang': 'en'}}},
+]
+p2 = subprocess.run([sys.executable, os.path.join(AQUI, 'server.py')],
+                    input='\n'.join(json.dumps(r) for r in REQ2),
+                    capture_output=True, text=True, timeout=60)
+r2 = {json.loads(l).get('id'): json.loads(l) for l in p2.stdout.splitlines() if l.strip()}
+d_en = json.loads(r2[11]['result']['content'][0]['text'])
+assert d_en['veredictos'][0]['criterio'].startswith('1.4.3 Contrast')
+decl_en = r2[12]['result']['content'][0]['text']
+assert 'European Accessibility Act' in decl_en and '<html lang="en">' in decl_en
+assert 'Old videos without captions' in decl_en
+print('MULTILINGUE MCP OK ✓ (EN pair + EN/EAA declaration)')

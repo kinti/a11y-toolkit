@@ -6,6 +6,11 @@
  */
 (function () {
   'use strict';
+  var LANG = (window.ALM_LANG === 'en')
+    ? { titulo: 'aria-live monitor', copiar: 'Copy', cerrar: 'Close',
+        label: 'aria-live announcement monitor' }
+    : { titulo: 'aria-live monitor', copiar: 'Copiar', cerrar: 'Cerrar',
+        label: 'Monitor de anuncios aria-live' };
   if (window.__ariaLiveMonitor) { window.__ariaLiveMonitor(); return; }
   var SEL = '[aria-live],[role=alert],[role=status],[role=log],[role=marquee],[role=timer]';
   var log = [];
@@ -25,10 +30,10 @@
   panel.className = 'alm-panel';
   // Sin role="log" a propósito: una región viva casaría con nuestro propio
   // selector y crearía un bucle de auto-observación infinito.
-  panel.setAttribute('aria-label', 'Monitor de anuncios aria-live');
-  panel.innerHTML = '<div><span class="alm-t">aria-live monitor</span>' +
-    '<button type="button" data-alm="copy">Copiar</button>' +
-    '<button type="button" data-alm="close">Cerrar</button></div><div data-alm="log"></div>';
+  panel.setAttribute('aria-label', LANG.label);
+  panel.innerHTML = '<div><span class="alm-t">' + LANG.titulo + '</span>' +
+    '<button type="button" data-alm="copy">' + LANG.copiar + '</button>' +
+    '<button type="button" data-alm="close">' + LANG.cerrar + '</button></div><div data-alm="log"></div>';
   document.body.appendChild(panel);
   var cont = panel.querySelector('[data-alm=log]');
 

@@ -1,8 +1,10 @@
 # a11y-toolkit MCP
 
 Suite de accesibilidad **WCAG 2.2** como servidor MCP (Model Context Protocol)
-para agentes de IA — y como CLI. **Cero dependencias** en el núcleo; el cálculo
-es local y exacto (luminancia relativa oficial de la especificación).
+para agentes de IA — y como CLI. **Multilenguaje `es`/`en`** en todas las
+herramientas (la declaración EN usa la terminología de las Directivas (UE)
+2016/2102 y 2019/882). **Cero dependencias** en el núcleo; el cálculo es local
+y exacto (luminancia relativa oficial de la especificación).
 
 > **English below** · Herramientas en español orientadas a WCAG 2.2, RD 1112/2018
 > y Ley 11/2023 (European Accessibility Act).
@@ -50,7 +52,7 @@ O con [uv](https://docs.astral.sh/uv/) sin clonar:
 ## CLI
 
 ```bash
-python3 contrast.py pair "#1f2328" "#fbfaf7"
+python3 contrast.py pair "#1f2328" "#fbfaf7"            # --lang en para inglés
 python3 contrast.py image hero.jpg --text "#ffffff" --region 120,40,420,90 --sample 4
 
 python3 declaracion.py --entidad "Nome" --url "https://…" --estado parcial \
@@ -89,9 +91,10 @@ locales — úsalo en clientes MCP de confianza (los tuyos). Nada sale a la red.
 
 ## English
 
-An MCP server + CLI for **WCAG 2.2 accessibility work**, in Spanish (legal
-output targets Spanish regulation: RD 1112/2018 and Ley 11/2023 / European
-Accessibility Act). Five tools: color-pair contrast with per-criterion
+An MCP server + CLI for **WCAG 2.2 accessibility work**. All tools are
+**multilanguage `es`/`en`** (Spanish legal output: RD 1112/2018 and
+Ley 11/2023; English output uses Directive (EU) 2016/2102 and European
+Accessibility Act wording, useful EU-wide). Five tools: color-pair contrast with per-criterion
 verdicts, **text-over-image pixel sampling** (worst/median ratio, % of area
 passing AA), nearest passing-color suggestion, legal accessibility-declaration
 HTML generator, and an aria-live announcement monitor snippet. Zero-dependency

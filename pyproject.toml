@@ -4,8 +4,8 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "a11y-toolkit"
-version = "2.0.0"
-description = "MCP server + CLI for WCAG 2.2 accessibility: contrast (pairs and text-over-image), RD 1112/2018 & Ley 11/2023 declarations, aria-live monitor"
+version = "2.1.0"
+description = "MCP server + CLI for WCAG 2.2 accessibility (multilanguage es/en): contrast (pairs and text-over-image), RD 1112/2018 & Ley 11/2023 declarations, aria-live monitor"
 readme = "README.md"
 requires-python = ">=3.9"
 license = { text = "MIT" }

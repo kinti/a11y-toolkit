@@ -33,6 +33,7 @@ TOOLS = [
                         'AA, sugiere el color más cercano que sí pasa.'),
         'inputSchema': {'type': 'object', 'properties': {
             'fg': {'type': 'string'}, 'bg': {'type': 'string'},
+            'lang': {'type': 'string', 'enum': ['es', 'en'], 'description': 'Idioma de la salida (es por defecto)'},
         }, 'required': ['fg', 'bg']},
     },
     {
@@ -44,6 +45,7 @@ TOOLS = [
             'path': {'type': 'string'}, 'text_color': {'type': 'string'},
             'region': {'type': 'string'},
             'sample': {'type': 'integer'},
+            'lang': {'type': 'string', 'enum': ['es', 'en']},
         }, 'required': ['path', 'text_color']},
     },
     {
@@ -71,6 +73,7 @@ TOOLS = [
             'marco': {'type': 'string', 'enum': ['rd1112', 'eaa']},
             'disponibilidad_alternativa': {'type': 'string'},
             'output_path': {'type': 'string', 'description': 'Guarda el HTML en esta ruta (opcional)'},
+            'lang': {'type': 'string', 'enum': ['es', 'en'], 'description': 'Idioma de la declaración (es por defecto; en = Directive (EU) 2016/2102 / EAA wording)'},
         }, 'required': ['entidad', 'url', 'estado']},
     },
     {
@@ -78,7 +81,9 @@ TOOLS = [
         'description': ('Devuelve el código JavaScript del monitor de anuncios aria-live para '
                         'inyectar en una página (bookmarklet o page.evaluate): registra cada '
                         'anuncio de regiones dinámicas con hora, cortesía, rol y texto.'),
-        'inputSchema': {'type': 'object', 'properties': {}},
+        'inputSchema': {'type': 'object', 'properties': {
+            'lang': {'type': 'string', 'enum': ['es', 'en'], 'description': 'Idioma del panel del monitor (es por defecto)'},
+        }},
     },
 ]
 
@@ -92,15 +97,15 @@ def _texto(obj):
 
 def llamar(nombre, args):
     if nombre == 'a11y_contrast_pair':
-        return _texto(pair_fn(args['fg'], args['bg']))
+        return _texto(pair_fn(args['fg'], args['bg'], lang=args.get('lang', 'es')))
     if nombre == 'a11y_contrast_image':
         return _texto(image_contrast(args['path'], args['text_color'],
-                                     region=args.get('region'), sample=args.get('sample', 4)))
+                                     region=args.get('region'), sample=args.get('sample', 4), lang=args.get('lang', 'es')))
     if nombre == 'a11y_suggest_color':
         fg, bg = parse_color(args['fg']), parse_color(args['bg'])
         if not fg or not bg:
             return _texto({'error': 'color no válido'})
-        return _texto(sugerir(fg, bg, float(args.get('target', 4.5))) or {'resultado': None})
+        return _texto(sugerir(fg, bg, float(args.get('target', 4.5)), args.get('lang', 'es')) or {'resultado': None})
     if nombre == 'a11y_generate_declaration':
         res = declaracion_fn(
             args['entidad'], args['url'], args['estado'],
@@ -108,7 +113,8 @@ def llamar(nombre, args):
             metodo=args.get('metodo'), fecha_evaluacion=args.get('fecha_evaluacion'),
             fecha_revision=args.get('fecha_revision'), feedback=args.get('feedback'),
             reclamacion=args.get('reclamacion'), marco=args.get('marco', 'rd1112'),
-            disponibilidad_alternativa=args.get('disponibilidad_alternativa'))
+            disponibilidad_alternativa=args.get('disponibilidad_alternativa'),
+            lang=args.get('lang', 'es'))
         if 'error' in res:
             return {'content': [{'type': 'text', 'text': res['error']}], 'isError': True}
         salida = args.get('output_path')
@@ -119,7 +125,10 @@ def llamar(nombre, args):
         return {'content': [{'type': 'text', 'text': res['html']}]}
     if nombre == 'a11y_aria_live_snippet':
         with open(os.path.join(AQUI, 'arialive.js'), encoding='utf-8') as f:
-            return {'content': [{'type': 'text', 'text': f.read()}]}
+            js = f.read()
+        if args.get('lang') == 'en':
+            js = "window.ALM_LANG='en';\n" + js
+        return {'content': [{'type': 'text', 'text': js}]}
     raise ValueError(f'herramienta desconocida: {nombre}')
 
 
@@ -141,7 +150,7 @@ def main():
                 resp = {'jsonrpc': '2.0', 'id': mid, 'result': {
                     'protocolVersion': msg.get('params', {}).get('protocolVersion', '2024-11-05'),
                     'capabilities': {'tools': {}},
-                    'serverInfo': {'name': 'a11y-toolkit', 'version': '2.0.0'},
+                    'serverInfo': {'name': 'a11y-toolkit', 'version': '2.1.0'},
                 }}
             elif metodo == 'ping':
                 resp = {'jsonrpc': '2.0', 'id': mid, 'result': {}}

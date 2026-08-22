@@ -1,30 +1,71 @@
 #!/usr/bin/env python3
-"""A11Y Contrast Toolkit — núcleo compartido (CLI, skill y MCP).
-
-Comprobaciones WCAG 2.2 de contraste, en dos modalidades:
+"""A11Y Contrast Toolkit — núcleo compartido (CLI, skill y MCP). Multilenguaje es/en.
 
 1. Par de colores planos  →  ratios y veredictos 1.4.3 / 1.4.6 / 1.4.11
-2. Texto sobre imagen     →  muestreo píxel a píxel de la zona del texto:
-   contraste peor / mediano / p95, % de área que pasa AA y AAA, y veredicto.
+2. Texto sobre imagen     →  muestreo píxel a píxel de la zona del texto
 
-Cero dependencias: la decodificación de imágenes usa Pillow si está
-disponible y, si no, `sips` (macOS) convirtiendo a PPM.
+Cero dependencias: Pillow si existe, si no `sips` (macOS); PPM siempre.
 
 Uso:
-  contrast.py pair "#ffffff" "#000000"
-  contrast.py pair "#1f2328" "#fbfaf7" --suggest
-  contrast.py image foto.jpg --text "#ffffff"
-  contrast.py image foto.jpg --text "#333333" --region 120,40,420,90 --sample 4
+  contrast.py pair "#ffffff" "#000000" [--lang en]
+  contrast.py image foto.jpg --text "#ffffff" [--region 120,40,420,90] [--sample 4] [--lang en]
 """
 
 import json
-import math
 import re
 import shutil
 import subprocess
 import sys
 import tempfile
 import os
+
+T = {
+    'es': {
+        'criterios': [
+            ('1.4.3 Contraste (mínimo) · texto normal', 'AA', 4.5),
+            ('1.4.3 Contraste (mínimo) · texto grande', 'AA', 3.0),
+            ('1.4.6 Contraste (mejorado) · texto normal', 'AAA', 7.0),
+            ('1.4.6 Contraste (mejorado) · texto grande', 'AAA', 4.5),
+            ('1.4.11 Contraste no textual (UI, iconos, bordes)', 'AA', 3.0),
+        ],
+        'color_invalido': 'color no válido (usa #rgb, #rrggbb o rgb(r,g,b))',
+        'region_invalida': 'region debe ser x,y,ancho,alto (números separados por comas)',
+        'region_fuera': 'región fuera de la imagen',
+        'sin_pixeles': 'sin píxeles en la región',
+        'carga_error': 'no se pudo cargar la imagen',
+        'aclarar': 'aclarando', 'oscurecer': 'oscureciendo',
+        'sin_copia': 'sin copia específica del post: base a secas',
+        'interp': ('El contraste del texto debe evaluarse contra el FONDO REAL tras él: '
+                   'usa ratio_peor para saber la zona más hostil y area_pasa_aa_texto_normal '
+                   'para saber cuánta superficie es segura. Si area_pasa < 100% con texto '
+                   'sobre imagen, se necesita velo/overlay o texto alternativo posicionado.'),
+    },
+    'en': {
+        'criterios': [
+            ('1.4.3 Contrast (Minimum) · normal text', 'AA', 4.5),
+            ('1.4.3 Contrast (Minimum) · large text', 'AA', 3.0),
+            ('1.4.6 Contrast (Enhanced) · normal text', 'AAA', 7.0),
+            ('1.4.6 Contrast (Enhanced) · large text', 'AAA', 4.5),
+            ('1.4.11 Non-text Contrast (UI, icons, borders)', 'AA', 3.0),
+        ],
+        'color_invalido': 'invalid color (use #rgb, #rrggbb or rgb(r,g,b))',
+        'region_invalida': 'region must be x,y,width,height (comma-separated numbers)',
+        'region_fuera': 'region outside the image',
+        'sin_pixeles': 'no pixels in region',
+        'carga_error': 'could not load image',
+        'aclarar': 'lightening', 'oscurecer': 'darkening',
+        'sin_copia': 'no specific copy of the post: base only',
+        'interp': ('Text contrast must be evaluated against the REAL background behind it: '
+                   'use ratio_peor (worst) to find the most hostile area and '
+                   'area_pasa_aa_texto_normal to know how much surface is safe. If '
+                   'area_pasa < 100% for text over image, you need an overlay/scrim or '
+                   'repositioned alternative text.'),
+    },
+}
+
+
+def _t(lang):
+    return T.get(lang, T['es'])
 
 # ---------------------------------------------------------------- colores ---
 
@@ -64,54 +105,47 @@ def ratio(fg, bg):
     return (l1 + 0.05) / (l2 + 0.05)
 
 
-CRITERIOS = [
-    ('1.4.3 Contraste (mínimo) · texto normal', 'AA', 4.5),
-    ('1.4.3 Contraste (mínimo) · texto grande', 'AA', 3.0),
-    ('1.4.6 Contraste (mejorado) · texto normal', 'AAA', 7.0),
-    ('1.4.6 Contraste (mejorado) · texto grande', 'AAA', 4.5),
-    ('1.4.11 Contraste no textual (UI, iconos, bordes)', 'AA', 3.0),
-]
-
-
-def veredictos(r):
+def veredictos(r, lang='es'):
     return [
         {'criterio': n, 'nivel': lvl, 'umbral': u, 'cumple': r >= u}
-        for n, lvl, u in CRITERIOS
+        for n, lvl, u in _t(lang)['criterios']
     ]
 
 
-def sugerir(fg, bg, objetivo=4.5):
+def sugerir(fg, bg, objetivo=4.5, lang='es'):
     """Color más cercano al original que cumple el objetivo (mezcla con blanco/negro)."""
     def mez(c, blanco, t):
         o = 255 if blanco else 0
         return {'r': round(c['r'] + (o - c['r']) * t),
                 'g': round(c['g'] + (o - c['g']) * t),
                 'b': round(c['b'] + (o - c['b']) * t)}
+    t9 = _t(lang)
     mejor = None
     for blanco in (True, False):
         for paso in range(1, 51):
-            t = paso / 50
-            c = mez(fg, blanco, t)
+            tt = paso / 50
+            c = mez(fg, blanco, tt)
             if ratio(c, bg) >= objetivo:
-                if mejor is None or t < mejor['paso']:
+                if mejor is None or tt < mejor['paso']:
                     mejor = {'color': hexs(c), 'ratio': round(ratio(c, bg), 2),
-                             'accion': 'aclarar' if blanco else 'oscurecer', 'paso': t}
+                             'accion': t9['aclarar'] if blanco else t9['oscurecer'],
+                             'paso': tt}
                 break
     return mejor
 
 
-def pair(fg_s, bg_s, con_sugerencia=True):
+def pair(fg_s, bg_s, con_sugerencia=True, lang='es'):
     fg, bg = parse_color(fg_s), parse_color(bg_s)
     if not fg or not bg:
-        return {'error': 'color no válido (usa #rgb, #rrggbb o rgb(r,g,b))'}
+        return {'error': _t(lang)['color_invalido']}
     r = ratio(fg, bg)
     out = {
         'texto': hexs(fg), 'fondo': hexs(bg),
         'ratio': round(r, 2),
-        'veredictos': veredictos(r),
+        'veredictos': veredictos(r, lang),
     }
     if con_sugerencia and r < 4.5:
-        s = sugerir(fg, bg, 4.5)
+        s = sugerir(fg, bg, 4.5, lang)
         if s:
             out['sugerencia_aa'] = s
     return out
@@ -119,7 +153,6 @@ def pair(fg_s, bg_s, con_sugerencia=True):
 # ---------------------------------------------------------------- imagen ----
 
 def _cargar_ppm(ruta):
-    """PPM P6 → (ancho, alto, bytes RGB)."""
     with open(ruta, 'rb') as f:
         datos = f.read()
     if not datos.startswith(b'P6'):
@@ -143,7 +176,6 @@ def _cargar_ppm(ruta):
 
 
 def cargar_imagen(ruta):
-    """Devuelve (ancho, alto, bytes RGB) desde PNG/JPG/PPM. Pillow si existe; si no, sips."""
     try:
         from PIL import Image
         im = Image.open(ruta).convert('RGB')
@@ -172,37 +204,32 @@ def _percentil(vals, p):
     return s[k]
 
 
-def image_contrast(ruta, texto_color, region=None, sample=4):
-    """
-    Muestrea el fondo de una imagen y calcula el contraste del color de
-    texto contra cada píxel de la región (por defecto, toda la imagen).
-
-    region: "x,y,ancho,alto" en píxeles. sample: paso de muestreo (1 = todos).
-    """
+def image_contrast(ruta, texto_color, region=None, sample=4, lang='es'):
+    t9 = _t(lang)
     c = parse_color(texto_color)
     if not c:
-        return {'error': 'color de texto no válido'}
+        return {'error': t9['color_invalido']}
     if region:
         try:
             x, y, rw, rh = (int(v) for v in region.split(','))
         except ValueError:
-            return {'error': 'region debe ser x,y,ancho,alto (números separados por comas)'}
+            return {'error': t9['region_invalida']}
     try:
         w, h, rgb = cargar_imagen(ruta)
     except Exception as e:  # noqa: BLE001
-        return {'error': f'no se pudo cargar la imagen: {e}'}
+        return {'error': f'{t9["carga_error"]}: {e}'}
+    if region:
         x, y = max(0, x), max(0, y)
         rw = min(rw, w - x)
         rh = min(rh, h - y)
         if rw <= 0 or rh <= 0:
-            return {'error': 'región fuera de la imagen'}
+            return {'error': t9['region_fuera']}
     else:
         x, y, rw, rh = 0, 0, w, h
 
     sample = max(1, int(sample))
     l_texto = luminancia(c)
     ratios = []
-    n = 0
     for j in range(y, y + rh, sample):
         fila = j * w
         for i in range(x, x + rw, sample):
@@ -211,30 +238,23 @@ def image_contrast(ruta, texto_color, region=None, sample=4):
                     + 0.0722 * _lin(rgb[o + 2]))
             l1, l2 = (l_texto, lpix) if l_texto > lpix else (lpix, l_texto)
             ratios.append((l1 + 0.05) / (l2 + 0.05))
-            n += 1
     if not ratios:
-        return {'error': 'sin píxeles en la región'}
+        return {'error': t9['sin_pixeles']}
 
     pasa45 = sum(1 for v in ratios if v >= 4.5)
     pasa30 = sum(1 for v in ratios if v >= 3.0)
-    out = {
+    return {
         'imagen': os.path.basename(ruta),
         'color_texto': hexs(c),
-        'region': {'x': x, 'y': y, 'ancho': rw, 'alto': rh, 'pixeles_muestreados': n,
-                   'paso': sample},
+        'region': {'x': x, 'y': y, 'ancho': rw, 'alto': rh,
+                   'pixeles_muestreados': len(ratios), 'paso': sample},
         'ratio_peor': round(min(ratios), 2),
         'ratio_mediana': round(_percentil(ratios, 50), 2),
         'ratio_p95': round(_percentil(ratios, 95), 2),
-        'area_pasa_aa_texto_normal_4_5': round(100.0 * pasa45 / n, 1),
-        'area_pasa_aa_minimo_3_0': round(100.0 * pasa30 / n, 1),
-        'interpretacion': (
-            'El contraste del texto debe evaluarse contra el FONDO REAL tras él: '
-            'usa ratio_peor para saber la zona más hostil y area_pasa_aa_texto_normal '
-            'para saber cuánta superficie es segura. Si area_pasa < 100% con texto '
-            'sobre imagen, se necesita velo/overlay o texto alternativo posicionado.'
-        ),
+        'area_pasa_aa_texto_normal_4_5': round(100.0 * pasa45 / len(ratios), 1),
+        'area_pasa_aa_minimo_3_0': round(100.0 * pasa30 / len(ratios), 1),
+        'interpretacion': t9['interp'],
     }
-    return out
 
 # ---------------------------------------------------------------- CLI -------
 
@@ -242,35 +262,38 @@ def main(argv):
     if len(argv) < 1 or argv[0] not in ('pair', 'image'):
         print(__doc__)
         return 1
-    cmd = argv[0]
-    flags = {'--suggest': False}
+    lang = 'es'
+    flags = {}
     posicionales = []
     i = 1
     while i < len(argv):
         v = argv[i]
-        if v in ('--suggest',):
-            flags[v] = True
+        if v == '--lang' and i + 1 < len(argv):
+            lang = argv[i + 1]
+            i += 1
         elif v in ('--region', '--sample', '--text'):
             if i + 1 >= len(argv):
                 print(f'falta el valor de {v}')
                 return 1
             flags[v] = argv[i + 1]
             i += 1
+        elif v == '--suggest':
+            flags['--suggest'] = True
         else:
             posicionales.append(v)
         i += 1
-    if cmd == 'pair':
+    if argv[0] == 'pair':
         if len(posicionales) < 2:
-            print('uso: contrast.py pair "#texto" "#fondo"')
+            print('uso: contrast.py pair "#texto" "#fondo" [--lang es|en]')
             return 1
-        res = pair(posicionales[0], posicionales[1], con_sugerencia=True)
+        res = pair(posicionales[0], posicionales[1], con_sugerencia=True, lang=lang)
     else:
         if not posicionales or '--text' not in flags:
-            print('uso: contrast.py image ruta.jpg --text "#ffffff" [--region x,y,w,h] [--sample N]')
+            print('uso: contrast.py image ruta.jpg --text "#ffffff" [--region x,y,w,h] [--sample N] [--lang es|en]')
             return 1
         res = image_contrast(posicionales[0], flags['--text'],
                              region=flags.get('--region'),
-                             sample=flags.get('--sample', 4))
+                             sample=flags.get('--sample', 4), lang=lang)
     print(json.dumps(res, ensure_ascii=False, indent=1))
     return 0
 

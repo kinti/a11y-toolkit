@@ -61,3 +61,11 @@ d = json.loads(out.stdout)
 cerca(d['ratio'], 4.54, 0.02)
 
 print('TODOS LOS TESTS DE CONTRASTE PASAN ✓')
+
+# 6. Multilenguaje
+r_en = pair('#999999', '#ffffff', lang='en')
+assert r_en['veredictos'][0]['criterio'].startswith('1.4.3 Contrast'), r_en['veredictos'][0]
+assert r_en['sugerencia_aa']['accion'] == 'darkening'
+r_es = pair('#999999', '#ffffff', lang='es')
+assert r_es['veredictos'][0]['criterio'].startswith('1.4.3 Contraste')
+print('MULTILINGUE PAR OK ✓')
