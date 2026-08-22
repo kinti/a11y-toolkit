@@ -137,7 +137,6 @@ def llamar(nombre, args):
                 f.write(res['html'])
             return _texto({'guardado_en': salida, 'resumen': res['resumen']})
         return {'content': [{'type': 'text', 'text': res['html']}]}
-    if nombre == 'a11y_aria_live_snippet':
     if nombre == 'a11y_audit_url':
         try:
             return _texto(audit_url_fn(args['url']))
