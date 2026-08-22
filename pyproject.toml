@@ -1,0 +1,22 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "a11y-toolkit"
+version = "2.0.0"
+description = "MCP server + CLI for WCAG 2.2 accessibility: contrast (pairs and text-over-image), RD 1112/2018 & Ley 11/2023 declarations, aria-live monitor"
+readme = "README.md"
+requires-python = ">=3.9"
+license = { text = "MIT" }
+authors = [{ name = "Jesús Quintana Fernández" }]
+keywords = ["mcp", "accessibility", "wcag", "contrast", "a11y", "spanish"]
+
+[project.scripts]
+a11y-toolkit-mcp = "server:main"
+
+[tool.setuptools]
+py-modules = ["contrast", "declaracion", "server"]
+
+[tool.setuptools.data-files]
+"." = ["arialive.js"]
