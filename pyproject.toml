@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "a11y-toolkit"
-version = "2.2.0"
+version = "2.3.0"
 description = "MCP server + CLI for WCAG 2.2 accessibility (multilanguage es/en): contrast (pairs and text-over-image), RD 1112/2018 & Ley 11/2023 declarations, aria-live monitor"
 readme = "README.md"
 requires-python = ">=3.9"
@@ -14,9 +14,10 @@ keywords = ["mcp", "accessibility", "wcag", "contrast", "a11y", "spanish"]
 
 [project.scripts]
 a11y-toolkit-mcp = "server:main"
+a11y = "a11y:main"
 
 [tool.setuptools]
-py-modules = ["contrast", "declaracion", "a11yaudit", "server"]
+py-modules = ["a11y", "contrast", "declaracion", "a11yaudit", "a11ydiff", "server"]
 
 [tool.setuptools.data-files]
 "." = ["arialive.js"]

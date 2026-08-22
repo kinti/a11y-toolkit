@@ -1,5 +1,12 @@
 # Changelog
 
+## 2.3.0 — 2026-08-22
+- **The toolkit is now ONE toolkit**: a11ydiff integrated into the MCP as `a11y_snapshot`,
+  `a11y_diff` (inline JSON or file paths) and `a11y_diff_urls` (staging vs prod in one call).
+- **Unified CLI `a11y`**: one command for everything — `a11y pair`, `a11y image`,
+  `a11y audit`, `a11y declaration`, `a11y snapshot`, `a11y diff`.
+- 9 MCP tools total. No new capabilities — pure integration of the existing four modules.
+
 ## 2.2.0 — 2026-08-22
 - **New tool `a11y_audit_url`**: express WCAG audit of any URL (alt, accessible names,
   form labels, lang/title, heading skips, blocked zoom, tabindex>0, iframe titles),

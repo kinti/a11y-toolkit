@@ -25,6 +25,7 @@ sys.path.insert(0, AQUI)
 from contrast import pair as pair_fn, image_contrast, sugerir, parse_color  # noqa: E402
 from declaracion import generar as declaracion_fn  # noqa: E402
 from a11yaudit import audit_url as audit_url_fn  # noqa: E402
+from a11ydiff import snapshot as snapshot_fn, diff as diff_fn  # noqa: E402
 
 TOOLS = [
     {
@@ -91,6 +92,34 @@ TOOLS = [
         }, 'required': ['url']},
     },
     {
+        'name': 'a11y_snapshot',
+        'description': ('Captura un snapshot de accesibilidad de una URL: elementos '
+                        'interactivos (tag, rol, nombre accesible, href) y orden real de '
+                        'tabulación. Guárdalo antes de un deploy y compara después con '
+                        'a11y_diff. Requiere Playwright instalado localmente.'),
+        'inputSchema': {'type': 'object', 'properties': {
+            'url': {'type': 'string'},
+        }, 'required': ['url']},
+    },
+    {
+        'name': 'a11y_diff',
+        'description': ('Compara dos snapshots de accesibilidad (antes/después de un deploy): '
+                        'interactivos añadidos/eliminados/renombrados y cambios en el orden de '
+                        'foco. Acepta JSON inline (empezando por "{") o rutas de fichero.'),
+        'inputSchema': {'type': 'object', 'properties': {
+            'a': {'type': 'string', 'description': 'Snapshot ANTES (JSON inline o ruta)'},
+            'b': {'type': 'string', 'description': 'Snapshot DESPUÉS (JSON inline o ruta)'},
+        }, 'required': ['a', 'b']},
+    },
+    {
+        'name': 'a11y_diff_urls',
+        'description': ('Snapshot de dos URLs y diff en una sola llamada (p. ej. staging vs '
+                        'producción). Requiere Playwright.'),
+        'inputSchema': {'type': 'object', 'properties': {
+            'url_a': {'type': 'string'}, 'url_b': {'type': 'string'},
+        }, 'required': ['url_a', 'url_b']},
+    },
+    {
         'name': 'a11y_aria_live_snippet',
         'description': ('Devuelve el código JavaScript del monitor de anuncios aria-live para '
                         'inyectar en una página (bookmarklet o page.evaluate): registra cada '
@@ -142,6 +171,35 @@ def llamar(nombre, args):
             return _texto(audit_url_fn(args['url']))
         except Exception as e:  # noqa: BLE001
             return {'content': [{'type': 'text', 'text': f'error: {e}'}], 'isError': True}
+    if nombre == 'a11y_snapshot':
+        try:
+            return _texto(snapshot_fn(args['url']))
+        except ImportError:
+            return {'content': [{'type': 'text',
+                                 'text': 'Playwright no instalado: pip install playwright && playwright install chromium'}],
+                    'isError': True}
+        except Exception as e:  # noqa: BLE001
+            return {'content': [{'type': 'text', 'text': f'error: {e}'}], 'isError': True}
+    if nombre == 'a11y_diff':
+        def _carga(v):
+            v = v.strip()
+            if v.startswith('{'):
+                return json.loads(v)
+            with open(v, encoding='utf-8') as f:
+                return json.load(f)
+        try:
+            return _texto(diff_fn(_carga(args['a']), _carga(args['b'])))
+        except Exception as e:  # noqa: BLE001
+            return {'content': [{'type': 'text', 'text': f'error: {e}'}], 'isError': True}
+    if nombre == 'a11y_diff_urls':
+        try:
+            return _texto(diff_fn(snapshot_fn(args['url_a']), snapshot_fn(args['url_b'])))
+        except ImportError:
+            return {'content': [{'type': 'text',
+                                 'text': 'Playwright no instalado: pip install playwright && playwright install chromium'}],
+                    'isError': True}
+        except Exception as e:  # noqa: BLE001
+            return {'content': [{'type': 'text', 'text': f'error: {e}'}], 'isError': True}
     if nombre == 'a11y_aria_live_snippet':
         with open(os.path.join(AQUI, 'arialive.js'), encoding='utf-8') as f:
             js = f.read()
@@ -169,7 +227,7 @@ def main():
                 resp = {'jsonrpc': '2.0', 'id': mid, 'result': {
                     'protocolVersion': msg.get('params', {}).get('protocolVersion', '2024-11-05'),
                     'capabilities': {'tools': {}},
-                    'serverInfo': {'name': 'a11y-toolkit', 'version': '2.2.0'},
+                    'serverInfo': {'name': 'a11y-toolkit', 'version': '2.3.0'},
                 }}
             elif metodo == 'ping':
                 resp = {'jsonrpc': '2.0', 'id': mid, 'result': {}}

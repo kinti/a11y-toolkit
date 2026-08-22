@@ -52,7 +52,8 @@ COLECTOR = r'''() => {
 }'''
 
 
-def snapshot(url, salida):
+def snapshot(url, salida=None):
+    """Captura una URL. Con salida=None devuelve los datos sin escribir fichero."""
     from playwright.sync_api import sync_playwright
     with sync_playwright() as p:
         nav = p.chromium.launch()
@@ -86,8 +87,9 @@ def snapshot(url, salida):
 
     datos = {'url': url, 'ts': datetime.now(timezone.utc).isoformat(),
              'elementos': elementos, 'orden_foco': orden}
-    with open(salida, 'w', encoding='utf-8') as f:
-        json.dump(datos, f, ensure_ascii=False, indent=1)
+    if salida:
+        with open(salida, 'w', encoding='utf-8') as f:
+            json.dump(datos, f, ensure_ascii=False, indent=1)
     return datos
 
 
