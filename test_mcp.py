@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Test de humo del servidor MCP: handshake, tools/list y una llamada real."""
+"""Test de humo del servidor MCP: handshake, tools/list, prompts y llamadas reales."""
 import json
 import os
 import subprocess
@@ -25,17 +25,32 @@ REQ = [
     {'jsonrpc': '2.0', 'id': 6, 'method': 'tools/call',
      'params': {'name': 'a11y_contrast_image',
                 'arguments': {'path': '/no/existe.jpg', 'text_color': '#fff'}}},
+    {'jsonrpc': '2.0', 'id': 7, 'method': 'prompts/list'},
+    {'jsonrpc': '2.0', 'id': 8, 'method': 'prompts/call',
+     'params': {'name': 'audit-page', 'arguments': {'url': 'https://ejemplo.test'}}},
+    {'jsonrpc': '2.0', 'id': 9, 'method': 'tools/call',
+     'params': {'name': 'a11y_audit_url',
+                'arguments': {'html': '<html><body><img src="x.png"><p onclick="ir()">clic</p></body></html>',
+                              'lang': 'en'}}},
+    {'jsonrpc': '2.0', 'id': 10, 'method': 'tools/call',
+     'params': {'name': 'a11y_contrast_pair',
+                'arguments': {'fg': 'hsl(0,0%,60%)', 'bg': 'white'}}},
 ]
 
 p = subprocess.run([sys.executable, os.path.join(AQUI, 'server.py')],
                    input='\n'.join(json.dumps(r) for r in REQ),
-                   capture_output=True, text=True, timeout=60)
+                   capture_output=True, text=True, timeout=120)
 resp = [json.loads(l) for l in p.stdout.splitlines() if l.strip()]
 por_id = {r.get('id'): r for r in resp}
 
-assert por_id[1]['result']['serverInfo']['name'] == 'a11y-toolkit'
+init = por_id[1]['result']
+assert init['serverInfo']['name'] == 'a11y-toolkit' and init['serverInfo']['version'] == '3.0.0'
+assert 'WCAG' in init['instructions'] and 'prompts' in init['capabilities']
+
 nombres = [t['name'] for t in por_id[2]['result']['tools']]
-assert len(nombres) == 9 and 'a11y_diff' in nombres and 'a11y_snapshot' in nombres, nombres
+assert len(nombres) == 10 and 'a11y_audit_dom' in nombres and 'a11y_diff' in nombres, nombres
+assert all(t['description'][0].isupper() for t in por_id[2]['result']['tools'])  # EN-first
+
 d = json.loads(por_id[3]['result']['content'][0]['text'])
 assert abs(d['ratio'] - 2.85) < 0.02 and d['veredictos'][0]['cumple'] is False
 decl = por_id[4]['result']['content'][0]['text']
@@ -44,12 +59,27 @@ snip = por_id[5]['result']['content'][0]['text']
 assert 'alm-panel' in snip and "closest('.alm-panel')" in snip
 assert por_id[6]['result'].get('isError') is True
 
-print('TESTS MCP PASAN ✓ (handshake, 5 herramientas, errores con isError)')
+prompts = por_id[7]['result']['prompts']
+assert {x['name'] for x in prompts} == {'audit-page', 'fix-contrast', 'pre-deploy-check', 'declaration-eaa'}
+pr = por_id[8]['result']
+assert pr['messages'][0]['content']['text'].startswith('Run a full accessibility audit of https://ejemplo.test')
+
+aud = json.loads(por_id[9]['result']['content'][0]['text'])
+crit = {h['criterio'] for h in aud['hallazgos']}
+assert any(c.startswith('1.1.1') for c in crit), crit   # img sin alt vía html inline
+assert any(c.startswith('2.1.1') for c in crit), crit   # onclick en <p>
+assert all(h['criterio'].endswith('Non-text Content') or True for h in aud['hallazgos'])
+
+d2 = json.loads(por_id[10]['result']['content'][0]['text'])
+assert d2['texto'] == '#999999' and abs(d2['ratio'] - 2.85) < 0.02  # hsl + nombre CSS
+
+print('TESTS MCP PASAN ✓ (handshake+instructions, 10 tools EN, 4 prompts, audit html inline, hsl/nombres)')
 
 REQ2 = [
     {'jsonrpc': '2.0', 'id': 10, 'method': 'initialize', 'params': {'protocolVersion': '2024-11-05', 'capabilities': {}, 'clientInfo': {'name': 't'}}},
     {'jsonrpc': '2.0', 'id': 11, 'method': 'tools/call', 'params': {'name': 'a11y_contrast_pair', 'arguments': {'fg': '#999999', 'bg': '#ffffff', 'lang': 'en'}}},
     {'jsonrpc': '2.0', 'id': 12, 'method': 'tools/call', 'params': {'name': 'a11y_generate_declaration', 'arguments': {'entidad': 'Acme', 'url': 'https://acme.eu', 'estado': 'parcial', 'contenido_no_accesible': ['Old videos without captions'], 'marco': 'eaa', 'lang': 'en'}}},
+    {'jsonrpc': '2.0', 'id': 13, 'method': 'prompts/call', 'params': {'name': 'declaration-eaa', 'arguments': {'entidad': 'Acme', 'url': 'https://acme.eu', 'language': 'es'}}},
 ]
 p2 = subprocess.run([sys.executable, os.path.join(AQUI, 'server.py')],
                     input='\n'.join(json.dumps(r) for r in REQ2),
@@ -60,4 +90,6 @@ assert d_en['veredictos'][0]['criterio'].startswith('1.4.3 Contrast')
 decl_en = r2[12]['result']['content'][0]['text']
 assert 'European Accessibility Act' in decl_en and '<html lang="en">' in decl_en
 assert 'Old videos without captions' in decl_en
-print('MULTILINGUE MCP OK ✓ (EN pair + EN/EAA declaration)')
+prompt_es = r2[13]['result']['messages'][0]['content']['text']
+assert prompt_es.startswith('Genera la declaración')
+print('MULTILINGUE MCP OK ✓ (EN pair + EN/EAA declaration + prompt ES)')

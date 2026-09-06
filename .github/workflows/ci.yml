@@ -13,5 +13,21 @@ jobs:
           python-version: ${{ matrix.python-version }}
       - run: pip install pillow
       - run: python test_contrast.py
-      - run: python test_mcp.py
       - run: python test_audit.py
+      - run: python test_dom.py          # self-skips if Playwright is absent
+      - run: python test_mcp.py
+      - name: Package smoke test (pip install .)
+        run: |
+          pip install .
+          a11y pair "#767676" "#ffffff"
+          python3 -c "import server, a11ydom; print('server imports OK,', len(server.TOOLS), 'tools,', len(server._PROMPTS), 'prompts')"
+          pip uninstall -y a11y-toolkit
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install build
+      - run: python -m build
