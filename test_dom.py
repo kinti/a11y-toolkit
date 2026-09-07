@@ -32,6 +32,7 @@ a:focus{outline:none}.chico{padding:1px 2px}</style></head>
 <button aria-hidden="true" tabindex="-1">honeypot-btn</button>
 <div aria-hidden="true" class="robots"><label>robots only <input type="text" tabindex="-1"></label></div>
 <a href="#s" style="position:absolute;width:1px;height:1px;overflow:hidden">skip oculto</a>
+<mi-tarjeta></mi-tarjeta>
 <iframe src="dom_fixture_hijo.html" title="hijo"></iframe>
 </main></body></html>'''
 
@@ -39,9 +40,18 @@ HIJO = '''<!doctype html><html lang="es"><head><meta charset="utf-8"><title>Hijo
 <body><img src="y.png"></body></html>'''
 with open(os.path.join('/tmp', 'dom_fixture_hijo.html'), 'w', encoding='utf-8') as f:
     f.write(HIJO)
+SHADOW_JS = '''<script>
+customElements.define('mi-tarjeta', class extends HTMLElement {
+  connectedCallback() {
+    const r = this.attachShadow({mode: 'open'});
+    r.innerHTML = '<img src="dentro.png"><button></button>' +
+      '<p style="color:#999;background:#fff">Contraste del shadow DOM</p>';
+  }
+});
+</script>'''
 ruta = os.path.join('/tmp', 'a11ydom_fixture.html')
 with open(ruta, 'w', encoding='utf-8') as f:
-    f.write(FIXTURE)
+    f.write(FIXTURE.replace('</head>', SHADOW_JS + '</head>'))
 
 r = subprocess.run([sys.executable, os.path.join(AQUI, 'a11ydom.py'),
                     'file://' + ruta, '--lang', 'en'],
@@ -55,6 +65,9 @@ assert any(c.startswith('2.5.8') for c in crit), sorted(crit)          # target 
 assert any(c.startswith('3.3.2') for c in crit), sorted(crit)          # campo sin label
 assert any(c.startswith('1.1.1') for c in crit), sorted(crit)          # img sin alt
 assert d['modo'] == 'rendered'
+assert d.get('shadow_roots', 0) >= 1, d.get('shadow_roots')
+assert any('mi-tarjeta' in str(e) for h in d['hallazgos'] for e in h.get('ejemplos', [])), \
+    'los fallos del shadow root no aparecen'
 assert d.get('iframes_anidados', 0) == 1, d.get('iframes_anidados')   # iframe same-origin
 assert any('iframe: y.png' in str(e) for h in d['hallazgos'] for e in h.get('ejemplos', []))
 # FPs corregidos tras el bench: honeypot aria-hidden, tabindex=-1 y skip oculto no se reportan

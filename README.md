@@ -32,7 +32,7 @@ makes "is it accessible?" a one-question ask — and "then fix it" a one-command
 | Screen-reader **aria-live announcement monitor** | ✗ | ✓ |
 | **0-100 score** computed from weighted findings | ✓ (Lighthouse, subset of rules) | ✓ (fuller rule set) |
 | **Criterion explanations** on demand for agents | ✗ | ✓ |
-| Static core parity: ARIA validity, autocomplete 1.3.5, link purpose, duplicate ids | ✓ | ✓ |
+| Static core parity: ARIA validity, autocomplete 1.3.5, link purpose, list structure, duplicate ids | ✓ | ✓ |
 | Output optimized for **MCP/LLM consumption** (JSON, severity-ranked, es/en) | ✗ | ✓ |
 
 ## The tools (12)
@@ -40,7 +40,7 @@ makes "is it accessible?" a one-question ask — and "then fix it" a one-command
 | Tool | What it does |
 |---|---|
 | `a11y_audit_url` | Express static WCAG audit of a URL **or raw HTML**: 20+ signals with a **weighted 0-100 score** (alt, accessible names, labels, autocomplete 1.3.5, keyboard onclick, unknown ARIA roles, broken aria-labelledby, unnamed duplicated landmarks, meta refresh, skip mechanism, lang validity, title, headings, blocked zoom, captions, autoplay audio, generic/duplicated link text, target=_blank warnings, tabindex>0, aria-hidden-on-focusable, tables, duplicate ids, accesskeys). Per-finding remediation. |
-| `a11y_audit_dom` | **Rendered audit** (local Playwright/Chromium): real computed text contrast vs effective backgrounds with alpha compositing (1.4.3), minimum target size 24×24 (**2.5.8 — new in WCAG 2.2**), focus-indicator heuristic (2.4.7), all static checks on the live DOM. |
+| `a11y_audit_dom` | **Rendered audit** (local Playwright/Chromium): real computed text contrast vs effective backgrounds with alpha compositing (1.4.3), minimum target size 24×24 (**2.5.8 — new in WCAG 2.2**), focus-indicator heuristic (2.4.7), **:focus/:hover state contrast**, **open shadow DOM traversed** — all static checks on the live DOM. |
 | `a11y_contrast_pair` | Exact ratio + verdicts 1.4.3/1.4.6/1.4.11. Accepts `#hex`, `rgb()`, `hsl()`, **CSS color names**; alpha composites over the background. Suggests the nearest passing color. |
 | `a11y_contrast_image` | **Text over images**: pixel-level sampling of the actual background → worst/median/p95 ratio, % area passing AA, hostile-zone detection on a 3×3 grid. |
 | *(rendered audit)* | adds **:focus/:hover state contrast** (disabled exempt) and **same-origin iframes** |

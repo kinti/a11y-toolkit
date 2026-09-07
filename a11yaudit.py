@@ -169,6 +169,8 @@ T = {
         'autocomplete_rem': 'Añade autocomplete con el token correcto (email, tel, name, postal-code…, 1.3.5): relleno automático y voz de accesibilidad con sobrecoste cero.',
         'aria_ref_missing': '{n} referencias aria-labelledby/describedby apuntan a ids que no existen: {ej}.',
         'aria_ref_missing_rem': 'Corrige o elimina la referencia: un aria-labelledby roto deja el control sin nombre accesible.',
+        'list_structure': '{n} hijos ilegales dentro de <ul>/<ol> (solo <li>, <script> y <template> son válidos).',
+        'list_structure_rem': 'Mete el contenido suelto en <li> o usa otro contenedor: los lectores anuncian la lista con su número de ítems y se saltan lo que no es <li>.',
         'aria_value_invalid': '{n} valores de atributos ARIA inválidos: {ej}. Tecnología asistida los ignora.',
         'aria_value_invalid_rem': 'Los aria-* booleanos solo admiten true/false/undefined, los de posición enteros, los de token su lista cerrada (4.1.2). Corrige o elimina el atributo.',
         'role_unknown': '{n} roles ARIA desconocidos: {ej}. Los lectores los ignoran.',
@@ -249,6 +251,8 @@ T = {
         'autocomplete_rem': 'Add autocomplete with the right token (email, tel, name, postal-code…, 1.3.5): free accessibility and autofill at zero cost.',
         'aria_ref_missing': '{n} aria-labelledby/describedby references point to ids that do not exist: {ej}.',
         'aria_ref_missing_rem': 'Fix or remove the reference: a broken aria-labelledby leaves the control with no accessible name.',
+        'list_structure': '{n} illegal children inside <ul>/<ol> (only <li>, <script> and <template> are valid).',
+        'list_structure_rem': 'Wrap loose content in <li> or use another container: screen readers announce the list with its item count and skip non-<li> content.',
         'aria_value_invalid': '{n} invalid ARIA attribute values: {ej}. Assistive tech ignores them.',
         'aria_value_invalid_rem': 'Boolean aria-* only accept true/false/undefined, position ones integers, token ones their closed list (4.1.2). Fix or drop the attribute.',
         'role_unknown': '{n} unknown ARIA roles: {ej}. Screen readers ignore them.',
@@ -341,6 +345,9 @@ class _Auditor(HTMLParser):
         self.genericos = 0
         self.labels_for_dups = {}  # id → n labels (los >1, varios)
         self.medios_autoplay = 0
+        self._lista_prof = 0
+        self._li_prof = 0
+        self._lista_malos = 0
         self._skip_labels_pend = []  # labels declarados antes que su campo
 
     def _cierra_control(self, tag):
@@ -445,6 +452,10 @@ class _Auditor(HTMLParser):
         elif tag == 'track':
             if (a.get('kind') or '').lower() in ('captions', 'subtitles'):
                 self.videos_con_subs += 1
+        elif tag in ('ul', 'ol'):
+            self._lista_prof += 1
+        elif tag == 'li':
+            self._li_prof += 1
         elif tag == 'table':
             self.tablas += 1
             self._en_tabla = True
@@ -495,6 +506,9 @@ class _Auditor(HTMLParser):
         if a.get('accesskey'):
             k = a['accesskey'].strip().lower()
             self.accesos[k] = self.accesos.get(k, 0) + 1
+        if self._lista_prof > 0 and self._li_prof == 0 \
+                and tag not in ('li', 'script', 'template', 'ul', 'ol'):
+            self._lista_malos += 1
         aria_hidden = (a.get('aria-hidden') or '').lower() == 'true'
         ti_raw = (a.get('tabindex') or '').strip()
         if aria_hidden and ti_raw != '-1' and (
@@ -515,6 +529,10 @@ class _Auditor(HTMLParser):
             self._label_depth = max(0, self._label_depth - 1)
             if self._labels_stack and not self._labels_stack.pop():
                 self.labels_huerfanos += 1
+        elif tag == 'li':
+            self._li_prof = max(0, self._li_prof - 1)
+        elif tag in ('ul', 'ol'):
+            self._lista_prof = max(0, self._lista_prof - 1)
         elif tag in _CONTROLES:
             self._cierra_control(tag)
         elif tag == 'video':
@@ -599,6 +617,8 @@ def audit_html(html_text, url='(html)', lang='es'):
             n=len(p.click_sueltos), tag=p.click_sueltos[0])
     if p.labels_huerfanos:
         add('baja', '3.3.2', 'label_orphan', n=p.labels_huerfanos)
+    if p._lista_malos:
+        add('media', '1.3.1', 'list_structure', n=p._lista_malos)
     if not p.lang:
         add('media', '3.1.1', 'lang_missing')
     elif p.lang.lower().split('-')[0] not in _LANG_CODES:

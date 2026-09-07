@@ -1,5 +1,21 @@
 # Changelog
 
+## 3.5.0 — 2026-09-07 — "through the shadow boundary"
+
+- **Shadow DOM traversal** in the rendered audit: open shadow roots (up to 20,
+  depth 6) are scanned for text contrast (with effective-background compositing
+  ACROSS the shadow boundary via host chaining), target size, accessible names,
+  labels, images, iframes, tables, aria-hidden and focus states. Findings carry
+  readable shadow paths (`mi-tarjeta ::slotted> button`). Closed roots are
+  impossible by browser design and the report says how many roots were scanned
+  (`shadow_roots`).
+- **`list_structure` check (1.3.1)**: illegal direct children of `<ul>/<ol>`
+  (axe's `list` rule) — only `<li>`, `<script>` and `<template>` allowed; legal
+  flow content inside `<li>` is respected.
+- Validated: web-component fixture (all inner failures detected), github.com
+  (5 shadow roots) and m3.material.io (2) scanned clean. Regression fixtures
+  added. Full triage in bench/README.md.
+
 ## 3.4.0 — 2026-09-07 — "validated against reality"
 
 First benchmarked release: axe-core 4.10 run on the same real pages, same

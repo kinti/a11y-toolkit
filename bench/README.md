@@ -3,7 +3,7 @@
 Metodología: en la MISMA página de Chromium y con el MISMO Playwright se ejecutan
 (a) el auditor estático de a11y-toolkit sobre el HTML servido, (b) `a11y_audit_dom`
 (renderizado) y (c) axe-core 4.10.3 inyectado. Se comparan los criterios WCAG
-reportados por cada uno. Última ejecución: 2026-09-07, v3.4.0.
+reportados por cada uno. Última ejecución: 2026-09-07, v3.5.0 (shadow DOM).
 
 Repítelo: `python3 bench/compara.py <url…>` (necesita /tmp/axe.min.js — descárgalo
 de cdn.jsdelivr.net/npm/axe-core).
@@ -44,6 +44,11 @@ Todos los casos tienen fixture de regresión en `test_dom.py` / `test_audit.py`.
   calculamos — de ahí los hallazgos de contraste que axe no lista.
 - El pase estático refleja el HTML SERVIDO (antes de JS): en SPAs y sitios muy
   dinámicos es un filtro de primera pasada, no la verdad final.
-- El pase DOM no atraviesa shadow DOM (los colectores usan `querySelectorAll`);
-  es la siguiente mejora con fundamento, tras validar contra páginas con web
-  components reales.
+- **Shadow DOM (v3.5.0)**: el colector atraviesa shadow roots ABIERTOS (tope 20
+  raíces, profundidad 6) — contrast, targets, nombres, imágenes, foco y estados.
+  Validado con fixture de web component (los 4 fallos interiores detectados con
+  rutas `mi-tarjeta ::slotted> …`) y en producción: github.com (5 raíces) y
+  m3.material.io (2 raíces) se escanea sin errores. Shadow roots CERRADOS son
+  imposibles por diseño del navegador — se declara, no se oculta.
+- Regla `list_structure` (1.3.1) añadida: hijos ilegales de `<ul>/<ol>` (regla
+  `list` de axe).

@@ -104,7 +104,25 @@ _JS = r'''(maxEj) => {
                 blank: 0, videos: 0, videoSubs: 0, tables: 0, tableTh: 0,
                 focus: [], focusFail: [], focusContrast: [], marks: 0, ids: {},
                 lang: null, title: '', viewport: null, refresh: null,
-                main: false, skip: false, elements: 0 };
+                main: false, skip: false, elements: 0, shadow_roots: 0 };
+
+  // ---- raíces: document + shadow roots ABIERTOS (tope 20, profundidad 6) ----
+  const roots = [document];
+  const colecta_raices = (base, prof) => {
+    if (prof > 6 || roots.length >= 20) return;
+    for (const el of base.querySelectorAll('*')) {
+      if (el.shadowRoot) { roots.push(el.shadowRoot); colecta_raices(el.shadowRoot, prof + 1); }
+    }
+  };
+  try { colecta_raices(document, 0); } catch (e) { /* no bloquear por raíces */ }
+  out.shadow_roots = roots.length - 1;
+  const deepQ = sel => {
+    const acc = [];
+    for (const r of roots) {
+      for (const el of r.querySelectorAll(sel)) { acc.push(el); if (acc.length >= 600) return acc; }
+    }
+    return acc;
+  };
 
   const vis = el => {
     const r = el.getBoundingClientRect();
@@ -116,7 +134,15 @@ _JS = r'''(maxEj) => {
     let p = el.tagName.toLowerCase();
     if (el.id) return '#' + el.id;
     let n = el, depth = 0;
-    while (n.parentElement && depth < 2 && n.parentElement !== document.body) {
+    while (n && depth < 3) {
+      if (n === document.body) break;
+      if (!n.parentElement && n.getRootNode && n.getRootNode().host) {
+        n = n.getRootNode().host;
+        p = (n.id ? '#' + n.id : n.tagName.toLowerCase()) + ' ::slotted> ' + p;
+        depth++;
+        continue;
+      }
+      if (!n.parentElement) break;
       n = n.parentElement;
       p = n.tagName.toLowerCase() + (n.id ? '#' + n.id : '') + ' > ' + p;
       depth++;
@@ -144,7 +170,7 @@ _JS = r'''(maxEj) => {
       const c = parseCol(s.backgroundColor);
       if (c && c.a > 0) { stack.push(c); if (c.a >= 1) break; }
       if (n === document.documentElement) break;
-      n = n.parentElement;
+      n = n.parentElement || (n.getRootNode && n.getRootNode().host) || null;
     }
     let color = { r: 255, g: 255, b: 255, a: 1 };
     for (const c of stack.reverse()) color = over(c, color);
@@ -156,39 +182,43 @@ _JS = r'''(maxEj) => {
   const ratioOf = (a, b) => { const l1 = Math.max(lum(a), lum(b)), l2 = Math.min(lum(a), lum(b));
     return (l1 + 0.05) / (l2 + 0.05); };
 
+  // ---- contraste de texto en TODAS las raíces ----
   const fails = new Map();
-  const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
-  let node;
-  while ((node = walker.nextNode())) {
-    const txt = (node.nodeValue || '').trim();
-    if (!txt) continue;
-    const el = node.parentElement;
-    if (!el || el.closest('script, style, noscript, svg title')) continue;
-    if (!vis(el)) continue;
-    const s = getComputedStyle(el);
-    const fg = parseCol(s.color);
-    if (!fg) continue;
-    if (s.textShadow && s.textShadow !== 'none') { out.contrastReview++; continue; }
-    const bg = bgOf(el);
-    if (bg.image) { out.contrastReview++; continue; }
-    const px = parseFloat(s.fontSize);
-    const bold = parseInt(s.fontWeight || '400', 10) >= 600;
-    const large = px >= 24 || (bold && px >= 18.66);
-    const r = ratioOf(fg, bg);
-    const umbral = large ? 3.0 : 4.5;
-    if (r >= umbral) continue;
-    const fk = `rgb(${fg.r},${fg.g},${fg.b})`;
-    const bk = `rgb(${bg.r},${bg.g},${bg.b})`;
-    const key = fk + '|' + bk + '|' + (large ? 'L' : 'N');
-    if (!fails.has(key)) fails.set(key, { fg: fk, bg: bk, large, ratio: Math.round(r * 100) / 100,
-                                          n: 0, ej: path(el) });
-    const f = fails.get(key);
-    f.n++;
-  }
+  const escanea_textos = root => {
+    const walker = document.createTreeWalker(root.body || root, NodeFilter.SHOW_TEXT);
+    let node;
+    while ((node = walker.nextNode())) {
+      const txt = (node.nodeValue || '').trim();
+      if (!txt) continue;
+      const el = node.parentElement;
+      if (!el || el.closest('script, style, noscript, svg title')) continue;
+      if (!vis(el)) continue;
+      const s = getComputedStyle(el);
+      const fg = parseCol(s.color);
+      if (!fg) continue;
+      if (s.textShadow && s.textShadow !== 'none') { out.contrastReview++; continue; }
+      const bg = bgOf(el);
+      if (bg.image) { out.contrastReview++; continue; }
+      const px = parseFloat(s.fontSize);
+      const bold = parseInt(s.fontWeight || '400', 10) >= 600;
+      const large = px >= 24 || (bold && px >= 18.66);
+      const r = ratioOf(fg, bg);
+      const umbral = large ? 3.0 : 4.5;
+      if (r >= umbral) continue;
+      const fk = `rgb(${fg.r},${fg.g},${fg.b})`;
+      const bk = `rgb(${bg.r},${bg.g},${bg.b})`;
+      const key = fk + '|' + bk + '|' + (large ? 'L' : 'N');
+      if (!fails.has(key)) fails.set(key, { fg: fk, bg: bk, large, ratio: Math.round(r * 100) / 100,
+                                            n: 0, ej: path(el) });
+      const f = fails.get(key);
+      f.n++;
+    }
+  };
+  for (const r of roots) escanea_textos(r);
   out.contrast = [...fails.values()].slice(0, 40);
 
-  // ---- target size 2.5.8 ----
-  for (const el of document.querySelectorAll(INTER)) {
+  // ---- target size 2.5.8 (todas las raíces) ----
+  for (const el of deepQ(INTER)) {
     out.elements++;
     if (el.type === 'hidden' || !vis(el)) continue;
     const disp = getComputedStyle(el).display;
@@ -208,7 +238,9 @@ _JS = r'''(maxEj) => {
     let n = (el.getAttribute('aria-label') || '').trim();
     if (!n && el.labels && el.labels[0]) n = el.labels[0].innerText.trim();
     if (!n && el.getAttribute('aria-labelledby')) {
-      const ref = document.getElementById(el.getAttribute('aria-labelledby'));
+      const root = el.getRootNode();
+      const ref = root.getElementById ? root.getElementById(el.getAttribute('aria-labelledby'))
+                                      : root.querySelector('#' + CSS.escape(el.getAttribute('aria-labelledby')));
       if (ref) n = (ref.innerText || '').trim();
     }
     if (!n) n = (el.getAttribute('title') || '').trim();
@@ -218,54 +250,56 @@ _JS = r'''(maxEj) => {
     if (!n && el.tagName === 'IMG') n = el.getAttribute('alt') || '';
     return n.trim();
   };
-  for (const el of document.querySelectorAll('a[href], button, summary, [role="button"], [role="link"]')) {
+  for (const el of deepQ('a[href], button, summary, [role="button"], [role="link"]')) {
     if (!vis(el) || el.closest('[aria-hidden="true"]')) continue;
     if (!nameOf(el) && out.unnamed.length < 30) out.unnamed.push(path(el));
   }
-  for (const el of document.querySelectorAll('input, select, textarea')) {
+  for (const el of deepQ('input, select, textarea')) {
     if (el.type === 'hidden' || el.type === 'submit' || el.type === 'button' || el.type === 'reset') continue;
     if (!vis(el)) continue;
     if (!nameOf(el) && out.fields.length < 30) out.fields.push(path(el));
   }
-  for (const el of document.querySelectorAll('img')) {
+  for (const el of deepQ('img')) {
     if (!vis(el)) continue;
     if (!el.hasAttribute('alt') && out.imgs.length < 30) out.imgs.push(el.getAttribute('src') || '');
   }
-  for (const el of document.querySelectorAll('iframe')) {
+  for (const el of deepQ('iframe')) {
     if (!((el.getAttribute('title') || '').trim() || (el.getAttribute('aria-label') || '').trim())
         && out.iframes.length < 20) out.iframes.push(el.getAttribute('src') || '');
   }
 
   // ---- estructura ----
-  for (const h of document.querySelectorAll('h1,h2,h3,h4,h5,h6')) {
+  for (const h of deepQ('h1,h2,h3,h4,h5,h6')) {
     out.headings.push({ lvl: +h.tagName[1], text: (h.innerText || '').trim().slice(0, 80) });
   }
-  for (const el of document.querySelectorAll('[tabindex]')) {
+  for (const el of deepQ('[tabindex]')) {
     const t = parseInt(el.getAttribute('tabindex') || '0', 10);
     if (t > 0 && out.tabindex.length < 20) out.tabindex.push(path(el));
   }
-  for (const el of document.querySelectorAll('[aria-hidden="true"]')) {
-    if (el.matches(INTER)) {
-      if (el.getAttribute('tabindex') !== '-1') out.ariaHidden.push(path(el));
-    } else if ([...(el.querySelectorAll(INTER) || [])]
-               .some(d => d.getAttribute('tabindex') !== '-1')) {
-      out.ariaHidden.push(path(el));
+  for (const r of roots) {
+    for (const el of r.querySelectorAll('[aria-hidden="true"]')) {
+      if (el.matches(INTER)) {
+        if (el.getAttribute('tabindex') !== '-1') out.ariaHidden.push(path(el));
+      } else if ([...(el.querySelectorAll(INTER) || [])]
+                 .some(d => d.getAttribute('tabindex') !== '-1')) {
+        out.ariaHidden.push(path(el));
+      }
     }
   }
-  for (const el of document.querySelectorAll('a[target="_blank"]')) {
+  for (const el of deepQ('a[target="_blank"]')) {
     const t = (el.innerText || '') + ' ' + (el.getAttribute('aria-label') || '') + ' ' + (el.getAttribute('title') || '');
     if (!/(nueva|nuevo|ventana|pesta|tab\b|window|external|externo|exterior)/i.test(t)) out.blank++;
   }
-  for (const v of document.querySelectorAll('video')) {
+  for (const el of deepQ('video')) {
     out.videos++;
-    if (v.querySelector('track[kind="captions"], track[kind="subtitles"]')) out.videoSubs++;
+    if (el.querySelector('track[kind="captions"], track[kind="subtitles"]')) out.videoSubs++;
   }
-  for (const tb of document.querySelectorAll('table')) {
+  for (const el of deepQ('table')) {
     out.tables++;
-    if (tb.querySelector('th')) out.tableTh++;
+    if (el.querySelector('th')) out.tableTh++;
   }
-  for (const el of document.querySelectorAll('[id]')) {
-    out.ids[el.id] = (out.ids[el.id] || 0) + 1;
+  for (const r of roots) {
+    for (const el of r.querySelectorAll('[id]')) out.ids[el.id] = (out.ids[el.id] || 0) + 1;
   }
   out.lang = document.documentElement.getAttribute('lang');
   out.title = document.title || '';
@@ -278,10 +312,10 @@ _JS = r'''(maxEj) => {
 
   // ---- marcas para contrastar estados (:hover) desde Python ----
   let mi = 0;
-  for (const el of document.querySelectorAll(INTER)) {
+  for (const el of deepQ(INTER)) {
     if (mi >= 25) break;
     if (el.type === 'hidden' || !vis(el)) continue;
-    el.setAttribute('data-a11yidx', String(mi));
+    try { el.setAttribute('data-a11yidx', String(mi)); } catch (e) { continue; }
     mi++;
   }
   out.marks = mi;
@@ -289,13 +323,16 @@ _JS = r'''(maxEj) => {
   // ---- foco: indicador visible (heurístico) + contraste en estado focus ----
   const oculto = el => { const r = el.getBoundingClientRect();
     return (r.width <= 2 && r.height <= 2); };
-  const stops = [...document.querySelectorAll(INTER)]
+  const stops = deepQ(INTER)
     .filter(el => vis(el) && !el.disabled && el.getAttribute('tabindex') !== '-1'
                   && !oculto(el)).slice(0, 40);
+  const activo = () => { let a = document.activeElement;
+    while (a && a.shadowRoot && a.shadowRoot.activeElement) a = a.shadowRoot.activeElement;
+    return a; };
   const prevFocus = document.activeElement;
   for (const el of stops) {
     try { el.focus(); } catch (e) { /* no enfocable */ }
-    if (document.activeElement !== el) {
+    if (activo() !== el) {
       out.focusFail.push({ ej: path(el), why: 'nofocus' });
       continue;
     }
@@ -306,9 +343,9 @@ _JS = r'''(maxEj) => {
     const fgf = parseCol(s.color);
     const bgf = bgOf(el);
     if (fgf && !bgf.image) {
-      const rf = ratioOf(fgf, bgf);
-      if (rf < 3 && out.focusContrast.length < 20)
-        out.focusContrast.push({ ej: path(el), ratio: Math.round(rf * 100) / 100 });
+      const rf2 = ratioOf(fgf, bgf);
+      if (rf2 < 3 && out.focusContrast.length < 20)
+        out.focusContrast.push({ ej: path(el), ratio: Math.round(rf2 * 100) / 100 });
     }
   }
   if (prevFocus && prevFocus.blur) { try { prevFocus.focus(); } catch (e) {} }
@@ -447,6 +484,7 @@ def audit_dom(datos, url='(rendered)', lang='es'):
         'url': url,
         'modo': 'rendered',
         'iframes_anidados': datos.get('iframes_anidados', 0),
+        'shadow_roots': datos.get('shadow_roots', 0),
         'score': calcular_score(hallazgos),
         'score_nota': _t(lang, 'score_nota'),
         'elementos_interactivos': datos.get('elements', 0),
