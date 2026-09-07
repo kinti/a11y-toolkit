@@ -23,7 +23,7 @@ import json
 import re
 import sys
 
-from a11yaudit import CRIT, T
+from a11yaudit import CRIT, T, calcular_score
 
 MAX_EJEMPLOS = 6
 
@@ -399,6 +399,8 @@ def audit_dom(datos, url='(rendered)', lang='es'):
     return {
         'url': url,
         'modo': 'rendered',
+        'score': calcular_score(hallazgos),
+        'score_nota': _t(lang, 'score_nota'),
         'elementos_interactivos': datos.get('elements', 0),
         'resumen': resumen,
         'hallazgos': hallazgos,

@@ -12,6 +12,7 @@
 import sys
 
 import a11yaudit
+import a11ycrit
 import a11ydiff
 import contrast
 import declaracion
@@ -23,6 +24,7 @@ SUBCOMANDOS = {
     'declaration': (declaracion, None),
     'snapshot': (a11ydiff, 'snapshot'),
     'diff': (a11ydiff, 'diff'),
+    'criterion': (a11ycrit, None),
 }
 
 

@@ -38,22 +38,25 @@ from declaracion import generar as declaracion_fn  # noqa: E402
 from a11yaudit import audit_url as audit_url_fn, audit_html as audit_html_fn  # noqa: E402
 from a11ydom import audit_dom_url  # noqa: E402
 from a11ydiff import snapshot as snapshot_fn, diff as diff_fn  # noqa: E402
+from a11ycrit import criterio as criterio_fn  # noqa: E402
 
 try:
     from arialive_js import ARIALIVE_JS  # installed as a module (pip)
 except ImportError:
     ARIALIVE_JS = None  # repo checkout: read the file
 
-VERSION = '3.0.0'
+VERSION = '3.1.0'
 
 INSTRUCTIONS = (
     'Accessibility toolkit (WCAG 2.2), multilanguage es/en. '
-    'Loop: AUDIT (a11y_audit_url for a fast static pass; a11y_audit_dom for a rendered '
-    'audit with real computed contrast, 2.5.8 target size and focus indicator — needs '
-    'local Playwright) → FIX (a11y_contrast_pair, a11y_contrast_image, '
-    'a11y_suggest_color) → DOCUMENT (a11y_generate_declaration: RD 1112/2018 or '
-    'European Accessibility Act wording) → WATCH (a11y_snapshot + a11y_diff across '
-    'deploys). Every tool returns es/en findings with concrete remediation. '
+    'Loop: AUDIT (a11y_audit_url for a fast static pass with a 0-100 score; '
+    'a11y_audit_dom for a rendered audit with real computed contrast, 2.5.8 target '
+    'size and focus indicator — needs local Playwright) → FIX (a11y_contrast_pair, '
+    'a11y_contrast_image, a11y_suggest_color) → DOCUMENT (a11y_generate_declaration: '
+    'RD 1112/2018 or European Accessibility Act wording) → WATCH (a11y_snapshot — '
+    'includes the computed accessibility tree — + a11y_diff across deploys). '
+    'a11y_criterion explains what any criterion means. Every tool returns es/en '
+    'findings with concrete remediation. '
     'Automation covers about one third of WCAG: pair audits with the manual checklist '
     'in the audit-page prompt (keyboard, screen reader, zoom).'
 )
@@ -61,16 +64,20 @@ INSTRUCTIONS = (
 TOOLS = [
     {
         'name': 'a11y_audit_url',
-        'description': ('Express WCAG 2.2 audit of a URL or an HTML string: ~20 automated '
-                        'signals — images without alt (1.1.1), controls without accessible '
-                        'names (4.1.2), form fields without labels (3.3.2), click handlers on '
-                        'non-interactive elements (2.1.1), timed meta refresh (2.2.1), missing '
-                        'skip mechanism (2.4.1), lang/title (3.1.1, 2.4.2), heading structure '
-                        '(1.3.1), blocked zoom (1.4.4), captions (1.2.2), target=_blank '
-                        'without warning (3.2.5), positive tabindex (2.4.3), aria-hidden on '
-                        'focusable elements, tables without th, duplicate ids. Each finding '
-                        'includes a concrete remediation. Severity-ranked. Filter, not '
-                        'verdict: automation covers ~1/3 of WCAG.'),
+        'description': ('Express WCAG 2.2 audit of a URL or an HTML string: 20+ automated '
+                        'signals with a weighted 0-100 score — images without alt (1.1.1), '
+                        'controls without accessible names (4.1.2), form fields without labels '
+                        '(3.3.2), missing autocomplete on user-data fields (1.3.5), click '
+                        'handlers on non-interactive elements (2.1.1), unknown ARIA roles and '
+                        'broken aria-labelledby (4.1.2), duplicated unnamed landmarks, timed '
+                        'meta refresh (2.2.1), missing skip mechanism (2.4.1), lang/title '
+                        '(3.1.1, 2.4.2), heading structure (1.3.1), blocked zoom (1.4.4), '
+                        'captions (1.2.2), autoplay audio (1.4.2), generic/duplicated link text '
+                        '(2.4.4), target=_blank without warning (3.2.5), positive tabindex '
+                        '(2.4.3), aria-hidden on focusable elements, tables without th, '
+                        'duplicate ids, duplicate accesskeys. Each finding includes concrete '
+                        'remediation. Filter, not verdict: automation covers ~1/3 of WCAG; '
+                        'query a11y_criterion for what a criterion means.'),
         'inputSchema': {'type': 'object', 'properties': {
             'url': {'type': 'string', 'description': 'URL to fetch and audit'},
             'html': {'type': 'string', 'description': 'raw HTML to audit directly (overrides url)'},
@@ -153,9 +160,10 @@ TOOLS = [
     {
         'name': 'a11y_snapshot',
         'description': ('Accessibility snapshot of a URL: interactive elements (tag, role, '
-                        'accessible name, href) in DOM order plus the REAL tab focus order. '
-                        'Save it before a deploy and compare after with a11y_diff. Requires '
-                        'local Playwright.'),
+                        'accessible name, href) in DOM order, the REAL tab focus order, and '
+                        'when Playwright ≥1.49 is available the computed ACCESSIBILITY TREE '
+                        '(aria snapshot — what a screen reader announces). Save it before a '
+                        'deploy and compare after with a11y_diff. Requires local Playwright.'),
         'inputSchema': {'type': 'object', 'properties': {
             'url': {'type': 'string'},
         }, 'required': ['url']},
@@ -188,6 +196,18 @@ TOOLS = [
         'inputSchema': {'type': 'object', 'properties': {
             'lang': {'type': 'string', 'enum': ['es', 'en'], 'description': 'monitor panel language (es default)'},
         }},
+    },
+    {
+        'name': 'a11y_criterion',
+        'description': ('Explains a WCAG 2.2 success criterion in plain language (es/en): '
+                        'what it requires, typical failures, and how to verify it with this '
+                        'toolkit (which tool automates which part). Codes like "1.4.3", '
+                        '"2.5.8", "4.1.2". Use it whenever you need to explain WHY a finding '
+                        'matters or what the criterion actually says.'),
+        'inputSchema': {'type': 'object', 'properties': {
+            'code': {'type': 'string', 'description': 'criterion number, e.g. 1.4.3'},
+            'lang': {'type': 'string', 'enum': ['es', 'en']},
+        }, 'required': ['code']},
     },
 ]
 
@@ -383,6 +403,8 @@ def llamar(nombre, args):
                     'isError': True}
         except Exception as e:  # noqa: BLE001
             return {'content': [{'type': 'text', 'text': f'error: {e}'}], 'isError': True}
+    if nombre == 'a11y_criterion':
+        return _texto(criterio_fn(args['code'], lang=args.get('lang', 'es')))
     if nombre == 'a11y_aria_live_snippet':
         if ARIALIVE_JS is not None:
             js = ARIALIVE_JS

@@ -72,4 +72,25 @@ lo = audit_html('<html lang="es"><head><title>t</title></head><body><h1>a</h1><m
 hu = [h for h in lo['hallazgos'] if h['criterio'].startswith('3.3.2')]
 assert len(hu) == 1 and '1 ' in hu[0]['hallazgo'], lo['hallazgos']
 
+# v3.1: ARIA válido, autocomplete, enlaces genéricos, landmarks dup, accesskey, autoplay, score
+v31 = '''<html lang="es"><head><title>t</title></head><body><main><h1>Uno</h1>
+<div role="bottun">clic</div>
+<button aria-labelledby="noexiste">X</button>
+<input type="email" name="correo">
+<nav></nav><nav></nav>
+<a href="/a">Más</a><a href="/a">leer más</a>
+<a href="/1">Informes</a><a href="/2">Informes</a>
+<span accesskey="k">a</span><span accesskey="k">b</span>
+<video src="v.mp4" autoplay></video>
+<input type="text" name="nombre" id="i1">
+<label for="i1">Nombre</label><label for="i1">Nombre otra vez</label>
+</main></body></html>'''
+rv = audit_html(v31, lang='en')
+critv = {h['criterio'].split(' ')[0] for h in rv['hallazgos']}
+for esperado in ['4.1.2', '1.3.5', '1.4.2', '2.4.4', '2.1.1', '3.3.2', '1.3.1']:
+    assert esperado in critv, f'falta {esperado}: {sorted(critv)}'
+assert 0 <= rv['score'] < 100 and 'score_nota' in rv
+assert audit_html('<html lang="es"><head><title>t</title></head><body><main><h1>a</h1></main></body></html>')['score'] == 100
+
 print('CASOS LIMITE AUDITOR OK ✓ (nombre por imagen, select/textarea, lang, skip, _blank avisado, label huérfano)')
+print('V3.1 OK ✓ (ARIA roto/desconocido, autocomplete 1.3.5, autoplay 1.4.2, enlaces 2.4.4, landmarks, accesskey, multi-label, score 0-100)')

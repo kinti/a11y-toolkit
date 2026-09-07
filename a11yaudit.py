@@ -31,8 +31,30 @@ _CONTROLES = ('a', 'button', 'summary')
 
 # Subetiquetas BCP-47 principales habituales (validación blanda)
 _LANG_CODES = set('''af am ar az be bg bn bs ca cs cy da de el en es et eu fa fi fr ga gl
-gu he hi hr hu hy id is it ja ka kk km kn ko ky lo lt lv mk ml mn mr ms my ne nl no or pa
+gu he hi hr hu hy id is it ja ka kk km kn ko ky lo lt lv mk ml mn mr ms my ne nl or pa
 pl ps pt ro ru rw si sk sl sq sr sv sw ta te tg th ti tk tr uk ur uz vi zh'''.split())
+
+# Roles ARIA concretos (WAI-ARIA 1.2); doc- se admite como prefijo de DPUB
+_ROLES_ARIA = set('''alert alertdialog application article banner button caption cell
+checkbox code columnheader combobox complementary contentinfo definition deletion dialog
+directory document emphasis feed figure form generic grid gridcell group heading img image
+input insertion link list listbox listitem log main mark marquee math menu menubar menuitem
+menuitemcheckbox menuitemradio meter navigation none note option paragraph presentation
+progressbar radio radiogroup region row rowgroup rowheader scrollbar search searchbox
+section sectionhead select separator slider spinbutton status strong subscript superscript
+switch tab table tablist tabpanel term textbox time timer toolbar tooltip tree treegrid
+treeitem'''.split())
+
+# Texto de enlace sin propósito (2.4.4), es + en
+_TEXTO_GENERICO = {'more', 'read more', 'learn more', 'click here', 'here', 'this',
+                   'this link', 'link', 'details', 'view', 'see more', 'continue',
+                   'más', 'leer más', 'saber más', 'pincha aquí', 'aquí', 'ver más',
+                   'seguir leyendo', 'detalle', 'detalles', 'enlace', 'continuar', 'ver'}
+
+# Campos que con frecuencia recogen datos personales (1.3.5)
+_DATO_PERSONAL = re.compile(
+    r'(^|[\W_])(name|nombre|email|correo|phone|telefono|tel|address|direccion|postal|zip|'
+    r'city|ciudad|country|pais|organi[sz]ation|company|empresa|street|user|usuario)([\W_]|$)', re.I)
 
 CRIT = {
     'es': {
@@ -48,6 +70,9 @@ CRIT = {
         '3.1.1': '3.1.1 Idioma de la página',
         '3.2.5': '3.2.5 Cambio a petición',
         '3.3.2': '3.3.2 Etiquetas o instrucciones',
+        '1.3.5': '1.3.5 Identificar el propósito de la entrada',
+        '1.4.2': '1.4.2 Control del audio',
+        '2.4.4': '2.4.4 Propósito de los enlaces (en contexto)',
         '4.1.2': '4.1.2 Nombre, función, valor',
     },
     'en': {
@@ -63,6 +88,9 @@ CRIT = {
         '3.1.1': '3.1.1 Language of Page',
         '3.2.5': '3.2.5 Change on Request',
         '3.3.2': '3.3.2 Labels or Instructions',
+        '1.3.5': '1.3.5 Identify Input Purpose',
+        '1.4.2': '1.4.2 Audio Control',
+        '2.4.4': '2.4.4 Link Purpose (In Context)',
         '4.1.2': '4.1.2 Name, Role, Value',
     },
 }
@@ -96,6 +124,7 @@ T = {
         'zoom_no': 'El viewport bloquea el zoom del usuario (user-scalable=no/0).',
         'zoom_no_rem': 'Elimina user-scalable=no y maximum-scale: el zoom es un derecho del usuario (1.4.4).',
         'zoom_max': 'El viewport limita el zoom (maximum-scale={v}; se recomienda no limitar o ≥2).',
+        'zoom_max_rem': 'Elimina maximum-scale del viewport o déjalo en 2 o más, para que se pueda agrandar la letra (1.4.4).',
         'meta_refresh': '<meta http-equiv="refresh"> con recarga/redirección temporizada ({v}s).',
         'meta_refresh_rem': 'Sustituye la recarga automática por navegación iniciada por la persona usuaria (2.2.1). Redirección instantánea mejor en servidor.',
         'tabindex_pos': '{n} elementos con tabindex positivo (modifica el orden natural).',
@@ -118,6 +147,29 @@ T = {
         'blank_no_warning_rem': 'Añade aviso en texto (o title/aria-label): «(abre en ventana nueva)», o deja que la persona usuaria decida.',
         'dup_ids': '{n} ids duplicados; pueden romper asociaciones label-for y aria-labelledby.',
         'dup_ids_rem': 'Haz únicos los ids: los <label for> y aria-labelledby apuntan solo al primero.',
+        'autocomplete': '{n} campos que recogen datos de la persona usuaria sin atributo autocomplete: {ej}.',
+        'autocomplete_rem': 'Añade autocomplete con el token correcto (email, tel, name, postal-code…, 1.3.5): relleno automático y voz de accesibilidad con sobrecoste cero.',
+        'aria_ref_missing': '{n} referencias aria-labelledby/describedby apuntan a ids que no existen: {ej}.',
+        'aria_ref_missing_rem': 'Corrige o elimina la referencia: un aria-labelledby roto deja el control sin nombre accesible.',
+        'role_unknown': '{n} roles ARIA desconocidos: {ej}. Los lectores los ignoran.',
+        'role_unknown_rem': 'Usa roles de la especificación ARIA (button, dialog, navigation…) o elimina el atributo y confía en el HTML semántico.',
+        'role_required_attr': '{n} controles con role que exige atributos ARIA que faltan: {ej}.',
+        'role_required_attr_rem': 'Un slider necesita aria-valuenow (y mejor aria-valuemin/max): sin el estado, el control es inoperante para tecnología asistida (4.1.2).',
+        'landmark_dup': '{n} grupos de landmarks duplicados (<nav>, <header>…) sin aria-label que los distinga: {ej}.',
+        'landmark_dup_rem': 'Nombra cada landmark repetido (aria-label="Menú principal", aria-label="Menú pie"): si no, la navegación por landmarks es una lotería.',
+        'generic_link': '{n} enlaces con texto genérico («más», «aquí», «read more»): {ej}.',
+        'generic_link_rem': 'Describe el destino en el texto del enlace (2.4.4): las personas que listan enlaces saltan de uno a otro sin contexto.',
+        'same_name_links': '{n} pares de enlaces con idéntico texto y destinos distintos.',
+        'same_name_links_rem': 'Diferencia los nombres (o unifica el destino): «Informes» ×3 con tres URLs distintas es un problema para quien navega por lista de enlaces.',
+        'accesskey_dup': '{n} teclas accesskey duplicadas: {ej}.',
+        'accesskey_dup_rem': 'Accesskey repetidas disparan el control equivocado y chocan con atajos del navegador; elimínalas o hazlas únicas.',
+        'multi_label': '{n} campos con más de un <label for> asociado.',
+        'multi_label_rem': 'Un campo, una etiqueta: los lectores anuncian los labels concatenados. Agrupa el texto en uno.',
+        'video_autoplay': '{n} medios con autoplay (audio >3s sin control para pararlo).',
+        'video_autoplay_rem': 'Quita autoplay o añade muted + control visible de pausa/parada (1.4.2): el audio que arranca solo desordena a quien usa lector de pantalla.',
+        'score_nota': ('Puntuación ponderada: alta −12, media −6, baja −2 desde 100. Mide solo lo '
+                       'automatizable (≈1/3 de WCAG): sirve para seguir tendencias entre versiones, '
+                       'no como conformidad.'),
         'limites': ('Automatización ≈ un tercio de WCAG: esto es un filtro exprés, no sustituye '
                     'revisión manual (teclado, lector de pantalla, contraste real, refrán de '
                     'auditoría).'),
@@ -150,6 +202,7 @@ T = {
         'zoom_no': 'The viewport blocks user zoom (user-scalable=no/0).',
         'zoom_no_rem': 'Remove user-scalable=no and maximum-scale: zooming is the user\'s right (1.4.4).',
         'zoom_max': 'The viewport limits zoom (maximum-scale={v}; recommend no limit or ≥2).',
+        'zoom_max_rem': 'Remove maximum-scale from the viewport, or set it to 2 or higher, so text can be enlarged (1.4.4).',
         'meta_refresh': '<meta http-equiv="refresh"> with a timed reload/redirect ({v}s).',
         'meta_refresh_rem': 'Replace the automatic reload with user-initiated navigation (2.2.1). Instant redirects are better done server-side.',
         'tabindex_pos': '{n} elements with a positive tabindex (overrides natural order).',
@@ -172,6 +225,29 @@ T = {
         'blank_no_warning_rem': 'Add a text hint (or title/aria-label): "(opens in a new window)", or let the user decide.',
         'dup_ids': '{n} duplicated ids; they can break label-for and aria-labelledby associations.',
         'dup_ids_rem': 'Make ids unique: <label for> and aria-labelledby only point at the first match.',
+        'autocomplete': '{n} fields collecting user information without an autocomplete attribute: {ej}.',
+        'autocomplete_rem': 'Add autocomplete with the right token (email, tel, name, postal-code…, 1.3.5): free accessibility and autofill at zero cost.',
+        'aria_ref_missing': '{n} aria-labelledby/describedby references point to ids that do not exist: {ej}.',
+        'aria_ref_missing_rem': 'Fix or remove the reference: a broken aria-labelledby leaves the control with no accessible name.',
+        'role_unknown': '{n} unknown ARIA roles: {ej}. Screen readers ignore them.',
+        'role_unknown_rem': 'Use roles from the ARIA specification (button, dialog, navigation…) or drop the attribute and rely on semantic HTML.',
+        'role_required_attr': '{n} widgets whose role requires missing ARIA attributes: {ej}.',
+        'role_required_attr_rem': 'A slider needs aria-valuenow (ideally aria-valuemin/max): without the state the widget is inoperative for assistive tech (4.1.2).',
+        'landmark_dup': '{n} groups of duplicated landmarks (<nav>, <header>…) without a distinguishing aria-label: {ej}.',
+        'landmark_dup_rem': 'Name each repeated landmark (aria-label="Main menu", aria-label="Footer menu"): otherwise landmark navigation is a lottery.',
+        'generic_link': '{n} links with generic text ("more", "here", "read more"): {ej}.',
+        'generic_link_rem': 'Describe the destination in the link text (2.4.4): people listing links jump between them with no context.',
+        'same_name_links': '{n} pairs of links with identical text pointing to different destinations.',
+        'same_name_links_rem': 'Differentiate the names (or unify the destination): "Reports" ×3 with three different URLs is a problem for anyone navigating by link list.',
+        'accesskey_dup': '{n} duplicated accesskey values: {ej}.',
+        'accesskey_dup_rem': 'Duplicated accesskeys trigger the wrong control and clash with browser shortcuts; remove or make unique.',
+        'multi_label': '{n} fields with more than one associated <label for>.',
+        'multi_label_rem': 'One field, one label: screen readers announce concatenated labels. Merge the text into one.',
+        'video_autoplay': '{n} media elements with autoplay (audio >3s with no way to stop it).',
+        'video_autoplay_rem': 'Remove autoplay or add muted + a visible pause/stop control (1.4.2): audio that starts on its own disrupts screen-reader users.',
+        'score_nota': ('Weighted score: high −12, medium −6, low −2 from 100. It measures only '
+                       'what is automatable (≈1/3 of WCAG): use it to track trends between '
+                       'releases, not as conformance.'),
         'limites': ('Automation ≈ one third of WCAG: this is an express filter, not a substitute '
                     'for manual review (keyboard, screen reader, real contrast, audit rhyme).'),
     },
@@ -210,7 +286,7 @@ class _Auditor(HTMLParser):
         self._ctrl = []
         self._label_depth = 0
         self._labels_stack = []   # un booleano por <label> abierto: ¿contiene campo?
-        self._labels_for = set()
+        self._labels_for = {}     # id → nº de <label for> que lo apuntan
         self.labels_huerfanos = 0
         # Nuevas señales
         self.aria_hidden_focusable = []   # tag de interactivos con aria-hidden
@@ -231,6 +307,17 @@ class _Auditor(HTMLParser):
         self.vacios_h = 0
         self.ids = {}
         self.input_img_sin_alt = 0
+        # v3.1: validez ARIA, autocomplete, enlaces, landmarks, accesskey, autoplay
+        self.aria_refs = []       # (attr, id) referenciados por aria-labelledby/describedby
+        self.roles_desconocidos = []
+        self.roles_sin_estado = []   # widgets con role que exige aria-valuenow
+        self.landmarks = {}       # tipo → [con_etiqueta, total]
+        self.accesos = {}         # accesskey → tag
+        self.autocomplete_faltan = []
+        self.enlaces = {}         # nombre normalizado → set de hrefs
+        self.genericos = 0
+        self.labels_for_dups = {}  # id → n labels (los >1, varios)
+        self.medios_autoplay = 0
         self._skip_labels_pend = []  # labels declarados antes que su campo
 
     def _cierra_control(self, tag):
@@ -255,6 +342,13 @@ class _Auditor(HTMLParser):
                     self.blank_sin_aviso += 1
             elif (a.get('href') or '').strip().startswith('#') and texto:
                 self.hay_skip = True  # ancla interna con texto: candidato a skip link
+            nombre = (texto or a.get('aria-label') or a.get('title') or '').strip()
+            href = (a.get('href') or '').strip()
+            if nombre and href:
+                clave = ' '.join(nombre.lower().split())[:60]
+                self.enlaces.setdefault(clave, set()).add(href)
+                if clave in _TEXTO_GENERICO:
+                    self.genericos += 1
 
     def _nota_campo(self):
         """El elemento que acaba de abrirse es un campo: marca su <label> ancestro."""
@@ -302,6 +396,10 @@ class _Auditor(HTMLParser):
                 tiene_nombre = a.get('aria-label') or a.get('aria-labelledby') or a.get('title')
                 if not tiene_nombre and self._label_depth == 0:
                     self.campos_sin_label.append((tipo, a.get('name', '')[:60], a.get('id')))
+                if 'autocomplete' not in a and tipo != 'search' and (
+                        tipo in ('email', 'tel')
+                        or _DATO_PERSONAL.search((a.get('name') or '') + ' ' + (a.get('id') or ''))):
+                    self.autocomplete_faltan.append(f'input type={tipo} name={a.get("name") or "?"}'[:44])
         elif tag in ('select', 'textarea'):
             self._nota_campo()
             tiene_nombre = a.get('aria-label') or a.get('aria-labelledby') or a.get('title')
@@ -311,11 +409,16 @@ class _Auditor(HTMLParser):
             self._label_depth += 1
             self._labels_stack.append(False)
             if a.get('for'):
-                self._labels_for.add(a['for'])
+                self._labels_for[a['for']] = self._labels_for.get(a['for'], 0) + 1
+                if self._labels_for[a['for']] > 1:
+                    self.labels_for_dups[a['for']] = self._labels_for[a['for']]
                 self._labels_stack[-1] = True
-        elif tag == 'video':
-            self.videos += 1
-            self._en_video = True
+        elif tag in ('video', 'audio'):
+            if tag == 'video':
+                self.videos += 1
+                self._en_video = True
+            if 'autoplay' in a:
+                self.medios_autoplay += 1
         elif tag == 'track':
             if (a.get('kind') or '').lower() in ('captions', 'subtitles'):
                 self.videos_con_subs += 1
@@ -331,6 +434,29 @@ class _Auditor(HTMLParser):
                                       'video', 'audio', 'details', 'summary'):
             if a.get('onclick') and not a.get('role') and 'tabindex' not in a:
                 self.click_sueltos.append(tag)
+        # v3.1: validez ARIA y nueva colección (aplica a cualquier elemento)
+        for _ar in ('aria-labelledby', 'aria-describedby'):
+            if a.get(_ar):
+                for _ref in a[_ar].split():
+                    self.aria_refs.append((_ar, _ref))
+        if a.get('role'):
+            rol = a['role'].strip().split()[0].lower()
+            if rol not in _ROLES_ARIA and not rol.startswith('doc-'):
+                self.roles_desconocidos.append(rol)
+            if rol in ('slider', 'spinbutton') and 'aria-valuenow' not in a:
+                self.roles_sin_estado.append(f'{tag}[role={rol}]')
+        rol_landmark = a.get('role', '').lower() if a.get('role') in (
+            'banner', 'contentinfo', 'navigation', 'complementary', 'main', 'form', 'search', 'region') else None
+        lm = tag if tag in ('header', 'footer', 'nav', 'aside', 'main') else rol_landmark
+        if lm and not (a.get('aria-label') or a.get('aria-labelledby')):
+            t = self.landmarks.setdefault(lm, [0, 0])
+            t[0] += 1
+            t[1] += 1
+        elif lm:
+            self.landmarks.setdefault(lm, [0, 0])[1] += 1
+        if a.get('accesskey'):
+            k = a['accesskey'].strip().lower()
+            self.accesos[k] = self.accesos.get(k, 0) + 1
         aria_hidden = (a.get('aria-hidden') or '').lower() == 'true'
         if aria_hidden and (tag in _CONTROLES + ('input', 'select', 'textarea', 'iframe', 'video')
                             or a.get('onclick')):
@@ -382,6 +508,13 @@ class _Auditor(HTMLParser):
                 self._ctrl[-1]['texto'].append(data)
             if self._nivel_h is not None:
                 self._texto_h.append(data)
+
+
+def calcular_score(hallazgos):
+    """Puntuación 0-100: penalización ponderada por hallazgo (alta 12, media 6, baja 2)."""
+    pesos = {'alta': 12, 'media': 6, 'baja': 2}
+    penal = sum(pesos[h['severidad']] for h in hallazgos)
+    return max(0, 100 - penal)
 
 
 def audit_html(html_text, url='(html)', lang='es'):
@@ -478,12 +611,47 @@ def audit_html(html_text, url='(html)', lang='es'):
     if dups:
         add('baja', '4.1.2', 'dup_ids', n=dups)
 
+    # --- v3.1: validez ARIA, autocomplete, enlaces, landmarks, accesskey ---
+    refs_rotas = [f'{attr}="#{ref}"' for attr, ref in p.aria_refs if ref not in p.ids]
+    if refs_rotas:
+        add_ej('alta', '4.1.2', 'aria_ref_missing', refs_rotas, n=len(refs_rotas),
+               ej=refs_rotas[0])
+    if p.roles_desconocidos:
+        add_ej('media', '4.1.2', 'role_unknown',
+               sorted(set(p.roles_desconocidos)), n=len(p.roles_desconocidos),
+               ej=', '.join(f'"{r}"' for r in sorted(set(p.roles_desconocidos))[:4]))
+    if p.roles_sin_estado:
+        add_ej('media', '4.1.2', 'role_required_attr', p.roles_sin_estado,
+               n=len(p.roles_sin_estado), ej=', '.join(p.roles_sin_estado[:4]))
+    if p.autocomplete_faltan:
+        add_ej('media', '1.3.5', 'autocomplete', p.autocomplete_faltan,
+               n=len(p.autocomplete_faltan), ej=', '.join(p.autocomplete_faltan[:4]))
+    if p.medios_autoplay:
+        add('media', '1.4.2', 'video_autoplay', n=p.medios_autoplay)
+    lm_dups = [f'{lm} ×{t[1]}' for lm, t in p.landmarks.items()
+               if t[1] > 1 and t[0] == t[1]]
+    if lm_dups:
+        add('baja', '1.3.1', 'landmark_dup', n=len(lm_dups), ej=', '.join(lm_dups[:4]))
+    if p.genericos:
+        gen = [f'«{k}»' for k in p.enlaces if k in _TEXTO_GENERICO][:4]
+        add('baja', '2.4.4', 'generic_link', n=p.genericos, ej=', '.join(gen))
+    mismos = sum(1 for _k, hrefs in p.enlaces.items() if len(hrefs) > 1)
+    if mismos:
+        add('baja', '2.4.4', 'same_name_links', n=mismos)
+    ak_dups = [f'"{k}" ×{v}' for k, v in p.accesos.items() if v > 1]
+    if ak_dups:
+        add('baja', '2.1.1', 'accesskey_dup', n=len(ak_dups), ej=', '.join(ak_dups[:4]))
+    if p.labels_for_dups:
+        add('baja', '3.3.2', 'multi_label', n=len(p.labels_for_dups))
+
     severidad_orden = {'alta': 0, 'media': 1, 'baja': 2}
     hallazgos.sort(key=lambda h: severidad_orden[h['severidad']])
     resumen = {s: sum(1 for h in hallazgos if h['severidad'] == s)
                for s in ('alta', 'media', 'baja')}
     return {
         'url': url,
+        'score': calcular_score(hallazgos),
+        'score_nota': _t(lang, 'score_nota'),
         'elementos_analizados': p.elementos,
         'resumen': resumen,
         'hallazgos': hallazgos,

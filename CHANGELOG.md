@@ -63,3 +63,26 @@ The accessibility layer for AI coding agents: audit → fix → document → wat
 ## 2.0.0 — 2026-08-22
 - First public release: 5 MCP tools (contrast pair/image, suggest color, declaration
   generator, aria-live snippet) + a11ydiff CLI. Zero-dependency stdio server.
+
+## 3.1.0 — 2026-09-07 — "cover the gaps"
+
+Competitive gap analysis (axe-core/Lighthouse, WAVE, Playwright MCP, wcag-mcp) →
+everything they do that agents need, we now do too — plus what only we do.
+
+- **Weighted 0-100 score** in both audits (high −12 / medium −6 / low −2),
+  with an honest scope note. The Lighthouse adoption hook, on a fuller rule set.
+- **ARIA validity** (axe-core core): unknown roles, broken aria-labelledby /
+  aria-describedby references, role-mandated state missing (slider without
+  aria-valuenow).
+- **1.3.5 Identify Input Purpose**: user-data fields without autocomplete.
+- **2.4.4 Link Purpose**: generic link texts ("more", "aquí"…) and same-name
+  links to different destinations (the WAVE complaint).
+- **1.4.2 Audio Control**: autoplay media. **Duplicate accesskeys**,
+  multiple labels on one field, duplicated unnamed landmarks.
+- **New tool `a11y_criterion`** (11th): plain-language explanation of any
+  criterion — what it requires, typical failures, which tool verifies it.
+  Covers the wcag-mcp knowledge gap, wired to the auditor's own criteria.
+- **a11y_snapshot now captures the computed accessibility tree** (Playwright
+  ariaSnapshot — what a screen reader announces) and a11y_diff reports
+  tree changes. The Playwright-MCP gap.
+- 11 MCP tools + 4 prompts. CLI gains `a11y criterion`. All suites updated.

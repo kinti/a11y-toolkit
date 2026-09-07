@@ -22,27 +22,31 @@ All output is es/en (pass `--lang en` or the `lang` MCP argument; default es).
 
 | The user asks about… | Use |
 |---|---|
-| "is this site/page accessible?" | `a11y_audit_url` (fast, static) then `a11y_audit_dom` if Playwright exists |
+| "is this site/page accessible?" | `a11y_audit_url` (fast, static, 0-100 score) then `a11y_audit_dom` if Playwright exists |
 | real text contrast, incl. over images/gradients | `a11y_contrast_pair` / `a11y_contrast_image` / `a11y_audit_dom` |
 | "what color passes AA here?" | `a11y_suggest_color` (target 4.5 normal, 3.0 large/UI) |
 | legal accessibility statement (EU/Spain) | `a11y_generate_declaration` |
 | "did the deploy break a11y?" | `a11y_snapshot` + `a11y_diff` (or `a11y_diff_urls`) |
 | "what does the screen reader hear?" | `a11y_aria_live_snippet` injected via Playwright + the snapshot's focus order |
 | keyboard/zoom/manual items | do them yourself as the agent — checklist in `references/wcag22-manual-checklist.md` |
+| "what does criterion X.Y.Z mean?" | `a11y_criterion` (code like `1.4.3`, `2.5.8`) |
 
 ## 1. Audit
 
-`a11y_audit_url` = express static pass: ~13 WCAG criteria (alt, accessible names,
-labels, keyboard onclick, meta refresh, skip mechanism, lang/title, headings,
-zoom, captions, tables, tabindex, aria-hidden-on-focusable). Each finding carries
-a concrete `remediacion`. **Always relay the finding + remediation + WCAG criterion
-to the user, grouped by severity.**
+`a11y_audit_url` = express static pass: 20+ signals across 17 WCAG criteria with a
+weighted **0-100 score** (alt, accessible names, labels, autocomplete 1.3.5, keyboard
+onclick, unknown ARIA roles, broken aria-labelledby, unnamed duplicated landmarks,
+meta refresh, skip mechanism, lang validity, title, headings, zoom, captions, autoplay,
+generic/duplicated link text, tabindex, aria-hidden-on-focusable, tables, duplicate ids,
+accesskeys). Each finding carries a concrete `remediacion`. **Always relay finding +
+remediation + WCAG criterion to the user, grouped by severity; quote the score with the
+score_nota caveat.** When you need to explain a criterion, call `a11y_criterion`.
 
 `a11y_audit_dom` = rendered audit in Chromium: computed text contrast against
 effective backgrounds with alpha compositing (1.4.3), 24×24 minimum target size
 (2.5.8 — new in WCAG 2.2), visible focus indicator heuristic (2.4.7), plus the
-static checks on the live DOM. If Playwright is missing, fall back to the static
-audit and say so.
+static checks on the live DOM, same 0-100 score. If Playwright is missing, fall
+back to the static audit and say so.
 
 `a11y_audit_url` also accepts raw HTML you already fetched (`html` argument) —
 audit without re-fetching.
@@ -71,7 +75,8 @@ audit findings. The statement must be linked from every page.
 
 ## 4. Watch regressions
 
-Before deploy: `a11y_snapshot` → save JSON. After: snapshot again, `a11y_diff`.
+Before deploy: `a11y_snapshot` (also captures the computed accessibility tree) → save
+JSON. After: snapshot again, `a11y_diff` (now also reports accessibility-tree changes).
 `ok: false` = interactives added/removed/renamed or focus-order changed. Elements
 without `id` are matched by tag+name+href — recommend stable ids for fine-grained
 diffs. This is a great pre-deploy gate: audit + diff, then GO/NO-GO.

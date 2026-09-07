@@ -7,7 +7,7 @@
 [![MCP](https://img.shields.io/badge/Model%20Context%20Protocol-server-purple)](https://modelcontextprotocol.io)
 [![Smithery](https://smithery.ai/badge)](https://smithery.ai)
 
-**10 MCP tools + 4 prompts + a skill** that give any AI agent (Claude, Cursor, Windsurf,
+**11 MCP tools + 4 prompts + a skill** that give any AI agent (Claude, Cursor, Windsurf,
 Codex…) the full WCAG 2.2 loop: **audit → fix → document → watch**. Zero dependencies at
 its core; every finding ships with a concrete remediation your agent can apply.
 
@@ -26,22 +26,26 @@ makes "is it accessible?" a one-question ask — and "then fix it" a one-command
 | **Focus-order regression detection** | ✗ | ✓ |
 | Runs with **zero dependencies** (stdlib only; Playwright optional for the deep pass) | heavy runtimes | ✓ |
 | Screen-reader **aria-live announcement monitor** | ✗ | ✓ |
+| **0-100 score** computed from weighted findings | ✓ (Lighthouse, subset of rules) | ✓ (fuller rule set) |
+| **Criterion explanations** on demand for agents | ✗ | ✓ |
+| Static core parity: ARIA validity, autocomplete 1.3.5, link purpose, duplicate ids | ✓ | ✓ |
 | Output optimized for **MCP/LLM consumption** (JSON, severity-ranked, es/en) | ✗ | ✓ |
 
 ## The tools (10)
 
 | Tool | What it does |
 |---|---|
-| `a11y_audit_url` | Express static WCAG audit of a URL **or raw HTML**: 13 criteria (alt, accessible names, labels, keyboard onclick, meta refresh, skip mechanism, lang validity, title, headings, blocked zoom, captions, tables, tabindex>0, aria-hidden-on-focusable, target=_blank warnings, duplicate ids). Per-finding remediation. |
+| `a11y_audit_url` | Express static WCAG audit of a URL **or raw HTML**: 20+ signals with a **weighted 0-100 score** (alt, accessible names, labels, autocomplete 1.3.5, keyboard onclick, unknown ARIA roles, broken aria-labelledby, unnamed duplicated landmarks, meta refresh, skip mechanism, lang validity, title, headings, blocked zoom, captions, autoplay audio, generic/duplicated link text, target=_blank warnings, tabindex>0, aria-hidden-on-focusable, tables, duplicate ids, accesskeys). Per-finding remediation. |
 | `a11y_audit_dom` | **Rendered audit** (local Playwright/Chromium): real computed text contrast vs effective backgrounds with alpha compositing (1.4.3), minimum target size 24×24 (**2.5.8 — new in WCAG 2.2**), focus-indicator heuristic (2.4.7), all static checks on the live DOM. |
 | `a11y_contrast_pair` | Exact ratio + verdicts 1.4.3/1.4.6/1.4.11. Accepts `#hex`, `rgb()`, `hsl()`, **CSS color names**; alpha composites over the background. Suggests the nearest passing color. |
 | `a11y_contrast_image` | **Text over images**: pixel-level sampling of the actual background → worst/median/p95 ratio, % area passing AA, hostile-zone detection on a 3×3 grid. |
 | `a11y_suggest_color` | Nearest opaque color (true RGB distance) reaching the target ratio (4.5 default). |
 | `a11y_generate_declaration` | Legal accessibility statement in HTML: RD 1112/2018 art. 10 (Spanish public sector) or **European Accessibility Act** wording (Directive (EU) 2019/882 / Ley 11/2023). es/en. The document is itself accessible. |
-| `a11y_snapshot` | Interactive elements (tag, role, accessible name, href) + **real tab focus order**. Requires Playwright. |
+| `a11y_snapshot` | Interactive elements (tag, role, accessible name, href) + **real tab focus order** + the **computed accessibility tree** (what a screen reader announces). Requires Playwright. |
 | `a11y_diff` | Regression diff between two snapshots: added/removed/renamed interactives, focus-order changes. |
 | `a11y_diff_urls` | Snapshot two URLs and diff in one call (staging vs production). |
 | `a11y_aria_live_snippet` | Injectable monitor logging every aria-live announcement (time, politeness, role, text) — what a screen reader would say, visible on screen. |
+| `a11y_criterion` | Explains any WCAG 2.2 criterion in plain language: what it requires, typical failures, and which toolkit tool verifies it. |
 
 **Prompts** (slash-commands in supporting clients): `audit-page` (full audit workflow +
 what automation can't check), `fix-contrast`, `pre-deploy-check` (audit + diff → GO/NO-GO),
