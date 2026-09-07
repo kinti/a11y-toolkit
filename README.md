@@ -15,6 +15,10 @@ Accessibility is not optional anymore: the **European Accessibility Act is in fo
 June 2025**, ADA suits keep landing, and AI agents now write most of the web. This toolkit
 makes "is it accessible?" a one-question ask — and "then fix it" a one-command job.
 
+<p align="center">
+  <img src="docs/demo.gif" alt="a11y-toolkit in action: audit a page (score 64), get the nearest passing color (#767676), re-audit (94) — real tool output" width="720">
+</p>
+
 ## What no other a11y tool gives an agent
 
 | Capability | axe-core / Lighthouse / pa11y | a11y-toolkit |
