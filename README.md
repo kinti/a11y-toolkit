@@ -35,7 +35,7 @@ makes "is it accessible?" a one-question ask — and "then fix it" a one-command
 | Static core parity: ARIA validity, autocomplete 1.3.5, link purpose, duplicate ids | ✓ | ✓ |
 | Output optimized for **MCP/LLM consumption** (JSON, severity-ranked, es/en) | ✗ | ✓ |
 
-## The tools (10)
+## The tools (12)
 
 | Tool | What it does |
 |---|---|
@@ -53,9 +53,10 @@ makes "is it accessible?" a one-question ask — and "then fix it" a one-command
 | `a11y_criterion` | Explains any WCAG 2.2 criterion in plain language: what it requires, typical failures, and which toolkit tool verifies it. |
 | `a11y_badge` | Returns an **honest badge** as accessible SVG: score, date, scope ("automated screening"), never "conformant" — the anti-overclaim seal. |
 
-**Prompts** (slash-commands in supporting clients): `audit-page` (full audit workflow +
+**5 prompts** (slash-commands in supporting clients): `audit-page` (full audit workflow +
 what automation can't check), `fix-contrast`, `pre-deploy-check` (audit + diff → GO/NO-GO),
-`declaration-eaa` (collects legal fields, generates).
+`declaration-eaa` (collects legal fields, generates), `conformance-wcagem` (the three-tier
+WCAG-EM ladder).
 
 ## Install
 

@@ -16,6 +16,8 @@ Tools:
   - a11y_diff(a, b)                               regression diff between snapshots
   - a11y_diff_urls(url_a, url_b)                  staging vs production in one call
   - a11y_aria_live_snippet(lang?)                 injectable live-region monitor
+  - a11y_criterion(code, lang?)                   WCAG 2.2 criterion explained
+  - a11y_badge(score, lang?, fecha?)              honest SVG badge (score+date+scope)
 
 Prompts: audit-page, fix-contrast, pre-deploy-check, declaration-eaa.
 
@@ -47,7 +49,7 @@ try:
 except ImportError:
     ARIALIVE_JS = None  # repo checkout: read the file
 
-VERSION = '3.3.1'
+VERSION = '3.3.2'
 
 INSTRUCTIONS = (
     'Accessibility toolkit (WCAG 2.2), multilanguage es/en. '

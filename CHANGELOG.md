@@ -1,5 +1,11 @@
 # Changelog
 
+## 3.3.2 — 2026-09-07 — "one number everywhere"
+
+- Docs homogeneity pass: 12 tools + 5 prompts stated consistently (README table
+  title said "(10)", prompts line missed `conformance-wcagem`, server docstring
+  missed the two newest tools). No functional changes.
+
 ## 3.3.1 — 2026-09-07 — "registry-ready"
 
 - PyPI README now carries the `mcp-name: io.github.kinti/a11y-toolkit` ownership
