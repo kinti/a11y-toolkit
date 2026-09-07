@@ -1,0 +1,5 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Questions and usage help
+    url: https://github.com/kinti/a11y-toolkit/discussions
+    about: How to use a tool, interpret a finding, or wire the MCP into your client.

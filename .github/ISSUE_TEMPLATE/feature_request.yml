@@ -1,0 +1,27 @@
+name: Feature request
+description: New WCAG signal, tool, output format or integration
+labels: [enhancement]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: The problem or gap
+      description: What can an agent (or you) not do today? Which tool came closest?
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposal
+      description: |
+        If it is an audit signal, name the WCAG 2.2 criterion and why it is a
+        violation (not just "needs review"). If it is a tool, sketch its input
+        and output.
+    validations:
+      required: true
+  - type: checkboxes
+    attributes:
+      label: Constraints (see CONTRIBUTING.md)
+      options:
+        - label: This can be done with zero core dependencies (or behind an optional import guard)
+        - label: It should work in both es and en

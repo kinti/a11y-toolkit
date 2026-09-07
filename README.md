@@ -128,29 +128,22 @@ python3 test_contrast.py && python3 test_audit.py && python3 test_dom.py && pyth
 
 `test_dom.py` self-skips without Playwright. Releases: tag `vX.Y.Z` → CI publishes to PyPI
 (trusted publishing); `server.json` is the official MCP Registry manifest. Listed on
-[Smithery](https://smithery.ai) too.
+[Smithery](https://smithery.ai) too. Contributions welcome — see
+[CONTRIBUTING.md](CONTRIBUTING.md) (the golden rules: zero dependencies at the core,
+es/en strings everywhere, honest scope notes).
+
+## Roadmap
+
+- [x] Rendered audit (computed contrast, target size 2.5.8, focus indicator)
+- [x] 0-100 weighted score · ARIA validity · criterion explanations
+- [x] Computed accessibility tree in snapshots + tree diff
+- [ ] SARIF export → findings as GitHub PR annotations
+- [ ] Honest dated audit badge for generated statements
+- [ ] Accessibility error budget (deploys block only on NEW findings vs baseline)
+- [ ] Scheduled surveillance mode (periodic audit + diff, evidence ledger)
+- [ ] Multi-page crawl mode for the static audit
 
 ---
-
-## Español
-
-Suite de accesibilidad **WCAG 2.2** como servidor MCP (10 tools + 4 prompts) + CLI
-unificada, **cero dependencias** en el núcleo (Pillow opcional; `sips` en macOS; PPM
-siempre; Playwright opcional para la auditoría renderizada). Todo el ciclo: **auditar**
-(`a11y_audit_url` estático · `a11y_audit_dom` renderizado con contraste computado real,
-tamaño de objetivo 2.5.8 e indicador de foco) → **corregir** (contraste de pares con
-nombres CSS/hsl/rgba+alfa, **texto sobre imagen** con muestreo píxel a píxel y zona hostil,
-sugerencia por distancia RGB real) → **documentar** (declaración RD 1112/2018 art. 10 o
-Ley 11/2023/EAA, HTML accesible) → **vigilar** (snapshots y diff entre builds: añadidos,
-eliminados, renombrados y orden de foco). Multilenguaje **es/en**; cada hallazgo con
-remediación concreta. Instalación: `claude mcp add a11y-toolkit -- uvx --from
-a11y-toolkit a11y-toolkit-mcp`. Skill incluida en `skill/` (`install-skill.sh`).
-
-Herramienta **local**: `path` y `output_path` leen/escriben rutas locales; nada sale a la
-red salvo la URL que audites. El monitor aria-live documenta su lección de diseño: el
-panel NO es una región viva y se autoexcluye del observador (un `role="log"` casaría con
-su propio selector y crearía un bucle infinito de auto-observación — lo sabemos porque nos
-pasó). Versiones web para humanos: [jquin.net/lab](https://jquin.net/lab/).
 
 ## Author
 
