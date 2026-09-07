@@ -1,0 +1,47 @@
+# Vigilancia periódica de accesibilidad — la "ITV digital" de tu web.
+# Copia este fichero en .github/workflows/ de TU proyecto, edita SITE_URL y
+# haz commit. Cada lunes: auditoría exprés + presupuesto; falla si aparece
+# algo NUEVO respecto a la base aceptada.
+#
+# Primera vez: genera la base con
+#   a11y audit --url $SITE_URL | python3 a11ybudget.py --init > budget.json
+# y commitea budget.json en la raíz del repo.
+
+name: a11y-watch
+on:
+  schedule:
+    - cron: '0 6 * * 1'   # lunes 06:00 UTC
+  workflow_dispatch: {}
+
+jobs:
+  watch:
+    runs-on: ubuntu-latest
+    permissions:
+      security-events: write   # para subir el SARIF a code scanning
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install a11y-toolkit
+
+      - name: Audit
+        run: a11y audit --url "$SITE_URL" --lang en --pages 5 > audit.json
+        env:
+          SITE_URL: ${{ vars.SITE_URL || 'https://example.com' }}
+
+      - name: Budget gate (only NEW findings block)
+        run: a11y budget --budget budget.json --audit audit.json | tee budget-verdict.json
+
+      - name: Upload SARIF to code scanning
+        if: always()
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: a11y.sarif
+        continue-on-error: true
+
+      - name: Generate badge
+        if: always()
+        run: |
+          SCORE=$(python3 -c "import json;print(json.load(open('audit.json')).get('score',0))")
+          a11y badge --score "$SCORE" --lang en --out badge-a11y.svg

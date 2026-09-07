@@ -1,5 +1,53 @@
 # Changelog
 
+## 3.2.0 — 2026-09-07 — "the roadmap: guardrails"
+
+The distribution loop, closed: findings travel in standard formats, progress is
+visible, and regressions — not history — are what block you.
+
+- **SARIF 2.1.0 export** (`a11y sarif`, new module `a11ysarif.py`): findings in
+  the OASIS standard GitHub accepts for code scanning — per-criterion rules
+  with official WCAG Understanding helpUris, severity mapped error/warning/note.
+  In PRs, only NEW alerts surface.
+- **Accessibility error budget** (`a11y budget`, new module `a11ybudget.py`):
+  accept today's baseline; only NEW blocking findings fail the check (exit 2).
+  Baseline expiry (fecha_revision) forces periodic re-acceptance. The SRE error
+  budget, for WCAG — kills the "40 findings, nobody starts" paralysis.
+- **Honest badge** (`a11y_badge` MCP tool + `a11y badge` CLI, new module
+  `a11ybadge.py`): accessible SVG with score, date and "automated screening"
+  scope — it never says "conformant" (the accessiBe/FTC lesson).
+- **Multi-page crawl** (`pages` parameter / `a11y audit --pages N`): light
+  same-domain discovery by links, aggregated by mean/worst score and recurring
+  signals. Max 20 pages, zero dependencies.
+- **Stable signal keys** (`senal`) on every finding — the join key budgets and
+  SARIF rules are built on.
+- **Scheduled surveillance recipe**: `examples/a11y-watch.yml` — weekly GitHub
+  Action: crawl audit → budget gate → SARIF upload → badge.
+- 12 MCP tools + 4 prompts. New suite: `test_v32.py`.
+
+## 3.1.0 — 2026-09-07 — "cover the gaps"
+
+Competitive gap analysis (axe-core/Lighthouse, WAVE, Playwright MCP, wcag-mcp) →
+everything they do that agents need, we now do too — plus what only we do.
+
+- **Weighted 0-100 score** in both audits (high −12 / medium −6 / low −2),
+  with an honest scope note. The Lighthouse adoption hook, on a fuller rule set.
+- **ARIA validity** (axe-core core): unknown roles, broken aria-labelledby /
+  aria-describedby references, role-mandated state missing (slider without
+  aria-valuenow).
+- **1.3.5 Identify Input Purpose**: user-data fields without autocomplete.
+- **2.4.4 Link Purpose**: generic link texts ("more", "aquí"…) and same-name
+  links to different destinations (the WAVE complaint).
+- **1.4.2 Audio Control**: autoplay media. **Duplicate accesskeys**,
+  multiple labels on one field, duplicated unnamed landmarks.
+- **New tool `a11y_criterion`** (11th): plain-language explanation of any
+  criterion — what it requires, typical failures, which tool verifies it.
+  Covers the wcag-mcp knowledge gap, wired to the auditor's own criteria.
+- **a11y_snapshot now captures the computed accessibility tree** (Playwright
+  ariaSnapshot — what a screen reader announces) and a11y_diff reports
+  tree changes. The Playwright-MCP gap.
+- 11 MCP tools + 4 prompts. CLI gains `a11y criterion`. All suites updated.
+
 ## 3.0.0 — 2026-09-07 — "global readiness"
 
 The accessibility layer for AI coding agents: audit → fix → document → watch.
@@ -63,26 +111,3 @@ The accessibility layer for AI coding agents: audit → fix → document → wat
 ## 2.0.0 — 2026-08-22
 - First public release: 5 MCP tools (contrast pair/image, suggest color, declaration
   generator, aria-live snippet) + a11ydiff CLI. Zero-dependency stdio server.
-
-## 3.1.0 — 2026-09-07 — "cover the gaps"
-
-Competitive gap analysis (axe-core/Lighthouse, WAVE, Playwright MCP, wcag-mcp) →
-everything they do that agents need, we now do too — plus what only we do.
-
-- **Weighted 0-100 score** in both audits (high −12 / medium −6 / low −2),
-  with an honest scope note. The Lighthouse adoption hook, on a fuller rule set.
-- **ARIA validity** (axe-core core): unknown roles, broken aria-labelledby /
-  aria-describedby references, role-mandated state missing (slider without
-  aria-valuenow).
-- **1.3.5 Identify Input Purpose**: user-data fields without autocomplete.
-- **2.4.4 Link Purpose**: generic link texts ("more", "aquí"…) and same-name
-  links to different destinations (the WAVE complaint).
-- **1.4.2 Audio Control**: autoplay media. **Duplicate accesskeys**,
-  multiple labels on one field, duplicated unnamed landmarks.
-- **New tool `a11y_criterion`** (11th): plain-language explanation of any
-  criterion — what it requires, typical failures, which tool verifies it.
-  Covers the wcag-mcp knowledge gap, wired to the auditor's own criteria.
-- **a11y_snapshot now captures the computed accessibility tree** (Playwright
-  ariaSnapshot — what a screen reader announces) and a11y_diff reports
-  tree changes. The Playwright-MCP gap.
-- 11 MCP tools + 4 prompts. CLI gains `a11y criterion`. All suites updated.

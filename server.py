@@ -39,13 +39,15 @@ from a11yaudit import audit_url as audit_url_fn, audit_html as audit_html_fn  # 
 from a11ydom import audit_dom_url  # noqa: E402
 from a11ydiff import snapshot as snapshot_fn, diff as diff_fn  # noqa: E402
 from a11ycrit import criterio as criterio_fn  # noqa: E402
+from a11ybadge import badge as badge_fn  # noqa: E402
+from a11yaudit import audit_site as audit_site_fn  # noqa: E402
 
 try:
     from arialive_js import ARIALIVE_JS  # installed as a module (pip)
 except ImportError:
     ARIALIVE_JS = None  # repo checkout: read the file
 
-VERSION = '3.1.0'
+VERSION = '3.2.0'
 
 INSTRUCTIONS = (
     'Accessibility toolkit (WCAG 2.2), multilanguage es/en. '
@@ -81,6 +83,7 @@ TOOLS = [
         'inputSchema': {'type': 'object', 'properties': {
             'url': {'type': 'string', 'description': 'URL to fetch and audit'},
             'html': {'type': 'string', 'description': 'raw HTML to audit directly (overrides url)'},
+            'pages': {'type': 'integer', 'description': 'light same-domain crawl: audit up to N pages, aggregated by score and recurring signals (default 1, max 20)'},
             'lang': {'type': 'string', 'enum': ['es', 'en'], 'description': 'output language (es default)'},
             'timeout': {'type': 'number', 'description': 'fetch timeout seconds (30 default)'},
         }},
@@ -196,6 +199,18 @@ TOOLS = [
         'inputSchema': {'type': 'object', 'properties': {
             'lang': {'type': 'string', 'enum': ['es', 'en'], 'description': 'monitor panel language (es default)'},
         }},
+    },
+    {
+        'name': 'a11y_badge',
+        'description': ('Returns an HONEST accessibility badge as accessible SVG: score, '
+                        'date and scope (automated screening ≈ 1/3 of WCAG), color-coded '
+                        'by score. Deliberately does NOT say "conformant" — the honest '
+                        'seal. Embed it in audited sites or statements.'),
+        'inputSchema': {'type': 'object', 'properties': {
+            'score': {'type': 'number', 'description': '0-100 (from an audit result)'},
+            'fecha': {'type': 'string', 'description': 'ISO date (today by default)'},
+            'lang': {'type': 'string', 'enum': ['es', 'en']},
+        }, 'required': ['score']},
     },
     {
         'name': 'a11y_criterion',
@@ -360,6 +375,10 @@ def llamar(nombre, args):
             if args.get('html'):
                 return _texto(audit_html_fn(args['html'], args.get('url') or '(html)',
                                             lang=args.get('lang', 'es')))
+            if args.get('pages', 1) > 1:
+                return _texto(audit_site_fn(args['url'], max_pages=args['pages'],
+                                            timeout=args.get('timeout', 30),
+                                            lang=args.get('lang', 'es')))
             return _texto(audit_url_fn(args['url'], timeout=args.get('timeout', 30),
                                        lang=args.get('lang', 'es')))
         except Exception as e:  # noqa: BLE001
@@ -405,6 +424,10 @@ def llamar(nombre, args):
             return {'content': [{'type': 'text', 'text': f'error: {e}'}], 'isError': True}
     if nombre == 'a11y_criterion':
         return _texto(criterio_fn(args['code'], lang=args.get('lang', 'es')))
+    if nombre == 'a11y_badge':
+        svg = badge_fn(args['score'], fecha=args.get('fecha'),
+                       lang=args.get('lang', 'en'))
+        return {'content': [{'type': 'text', 'text': svg}]}
     if nombre == 'a11y_aria_live_snippet':
         if ARIALIVE_JS is not None:
             js = ARIALIVE_JS

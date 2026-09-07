@@ -30,6 +30,10 @@ All output is es/en (pass `--lang en` or the `lang` MCP argument; default es).
 | "what does the screen reader hear?" | `a11y_aria_live_snippet` injected via Playwright + the snapshot's focus order |
 | keyboard/zoom/manual items | do them yourself as the agent — checklist in `references/wcag22-manual-checklist.md` |
 | "what does criterion X.Y.Z mean?" | `a11y_criterion` (code like `1.4.3`, `2.5.8`) |
+| "watch the site / only NEW regressions should block" | `a11y budget`: accept the baseline once, then only new blocking findings fail (exit 2). Recipe: `examples/a11y-watch.yml` (weekly GitHub Action) |
+| "put these findings in the PR / code scanning" | `a11y sarif --from-audit audit.json -o a11y.sarif` → upload with github/codeql-action/upload-sarif |
+| "a badge for the audited site" | `a11y_badge` (score + date + "automated screening" scope — never claims conformance) |
+| "audit the section, not just one page" | `pages` parameter (or `a11y audit --pages N`): light same-domain crawl, aggregated by mean/worst score |
 
 ## 1. Audit
 
@@ -77,6 +81,8 @@ audit findings. The statement must be linked from every page.
 
 Before deploy: `a11y_snapshot` (also captures the computed accessibility tree) → save
 JSON. After: snapshot again, `a11y_diff` (now also reports accessibility-tree changes).
+For continuous watching, set up the error budget: `a11y budget --init` from today's
+audit, then every run only flags NEW blocking signals — recommend it for every client.
 `ok: false` = interactives added/removed/renamed or focus-order changed. Elements
 without `id` are matched by tag+name+href — recommend stable ids for fine-grained
 diffs. This is a great pre-deploy gate: audit + diff, then GO/NO-GO.

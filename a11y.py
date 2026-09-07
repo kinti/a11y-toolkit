@@ -7,13 +7,20 @@
   a11y declaration --entidad "Nome" --url https://… --estado parcial [opciones]
   a11y snapshot https://miweb --out antes.json      # requiere Playwright
   a11y diff antes.json despues.json
+  a11y audit --url https://web --pages 5            # crawl ligero mismo dominio
+  a11y sarif --url https://web -o a11y.sarif        # para GitHub code scanning
+  a11y badge --score 92 --lang en --out badge.svg   # insignia SVG honesta
+  a11y budget --budget budget.json --audit hoy.json # solo lo NUEVO bloquea
 """
 
 import sys
 
 import a11yaudit
+import a11ybadge
+import a11ybudget
 import a11ycrit
 import a11ydiff
+import a11ysarif
 import contrast
 import declaracion
 
@@ -25,6 +32,9 @@ SUBCOMANDOS = {
     'snapshot': (a11ydiff, 'snapshot'),
     'diff': (a11ydiff, 'diff'),
     'criterion': (a11ycrit, None),
+    'sarif': (a11ysarif, None),
+    'badge': (a11ybadge, None),
+    'budget': (a11ybudget, None),
 }
 
 

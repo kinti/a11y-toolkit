@@ -7,7 +7,7 @@
 [![MCP](https://img.shields.io/badge/Model%20Context%20Protocol-server-purple)](https://modelcontextprotocol.io)
 [![Smithery](https://smithery.ai/badge)](https://smithery.ai)
 
-**11 MCP tools + 4 prompts + a skill** that give any AI agent (Claude, Cursor, Windsurf,
+**12 MCP tools + 4 prompts + a skill** that give any AI agent (Claude, Cursor, Windsurf,
 Codex…) the full WCAG 2.2 loop: **audit → fix → document → watch**. Zero dependencies at
 its core; every finding ships with a concrete remediation your agent can apply.
 
@@ -46,6 +46,7 @@ makes "is it accessible?" a one-question ask — and "then fix it" a one-command
 | `a11y_diff_urls` | Snapshot two URLs and diff in one call (staging vs production). |
 | `a11y_aria_live_snippet` | Injectable monitor logging every aria-live announcement (time, politeness, role, text) — what a screen reader would say, visible on screen. |
 | `a11y_criterion` | Explains any WCAG 2.2 criterion in plain language: what it requires, typical failures, and which toolkit tool verifies it. |
+| `a11y_badge` | Returns an **honest badge** as accessible SVG: score, date, scope ("automated screening"), never "conformant" — the anti-overclaim seal. |
 
 **Prompts** (slash-commands in supporting clients): `audit-page` (full audit workflow +
 what automation can't check), `fix-contrast`, `pre-deploy-check` (audit + diff → GO/NO-GO),
@@ -106,6 +107,18 @@ a11y diff before.json after.json                  # after deploy
 Run from a clone with `python3 a11y.py <subcommand>`; from PyPI with `uvx --from
 a11y-toolkit a11y …`.
 
+### Watch it continuously (the deployment gate)
+
+```bash
+a11y audit --url https://mysite --pages 5 > audit.json        # light crawl
+python3 -m a11ybudget --init < audit.json > budget.json       # accept today's baseline
+a11y budget --budget budget.json --audit audit.json           # only NEW findings block (exit 2)
+a11y sarif --from-audit audit.json -o a11y.sarif              # GitHub code scanning format
+```
+
+`examples/a11y-watch.yml` turns this into a weekly scheduled check that fails
+on regressions and publishes the SARIF to code scanning.
+
 ## Honesty, built in
 
 Automation covers **~1/3 of WCAG** — every audit says so. The `audit-page` prompt and the
@@ -137,11 +150,13 @@ es/en strings everywhere, honest scope notes).
 - [x] Rendered audit (computed contrast, target size 2.5.8, focus indicator)
 - [x] 0-100 weighted score · ARIA validity · criterion explanations
 - [x] Computed accessibility tree in snapshots + tree diff
-- [ ] SARIF export → findings as GitHub PR annotations
-- [ ] Honest dated audit badge for generated statements
-- [ ] Accessibility error budget (deploys block only on NEW findings vs baseline)
-- [ ] Scheduled surveillance mode (periodic audit + diff, evidence ledger)
-- [ ] Multi-page crawl mode for the static audit
+- [x] SARIF export → findings as GitHub code-scanning / PR annotations (`a11y sarif`)
+- [x] Honest dated badge as accessible SVG (`a11y_badge`)
+- [x] Accessibility error budget: only NEW findings block (`a11y budget` + `examples/a11y-watch.yml`)
+- [x] Multi-page same-domain crawl with aggregated scores (`pages` parameter)
+- [x] Scheduled surveillance recipe (weekly audit + budget gate as a GitHub Action)
+- [ ] WCAG-EM guided conformance ladder (screening → guided → full report)
+- [ ] Same-origin iframe content in the rendered audit
 
 ---
 

@@ -532,7 +532,7 @@ def audit_html(html_text, url='(html)', lang='es'):
     hallazgos = []
 
     def add(severidad, code, key_msg, **fmt):
-        h = {'severidad': severidad, 'criterio': _crit(lang, code),
+        h = {'severidad': severidad, 'criterio': _crit(lang, code), 'senal': key_msg,
              'hallazgo': _t(lang, key_msg).format(**fmt)}
         h['remediacion'] = _t(lang, key_msg + '_rem').format(**fmt)
         hallazgos.append(h)
@@ -659,31 +659,105 @@ def audit_html(html_text, url='(html)', lang='es'):
     }
 
 
-def audit_url(url, timeout=30, lang='es'):
+def _descarga(url, timeout=30):
     req = urllib.request.Request(url, headers={
-        'User-Agent': 'Mozilla/5.0 (compatible; a11y-toolkit/3.0; WCAG audit)',
+        'User-Agent': 'Mozilla/5.0 (compatible; a11y-toolkit/3.2; WCAG audit)',
         'Accept': 'text/html,application/xhtml+xml',
         'Accept-Encoding': 'gzip',
     })
     with urllib.request.urlopen(req, timeout=timeout) as r:
         datos = r.read(MAX_HTML + 1)
         if len(datos) > MAX_HTML:
-            return {'error': f'HTML > {MAX_HTML // 1000000} MB, demasiado grande'}
+            raise ValueError(f'HTML > {MAX_HTML // 1000000} MB, demasiado grande')
         if (r.headers.get('Content-Encoding') or '').lower() == 'gzip' or datos[:2] == b'\x1f\x8b':
             import gzip
             datos = gzip.decompress(datos)
         ctype = (r.headers.get('Content-Type') or '').lower()
         if ctype and 'html' not in ctype and 'xml' not in ctype and ctype.split(';')[0].strip():
-            return {'error': f'la URL no devuelve HTML (Content-Type: {ctype.split(";")[0]})'}
+            raise ValueError(f'la URL no devuelve HTML (Content-Type: {ctype.split(";")[0]})')
         charset = 'utf-8'
         m = re.search(rb'charset=["\']?([\w-]+)', datos[:2048])
         if m:
             charset = m.group(1).decode('ascii', 'ignore')
         try:
-            html_text = datos.decode(charset, 'replace')
+            return datos.decode(charset, 'replace')
         except LookupError:
-            html_text = datos.decode('utf-8', 'replace')
+            return datos.decode('utf-8', 'replace')
+
+
+def audit_url(url, timeout=30, lang='es'):
+    try:
+        html_text = _descarga(url, timeout=timeout)
+    except ValueError as e:
+        return {'error': str(e)}
+    except Exception as e:  # noqa: BLE001
+        return {'error': f'no se pudo descargar: {e}'}
     return audit_html(html_text, url, lang=lang)
+
+
+_HREF = re.compile(r'<a\s[^>]*?href=["\']([^"\']+)["\']', re.I)
+_NO_RASTREAR = re.compile(r'\.(pdf|jpg|jpeg|png|gif|webp|svg|zip|mp3|mp4|docx?|xlsx?|pptx?|xml|json|rss)(\?|$)', re.I)
+
+
+def _enlaces_internos(html_text, base_url, origen):
+    from urllib.parse import urljoin, urlsplit
+    host = urlsplit(origen).netloc
+    out = []
+    for href in _HREF.findall(html_text):
+        if href.startswith(('#', 'mailto:', 'tel:', 'javascript:')):
+            continue
+        absoluta = urljoin(base_url, href.strip()).split('#')[0].rstrip('/')
+        partes = urlsplit(absoluta)
+        if partes.scheme not in ('http', 'https') or partes.netloc != host:
+            continue
+        if _NO_RASTREAR.search(partes.path):
+            continue
+        out.append(absoluta)
+    return out
+
+
+def audit_site(url, max_pages=5, timeout=30, lang='es'):
+    """Audita la URL y hasta max_pages-1 páginas más del mismo dominio
+    (descubrimiento por enlaces). Igual de cero-dependencias que el resto."""
+    max_pages = max(1, min(20, int(max_pages)))
+    try:
+        html_text = _descarga(url, timeout=timeout)
+    except ValueError as e:
+        return {'error': str(e)}
+    except Exception as e:  # noqa: BLE001
+        return {'error': f'no se pudo descargar: {e}'}
+    informes = [audit_html(html_text, url, lang=lang)]
+    vistos = {url.split('#')[0].rstrip('/')}
+    cola = _enlaces_internos(html_text, url, url)
+    while cola and len(informes) < max_pages:
+        siguiente = cola.pop(0)
+        if siguiente in vistos:
+            continue
+        vistos.add(siguiente)
+        try:
+            html_pg = _descarga(siguiente, timeout=timeout)
+        except Exception:  # noqa: BLE001
+            continue
+        informes.append(audit_html(html_pg, siguiente, lang=lang))
+        if len(informes) < max_pages:
+            for nuevo in _enlaces_internos(html_pg, siguiente, url):
+                if nuevo not in vistos:
+                    cola.append(nuevo)
+    scores = [pg['score'] for pg in informes if 'score' in pg]
+    hallazgos_por_senal = {}
+    for pg in informes:
+        for h in pg.get('hallazgos', []):
+            hallazgos_por_senal[h['senal']] = hallazgos_por_senal.get(h['senal'], 0) + 1
+    return {
+        'url': url,
+        'modo': 'site',
+        'paginas': len(informes),
+        'score_medio': round(sum(scores) / len(scores)) if scores else None,
+        'score_peor': min(scores) if scores else None,
+        'senales_recurrentes': sorted(hallazgos_por_senal, key=hallazgos_por_senal.get, reverse=True)[:8],
+        'informes': informes,
+        'limites': _t(lang, 'limites'),
+    }
 
 
 def main(argv):
@@ -692,10 +766,13 @@ def main(argv):
     g.add_argument('--url')
     g.add_argument('--file')
     ap.add_argument('--lang', default='es', choices=['es', 'en'])
+    ap.add_argument('--pages', type=int, default=1,
+                    help='páginas del mismo dominio a auditar (site crawl ligero)')
     a = ap.parse_args(argv)
     if a.url:
         try:
-            res = audit_url(a.url, lang=a.lang)
+            res = (audit_site(a.url, max_pages=a.pages, lang=a.lang)
+                   if a.pages > 1 else audit_url(a.url, lang=a.lang))
         except Exception as e:  # noqa: BLE001
             print(json.dumps({'error': f'no se pudo descargar: {e}'}))
             return 1
