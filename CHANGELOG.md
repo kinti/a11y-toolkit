@@ -1,5 +1,14 @@
 # Changelog
 
+## 3.3.3 — 2026-09-07 — "a command of one's own"
+
+- **The CLI command is now `a11ytoolkit`** (was the generic `a11y` — a name any
+  other package could claim, a real pip entry-point clash risk). Unique entry
+  points only: `a11ytoolkit` (CLI) + `a11y-toolkit-mcp` (server); the redundant
+  `a11y-audit` / `a11y-criterion` / `a11y-sarif` scripts are gone (the
+  dispatcher covers them).
+- All docs, skill, watch recipe and the demo GIF use the new name.
+
 ## 3.3.2 — 2026-09-07 — "one number everywhere"
 
 - Docs homogeneity pass: 12 tools + 5 prompts stated consistently (README table

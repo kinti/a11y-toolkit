@@ -1,4 +1,3 @@
 [console_scripts]
-a11y = a11y:main
-a11y-audit = a11yaudit:main
 a11y-toolkit-mcp = server:main
+a11ytoolkit = a11y:main

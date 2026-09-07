@@ -103,25 +103,25 @@ git clone https://github.com/kinti/a11y-toolkit && cd a11y-toolkit
 ## CLI — same engine, one command
 
 ```bash
-a11y pair "#1f2328" "#fbfaf7"                     # contrast, per-criterion verdicts
-a11y image hero.jpg --text "#ffffff" --region 120,40,420,90
-a11y audit --url https://example.com --lang en    # express static audit
-a11y declaration --entidad "Acme" --url https://acme.example \
+a11ytoolkit pair "#1f2328" "#fbfaf7"                     # contrast, per-criterion verdicts
+a11ytoolkit image hero.jpg --text "#ffffff" --region 120,40,420,90
+a11ytoolkit audit --url https://example.com --lang en    # express static audit
+a11ytoolkit declaration --entidad "Acme" --url https://acme.example \
        --estado parcial --marco eaa --lang en --output decl.html
-a11y snapshot https://mysite --out before.json    # before deploy (needs Playwright)
-a11y diff before.json after.json                  # after deploy
+a11ytoolkit snapshot https://mysite --out before.json    # before deploy (needs Playwright)
+a11ytoolkit diff before.json after.json                  # after deploy
 ```
 
 Run from a clone with `python3 a11y.py <subcommand>`; from PyPI with `uvx --from
-a11y-toolkit a11y …`.
+a11y-toolkit a11ytoolkit …`.
 
 ### Watch it continuously (the deployment gate)
 
 ```bash
-a11y audit --url https://mysite --pages 5 > audit.json        # light crawl
+a11ytoolkit audit --url https://mysite --pages 5 > audit.json        # light crawl
 python3 -m a11ybudget --init < audit.json > budget.json       # accept today's baseline
-a11y budget --budget budget.json --audit audit.json           # only NEW findings block (exit 2)
-a11y sarif --from-audit audit.json -o a11y.sarif              # GitHub code scanning format
+a11ytoolkit budget --budget budget.json --audit audit.json           # only NEW findings block (exit 2)
+a11ytoolkit sarif --from-audit audit.json -o a11y.sarif              # GitHub code scanning format
 ```
 
 `examples/a11y-watch.yml` turns this into a weekly scheduled check that fails
@@ -158,9 +158,9 @@ es/en strings everywhere, honest scope notes).
 - [x] Rendered audit (computed contrast, target size 2.5.8, focus indicator)
 - [x] 0-100 weighted score · ARIA validity · criterion explanations
 - [x] Computed accessibility tree in snapshots + tree diff
-- [x] SARIF export → findings as GitHub code-scanning / PR annotations (`a11y sarif`)
+- [x] SARIF export → findings as GitHub code-scanning / PR annotations (`a11ytoolkit sarif`)
 - [x] Honest dated badge as accessible SVG (`a11y_badge`)
-- [x] Accessibility error budget: only NEW findings block (`a11y budget` + `examples/a11y-watch.yml`)
+- [x] Accessibility error budget: only NEW findings block (`a11ytoolkit budget` + `examples/a11y-watch.yml`)
 - [x] Multi-page same-domain crawl with aggregated scores (`pages` parameter)
 - [x] Scheduled surveillance recipe (weekly audit + budget gate as a GitHub Action)
 - [x] WCAG-EM conformance ladder (`conformance-wcagem` prompt + guided protocol)

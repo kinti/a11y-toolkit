@@ -16,8 +16,8 @@ Fichero de presupuesto (budget.json):
     "fecha_revision": "2026-12-07"                 // caducidad de la base (opcional)
   }
 
-Genera la base con:  a11y audit --url https://mysite | python3 a11ybudget.py --init
-Compara con:         a11y budget --budget budget.json --audit audit.json
+Genera la base con:  a11ytoolkit audit --url https://mysite | a11ytoolkit budget --init
+Compara con:         a11ytoolkit budget --budget budget.json --audit audit.json
 
 Sólo compara claves estables ('senal') y severidades, no textos.
 """

@@ -4,7 +4,7 @@
 # algo NUEVO respecto a la base aceptada.
 #
 # Primera vez: genera la base con
-#   a11y audit --url $SITE_URL | python3 a11ybudget.py --init > budget.json
+#   a11ytoolkit audit --url $SITE_URL | a11ytoolkit budget --init > budget.json
 # y commitea budget.json en la raíz del repo.
 
 name: a11y-watch
@@ -26,12 +26,12 @@ jobs:
       - run: pip install a11y-toolkit
 
       - name: Audit
-        run: a11y audit --url "$SITE_URL" --lang en --pages 5 > audit.json
+        run: a11ytoolkit audit --url "$SITE_URL" --lang en --pages 5 > audit.json
         env:
           SITE_URL: ${{ vars.SITE_URL || 'https://example.com' }}
 
       - name: Budget gate (only NEW findings block)
-        run: a11y budget --budget budget.json --audit audit.json | tee budget-verdict.json
+        run: a11ytoolkit budget --budget budget.json --audit audit.json | tee budget-verdict.json
 
       - name: Upload SARIF to code scanning
         if: always()
@@ -44,4 +44,4 @@ jobs:
         if: always()
         run: |
           SCORE=$(python3 -c "import json;print(json.load(open('audit.json')).get('score',0))")
-          a11y badge --score "$SCORE" --lang en --out badge-a11y.svg
+          a11ytoolkit badge --score "$SCORE" --lang en --out badge-a11y.svg

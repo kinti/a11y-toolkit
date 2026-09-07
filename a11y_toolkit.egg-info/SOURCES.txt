@@ -2,8 +2,12 @@ LICENSE
 README.md
 a11y.py
 a11yaudit.py
+a11ybadge.py
+a11ybudget.py
+a11ycrit.py
 a11ydiff.py
 a11ydom.py
+a11ysarif.py
 arialive_js.py
 contrast.py
 declaracion.py

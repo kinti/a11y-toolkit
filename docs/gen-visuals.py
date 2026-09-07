@@ -140,14 +140,14 @@ h1 .dot{{color:#3fb950}}
                     + ''.join(f'\n<span class="bad">✗</span> <span class="c">{esc(c)}</span>  {esc(t[:48])}'
                               for c, t in fallos)
                     + '\n<span class="c">automation ≈ 1/3 of WCAG — filter, not verdict</span>')
-    escribe('a11y audit --url demo.site --lang en', salida_audit, hold=2400,
+    escribe('a11ytoolkit audit --url demo.site --lang en', salida_audit, hold=2400,
             blanco_previo=True)
-    escribe('a11y pair "#999999" "#ffffff"',
+    escribe('a11ytoolkit pair "#999999" "#ffffff"',
             f'ratio: <span class="bad">2.85:1 ✗ AA</span>  →  sugerencia_aa: '
             f'<span class="ok">{sugerido} ✓</span>', hold=1800, blanco_previo=True)
-    escribe('a11y audit --url demo.site   # after the fix',
+    escribe('a11ytoolkit audit --url demo.site   # after the fix',
             f'<span class="ok">score: {score_despues}/100 ✓</span>   '
-            f'<span class="c">regression watch: a11y budget · a11y diff</span>',
+            f'<span class="c">regression watch: a11ytoolkit budget · a11ytoolkit diff</span>',
             hold=1600, blanco_previo=True)
     hist.append('')
     hist.append(svg_insignia.replace('\n', ' '))

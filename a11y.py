@@ -1,16 +1,16 @@
 #!/usr/bin/env python3
-"""a11y — un solo comando para todo el toolkit.
+"""a11ytoolkit — un solo comando para todo el toolkit.
 
-  a11y pair "#texto" "#fondo" [--lang es|en]
-  a11y image ruta.jpg --text "#ffffff" [--region x,y,w,h] [--sample 4]
-  a11y audit --url https://cliente.web | --file pagina.html
-  a11y declaration --entidad "Nome" --url https://… --estado parcial [opciones]
-  a11y snapshot https://miweb --out antes.json      # requiere Playwright
-  a11y diff antes.json despues.json
-  a11y audit --url https://web --pages 5            # crawl ligero mismo dominio
-  a11y sarif --url https://web -o a11y.sarif        # para GitHub code scanning
-  a11y badge --score 92 --lang en --out badge.svg   # insignia SVG honesta
-  a11y budget --budget budget.json --audit hoy.json # solo lo NUEVO bloquea
+  a11ytoolkit pair "#texto" "#fondo" [--lang es|en]
+  a11ytoolkit image ruta.jpg --text "#ffffff" [--region x,y,w,h] [--sample 4]
+  a11ytoolkit audit --url https://cliente.web | --file pagina.html
+  a11ytoolkit declaration --entidad "Nome" --url https://… --estado parcial [opciones]
+  a11ytoolkit snapshot https://miweb --out antes.json      # requiere Playwright
+  a11ytoolkit diff antes.json despues.json
+  a11ytoolkit audit --url https://web --pages 5            # crawl ligero mismo dominio
+  a11ytoolkit sarif --url https://web -o a11y.sarif        # para GitHub code scanning
+  a11ytoolkit badge --score 92 --lang en --out badge.svg   # insignia SVG honesta
+  a11ytoolkit budget --budget budget.json --audit hoy.json # solo lo NUEVO bloquea
 """
 
 import sys

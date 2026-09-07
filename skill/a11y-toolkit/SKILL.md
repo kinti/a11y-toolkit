@@ -10,10 +10,10 @@ Audit → fix → document → watch, with zero-dependency tools. Prefer the MCP
 engine via `uvx` — no clone, no venv:
 
 ```bash
-uvx --from a11y-toolkit a11y pair "#1f2328" "#fbfaf7"          # color pair
-uvx --from a11y-toolkit a11y audit --url https://example.com   # static audit
-uvx --from a11y-toolkit a11y image hero.jpg --text "#fff" --region 120,40,420,90
-uvx --from a11y-toolkit a11y declaration --entidad "Acme" --url https://acme.example --estado parcial --marco eaa --lang en --output decl.html
+uvx --from a11y-toolkit a11ytoolkit pair "#1f2328" "#fbfaf7"          # color pair
+uvx --from a11y-toolkit a11ytoolkit audit --url https://example.com   # static audit
+uvx --from a11y-toolkit a11ytoolkit image hero.jpg --text "#fff" --region 120,40,420,90
+uvx --from a11y-toolkit a11ytoolkit declaration --entidad "Acme" --url https://acme.example --estado parcial --marco eaa --lang en --output decl.html
 ```
 
 All output is es/en (pass `--lang en` or the `lang` MCP argument; default es).
@@ -30,10 +30,10 @@ All output is es/en (pass `--lang en` or the `lang` MCP argument; default es).
 | "what does the screen reader hear?" | `a11y_aria_live_snippet` injected via Playwright + the snapshot's focus order |
 | keyboard/zoom/manual items | do them yourself as the agent — checklist in `references/wcag22-manual-checklist.md` |
 | "what does criterion X.Y.Z mean?" | `a11y_criterion` (code like `1.4.3`, `2.5.8`) |
-| "watch the site / only NEW regressions should block" | `a11y budget`: accept the baseline once, then only new blocking findings fail (exit 2). Recipe: `examples/a11y-watch.yml` (weekly GitHub Action) |
-| "put these findings in the PR / code scanning" | `a11y sarif --from-audit audit.json -o a11y.sarif` → upload with github/codeql-action/upload-sarif |
+| "watch the site / only NEW regressions should block" | `a11ytoolkit budget`: accept the baseline once, then only new blocking findings fail (exit 2). Recipe: `examples/a11y-watch.yml` (weekly GitHub Action) |
+| "put these findings in the PR / code scanning" | `a11ytoolkit sarif --from-audit audit.json -o a11y.sarif` → upload with github/codeql-action/upload-sarif |
 | "a badge for the audited site" | `a11y_badge` (score + date + "automated screening" scope — never claims conformance) |
-| "audit the section, not just one page" | `pages` parameter (or `a11y audit --pages N`): light same-domain crawl, aggregated by mean/worst score |
+| "audit the section, not just one page" | `pages` parameter (or `a11ytoolkit audit --pages N`): light same-domain crawl, aggregated by mean/worst score |
 | "full evaluation / conformance / WCAG-EM" | the `conformance-wcagem` prompt — three tiers, escalate one at a time; protocol in `references/wcagem-guide.md` |
 
 ## 1. Audit
@@ -83,7 +83,7 @@ audit findings. The statement must be linked from every page.
 
 Before deploy: `a11y_snapshot` (also captures the computed accessibility tree) → save
 JSON. After: snapshot again, `a11y_diff` (now also reports accessibility-tree changes).
-For continuous watching, set up the error budget: `a11y budget --init` from today's
+For continuous watching, set up the error budget: `a11ytoolkit budget --init` from today's
 audit, then every run only flags NEW blocking signals — recommend it for every client.
 `ok: false` = interactives added/removed/renamed or focus-order changed. Elements
 without `id` are matched by tag+name+href — recommend stable ids for fine-grained

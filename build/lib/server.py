@@ -16,6 +16,8 @@ Tools:
   - a11y_diff(a, b)                               regression diff between snapshots
   - a11y_diff_urls(url_a, url_b)                  staging vs production in one call
   - a11y_aria_live_snippet(lang?)                 injectable live-region monitor
+  - a11y_criterion(code, lang?)                   WCAG 2.2 criterion explained
+  - a11y_badge(score, lang?, fecha?)              honest SVG badge (score+date+scope)
 
 Prompts: audit-page, fix-contrast, pre-deploy-check, declaration-eaa.
 
@@ -38,22 +40,27 @@ from declaracion import generar as declaracion_fn  # noqa: E402
 from a11yaudit import audit_url as audit_url_fn, audit_html as audit_html_fn  # noqa: E402
 from a11ydom import audit_dom_url  # noqa: E402
 from a11ydiff import snapshot as snapshot_fn, diff as diff_fn  # noqa: E402
+from a11ycrit import criterio as criterio_fn  # noqa: E402
+from a11ybadge import badge as badge_fn  # noqa: E402
+from a11yaudit import audit_site as audit_site_fn  # noqa: E402
 
 try:
     from arialive_js import ARIALIVE_JS  # installed as a module (pip)
 except ImportError:
     ARIALIVE_JS = None  # repo checkout: read the file
 
-VERSION = '3.0.0'
+VERSION = '3.3.3'
 
 INSTRUCTIONS = (
     'Accessibility toolkit (WCAG 2.2), multilanguage es/en. '
-    'Loop: AUDIT (a11y_audit_url for a fast static pass; a11y_audit_dom for a rendered '
-    'audit with real computed contrast, 2.5.8 target size and focus indicator — needs '
-    'local Playwright) → FIX (a11y_contrast_pair, a11y_contrast_image, '
-    'a11y_suggest_color) → DOCUMENT (a11y_generate_declaration: RD 1112/2018 or '
-    'European Accessibility Act wording) → WATCH (a11y_snapshot + a11y_diff across '
-    'deploys). Every tool returns es/en findings with concrete remediation. '
+    'Loop: AUDIT (a11y_audit_url for a fast static pass with a 0-100 score; '
+    'a11y_audit_dom for a rendered audit with real computed contrast, 2.5.8 target '
+    'size and focus indicator — needs local Playwright) → FIX (a11y_contrast_pair, '
+    'a11y_contrast_image, a11y_suggest_color) → DOCUMENT (a11y_generate_declaration: '
+    'RD 1112/2018 or European Accessibility Act wording) → WATCH (a11y_snapshot — '
+    'includes the computed accessibility tree — + a11y_diff across deploys). '
+    'a11y_criterion explains what any criterion means. Every tool returns es/en '
+    'findings with concrete remediation. '
     'Automation covers about one third of WCAG: pair audits with the manual checklist '
     'in the audit-page prompt (keyboard, screen reader, zoom).'
 )
@@ -61,19 +68,24 @@ INSTRUCTIONS = (
 TOOLS = [
     {
         'name': 'a11y_audit_url',
-        'description': ('Express WCAG 2.2 audit of a URL or an HTML string: ~20 automated '
-                        'signals — images without alt (1.1.1), controls without accessible '
-                        'names (4.1.2), form fields without labels (3.3.2), click handlers on '
-                        'non-interactive elements (2.1.1), timed meta refresh (2.2.1), missing '
-                        'skip mechanism (2.4.1), lang/title (3.1.1, 2.4.2), heading structure '
-                        '(1.3.1), blocked zoom (1.4.4), captions (1.2.2), target=_blank '
-                        'without warning (3.2.5), positive tabindex (2.4.3), aria-hidden on '
-                        'focusable elements, tables without th, duplicate ids. Each finding '
-                        'includes a concrete remediation. Severity-ranked. Filter, not '
-                        'verdict: automation covers ~1/3 of WCAG.'),
+        'description': ('Express WCAG 2.2 audit of a URL or an HTML string: 20+ automated '
+                        'signals with a weighted 0-100 score — images without alt (1.1.1), '
+                        'controls without accessible names (4.1.2), form fields without labels '
+                        '(3.3.2), missing autocomplete on user-data fields (1.3.5), click '
+                        'handlers on non-interactive elements (2.1.1), unknown ARIA roles and '
+                        'broken aria-labelledby (4.1.2), duplicated unnamed landmarks, timed '
+                        'meta refresh (2.2.1), missing skip mechanism (2.4.1), lang/title '
+                        '(3.1.1, 2.4.2), heading structure (1.3.1), blocked zoom (1.4.4), '
+                        'captions (1.2.2), autoplay audio (1.4.2), generic/duplicated link text '
+                        '(2.4.4), target=_blank without warning (3.2.5), positive tabindex '
+                        '(2.4.3), aria-hidden on focusable elements, tables without th, '
+                        'duplicate ids, duplicate accesskeys. Each finding includes concrete '
+                        'remediation. Filter, not verdict: automation covers ~1/3 of WCAG; '
+                        'query a11y_criterion for what a criterion means.'),
         'inputSchema': {'type': 'object', 'properties': {
             'url': {'type': 'string', 'description': 'URL to fetch and audit'},
             'html': {'type': 'string', 'description': 'raw HTML to audit directly (overrides url)'},
+            'pages': {'type': 'integer', 'description': 'light same-domain crawl: audit up to N pages, aggregated by score and recurring signals (default 1, max 20)'},
             'lang': {'type': 'string', 'enum': ['es', 'en'], 'description': 'output language (es default)'},
             'timeout': {'type': 'number', 'description': 'fetch timeout seconds (30 default)'},
         }},
@@ -153,9 +165,10 @@ TOOLS = [
     {
         'name': 'a11y_snapshot',
         'description': ('Accessibility snapshot of a URL: interactive elements (tag, role, '
-                        'accessible name, href) in DOM order plus the REAL tab focus order. '
-                        'Save it before a deploy and compare after with a11y_diff. Requires '
-                        'local Playwright.'),
+                        'accessible name, href) in DOM order, the REAL tab focus order, and '
+                        'when Playwright ≥1.49 is available the computed ACCESSIBILITY TREE '
+                        '(aria snapshot — what a screen reader announces). Save it before a '
+                        'deploy and compare after with a11y_diff. Requires local Playwright.'),
         'inputSchema': {'type': 'object', 'properties': {
             'url': {'type': 'string'},
         }, 'required': ['url']},
@@ -188,6 +201,30 @@ TOOLS = [
         'inputSchema': {'type': 'object', 'properties': {
             'lang': {'type': 'string', 'enum': ['es', 'en'], 'description': 'monitor panel language (es default)'},
         }},
+    },
+    {
+        'name': 'a11y_badge',
+        'description': ('Returns an HONEST accessibility badge as accessible SVG: score, '
+                        'date and scope (automated screening ≈ 1/3 of WCAG), color-coded '
+                        'by score. Deliberately does NOT say "conformant" — the honest '
+                        'seal. Embed it in audited sites or statements.'),
+        'inputSchema': {'type': 'object', 'properties': {
+            'score': {'type': 'number', 'description': '0-100 (from an audit result)'},
+            'fecha': {'type': 'string', 'description': 'ISO date (today by default)'},
+            'lang': {'type': 'string', 'enum': ['es', 'en']},
+        }, 'required': ['score']},
+    },
+    {
+        'name': 'a11y_criterion',
+        'description': ('Explains a WCAG 2.2 success criterion in plain language (es/en): '
+                        'what it requires, typical failures, and how to verify it with this '
+                        'toolkit (which tool automates which part). Codes like "1.4.3", '
+                        '"2.5.8", "4.1.2". Use it whenever you need to explain WHY a finding '
+                        'matters or what the criterion actually says.'),
+        'inputSchema': {'type': 'object', 'properties': {
+            'code': {'type': 'string', 'description': 'criterion number, e.g. 1.4.3'},
+            'lang': {'type': 'string', 'enum': ['es', 'en']},
+        }, 'required': ['code']},
     },
 ]
 
@@ -224,6 +261,15 @@ _PROMPTS = [
             {'name': 'entidad', 'description': 'organization name', 'required': True},
             {'name': 'url', 'description': 'website URL', 'required': True},
             {'name': 'estado', 'description': 'plena | parcial | no_conforme', 'required': False},
+        ],
+    },
+    {
+        'name': 'conformance-wcagem',
+        'description': 'Guided WCAG-EM conformance ladder for a site: express screening → agent-verified guided evaluation on a representative sample → conformance report inputs.',
+        'arguments': [
+            {'name': 'url', 'description': 'site root to evaluate', 'required': True},
+            {'name': 'tier', 'description': 'express | guided | conformance (default: express)', 'required': False},
+            {'name': 'language', 'description': 'es or en', 'required': False},
         ],
     },
 ]
@@ -277,6 +323,18 @@ def _prompt(nombre, args):
                      "2. Si existe un snapshot de referencia, compara con a11y_diff; si no, créalo con a11y_snapshot para el próximo despliegue.\n")
                   + "3. Informa: hallazgos nuevos (bloqueantes), hallazgos resueltos (buenas noticias), interactivos añadidos/eliminados/renombrados, cambios de orden de foco.\n"
                   "4. Veredicto: GO (sin hallazgos altos nuevos ni regresiones de foco) / NO-GO (en caso contrario) con la evidencia.",
+        },
+        'conformance-wcagem': {
+            'en': f"Run the WCAG-EM conformance ladder for {args.get('url','the site')} (tier: {args.get('tier','express')}):\n"
+                  "1. EXPRESS (always): a11y_audit_url on the root and the 4-5 key pages (use pages parameter / crawl). Report scores and findings by severity.\n"
+                  "2. GUIDED: pick a WCAG-EM sample — structured pages (home, contact, login, a content page, a form flow) plus a random pick from the crawl. On each sample page, run a11y_audit_dom if Playwright is available, then verify the manual checklist yourself (keyboard walk, focus visibility, zoom 200%, error announcement on one form). Mark each item verified-by-agent vs automated-only.\n"
+                  "3. CONFORMANCE: only with a human in the loop — compile the evidence (sample, pages, results, dates) into WCAG-EM report structure, state the scope honestly (sample-based evaluation, not a certification), and feed contenido_no_accesible into a11y_generate_declaration.\n"
+                  "Escalate one tier at a time; never present tier 1 or 2 as conformance.",
+            'es': f"Ejecuta la escalera de conformidad WCAG-EM para {args.get('url','el sitio')} (nivel: {args.get('tier','express')})\u003a\n"
+                  "1. EXPRESS (siempre): a11y_audit_url en la raíz y las 4-5 páginas clave (parámetro pages). Informa puntuaciones y hallazgos por severidad.\n"
+                  "2. GUIDED: elige una muestra WCAG-EM — páginas estructurales (inicio, contacto, login, una de contenido, un flujo de formulario) más una aleatoria del rastreo. En cada una, a11y_audit_dom si hay Playwright, y verifica tú el checklist manual (recorrido de teclado, foco visible, zoom 200%, anuncio de errores en un formulario). Marca cada punto como verificado-por-agente o solo-automático.\n"
+                  "3. CONFORMANCE: solo con humana en el bucle — recopila la evidencia (muestra, páginas, resultados, fechas) en la estructura del informe WCAG-EM, declara el alcance con honestidad (evaluación por muestreo, no certificación) y alimenta contenido_no_accesible en a11y_generate_declaration.\n"
+                  "Escala un nivel cada vez; nunca presentes el nivel 1 o 2 como conformidad.",
         },
         'declaration-eaa': {
             'en': f"Generate an accessibility statement for {args.get('entidad','the entity')} ({args.get('url','URL')}):\n"
@@ -340,6 +398,10 @@ def llamar(nombre, args):
             if args.get('html'):
                 return _texto(audit_html_fn(args['html'], args.get('url') or '(html)',
                                             lang=args.get('lang', 'es')))
+            if args.get('pages', 1) > 1:
+                return _texto(audit_site_fn(args['url'], max_pages=args['pages'],
+                                            timeout=args.get('timeout', 30),
+                                            lang=args.get('lang', 'es')))
             return _texto(audit_url_fn(args['url'], timeout=args.get('timeout', 30),
                                        lang=args.get('lang', 'es')))
         except Exception as e:  # noqa: BLE001
@@ -383,6 +445,12 @@ def llamar(nombre, args):
                     'isError': True}
         except Exception as e:  # noqa: BLE001
             return {'content': [{'type': 'text', 'text': f'error: {e}'}], 'isError': True}
+    if nombre == 'a11y_criterion':
+        return _texto(criterio_fn(args['code'], lang=args.get('lang', 'es')))
+    if nombre == 'a11y_badge':
+        svg = badge_fn(args['score'], fecha=args.get('fecha'),
+                       lang=args.get('lang', 'en'))
+        return {'content': [{'type': 'text', 'text': svg}]}
     if nombre == 'a11y_aria_live_snippet':
         if ARIALIVE_JS is not None:
             js = ARIALIVE_JS

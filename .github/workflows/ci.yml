@@ -20,7 +20,7 @@ jobs:
       - name: Package smoke test (pip install .)
         run: |
           pip install .
-          a11y pair "#767676" "#ffffff"
+          a11ytoolkit pair "#767676" "#ffffff"
           python3 -c "import server, a11ydom; print('server imports OK,', len(server.TOOLS), 'tools,', len(server._PROMPTS), 'prompts')"
           pip uninstall -y a11y-toolkit
   build:

@@ -61,6 +61,16 @@ def snapshot(url, salida=None):
         page.goto(url, wait_until='networkidle', timeout=45000)
         elementos = page.evaluate(COLECTOR)
 
+        # Árbol de accesibilidad REAL (roles/nombres computados, lo que anuncia
+        # un lector de pantalla). Playwright ≥1.49; si no está, se omite.
+        arbol = None
+        try:
+            arbol = page.locator('body').aria_snapshot()
+            if len(arbol) > 60_000:
+                arbol = arbol[:60_000] + '\n… (truncado)'
+        except Exception:  # noqa: BLE001
+            arbol = None
+
         orden = []
         page.keyboard.press('Tab')
         vistos = set()
@@ -87,6 +97,8 @@ def snapshot(url, salida=None):
 
     datos = {'url': url, 'ts': datetime.now(timezone.utc).isoformat(),
              'elementos': elementos, 'orden_foco': orden}
+    if arbol is not None:
+        datos['arbol_accesible'] = arbol
     if salida:
         with open(salida, 'w', encoding='utf-8') as f:
             json.dump(datos, f, ensure_ascii=False, indent=1)
@@ -109,7 +121,21 @@ def diff(a, b):
     foco_cambia = comun_a != comun_b
     primera_divergencia = next((i for i, (x, y) in enumerate(zip(comun_a, comun_b)) if x != y), None)
 
-    ok = not (aniadidos or eliminados or renombrados or foco_cambia)
+    # Árbol de accesibilidad: si ambos snapshots lo traen, detecta cambios en
+    # roles/nombres computados que la lista de interactivos no ve.
+    arbol_cambia = None
+    arbol_diff = None
+    if 'arbol_accesible' in a and 'arbol_accesible' in b:
+        la, lb = a['arbol_accesible'].splitlines(), b['arbol_accesible'].splitlines()
+        arbol_cambia = la != lb
+        if arbol_cambia:
+            arbol_diff = [f'- {la[i]}' for i in range(min(len(la), len(lb)))
+                          if la[i] != lb[i]][:5]
+            arbol_diff += [f'+ {lb[i]}' for i in range(min(len(la), len(lb)))
+                           if i < len(lb) and la[i] != lb[i]][:5]
+
+    ok = not (aniadidos or eliminados or renombrados or foco_cambia
+              or arbol_cambia)
     return {
         'ok': ok,
         'resumen': {
@@ -120,6 +146,7 @@ def diff(a, b):
         },
         'aniadidos': aniadidos, 'eliminados': eliminados, 'renombrados': renombrados,
         'foco': {'antes': oa, 'despues': ob, 'primera_divergencia': primera_divergencia},
+        'arbol': {'cambia': arbol_cambia, 'primeras_diferencias': arbol_diff},
         'nota': ('Elementos sin id se casan por tag+nombre+href: renombrar produce '
                  'eliminado+añadido, no un diff fino. Usa ids estables para trazabilidad.'),
     }
