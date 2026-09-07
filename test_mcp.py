@@ -48,7 +48,7 @@ resp = [json.loads(l) for l in p.stdout.splitlines() if l.strip()]
 por_id = {r.get('id'): r for r in resp}
 
 init = por_id[1]['result']
-assert init['serverInfo']['name'] == 'a11y-toolkit' and init['serverInfo']['version'] == '3.3.0'
+assert init['serverInfo']['name'] == 'a11y-toolkit' and init['serverInfo']['version'] == '3.3.1'
 assert 'WCAG' in init['instructions'] and 'prompts' in init['capabilities']
 
 nombres = [t['name'] for t in por_id[2]['result']['tools']]

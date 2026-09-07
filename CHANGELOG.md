@@ -1,5 +1,12 @@
 # Changelog
 
+## 3.3.1 — 2026-09-07 — "registry-ready"
+
+- PyPI README now carries the `mcp-name: io.github.kinti/a11y-toolkit` ownership
+  marker required by the official MCP Registry, plus a direct PyPI link.
+- All version strings aligned (server.json, pyproject, server.VERSION).
+- No functional changes.
+
 ## 3.3.0 — 2026-09-07 — "close the axe gap, open the ladder"
 
 - **Same-origin iframes in the rendered audit**: the collector runs inside

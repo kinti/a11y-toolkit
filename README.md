@@ -55,6 +55,8 @@ what automation can't check), `fix-contrast`, `pre-deploy-check` (audit + diff â
 
 ## Install
 
+> Registry name: `mcp-name: io.github.kinti/a11y-toolkit` Â· PyPI: [a11y-toolkit](https://pypi.org/project/a11y-toolkit/)
+
 **Claude Code** (one command):
 
 ```bash

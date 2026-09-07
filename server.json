@@ -2,26 +2,35 @@
   "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
   "name": "io.github.kinti/a11y-toolkit",
   "title": "A11Y Toolkit",
-  "description": "The accessibility layer for AI coding agents: express static WCAG 2.2 audit, rendered audit (computed contrast, 2.5.8 target size, focus indicator), exact contrast math (pairs, CSS names, hsl/rgba, text-over-image pixel sampling), EAA/RD 1112/2018 accessibility statements, snapshot regression diffs and an aria-live monitor. Zero dependencies at core; es/en.",
+  "description": "The accessibility layer for AI coding agents: audit, fix, document and watch - WCAG 2.2.",
   "websiteUrl": "https://jquin.net/lab/",
   "repository": {
     "url": "https://github.com/kinti/a11y-toolkit",
     "source": "github"
   },
-  "version": "3.0.0",
+  "version": "3.3.1",
   "packages": [
     {
       "registryType": "pypi",
       "registryBaseUrl": "https://pypi.org",
       "identifier": "a11y-toolkit",
-      "version": "3.0.0",
+      "version": "3.3.1",
       "transport": {
         "type": "stdio"
       },
       "packageArguments": [
-        { "type": "positional", "value": "--from" },
-        { "type": "positional", "value": "a11y-toolkit" },
-        { "type": "positional", "value": "a11y-toolkit-mcp" }
+        {
+          "type": "positional",
+          "value": "--from"
+        },
+        {
+          "type": "positional",
+          "value": "a11y-toolkit"
+        },
+        {
+          "type": "positional",
+          "value": "a11y-toolkit-mcp"
+        }
       ]
     }
   ]
