@@ -20,7 +20,7 @@ assert any(h['senal'] == 'imgs_alt' for h in r['hallazgos'])
 # --- 2. SARIF: estructura y niveles ---
 mal = audit_html('<html lang="es"><head><title>t</title></head><body><main>'
                  '<img src="x.png"><div onclick="ir()">clic</div>'
-                 '<a href="/x">Más</a></main></body></html>', lang='en')
+                 '<a href="/x">Más</a><a href="/y">aquí</a><span id="d1"></span><span id="d1"></span></main></body></html>', lang='en')
 s = desde_informe(mal)
 assert s['version'] == '2.1.0' and s['runs'][0]['tool']['driver']['name'] == 'a11y-toolkit'
 res = s['runs'][0]['results']

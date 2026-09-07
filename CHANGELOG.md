@@ -1,5 +1,21 @@
 # Changelog
 
+## 3.4.0 — 2026-09-07 — "validated against reality"
+
+First benchmarked release: axe-core 4.10 run on the same real pages, same
+Chromium (bench/compara.py + bench/README.md with full triage).
+
+- **Found a real WCAG failure on gov.uk that axe does not report** (button text
+  3.91:1 at 13px — axe leaves contrast as "incomplete"; we compute it).
+- **Five false positives driven out**, each with a regression fixture:
+  non-tabbable `aria-hidden` controls, honeypot containers, visually-hidden
+  skip links reported as tiny targets, single-context generic links (now
+  require ≥2), and inline links at 20-24px downgraded to "review" (the 2.5.8
+  spacing exception is not measurable without full layout).
+- DOM findings now carry the stable `senal` key (budget/SARIF join works for
+  rendered reports too).
+- Known limit documented: shadow DOM is not traversed yet.
+
 ## 3.3.3 — 2026-09-07 — "a command of one's own"
 
 - **The CLI command is now `a11ytoolkit`** (was the generic `a11y` — a name any

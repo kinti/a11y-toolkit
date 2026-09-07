@@ -65,6 +65,21 @@ tb = audit_html('<html lang="es"><head><title>t</title></head><body><h1>a</h1><m
                 '<a href="https://x" target="_blank">Docs (nueva ventana)</a></main></body></html>')
 assert not any(h['criterio'].startswith('3.2.5') for h in tb['hallazgos'])
 
+# FP bench gov.uk: aria-hidden con tabindex="-1" NO se reporta (no es tabulable)
+ah = audit_html('<html lang="es"><head><title>t</title></head><body><h1>a</h1><main>'
+                '<button aria-hidden="true" tabindex="-1">x</button>'
+                '<button aria-hidden="true">y</button></main></body></html>')
+n_ah = [h for h in ah['hallazgos'] if h['senal'] == 'aria_hidden_focusable']
+assert len(n_ah) == 1 and '1 ' in n_ah[0]['hallazgo'], ah['hallazgos']
+
+# FP bench: un único enlace genérico NO se reporta (el contexto suele bastar); dos, sí
+g1 = audit_html('<html lang="es"><head><title>t</title></head><body><h1>a</h1><main>'
+                '<a href="/x">Más información…</a></main></body></html>')
+assert not any(h['senal'] == 'generic_link' for h in g1['hallazgos'])
+g2 = audit_html('<html lang="es"><head><title>t</title></head><body><h1>a</h1><main>'
+                '<a href="/x">Más</a><a href="/y">leer más</a></main></body></html>')
+assert any(h['senal'] == 'generic_link' for h in g2['hallazgos'])
+
 # labels huérfanos detectados (el label for= el de verdad; el suelto, no)
 lo = audit_html('<html lang="es"><head><title>t</title></head><body><h1>a</h1><main>'
                 '<label>Sin campo</label><input id="ok" type="text"><label for="ok">Ok</label>'

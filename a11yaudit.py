@@ -496,8 +496,10 @@ class _Auditor(HTMLParser):
             k = a['accesskey'].strip().lower()
             self.accesos[k] = self.accesos.get(k, 0) + 1
         aria_hidden = (a.get('aria-hidden') or '').lower() == 'true'
-        if aria_hidden and (tag in _CONTROLES + ('input', 'select', 'textarea', 'iframe', 'video')
-                            or a.get('onclick')):
+        ti_raw = (a.get('tabindex') or '').strip()
+        if aria_hidden and ti_raw != '-1' and (
+                tag in _CONTROLES + ('input', 'select', 'textarea', 'iframe', 'video')
+                or a.get('onclick')):
             self.aria_hidden_focusable.append(tag)
         if tag in ('h1', 'h2', 'h3', 'h4', 'h5', 'h6'):
             self._nivel_h = int(tag[1])
@@ -673,7 +675,7 @@ def audit_html(html_text, url='(html)', lang='es'):
                if t[1] > 1 and t[0] == t[1]]
     if lm_dups:
         add('baja', '1.3.1', 'landmark_dup', n=len(lm_dups), ej=', '.join(lm_dups[:4]))
-    if p.genericos:
+    if p.genericos >= 2:   # un enlace genérico único suele desambiguarse por contexto
         gen = [f'«{k}»' for k in p.enlaces if k in _TEXTO_GENERICO][:4]
         add('baja', '2.4.4', 'generic_link', n=p.genericos, ej=', '.join(gen))
     mismos = sum(1 for _k, hrefs in p.enlaces.items() if len(hrefs) > 1)

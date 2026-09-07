@@ -194,9 +194,12 @@ _JS = r'''(maxEj) => {
     const disp = getComputedStyle(el).display;
     if (el.tagName === 'A' && disp.includes('inline') && el.closest('p, li, dd, dt, td, figcaption, blockquote')) continue;
     const r = el.getBoundingClientRect();
+    if (r.width <= 2 || r.height <= 2) continue;   // patrón visualmente oculto (skip link)
+    if (el.getAttribute('tabindex') === '-1') continue;
     if (r.width < 24 || r.height < 24) {
       if (out.targets.length < 40) out.targets.push(
-        { ej: path(el), w: Math.round(r.width), h: Math.round(r.height) });
+        { ej: path(el), w: Math.round(r.width), h: Math.round(r.height),
+          inline: disp.includes('inline') });
     }
   }
 
@@ -242,7 +245,12 @@ _JS = r'''(maxEj) => {
     if (t > 0 && out.tabindex.length < 20) out.tabindex.push(path(el));
   }
   for (const el of document.querySelectorAll('[aria-hidden="true"]')) {
-    if (el.querySelector(INTER) || el.matches(INTER)) out.ariaHidden.push(path(el));
+    if (el.matches(INTER)) {
+      if (el.getAttribute('tabindex') !== '-1') out.ariaHidden.push(path(el));
+    } else if ([...(el.querySelectorAll(INTER) || [])]
+               .some(d => d.getAttribute('tabindex') !== '-1')) {
+      out.ariaHidden.push(path(el));
+    }
   }
   for (const el of document.querySelectorAll('a[target="_blank"]')) {
     const t = (el.innerText || '') + ' ' + (el.getAttribute('aria-label') || '') + ' ' + (el.getAttribute('title') || '');
@@ -279,8 +287,11 @@ _JS = r'''(maxEj) => {
   out.marks = mi;
 
   // ---- foco: indicador visible (heurístico) + contraste en estado focus ----
+  const oculto = el => { const r = el.getBoundingClientRect();
+    return (r.width <= 2 && r.height <= 2); };
   const stops = [...document.querySelectorAll(INTER)]
-    .filter(el => vis(el) && !el.disabled).slice(0, 40);
+    .filter(el => vis(el) && !el.disabled && el.getAttribute('tabindex') !== '-1'
+                  && !oculto(el)).slice(0, 40);
   const prevFocus = document.activeElement;
   for (const el of stops) {
     try { el.focus(); } catch (e) { /* no enfocable */ }
@@ -308,6 +319,7 @@ _JS = r'''(maxEj) => {
 
 def _agrega(hallazgos, lang, severidad, code, key, ejemplos=None, **fmt):
     h = {'severidad': severidad, 'criterio': CRIT.get(lang, CRIT['es']).get(code, code),
+         'senal': key,
          'hallazgo': _t(lang, key).format(**fmt), 'remediacion': _t(lang, key + '_rem').format(**fmt)}
     if ejemplos:
         h['ejemplos'] = ejemplos[:MAX_EJEMPLOS]
@@ -331,11 +343,14 @@ def audit_dom(datos, url='(rendered)', lang='es'):
         _agrega(hallazgos, lang, 'baja', '1.4.3', 'contrast_review',
                 n=datos['contrastReview'])
 
-    # 2. Target size 2.5.8
+    # 2. Target size 2.5.8 (enlaces inline → baja: la excepción de espaciado
+    #    probablemente aplica y no es medible aquí; bloques → media)
     targets = datos.get('targets') or []
     if targets:
+        todos_inline = all(t.get('inline') for t in targets)
         det = ', '.join(f"{t['ej']} ({t['w']}×{t['h']})" for t in targets[:4])
-        _agrega(hallazgos, lang, 'media', '2.5.8', 'target_small',
+        _agrega(hallazgos, lang, 'baja' if todos_inline else 'media', '2.5.8',
+                'target_small',
                 ejemplos=[f"{t['ej']} ({t['w']}×{t['h']}px)" for t in targets],
                 n=len(targets), det=det)
 

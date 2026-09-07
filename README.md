@@ -127,6 +127,16 @@ a11ytoolkit sarif --from-audit audit.json -o a11y.sarif              # GitHub co
 `examples/a11y-watch.yml` turns this into a weekly scheduled check that fails
 on regressions and publishes the SARIF to code scanning.
 
+## Validated against real pages, not just fixtures
+
+Before shipping the current rule set we benchmarked against axe-core 4.10 on real
+pages ([methodology and results](bench/README.md)) — same Chromium, same Playwright.
+That pass **caught a real WCAG failure on gov.uk that axe does not report** (blue
+button text at 3.91:1, manually verified) and drove out five of our own false
+positives (hidden skip links reported as tiny targets, honeypot fields, non-tabbable
+`aria-hidden` controls, single-context generic links). Every divergence has a
+regression fixture.
+
 ## Honesty, built in
 
 Automation covers **~1/3 of WCAG** — every audit says so. The `audit-page` prompt and the

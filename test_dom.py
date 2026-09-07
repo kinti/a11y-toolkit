@@ -29,6 +29,9 @@ a:focus{outline:none}.chico{padding:1px 2px}</style></head>
 <button class="mini">X</button>
 <a href="#s" class="chico" style="display:inline-block">ir</a>
 <img src="x.png"><input type="text" name="sinlabel">
+<button aria-hidden="true" tabindex="-1">honeypot-btn</button>
+<div aria-hidden="true" class="robots"><label>robots only <input type="text" tabindex="-1"></label></div>
+<a href="#s" style="position:absolute;width:1px;height:1px;overflow:hidden">skip oculto</a>
 <iframe src="dom_fixture_hijo.html" title="hijo"></iframe>
 </main></body></html>'''
 
@@ -54,6 +57,11 @@ assert any(c.startswith('1.1.1') for c in crit), sorted(crit)          # img sin
 assert d['modo'] == 'rendered'
 assert d.get('iframes_anidados', 0) == 1, d.get('iframes_anidados')   # iframe same-origin
 assert any('iframe: y.png' in str(e) for h in d['hallazgos'] for e in h.get('ejemplos', []))
+# FPs corregidos tras el bench: honeypot aria-hidden, tabindex=-1 y skip oculto no se reportan
+senales = {h['senal']: h for h in d['hallazgos']}
+assert 'aria_hidden_focusable' not in senales, senales.get('aria_hidden_focusable')
+f258 = senales.get('target_small')
+assert f258 is None or not any('1×1' in str(e) for e in f258.get('ejemplos', []))
 # el párrafo con buen contraste NO provoca hallazgo: solo 2 zonas malas agrupadas
 f14 = next(h for h in d['hallazgos'] if h['criterio'].startswith('1.4.3'))
 assert '2.85:1' in f14['hallazgo'] and 'remediacion' in f14
