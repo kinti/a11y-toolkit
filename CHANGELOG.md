@@ -1,5 +1,22 @@
 # Changelog
 
+## 3.3.0 — 2026-09-07 — "close the axe gap, open the ladder"
+
+- **Same-origin iframes in the rendered audit**: the collector runs inside
+  same-origin frames (up to 4) and merges findings with an `iframe:` prefix;
+  cross-origin frames are skipped (impossible locally, honestly noted).
+- **:focus/:hover state contrast** (1.4.3): real hover via Playwright on
+  marked controls + computed focus-state contrast; disabled controls reported
+  as exempt, per WCAG.
+- **ARIA value validation** (static, 4.1.2): boolean tokens, integer/numeric
+  attributes, closed token lists (aria-sort, aria-current, aria-live…), and
+  aria-controls/aria-errormessage references checked against existing ids.
+- **`conformance-wcagem` prompt (5th)** + skill reference `wcagem-guide.md`:
+  the three-tier ladder — express screening → agent-verified guided evaluation
+  on a WCAG-EM sample → conformance report with a human certifying. The
+  automated/gentle bridge from free lint to paid consulting.
+- 12 MCP tools + 5 prompts. Version strings everywhere.
+
 ## 3.2.0 — 2026-09-07 — "the roadmap: guardrails"
 
 The distribution loop, closed: findings travel in standard formats, progress is

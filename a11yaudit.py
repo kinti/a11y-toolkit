@@ -56,6 +56,24 @@ _DATO_PERSONAL = re.compile(
     r'(^|[\W_])(name|nombre|email|correo|phone|telefono|tel|address|direccion|postal|zip|'
     r'city|ciudad|country|pais|organi[sz]ation|company|empresa|street|user|usuario)([\W_]|$)', re.I)
 
+# Validación de VALORES aria-* (estilo axe aria-valid-attr-value)
+_ARIA_BOOL = {'aria-hidden', 'aria-expanded', 'aria-selected', 'aria-pressed',
+              'aria-checked', 'aria-disabled', 'aria-required', 'aria-readonly',
+              'aria-multiline', 'aria-multiselectable', 'aria-modal', 'aria-grabbed'}
+_ARIA_INT = {'aria-level', 'aria-posinset', 'aria-setsize', 'aria-colcount',
+             'aria-rowcount', 'aria-colindex', 'aria-rowindex', 'aria-colspan',
+             'aria-rowspan'}
+_ARIA_NUM = {'aria-valuenow', 'aria-valuemin', 'aria-valuemax'}
+_ARIA_TOKENS = {
+    'aria-sort': {'ascending', 'descending', 'none', 'other'},
+    'aria-current': {'page', 'step', 'location', 'date', 'time', 'true', 'false', ''},
+    'aria-autocomplete': {'inline', 'list', 'both', 'none', ''},
+    'aria-live': {'off', 'polite', 'assertive'},
+    'aria-orientation': {'horizontal', 'vertical', 'undefined'},
+    'aria-relevant': {'additions', 'removals', 'text', 'all'},
+}
+_ARIA_IDREFS = {'aria-labelledby', 'aria-describedby', 'aria-controls', 'aria-errormessage'}
+
 CRIT = {
     'es': {
         '1.1.1': '1.1.1 Contenido no textual',
@@ -151,6 +169,8 @@ T = {
         'autocomplete_rem': 'Añade autocomplete con el token correcto (email, tel, name, postal-code…, 1.3.5): relleno automático y voz de accesibilidad con sobrecoste cero.',
         'aria_ref_missing': '{n} referencias aria-labelledby/describedby apuntan a ids que no existen: {ej}.',
         'aria_ref_missing_rem': 'Corrige o elimina la referencia: un aria-labelledby roto deja el control sin nombre accesible.',
+        'aria_value_invalid': '{n} valores de atributos ARIA inválidos: {ej}. Tecnología asistida los ignora.',
+        'aria_value_invalid_rem': 'Los aria-* booleanos solo admiten true/false/undefined, los de posición enteros, los de token su lista cerrada (4.1.2). Corrige o elimina el atributo.',
         'role_unknown': '{n} roles ARIA desconocidos: {ej}. Los lectores los ignoran.',
         'role_unknown_rem': 'Usa roles de la especificación ARIA (button, dialog, navigation…) o elimina el atributo y confía en el HTML semántico.',
         'role_required_attr': '{n} controles con role que exige atributos ARIA que faltan: {ej}.',
@@ -229,6 +249,8 @@ T = {
         'autocomplete_rem': 'Add autocomplete with the right token (email, tel, name, postal-code…, 1.3.5): free accessibility and autofill at zero cost.',
         'aria_ref_missing': '{n} aria-labelledby/describedby references point to ids that do not exist: {ej}.',
         'aria_ref_missing_rem': 'Fix or remove the reference: a broken aria-labelledby leaves the control with no accessible name.',
+        'aria_value_invalid': '{n} invalid ARIA attribute values: {ej}. Assistive tech ignores them.',
+        'aria_value_invalid_rem': 'Boolean aria-* only accept true/false/undefined, position ones integers, token ones their closed list (4.1.2). Fix or drop the attribute.',
         'role_unknown': '{n} unknown ARIA roles: {ej}. Screen readers ignore them.',
         'role_unknown_rem': 'Use roles from the ARIA specification (button, dialog, navigation…) or drop the attribute and rely on semantic HTML.',
         'role_required_attr': '{n} widgets whose role requires missing ARIA attributes: {ej}.',
@@ -309,6 +331,7 @@ class _Auditor(HTMLParser):
         self.input_img_sin_alt = 0
         # v3.1: validez ARIA, autocomplete, enlaces, landmarks, accesskey, autoplay
         self.aria_refs = []       # (attr, id) referenciados por aria-labelledby/describedby
+        self.aria_valores = []    # valores aria-* inválidos
         self.roles_desconocidos = []
         self.roles_sin_estado = []   # widgets con role que exige aria-valuenow
         self.landmarks = {}       # tipo → [con_etiqueta, total]
@@ -434,11 +457,26 @@ class _Auditor(HTMLParser):
                                       'video', 'audio', 'details', 'summary'):
             if a.get('onclick') and not a.get('role') and 'tabindex' not in a:
                 self.click_sueltos.append(tag)
-        # v3.1: validez ARIA y nueva colección (aplica a cualquier elemento)
-        for _ar in ('aria-labelledby', 'aria-describedby'):
+        # v3.1/v3.3: validez ARIA (atributos, referencias y VALORES)
+        for _ar in _ARIA_IDREFS:
             if a.get(_ar):
                 for _ref in a[_ar].split():
                     self.aria_refs.append((_ar, _ref))
+        for _ar, _val in a.items():
+            if not _ar.startswith('aria-'):
+                continue
+            _val = (_val or '').strip().lower()
+            if _ar in _ARIA_BOOL and _val not in ('true', 'false', 'undefined'):
+                self.aria_valores.append(f'{_ar}="{_val}" (true/false)')
+            elif _ar in _ARIA_INT and not _val.isdigit():
+                self.aria_valores.append(f'{_ar}="{_val}" (entero)')
+            elif _ar in _ARIA_NUM:
+                try:
+                    float(_val)
+                except ValueError:
+                    self.aria_valores.append(f'{_ar}="{_val}" (número)')
+            elif _ar in _ARIA_TOKENS and _val not in _ARIA_TOKENS[_ar]:
+                self.aria_valores.append(f'{_ar}="{_val}" ({"/".join(sorted(v for v in _ARIA_TOKENS[_ar] if v))})')
         if a.get('role'):
             rol = a['role'].strip().split()[0].lower()
             if rol not in _ROLES_ARIA and not rol.startswith('doc-'):
@@ -616,6 +654,9 @@ def audit_html(html_text, url='(html)', lang='es'):
     if refs_rotas:
         add_ej('alta', '4.1.2', 'aria_ref_missing', refs_rotas, n=len(refs_rotas),
                ej=refs_rotas[0])
+    if p.aria_valores:
+        add_ej('media', '4.1.2', 'aria_value_invalid', p.aria_valores,
+               n=len(p.aria_valores), ej=', '.join(p.aria_valores[:4]))
     if p.roles_desconocidos:
         add_ej('media', '4.1.2', 'role_unknown',
                sorted(set(p.roles_desconocidos)), n=len(p.roles_desconocidos),

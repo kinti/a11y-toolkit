@@ -48,7 +48,7 @@ resp = [json.loads(l) for l in p.stdout.splitlines() if l.strip()]
 por_id = {r.get('id'): r for r in resp}
 
 init = por_id[1]['result']
-assert init['serverInfo']['name'] == 'a11y-toolkit' and init['serverInfo']['version'] == '3.2.0'
+assert init['serverInfo']['name'] == 'a11y-toolkit' and init['serverInfo']['version'] == '3.3.0'
 assert 'WCAG' in init['instructions'] and 'prompts' in init['capabilities']
 
 nombres = [t['name'] for t in por_id[2]['result']['tools']]
@@ -64,7 +64,7 @@ assert 'alm-panel' in snip and "closest('.alm-panel')" in snip
 assert por_id[6]['result'].get('isError') is True
 
 prompts = por_id[7]['result']['prompts']
-assert {x['name'] for x in prompts} == {'audit-page', 'fix-contrast', 'pre-deploy-check', 'declaration-eaa'}
+assert {x['name'] for x in prompts} == {'audit-page', 'fix-contrast', 'pre-deploy-check', 'declaration-eaa', 'conformance-wcagem'}
 pr = por_id[8]['result']
 assert pr['messages'][0]['content']['text'].startswith('Run a full accessibility audit of https://ejemplo.test')
 
@@ -81,7 +81,7 @@ assert c14['criterio'].startswith('2.5.8') and '24×24' in c14['exige'] and c14[
 d2 = json.loads(por_id[10]['result']['content'][0]['text'])
 assert d2['texto'] == '#999999' and abs(d2['ratio'] - 2.85) < 0.02  # hsl + nombre CSS
 
-print('TESTS MCP PASAN ✓ (handshake+instructions, 12 tools EN, 4 prompts, criterion 2.5.8, audit html inline, hsl/nombres)')
+print('TESTS MCP PASAN ✓ (handshake+instructions, 12 tools EN, 5 prompts, criterion 2.5.8, audit html inline, hsl/nombres)')
 
 REQ2 = [
     {'jsonrpc': '2.0', 'id': 10, 'method': 'initialize', 'params': {'protocolVersion': '2024-11-05', 'capabilities': {}, 'clientInfo': {'name': 't'}}},

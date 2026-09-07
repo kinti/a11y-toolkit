@@ -7,7 +7,7 @@
 [![MCP](https://img.shields.io/badge/Model%20Context%20Protocol-server-purple)](https://modelcontextprotocol.io)
 [![Smithery](https://smithery.ai/badge)](https://smithery.ai)
 
-**12 MCP tools + 4 prompts + a skill** that give any AI agent (Claude, Cursor, Windsurf,
+**12 MCP tools + 5 prompts + a skill** that give any AI agent (Claude, Cursor, Windsurf,
 Codex…) the full WCAG 2.2 loop: **audit → fix → document → watch**. Zero dependencies at
 its core; every finding ships with a concrete remediation your agent can apply.
 
@@ -39,6 +39,7 @@ makes "is it accessible?" a one-question ask — and "then fix it" a one-command
 | `a11y_audit_dom` | **Rendered audit** (local Playwright/Chromium): real computed text contrast vs effective backgrounds with alpha compositing (1.4.3), minimum target size 24×24 (**2.5.8 — new in WCAG 2.2**), focus-indicator heuristic (2.4.7), all static checks on the live DOM. |
 | `a11y_contrast_pair` | Exact ratio + verdicts 1.4.3/1.4.6/1.4.11. Accepts `#hex`, `rgb()`, `hsl()`, **CSS color names**; alpha composites over the background. Suggests the nearest passing color. |
 | `a11y_contrast_image` | **Text over images**: pixel-level sampling of the actual background → worst/median/p95 ratio, % area passing AA, hostile-zone detection on a 3×3 grid. |
+| *(rendered audit)* | adds **:focus/:hover state contrast** (disabled exempt) and **same-origin iframes** |
 | `a11y_suggest_color` | Nearest opaque color (true RGB distance) reaching the target ratio (4.5 default). |
 | `a11y_generate_declaration` | Legal accessibility statement in HTML: RD 1112/2018 art. 10 (Spanish public sector) or **European Accessibility Act** wording (Directive (EU) 2019/882 / Ley 11/2023). es/en. The document is itself accessible. |
 | `a11y_snapshot` | Interactive elements (tag, role, accessible name, href) + **real tab focus order** + the **computed accessibility tree** (what a screen reader announces). Requires Playwright. |
@@ -155,8 +156,8 @@ es/en strings everywhere, honest scope notes).
 - [x] Accessibility error budget: only NEW findings block (`a11y budget` + `examples/a11y-watch.yml`)
 - [x] Multi-page same-domain crawl with aggregated scores (`pages` parameter)
 - [x] Scheduled surveillance recipe (weekly audit + budget gate as a GitHub Action)
-- [ ] WCAG-EM guided conformance ladder (screening → guided → full report)
-- [ ] Same-origin iframe content in the rendered audit
+- [x] WCAG-EM conformance ladder (`conformance-wcagem` prompt + guided protocol)
+- [x] Same-origin iframes in the rendered audit + :focus/:hover state contrast
 
 ---
 

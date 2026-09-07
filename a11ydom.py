@@ -48,6 +48,12 @@ _TD = {
                                 'contrastada (2.4.7).'),
         'focus_not_focusable': '{n} controles que no reciben foco con .focus(): {det}.',
         'focus_not_focusable_rem': 'Si debe ser interactivo, que sea enfocable (tabindex="0"); si no, quítalo de la ruta de tabulación.',
+        'state_contrast': ('{n} controles con contraste insuficiente en estado :focus/:hover '
+                           '(<3:1): {det}. Revisar.'),
+        'state_contrast_rem': ('El texto del control también necesita contraste cuando está '
+                               'enfocado o con el puntero encima (1.4.3); los controles '
+                               'DESACTIVADOS están exentos por WCAG. Ajusta los colores de '
+                               ':focus y :hover.'),
         'limites': ('Auditoría renderizada: heurística honesta, no sustituye lector de pantalla '
                     'ni revisión manual. Contraste calculado sobre fondos computados; los casos '
                     'con imagen de fondo se reportan como «revisar». 2.5.8 admite excepciones '
@@ -96,8 +102,9 @@ _JS = r'''(maxEj) => {
   const out = { contrast: {}, contrastReview: 0, targets: [], unnamed: [], fields: [],
                 imgs: [], iframes: [], headings: [], tabindex: [], ariaHidden: [],
                 blank: 0, videos: 0, videoSubs: 0, tables: 0, tableTh: 0,
-                focus: [], focusFail: [], ids: {}, lang: null, title: '',
-                viewport: null, refresh: null, main: false, skip: false, elements: 0 };
+                focus: [], focusFail: [], focusContrast: [], marks: 0, ids: {},
+                lang: null, title: '', viewport: null, refresh: null,
+                main: false, skip: false, elements: 0 };
 
   const vis = el => {
     const r = el.getBoundingClientRect();
@@ -261,7 +268,17 @@ _JS = r'''(maxEj) => {
   out.main = !!document.querySelector('main, [role="main"]');
   out.skip = !!document.querySelector('a[href^="#"]');
 
-  // ---- foco: indicador visible (heurístico) ----
+  // ---- marcas para contrastar estados (:hover) desde Python ----
+  let mi = 0;
+  for (const el of document.querySelectorAll(INTER)) {
+    if (mi >= 25) break;
+    if (el.type === 'hidden' || !vis(el)) continue;
+    el.setAttribute('data-a11yidx', String(mi));
+    mi++;
+  }
+  out.marks = mi;
+
+  // ---- foco: indicador visible (heurístico) + contraste en estado focus ----
   const stops = [...document.querySelectorAll(INTER)]
     .filter(el => vis(el) && !el.disabled).slice(0, 40);
   const prevFocus = document.activeElement;
@@ -275,6 +292,13 @@ _JS = r'''(maxEj) => {
     const outline = s.outlineStyle !== 'none' && parseFloat(s.outlineWidth || '0') > 0;
     const shadow = s.boxShadow && s.boxShadow !== 'none';
     if (!outline && !shadow) out.focus.push(path(el));
+    const fgf = parseCol(s.color);
+    const bgf = bgOf(el);
+    if (fgf && !bgf.image) {
+      const rf = ratioOf(fgf, bgf);
+      if (rf < 3 && out.focusContrast.length < 20)
+        out.focusContrast.push({ ej: path(el), ratio: Math.round(rf * 100) / 100 });
+    }
   }
   if (prevFocus && prevFocus.blur) { try { prevFocus.focus(); } catch (e) {} }
 
@@ -314,6 +338,14 @@ def audit_dom(datos, url='(rendered)', lang='es'):
         _agrega(hallazgos, lang, 'media', '2.5.8', 'target_small',
                 ejemplos=[f"{t['ej']} ({t['w']}×{t['h']}px)" for t in targets],
                 n=len(targets), det=det)
+
+    # 2.bis Estados focus/hover
+    estados = list(datos.get('focusContrast') or []) + list(datos.get('hover') or [])
+    if estados:
+        det = ', '.join(f"{e['ej']} = {e['ratio']}:1" for e in estados[:4])
+        _agrega(hallazgos, lang, 'media', '1.4.3', 'state_contrast',
+                ejemplos=[f"{e['ej']} = {e['ratio']}:1" for e in estados],
+                n=len(estados), det=det)
 
     # 3. Foco
     if datos.get('focus'):
@@ -399,6 +431,7 @@ def audit_dom(datos, url='(rendered)', lang='es'):
     return {
         'url': url,
         'modo': 'rendered',
+        'iframes_anidados': datos.get('iframes_anidados', 0),
         'score': calcular_score(hallazgos),
         'score_nota': _t(lang, 'score_nota'),
         'elementos_interactivos': datos.get('elements', 0),
@@ -408,8 +441,68 @@ def audit_dom(datos, url='(rendered)', lang='es'):
     }
 
 
+_JS_HOVER = r'''(i) => {
+  const el = document.querySelector('[data-a11yidx="' + i + '"]');
+  if (!el) return null;
+  const parseCol = c => { const m = /rgba?\(([^)]+)\)/.exec(c || '');
+    if (!m) return null;
+    const p = m[1].split(',').map(x => parseFloat(x));
+    return { r: p[0], g: p[1], b: p[2], a: p.length > 3 ? p[3] : 1 }; };
+  const over = (fg, bg) => ({ r: Math.round(fg.r * fg.a + bg.r * (1 - fg.a)),
+    g: Math.round(fg.g * fg.a + bg.g * (1 - fg.a)),
+    b: Math.round(fg.b * fg.a + bg.b * (1 - fg.a)), a: 1 });
+  const bgOf = el => { const stack = []; let n = el;
+    while (n) { const c = parseCol(getComputedStyle(n).backgroundColor);
+      if (c && c.a > 0) { stack.push(c); if (c.a >= 1) break; }
+      if (n === document.documentElement) break;
+      n = n.parentElement; }
+    let color = { r: 255, g: 255, b: 255, a: 1 };
+    for (const c of stack.reverse()) color = over(c, color);
+    return color; };
+  const lum = c => { const f = v => { v /= 255;
+    return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4); };
+    return 0.2126 * f(c.r) + 0.7152 * f(c.g) + 0.0722 * f(c.b); };
+  const s = getComputedStyle(el);
+  const fg = parseCol(s.color);
+  if (!fg) return null;
+  const bg = bgOf(el);
+  if (bg.image) return null;
+  const l1 = Math.max(lum(fg), lum(bg)), l2 = Math.min(lum(fg), lum(bg));
+  return { fg: `rgb(${fg.r},${fg.g},${fg.b})`, bg: `rgb(${bg.r},${bg.g},${bg.b})`,
+           ratio: Math.round(((l1 + 0.05) / (l2 + 0.05)) * 100) / 100 };
+}'''
+
+# claves de lista que se fusionan de iframes same-origin (con prefijo)
+_LISTAS_IFRAME = ('contrast', 'targets', 'unnamed', 'fields', 'imgs', 'iframes',
+                  'headings', 'tabindex', 'ariaHidden')
+_CONTADORES_IFRAME = ('blank', 'videos', 'videoSubs', 'tables', 'tableTh',
+                      'elements', 'contrastReview')
+
+
+def _mezcla_iframes(datos):
+    """Integra los escaneos de iframes same-origin en el informe principal."""
+    subs = datos.pop('iframes_data', [])
+    datos['iframes_anidados'] = len(subs)
+    for sub in subs:
+        pref = 'iframe: '
+        for k in _LISTAS_IFRAME:
+            for item in (sub.get(k) or [])[:12]:
+                if isinstance(item, dict):
+                    item = dict(item, ej=pref + str(item.get('ej', item)))
+                else:
+                    item = pref + str(item)
+                datos.setdefault(k, [])
+                if len(datos[k]) < 40:
+                    datos[k].append(item)
+        for k in _CONTADORES_IFRAME:
+            datos[k] = datos.get(k, 0) + (sub.get(k) or 0)
+
+
 def audit_dom_url(url, timeout=45, lang='es'):
-    """Carga la URL en Chromium y devuelve el informe renderizado."""
+    """Carga la URL en Chromium y devuelve el informe renderizado.
+
+    Escanea también los iframes same-origin (hasta 4) y contrasta los estados
+    :hover reales de los primeros controles marcados."""
     from playwright.sync_api import sync_playwright
     with sync_playwright() as p:
         nav = p.chromium.launch()
@@ -423,8 +516,28 @@ def audit_dom_url(url, timeout=45, lang='es'):
                 return {'error': f'no se pudo cargar: {e}'}
         try:
             datos = page.evaluate(_JS, MAX_EJEMPLOS)
+            # iframes same-origin: mismo colector por frame
+            subs = []
+            for fr in page.frames[1:5]:
+                try:
+                    subs.append(fr.evaluate(_JS, MAX_EJEMPLOS))
+                except Exception:  # noqa: BLE001
+                    continue  # cross-origin o no escaneable
+            datos['iframes_data'] = subs
+            # hover real sobre los controles marcados
+            hover = []
+            for i in range(min(10, int(datos.get('marks', 0)))):
+                try:
+                    page.hover(f'[data-a11yidx="{i}"]', timeout=1000)
+                    r = page.evaluate(_JS_HOVER, i)
+                    if r and r['ratio'] < 3:
+                        hover.append(dict(r, ej=f'hover #{i}'))
+                except Exception:  # noqa: BLE001
+                    continue
+            datos['hover'] = hover
         finally:
             nav.close()
+    _mezcla_iframes(datos)
     return audit_dom(datos, url, lang=lang)
 
 

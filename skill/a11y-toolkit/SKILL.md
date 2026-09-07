@@ -34,6 +34,7 @@ All output is es/en (pass `--lang en` or the `lang` MCP argument; default es).
 | "put these findings in the PR / code scanning" | `a11y sarif --from-audit audit.json -o a11y.sarif` → upload with github/codeql-action/upload-sarif |
 | "a badge for the audited site" | `a11y_badge` (score + date + "automated screening" scope — never claims conformance) |
 | "audit the section, not just one page" | `pages` parameter (or `a11y audit --pages N`): light same-domain crawl, aggregated by mean/worst score |
+| "full evaluation / conformance / WCAG-EM" | the `conformance-wcagem` prompt — three tiers, escalate one at a time; protocol in `references/wcagem-guide.md` |
 
 ## 1. Audit
 
@@ -48,9 +49,10 @@ score_nota caveat.** When you need to explain a criterion, call `a11y_criterion`
 
 `a11y_audit_dom` = rendered audit in Chromium: computed text contrast against
 effective backgrounds with alpha compositing (1.4.3), 24×24 minimum target size
-(2.5.8 — new in WCAG 2.2), visible focus indicator heuristic (2.4.7), plus the
-static checks on the live DOM, same 0-100 score. If Playwright is missing, fall
-back to the static audit and say so.
+(2.5.8 — new in WCAG 2.2), visible focus indicator heuristic (2.4.7),
+**:focus/:hover state contrast** (disabled controls are WCAG-exempt — say so),
+and **same-origin iframes scanned too**, same 0-100 score. If Playwright is
+missing, fall back to the static audit and say so.
 
 `a11y_audit_url` also accepts raw HTML you already fetched (`html` argument) —
 audit without re-fetching.

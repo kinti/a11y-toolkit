@@ -89,8 +89,13 @@ rv = audit_html(v31, lang='en')
 critv = {h['criterio'].split(' ')[0] for h in rv['hallazgos']}
 for esperado in ['4.1.2', '1.3.5', '1.4.2', '2.4.4', '2.1.1', '3.3.2', '1.3.1']:
     assert esperado in critv, f'falta {esperado}: {sorted(critv)}'
+va = audit_html('<html lang="es"><head><title>t</title></head><body><main><h1>a</h1>'
+                '<div aria-hidden="focusable">x</div><div aria-level="cero">y</div>'
+                '<div aria-live="polite">ok</div></main></body></html>', lang='en')
+fv = [x for x in va['hallazgos'] if x['senal'] == 'aria_value_invalid']
+assert fv and '2' in fv[0]['hallazgo'] and 'aria-live' not in fv[0]['hallazgo']
 assert 0 <= rv['score'] < 100 and 'score_nota' in rv
 assert audit_html('<html lang="es"><head><title>t</title></head><body><main><h1>a</h1></main></body></html>')['score'] == 100
 
 print('CASOS LIMITE AUDITOR OK ✓ (nombre por imagen, select/textarea, lang, skip, _blank avisado, label huérfano)')
-print('V3.1 OK ✓ (ARIA roto/desconocido, autocomplete 1.3.5, autoplay 1.4.2, enlaces 2.4.4, landmarks, accesskey, multi-label, score 0-100)')
+print('V3.1 OK ✓ (ARIA roto/desconocido, autocomplete 1.3.5, autoplay 1.4.2, enlaces 2.4.4, landmarks, accesskey, multi-label, score 0-100, valores ARIA)')

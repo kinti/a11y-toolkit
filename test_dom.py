@@ -29,8 +29,13 @@ a:focus{outline:none}.chico{padding:1px 2px}</style></head>
 <button class="mini">X</button>
 <a href="#s" class="chico" style="display:inline-block">ir</a>
 <img src="x.png"><input type="text" name="sinlabel">
+<iframe src="dom_fixture_hijo.html" title="hijo"></iframe>
 </main></body></html>'''
 
+HIJO = '''<!doctype html><html lang="es"><head><meta charset="utf-8"><title>Hijo</title></head>
+<body><img src="y.png"></body></html>'''
+with open(os.path.join('/tmp', 'dom_fixture_hijo.html'), 'w', encoding='utf-8') as f:
+    f.write(HIJO)
 ruta = os.path.join('/tmp', 'a11ydom_fixture.html')
 with open(ruta, 'w', encoding='utf-8') as f:
     f.write(FIXTURE)
@@ -47,6 +52,8 @@ assert any(c.startswith('2.5.8') for c in crit), sorted(crit)          # target 
 assert any(c.startswith('3.3.2') for c in crit), sorted(crit)          # campo sin label
 assert any(c.startswith('1.1.1') for c in crit), sorted(crit)          # img sin alt
 assert d['modo'] == 'rendered'
+assert d.get('iframes_anidados', 0) == 1, d.get('iframes_anidados')   # iframe same-origin
+assert any('iframe: y.png' in str(e) for h in d['hallazgos'] for e in h.get('ejemplos', []))
 # el párrafo con buen contraste NO provoca hallazgo: solo 2 zonas malas agrupadas
 f14 = next(h for h in d['hallazgos'] if h['criterio'].startswith('1.4.3'))
 assert '2.85:1' in f14['hallazgo'] and 'remediacion' in f14
