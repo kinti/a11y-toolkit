@@ -38,7 +38,8 @@ if AQUI not in sys.path:
 from contrast import pair as pair_fn, image_contrast, sugerir, parse_color  # noqa: E402
 from declaracion import generar as declaracion_fn  # noqa: E402
 from a11yaudit import audit_url as audit_url_fn, audit_html as audit_html_fn  # noqa: E402
-from a11ydom import audit_dom_url  # noqa: E402
+from a11ydom import audit_dom_url, audit_reflow  # noqa: E402
+from a11yfix import autofix as autofix_fn  # noqa: E402
 from a11ydiff import snapshot as snapshot_fn, diff as diff_fn  # noqa: E402
 from a11ycrit import criterio as criterio_fn  # noqa: E402
 from a11ybadge import badge as badge_fn  # noqa: E402
@@ -49,7 +50,7 @@ try:
 except ImportError:
     ARIALIVE_JS = None  # repo checkout: read the file
 
-VERSION = '3.5.0'
+VERSION = '3.6.0'
 
 INSTRUCTIONS = (
     'Accessibility toolkit (WCAG 2.2), multilanguage es/en. '
@@ -213,6 +214,37 @@ TOOLS = [
             'fecha': {'type': 'string', 'description': 'ISO date (today by default)'},
             'lang': {'type': 'string', 'enum': ['es', 'en']},
         }, 'required': ['score']},
+    },
+    {
+        'name': 'a11y_autofix',
+        'description': ('DETERMINISTIC safe auto-fixes applied to HTML — the honest '
+                        'anti-overlay: a short closed list of fixes where the correct '
+                        'answer is unique (unblock viewport zoom 1.4.4, add the exact '
+                        'autocomplete token 1.3.5, fill missing html lang and empty title '
+                        'when provided). Everything requiring judgment (alt text, '
+                        'contrast, accessible names) is NOT touched — it returns '
+                        'no_aplicados with the reason and remediation instead. Returns '
+                        'fixed_html + aplicados + no_aplicados.'),
+        'inputSchema': {'type': 'object', 'properties': {
+            'html': {'type': 'string', 'description': 'raw HTML to fix'},
+            'lang': {'type': 'string', 'description': 'only if provided and <html> lacks lang'},
+            'title': {'type': 'string', 'description': 'only if provided and <title> is empty'},
+        }, 'required': ['html']},
+    },
+    {
+        'name': 'a11y_reflow',
+        'description': ('Reflow check at 320px — criterion 1.4.10 (AA), the check axe and '
+                        'Lighthouse do not automate. Loads the URL at 1280px, then at '
+                        '320px, and reports real horizontal scroll + the overflowing '
+                        'elements. Method note: browser zoom RE-LAYS OUT at 320 CSS px '
+                        '(that is the standard\'s own equivalence: 1280 @ 400% zoom = 320px), '
+                        'so the correct measurement is a 320px viewport. Requires local '
+                        'Playwright.'),
+        'inputSchema': {'type': 'object', 'properties': {
+            'url': {'type': 'string'},
+            'lang': {'type': 'string', 'enum': ['es', 'en']},
+            'timeout': {'type': 'number'},
+        }, 'required': ['url']},
     },
     {
         'name': 'a11y_criterion',
@@ -439,6 +471,19 @@ def llamar(nombre, args):
     if nombre == 'a11y_diff_urls':
         try:
             return _texto(diff_fn(snapshot_fn(args['url_a']), snapshot_fn(args['url_b'])))
+        except ImportError:
+            return {'content': [{'type': 'text',
+                                 'text': 'Playwright not installed: pip install playwright && playwright install chromium'}],
+                    'isError': True}
+        except Exception as e:  # noqa: BLE001
+            return {'content': [{'type': 'text', 'text': f'error: {e}'}], 'isError': True}
+    if nombre == 'a11y_autofix':
+        return _texto(autofix_fn(args['html'], lang=args.get('lang'),
+                                 title=args.get('title'), url=args.get('url') or '(html)'))
+    if nombre == 'a11y_reflow':
+        try:
+            return _texto(audit_reflow(args['url'], timeout=args.get('timeout', 45),
+                                       lang=args.get('lang', 'es')))
         except ImportError:
             return {'content': [{'type': 'text',
                                  'text': 'Playwright not installed: pip install playwright && playwright install chromium'}],

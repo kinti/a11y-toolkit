@@ -54,6 +54,11 @@ _TD = {
                                'enfocado o con el puntero encima (1.4.3); los controles '
                                'DESACTIVADOS están exentos por WCAG. Ajusta los colores de '
                                ':focus y :hover.'),
+        'reflow_fail': ('{n} elementos desbordan a {w}px de ancho (scroll horizontal): {det}. '
+                        'Con reflujo correcto, a 320px no hay scroll en una dimensión (1.4.10).'),
+        'reflow_fail_rem': ('Usa layouts fluidos (flex/grid, max-width en vez de width fija) y '
+                            'media queries: el contenido debe reflujo a 320px sin scroll '
+                            'horizontal. Los excepciones: tablas de datos, mapas, gráficos.'),
         'limites': ('Auditoría renderizada: heurística honesta, no sustituye lector de pantalla '
                     'ni revisión manual. Contraste calculado sobre fondos computados; los casos '
                     'con imagen de fondo se reportan como «revisar». 2.5.8 admite excepciones '
@@ -86,7 +91,9 @@ _TD = {
     },
 }
 
+CRIT['es']['1.4.10'] = '1.4.10 Reflujo'
 CRIT['es']['2.5.8'] = '2.5.8 Tamaño del objetivo (mínimo)'
+CRIT['en']['1.4.10'] = '1.4.10 Reflow'
 CRIT['en']['2.5.8'] = '2.5.8 Target Size (Minimum)'
 CRIT['es']['2.4.7'] = '2.4.7 Foco visible'
 CRIT['en']['2.4.7'] = '2.4.7 Focus Visible'
@@ -551,6 +558,77 @@ def _mezcla_iframes(datos):
             datos[k] = datos.get(k, 0) + (sub.get(k) or 0)
 
 
+_JS_OVERFLOW = r'''() => {
+  const vw = document.documentElement.clientWidth;
+  const malos = [];
+  for (const el of document.querySelectorAll('body *')) {
+    const r = el.getBoundingClientRect();
+    if (r.right > vw + 8 && r.width > 8) {
+      const s = getComputedStyle(el);
+      if (s.position === 'fixed' || s.position === 'absolute') continue;
+      if (malos.length < 8) malos.push({ ej: el.tagName.toLowerCase()
+            + (el.id ? '#' + el.id : '')
+            + (el.className && typeof el.className === 'string' ? '.' + el.className.split(' ')[0] : ''),
+          w: Math.round(r.width) });
+    }
+  }
+  return { vw, scroll: document.documentElement.scrollWidth, malos };
+}'''
+
+
+def audit_reflow(url, timeout=45, lang='es'):
+    """Reflujo 320px — criterio 1.4.10 (AA), la comprobación que ni axe ni
+    Lighthouse automatizan. Nota de método: el estándar define el reflujo como
+    «320 CSS px, equivalente a 1280px al 400% de zoom», y el zoom real del
+    navegador RE-HACE el layout a ese ancho — por eso la medición correcta es
+    un viewport de 320px, no emular zoom con CSS (validado empíricamente:
+    el truco de zoom CSS marca en falso páginas sanas porque no re-lleva a cabo
+    el layout)."""
+    from playwright.sync_api import sync_playwright
+    with sync_playwright() as p:
+        nav = p.chromium.launch()
+        page = nav.new_page(viewport={'width': 1280, 'height': 800})
+        try:
+            page.goto(url, wait_until='load', timeout=timeout * 1000)
+            page.wait_for_timeout(300)
+        except Exception as e:  # noqa: BLE001
+            nav.close()
+            return {'error': f'no se pudo cargar: {e}'}
+
+        page.set_viewport_size({'width': 320, 'height': 800})
+        page.wait_for_timeout(500)
+        r320 = page.evaluate(_JS_OVERFLOW)
+        nav.close()
+
+    hallazgos = []
+
+    def agrega(sev, code, key, ejemplos, **fmt):
+        hallazgos.append({'severidad': sev, 'criterio': CRIT.get(lang, CRIT['es']).get(code, code),
+                          'senal': key, 'hallazgo': _t(lang, key).format(**fmt),
+                          'remediacion': _t(lang, key + '_rem').format(**fmt),
+                          'ejemplos': ejemplos[:6]})
+
+    ok320 = r320['scroll'] <= r320['vw'] + 1
+    if not ok320:
+        agrega('alta', '1.4.10', 'reflow_fail',
+               [f"{m['ej']} ({m['w']}px)" for m in r320['malos']],
+               n=len(r320['malos']), w=r320['vw'],
+               det=', '.join(f"{m['ej']} ({m['w']}px)" for m in r320['malos'][:3]))
+
+    from a11yaudit import calcular_score
+    return {
+        'url': url,
+        'modo': 'reflow',
+        'score': calcular_score(hallazgos),
+        'resumen': {s_: sum(1 for h in hallazgos if h['severidad'] == s_)
+                    for s_ in ('alta', 'media', 'baja')},
+        'mediciones': {'reflow_320': {'scroll': r320['scroll'], 'viewport': r320['vw'],
+                                      'ok': ok320}},
+        'hallazgos': hallazgos,
+        'limites': _t(lang, 'limites'),
+    }
+
+
 def audit_dom_url(url, timeout=45, lang='es'):
     """Carga la URL en Chromium y devuelve el informe renderizado.
 
@@ -607,6 +685,21 @@ def main(argv):
         return 1
     except Exception as e:  # noqa: BLE001
         print(json.dumps({'error': str(e)}))
+        return 1
+    print(json.dumps(res, ensure_ascii=False, indent=1))
+    return 0
+
+
+def reflow_main(argv):
+    ap = argparse.ArgumentParser(description='Reflujo 320px (1.4.10)')
+    ap.add_argument('url')
+    ap.add_argument('--lang', default='es', choices=['es', 'en'])
+    ap.add_argument('--timeout', type=int, default=45)
+    a = ap.parse_args(argv)
+    try:
+        res = audit_reflow(a.url, timeout=a.timeout, lang=a.lang)
+    except ImportError:
+        print(json.dumps({'error': 'Playwright no instalado'}))
         return 1
     print(json.dumps(res, ensure_ascii=False, indent=1))
     return 0

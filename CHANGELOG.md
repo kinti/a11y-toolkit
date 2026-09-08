@@ -1,5 +1,26 @@
 # Changelog
 
+## 3.6.0 — 2026-09-07 — "the toolkit that fixes, honestly"
+
+The requested next axis: not only find — fix, with provable safety. Plus the
+one automated check nobody else ships.
+
+- **New tool `a11y_autofix`** (13th): deterministic safe fixes applied to HTML
+  with a CLOSED allowlist — unblock viewport zoom (1.4.4), exact autocomplete
+  tokens per field (1.3.5: type=email→email, postal/city/country/name patterns),
+  missing `<html lang>` and empty `<title>` only when the caller provides them.
+  Everything requiring judgment returns in `no_aplicados` with the reason and
+  the remediation. Verified by roundtrip: the four findings disappear after the
+  fix; judgment findings remain untouched. The anti-overlay: no guessing, ever.
+- **New tool `a11y_reflow`** (14th): reflow at 320px — WCAG 1.4.10 (AA) — with
+  real horizontal-scroll measurement and the overflowing elements listed. axe
+  and Lighthouse do not automate this. Method note embedded (browser zoom
+  re-layouts at 320 CSS px; validated empirically against healthy and
+  fixed-width pages after the first zoom-based attempt produced false
+  positives and was removed).
+- Broken Smithery badge removed (404 — listing not claimed yet).
+- 14 MCP tools + 5 prompts. Visuals and docs re-synchronized.
+
 ## 3.5.0 — 2026-09-07 — "through the shadow boundary"
 
 - **Shadow DOM traversal** in the rendered audit: open shadow roots (up to 20,

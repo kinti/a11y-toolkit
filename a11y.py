@@ -11,12 +11,15 @@
   a11ytoolkit sarif --url https://web -o a11y.sarif        # para GitHub code scanning
   a11ytoolkit badge --score 92 --lang en --out badge.svg   # insignia SVG honesta
   a11ytoolkit budget --budget budget.json --audit hoy.json # solo lo NUEVO bloquea
+  a11ytoolkit fix --file pagina.html --lang es --title "T" -o fixed.html  # autofix seguro
+  a11ytoolkit reflow https://web                          # reflujo 320px (1.4.10)
 """
 
 import sys
 
 import a11yaudit
 import a11ybadge
+import a11yfix
 import a11ybudget
 import a11ycrit
 import a11ydiff
@@ -33,6 +36,8 @@ SUBCOMANDOS = {
     'diff': (a11ydiff, 'diff'),
     'criterion': (a11ycrit, None),
     'sarif': (a11ysarif, None),
+    'fix': (a11yfix, None),
+    'reflow': (a11ydom, 'reflow_main'),
     'badge': (a11ybadge, None),
     'budget': (a11ybudget, None),
 }

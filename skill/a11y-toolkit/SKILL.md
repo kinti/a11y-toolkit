@@ -35,6 +35,8 @@ All output is es/en (pass `--lang en` or the `lang` MCP argument; default es).
 | "a badge for the audited site" | `a11y_badge` (score + date + "automated screening" scope — never claims conformance) |
 | "audit the section, not just one page" | `pages` parameter (or `a11ytoolkit audit --pages N`): light same-domain crawl, aggregated by mean/worst score |
 | "full evaluation / conformance / WCAG-EM" | the `conformance-wcagem` prompt — three tiers, escalate one at a time; protocol in `references/wcagem-guide.md` |
+| "FIX it for me" (zoom blocked, missing autocomplete, missing lang/title) | `a11y_autofix`: deterministic, provably safe fixes only; judgment fixes come back as `no_aplicados` + remediation. Never promise overlay-style full fixes |
+| "does it scroll sideways on mobile?" (1.4.10) | `a11y_reflow` (320px viewport, real overflow + offenders) — axe/Lighthouse don't automate this |
 
 ## 1. Audit
 

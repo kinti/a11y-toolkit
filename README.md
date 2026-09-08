@@ -5,9 +5,8 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Python 3.9+](https://img.shields.io/badge/python-3.9%2B-blue.svg)](pyproject.toml)
 [![MCP](https://img.shields.io/badge/Model%20Context%20Protocol-server-purple)](https://modelcontextprotocol.io)
-[![Smithery](https://smithery.ai/badge)](https://smithery.ai)
 
-**12 MCP tools + 5 prompts + a skill** that give any AI agent (Claude, Cursor, Windsurf,
+**14 MCP tools + 5 prompts + a skill** that give any AI agent (Claude, Cursor, Windsurf,
 Codex…) the full WCAG 2.2 loop: **audit → fix → document → watch**. Zero dependencies at
 its core; every finding ships with a concrete remediation your agent can apply.
 
@@ -35,7 +34,7 @@ makes "is it accessible?" a one-question ask — and "then fix it" a one-command
 | Static core parity: ARIA validity, autocomplete 1.3.5, link purpose, list structure, duplicate ids | ✓ | ✓ |
 | Output optimized for **MCP/LLM consumption** (JSON, severity-ranked, es/en) | ✗ | ✓ |
 
-## The tools (12)
+## The tools (14)
 
 | Tool | What it does |
 |---|---|
@@ -51,6 +50,8 @@ makes "is it accessible?" a one-question ask — and "then fix it" a one-command
 | `a11y_diff_urls` | Snapshot two URLs and diff in one call (staging vs production). |
 | `a11y_aria_live_snippet` | Injectable monitor logging every aria-live announcement (time, politeness, role, text) — what a screen reader would say, visible on screen. |
 | `a11y_criterion` | Explains any WCAG 2.2 criterion in plain language: what it requires, typical failures, and which toolkit tool verifies it. |
+| `a11y_autofix` | **Deterministic safe auto-fixes** on HTML: unblock zoom (1.4.4), exact autocomplete tokens (1.3.5), missing lang, empty title. Everything requiring judgment is returned as `no_aplicados` with the reason — the honest anti-overlay. |
+| `a11y_reflow` | **Reflow at 320px (1.4.10)** — the check axe and Lighthouse don't automate: real horizontal scroll + overflowing elements at 320px viewport. |
 | `a11y_badge` | Returns an **honest badge** as accessible SVG: score, date, scope ("automated screening"), never "conformant" — the anti-overclaim seal. |
 
 **5 prompts** (slash-commands in supporting clients): `audit-page` (full audit workflow +
