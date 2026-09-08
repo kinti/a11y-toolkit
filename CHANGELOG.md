@@ -1,5 +1,31 @@
 # Changelog
 
+## 3.8.0 — 2026-09-07 — "the infinite scroll auditor"
+
+The one nobody automates. Documentary basis (verified): Deque's «Infinite
+Scrolling & Role=Feed Accessibility Issues» + the ARIA APG Feed pattern;
+applicable criteria 2.4.3 (focus order), 4.1.3 (status messages), 2.2.2
+(auto-updating). NO official W3C failure technique exists for infinite scroll —
+our docs say so instead of inventing one.
+
+- **New tool `a11y_scroll`** (16th): real scrolling batches in Chromium with a
+  live-region observer installed before scrolling. Measures: (1) does the
+  focused element SURVIVE each batch — the documented failure is re-rendering
+  the container, which destroys focus (alta); (2) is new content ANNOUNCED —
+  aria-live/status receiving text during loading or role="feed" (4.1.3);
+  (3) does the feed END or offer a load-more alternative — footer reachability,
+  explicit-load button tried as the healthy path (2.2.2-adjacent); (4) APG
+  feed pattern (role=feed + role=article + aria-busy) as positive signal.
+- Honest guard: with login/bot walls or non-standard markup (medium.com,
+  reddit tested), no unfounded findings — a note explains what was not
+  measurable. Best used on feeds you own or can authenticate into (the
+  consulting use case).
+- Validated: disaster fixture (re-render + silence + unbounded) → focus-loss
+  alta + 4 findings; healthy fixture (append-only + role=status announcements
+  + load-more + finite) → 100 with announcements recorded. Regression
+  fixtures to follow in the test suites.
+- 16 MCP tools + 5 prompts.
+
 ## 3.7.0 — 2026-09-07 — "escape velocity"
 
 - **New tool `a11y_keyboard`** (15th): keyboard-trap detection (2.1.2) with REAL

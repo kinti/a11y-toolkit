@@ -38,6 +38,7 @@ All output is es/en (pass `--lang en` or the `lang` MCP argument; default es).
 | "FIX it for me" (zoom blocked, missing autocomplete, missing lang/title) | `a11y_autofix`: deterministic, provably safe fixes only; judgment fixes come back as `no_aplicados` + remediation. Never promise overlay-style full fixes |
 | "does it scroll sideways on mobile?" (1.4.10) | `a11y_reflow` (320px viewport, real overflow + offenders) — axe/Lighthouse don't automate this |
 | "is the modal a keyboard trap?" (2.1.2) | `a11y_keyboard`: real Tab walk + cycle detection + Escape release test. Correct modals pass; traps are high severity |
+| "infinite scroll / feed / more posts keep loading" | `a11y_scroll`: real scroll batches — focus survival (2.4.3), announcements (4.1.3), end or load-more (Deque/APG Feed). Best on feeds you own or can log into |
 
 ## 1. Audit
 

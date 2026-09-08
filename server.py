@@ -40,6 +40,7 @@ from declaracion import generar as declaracion_fn  # noqa: E402
 from a11yaudit import audit_url as audit_url_fn, audit_html as audit_html_fn  # noqa: E402
 from a11ydom import audit_dom_url, audit_reflow, audit_keyboard  # noqa: E402
 from a11yfix import autofix as autofix_fn  # noqa: E402
+from a11yscroll import audit_scroll  # noqa: E402
 from a11ydiff import snapshot as snapshot_fn, diff as diff_fn  # noqa: E402
 from a11ycrit import criterio as criterio_fn  # noqa: E402
 from a11ybadge import badge as badge_fn  # noqa: E402
@@ -50,7 +51,7 @@ try:
 except ImportError:
     ARIALIVE_JS = None  # repo checkout: read the file
 
-VERSION = '3.7.0'
+VERSION = '3.8.0'
 
 INSTRUCTIONS = (
     'Accessibility toolkit (WCAG 2.2), multilanguage es/en. '
@@ -258,6 +259,24 @@ TOOLS = [
             'url': {'type': 'string'},
             'lang': {'type': 'string', 'enum': ['es', 'en']},
             'max_pasos': {'type': 'integer', 'description': 'max real Tab presses (60 default)'},
+        }, 'required': ['url']},
+    },
+    {
+        'name': 'a11y_scroll',
+        'description': ('Infinite-scroll accessibility audit — the documented disaster nobody '
+                        'automates (Deque guidance + ARIA APG Feed pattern; criteria 2.4.3, '
+                        '4.1.3, 2.2.2). Real scrolling batches in Chromium with a live-region '
+                        'observer: does the focused element SURVIVE each batch (re-render '
+                        'destroys it — the documented failure)? Is new content ANNOUNCED '
+                        '(aria-live/status receives text, role=feed)? Does the feed END or '
+                        'offer a load-more alternative (footer reachability)? APG feed pattern '
+                        'as positive signal. Honest guard: if no standard items are detected '
+                        '(login walls, non-standard markup) the unfounded signals are skipped '
+                        'with a note. Requires local Playwright.'),
+        'inputSchema': {'type': 'object', 'properties': {
+            'url': {'type': 'string'},
+            'lang': {'type': 'string', 'enum': ['es', 'en']},
+            'max_tandas': {'type': 'integer', 'description': 'scroll batches (5 default)'},
         }, 'required': ['url']},
     },
     {
@@ -485,6 +504,16 @@ def llamar(nombre, args):
     if nombre == 'a11y_diff_urls':
         try:
             return _texto(diff_fn(snapshot_fn(args['url_a']), snapshot_fn(args['url_b'])))
+        except ImportError:
+            return {'content': [{'type': 'text',
+                                 'text': 'Playwright not installed: pip install playwright && playwright install chromium'}],
+                    'isError': True}
+        except Exception as e:  # noqa: BLE001
+            return {'content': [{'type': 'text', 'text': f'error: {e}'}], 'isError': True}
+    if nombre == 'a11y_scroll':
+        try:
+            return _texto(audit_scroll(args['url'], max_tandas=args.get('max_tandas', 5),
+                                       lang=args.get('lang', 'es')))
         except ImportError:
             return {'content': [{'type': 'text',
                                  'text': 'Playwright not installed: pip install playwright && playwright install chromium'}],

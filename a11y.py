@@ -14,6 +14,7 @@
   a11ytoolkit fix --file pagina.html --lang es --title "T" -o fixed.html  # autofix seguro
   a11ytoolkit reflow https://web                          # reflujo 320px (1.4.10)
   a11ytoolkit kbd https://web                             # ¿trampa de teclado? (2.1.2)
+  a11ytoolkit scroll https://medio/seccion                # auditor de scroll infinito
 """
 
 import sys
@@ -21,6 +22,7 @@ import sys
 import a11yaudit
 import a11ybadge
 import a11yfix
+import a11yscroll
 import a11ybudget
 import a11ycrit
 import a11ydiff
@@ -39,6 +41,7 @@ SUBCOMANDOS = {
     'sarif': (a11ysarif, None),
     'fix': (a11yfix, None),
     'kbd': (a11ydom, 'kbd_main'),
+    'scroll': (a11yscroll, None),
     'reflow': (a11ydom, 'reflow_main'),
     'badge': (a11ybadge, None),
     'budget': (a11ybudget, None),
