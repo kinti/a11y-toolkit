@@ -96,7 +96,7 @@ h1 .dot{{color:#3fb950}}
     <h1>a11y<span class="dot">-</span>toolkit</h1>
     <div class="sub">The accessibility layer for AI coding agents</div>
     <div class="chips">
-      <div class="chip"><b>14</b> MCP tools</div>
+      <div class="chip"><b>15</b> MCP tools</div>
       <div class="chip"><b>5</b> prompts</div>
       <div class="chip">rendered audit</div>
       <div class="chip"><b>0</b> deps at core</div>
@@ -132,7 +132,7 @@ h1 .dot{{color:#3fb950}}
 
     snap('<span class="p">$</span>', 500)
     escribe('claude mcp add a11y-toolkit -- uvx --from a11y-toolkit a11y-toolkit-mcp',
-            '<span class="ok">✓ a11y-toolkit registered</span>  <span class="c">(14 tools · 5 prompts)</span>',
+            '<span class="ok">✓ a11y-toolkit registered</span>  <span class="c">(15 tools · 5 prompts)</span>',
             hold=1100)
     salida_audit = (f'<span class="warn">score: {score_antes}/100</span>   '
                     f'<span class="bad">high: {resumen["alta"]}</span>  '

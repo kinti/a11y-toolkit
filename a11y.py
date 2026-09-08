@@ -13,6 +13,7 @@
   a11ytoolkit budget --budget budget.json --audit hoy.json # solo lo NUEVO bloquea
   a11ytoolkit fix --file pagina.html --lang es --title "T" -o fixed.html  # autofix seguro
   a11ytoolkit reflow https://web                          # reflujo 320px (1.4.10)
+  a11ytoolkit kbd https://web                             # ¿trampa de teclado? (2.1.2)
 """
 
 import sys
@@ -37,6 +38,7 @@ SUBCOMANDOS = {
     'criterion': (a11ycrit, None),
     'sarif': (a11ysarif, None),
     'fix': (a11yfix, None),
+    'kbd': (a11ydom, 'kbd_main'),
     'reflow': (a11ydom, 'reflow_main'),
     'badge': (a11ybadge, None),
     'budget': (a11ybudget, None),

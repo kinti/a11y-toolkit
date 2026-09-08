@@ -54,6 +54,11 @@ _TD = {
                                'enfocado o con el puntero encima (1.4.3); los controles '
                                'DESACTIVADOS están exentos por WCAG. Ajusta los colores de '
                                ':focus y :hover.'),
+        'kbd_trap': ('TRAMPA DE TECLADO: {n} controles atrapados en un ciclo ({ciclo}) y '
+                     'Escape no libera. El foco no puede salir (2.1.2).'),
+        'kbd_trap_rem': ('Todo componente con foco contenido (modal, menú) debe liberarse con '
+                         'Escape (y idealmente clic fuera): ciérralo y devuelve el foco al '
+                         'disparador. Pruébalo solo con teclado.'),
         'reflow_fail': ('{n} elementos desbordan a {w}px de ancho (scroll horizontal): {det}. '
                         'Con reflujo correcto, a 320px no hay scroll en una dimensión (1.4.10).'),
         'reflow_fail_rem': ('Usa layouts fluidos (flex/grid, max-width en vez de width fija) y '
@@ -92,8 +97,10 @@ _TD = {
 }
 
 CRIT['es']['1.4.10'] = '1.4.10 Reflujo'
+CRIT['es']['2.1.2'] = '2.1.2 Sin trampa de teclado'
 CRIT['es']['2.5.8'] = '2.5.8 Tamaño del objetivo (mínimo)'
 CRIT['en']['1.4.10'] = '1.4.10 Reflow'
+CRIT['en']['2.1.2'] = '2.1.2 No Keyboard Trap'
 CRIT['en']['2.5.8'] = '2.5.8 Target Size (Minimum)'
 CRIT['es']['2.4.7'] = '2.4.7 Foco visible'
 CRIT['en']['2.4.7'] = '2.4.7 Focus Visible'
@@ -629,6 +636,114 @@ def audit_reflow(url, timeout=45, lang='es'):
     }
 
 
+_JS_STOP = r"""(i) => {
+  let a = document.activeElement;
+  while (a && a.shadowRoot && a.shadowRoot.activeElement) a = a.shadowRoot.activeElement;
+  if (!a || a === document.body || a === document.documentElement) return null;
+  if (a.tagName === 'IFRAME') return 'iframe:' + ((a.src || '').slice(0, 50));
+  if (!a.hasAttribute('data-a11ystop')) {
+    a.setAttribute('data-a11ystop', String(i));
+    const ruta = a.tagName.toLowerCase() + (a.id ? '#' + a.id : '')
+      + (a.innerText && a.innerText.trim() ? ' "' + a.innerText.trim().slice(0, 24) + '"' : '');
+    a.setAttribute('data-a11yruta', ruta);
+  }
+  return parseInt(a.getAttribute('data-a11ystop'), 10);
+}"""
+
+_STOP_META = r"""(i) => {
+  const el = document.querySelector('[data-a11ystop="' + i + '"]');
+  return el ? el.getAttribute('data-a11yruta') : ('parada ' + i);
+}"""
+
+
+def audit_keyboard(url, max_pasos=60, lang='es', timeout=45):
+    """Detección de TRAMPAS DE TECLADO (2.1.2) con Tab real.
+
+    Recorre hasta max_pasos tabulaciones reales en Chromium, registra la
+    secuencia de paradas, detecta ciclos (el patrón de un modal) y comprueba si
+    ESCAPE libera el ciclo. Un modal que cicla y suelta con Escape es correcto;
+    uno que no suelta es trampa — hallazgo 'alta'.
+    """
+    from playwright.sync_api import sync_playwright
+    with sync_playwright() as p:
+        nav = p.chromium.launch()
+        page = nav.new_page()
+        try:
+            page.goto(url, wait_until='load', timeout=timeout * 1000)
+            page.wait_for_timeout(400)
+        except Exception as e:  # noqa: BLE001
+            nav.close()
+            return {'error': f'no se pudo cargar: {e}'}
+
+        page.evaluate("document.querySelectorAll('[data-a11ystop]').forEach(e => {"
+                      " e.removeAttribute('data-a11ystop'); e.removeAttribute('data-a11yruta'); })")
+        seq = []
+        rutas = {}
+        for i in range(max_pasos):
+            page.keyboard.press('Tab')
+            stop = page.evaluate(_JS_STOP, i)
+            if stop is None:
+                break  # el foco salió de la página (fin del orden de tabulación)
+            seq.append(stop)
+            if stop not in rutas:
+                rutas[stop] = page.evaluate(_STOP_META, stop)
+        # detección de ciclo: el final de la secuencia se repite con periodo p
+        ciclo = None
+        for p_ in range(1, min(12, len(seq) // 2) + 1):
+            if seq[-p_:] == seq[-2 * p_:-p_] and len(set(seq[-p_:])) >= 1:
+                # exige al menos 2 repeticiones completas del periodo
+                reps = sum(1 for k in range(len(seq) - p_, 0, -p_)
+                           if seq[k:k + p_] == seq[-p_:])
+                if reps >= 2:
+                    ciclo = seq[-p_:]
+                    break
+
+        esc_libera = None
+        if ciclo:
+            en_ciclo = set(ciclo)
+            page.keyboard.press('Escape')
+            page.wait_for_timeout(150)
+            for _ in range(3):
+                page.keyboard.press('Tab')
+                page.wait_for_timeout(80)
+                stop = page.evaluate(_JS_STOP, len(seq))
+                if stop is None or stop not in en_ciclo:
+                    esc_libera = True
+                    break
+            else:
+                esc_libera = False
+        nav.close()
+
+    hallazgos = []
+    if ciclo and esc_libera is False:
+        elems = [rutas.get(i, f'parada {i}') for i in ciclo]
+        hallazgos.append({
+            'severidad': 'alta', 'criterio': CRIT.get(lang, CRIT['es']).get('2.1.2', '2.1.2'),
+            'senal': 'kbd_trap', 'hallazgo': _t(lang, 'kbd_trap').format(
+                n=len(ciclo), ciclo=' ↔ '.join(elems)),
+            'remediacion': _t(lang, 'kbd_trap_rem'),
+            'ejemplos': elems,
+        })
+    from a11yaudit import calcular_score
+    return {
+        'url': url,
+        'modo': 'keyboard',
+        'score': calcular_score(hallazgos),
+        'resumen': {s_: sum(1 for h in hallazgos if h['severidad'] == s_)
+                    for s_ in ('alta', 'media', 'baja')},
+        'pasos': len(seq),
+        'paradas': [rutas.get(i, f'parada {i}') for i in seq],
+        'ciclo': {'detectado': bool(ciclo),
+                  'elementos': [rutas.get(i, f'parada {i}') for i in ciclo] if ciclo else [],
+                  'escape_libera': esc_libera},
+        'hallazgos': hallazgos,
+        'limites': ('Recorrido con Tab real en Chromium (tope {n} pasos). El foco dentro de '
+                    'iframes entre dominios no es rastreable y se marca como tal. Un ciclo '
+                    'con Escape operativo (modal correcto) NO se reporta como hallazgo.'
+                    ).format(n=max_pasos),
+    }
+
+
 def audit_dom_url(url, timeout=45, lang='es'):
     """Carga la URL en Chromium y devuelve el informe renderizado.
 
@@ -698,6 +813,21 @@ def reflow_main(argv):
     a = ap.parse_args(argv)
     try:
         res = audit_reflow(a.url, timeout=a.timeout, lang=a.lang)
+    except ImportError:
+        print(json.dumps({'error': 'Playwright no instalado'}))
+        return 1
+    print(json.dumps(res, ensure_ascii=False, indent=1))
+    return 0
+
+
+def kbd_main(argv):
+    ap = argparse.ArgumentParser(description='Trampas de teclado (2.1.2) con Tab real')
+    ap.add_argument('url')
+    ap.add_argument('--lang', default='es', choices=['es', 'en'])
+    ap.add_argument('--max-pasos', type=int, default=60)
+    a = ap.parse_args(argv)
+    try:
+        res = audit_keyboard(a.url, max_pasos=a.max_pasos, lang=a.lang)
     except ImportError:
         print(json.dumps({'error': 'Playwright no instalado'}))
         return 1

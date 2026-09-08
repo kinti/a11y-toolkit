@@ -8,13 +8,13 @@
     "url": "https://github.com/kinti/a11y-toolkit",
     "source": "github"
   },
-  "version": "3.6.0",
+  "version": "3.7.0",
   "packages": [
     {
       "registryType": "pypi",
       "registryBaseUrl": "https://pypi.org",
       "identifier": "a11y-toolkit",
-      "version": "3.6.0",
+      "version": "3.7.0",
       "transport": {
         "type": "stdio"
       },

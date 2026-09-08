@@ -1,5 +1,21 @@
 # Changelog
 
+## 3.7.0 — 2026-09-07 — "escape velocity"
+
+- **New tool `a11y_keyboard`** (15th): keyboard-trap detection (2.1.2) with REAL
+  Tab walking — up to 60 real tab presses in Chromium, stop-by-stop. Cycle
+  detection identifies the modal pattern; then the decisive test: does ESCAPE
+  release the cycle? A modal that cycles and releases is correct and gets NO
+  finding; a cycle Escape cannot leave is a trap (high severity, with the
+  trapped controls listed). The full tab-stop list comes back too. Nobody else
+  automates this — it is the #1 modal complaint.
+- Verified: trap fixture (Tab handler with preventDefault, no Escape) flagged
+  alta; the same modal with an Escape close handler passes clean; example.com
+  walks clean. Fixtures kept in the session bench; static audit confirmed to
+  already cover `<template>` content and declarative shadow DOM
+  (`shadowrootmode`) — documented, tests added in the suites.
+- 15 MCP tools + 5 prompts.
+
 ## 3.6.0 — 2026-09-07 — "the toolkit that fixes, honestly"
 
 The requested next axis: not only find — fix, with provable safety. Plus the

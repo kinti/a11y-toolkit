@@ -37,6 +37,7 @@ All output is es/en (pass `--lang en` or the `lang` MCP argument; default es).
 | "full evaluation / conformance / WCAG-EM" | the `conformance-wcagem` prompt — three tiers, escalate one at a time; protocol in `references/wcagem-guide.md` |
 | "FIX it for me" (zoom blocked, missing autocomplete, missing lang/title) | `a11y_autofix`: deterministic, provably safe fixes only; judgment fixes come back as `no_aplicados` + remediation. Never promise overlay-style full fixes |
 | "does it scroll sideways on mobile?" (1.4.10) | `a11y_reflow` (320px viewport, real overflow + offenders) — axe/Lighthouse don't automate this |
+| "is the modal a keyboard trap?" (2.1.2) | `a11y_keyboard`: real Tab walk + cycle detection + Escape release test. Correct modals pass; traps are high severity |
 
 ## 1. Audit
 

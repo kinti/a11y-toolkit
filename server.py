@@ -38,7 +38,7 @@ if AQUI not in sys.path:
 from contrast import pair as pair_fn, image_contrast, sugerir, parse_color  # noqa: E402
 from declaracion import generar as declaracion_fn  # noqa: E402
 from a11yaudit import audit_url as audit_url_fn, audit_html as audit_html_fn  # noqa: E402
-from a11ydom import audit_dom_url, audit_reflow  # noqa: E402
+from a11ydom import audit_dom_url, audit_reflow, audit_keyboard  # noqa: E402
 from a11yfix import autofix as autofix_fn  # noqa: E402
 from a11ydiff import snapshot as snapshot_fn, diff as diff_fn  # noqa: E402
 from a11ycrit import criterio as criterio_fn  # noqa: E402
@@ -50,7 +50,7 @@ try:
 except ImportError:
     ARIALIVE_JS = None  # repo checkout: read the file
 
-VERSION = '3.6.0'
+VERSION = '3.7.0'
 
 INSTRUCTIONS = (
     'Accessibility toolkit (WCAG 2.2), multilanguage es/en. '
@@ -244,6 +244,20 @@ TOOLS = [
             'url': {'type': 'string'},
             'lang': {'type': 'string', 'enum': ['es', 'en']},
             'timeout': {'type': 'number'},
+        }, 'required': ['url']},
+    },
+    {
+        'name': 'a11y_keyboard',
+        'description': ('Keyboard-trap detection (2.1.2) with REAL Tab walking in Chromium: '
+                        'up to 60 real tab stops, cycle detection (the modal pattern), then '
+                        'the decisive test — does ESCAPE release the cycle? A modal that '
+                        'cycles and releases on Escape is correct and NOT reported; a cycle '
+                        'Escape cannot leave is a trap (high severity). Returns the full tab '
+                        'stop list too. Requires local Playwright.'),
+        'inputSchema': {'type': 'object', 'properties': {
+            'url': {'type': 'string'},
+            'lang': {'type': 'string', 'enum': ['es', 'en']},
+            'max_pasos': {'type': 'integer', 'description': 'max real Tab presses (60 default)'},
         }, 'required': ['url']},
     },
     {
@@ -471,6 +485,16 @@ def llamar(nombre, args):
     if nombre == 'a11y_diff_urls':
         try:
             return _texto(diff_fn(snapshot_fn(args['url_a']), snapshot_fn(args['url_b'])))
+        except ImportError:
+            return {'content': [{'type': 'text',
+                                 'text': 'Playwright not installed: pip install playwright && playwright install chromium'}],
+                    'isError': True}
+        except Exception as e:  # noqa: BLE001
+            return {'content': [{'type': 'text', 'text': f'error: {e}'}], 'isError': True}
+    if nombre == 'a11y_keyboard':
+        try:
+            return _texto(audit_keyboard(args['url'], max_pasos=args.get('max_pasos', 60),
+                                         lang=args.get('lang', 'es')))
         except ImportError:
             return {'content': [{'type': 'text',
                                  'text': 'Playwright not installed: pip install playwright && playwright install chromium'}],
