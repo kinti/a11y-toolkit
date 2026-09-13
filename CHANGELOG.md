@@ -1,5 +1,9 @@
 # Changelog
 
+## 3.9.4 — 2026-09-07 — "fresh eyes, round two" (supersedes 3.9.3: explicit criterion registry shipped)
+
+Same content as 3.9.3 plus the registry fix (26/26 standalone, no import side effects). 3.9.3 was published minutes before the hotfix; same-version republication is not possible on PyPI.
+
 ## 3.9.3 — 2026-09-07 — "fresh eyes, round two"
 
 A second from-zero pass over surfaces the first one didn't attack.
