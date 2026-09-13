@@ -3,7 +3,7 @@
 Methodology: on the SAME Chromium page and with the SAME Playwright, we run
 (a) a11y-toolkit's static auditor on the served HTML, (b) `a11y_audit_dom`
 (rendered) and (c) axe-core 4.10.3 injected. The criteria each reports are
-compared. Last run: 2026-09-07, v3.5.0 (shadow DOM).
+compared. Last run: 2026-09-07, **v3.10.0** (re-measured after the v3.9 criteria wave; re-runs monthly via CI — see `.github/workflows/bench.yml`).
 
 Reproduce it: `python3 bench/compara.py <url…>` (axe.min.js auto-downloads).
 
@@ -13,8 +13,8 @@ Reproduce it: `python3 bench/compara.py <url…>` (axe.min.js auto-downloads).
 |---|---|---|---|---|---|
 | example.com | 94 / 94 | 2.4.1 | — | — | perfect agreement |
 | **gov.uk** | 98 / **82** | — | 2.4.1 (`region`, 2 nodes) | **REAL 1.4.3** + 1.3.1 + 2.5.8 | **we found a real failure axe does not report**: "Search GOV.UK" button, `#1d70b8` on `#d2e2f1` at 13px = 3.91:1 < 4.5 (manually verified). axe files contrast under "incomplete"; we compute it |
-| es.wikipedia (front page) | 50 / 64 | 1.1.1, 1.3.1, 4.1.2 | 2.4.1 (`region`) | 1.4.3 (review: image backgrounds), 2.1.1/3.3.2/2.4.4 (static pass) | raw HTML vs JS-rendered DOM: on JS-heavy sites use `a11y_audit_dom` |
-| jquin.net | 98 / 100 | — | — | 2.4.4 (low advisory) | the author's site passes its own audit |
+| es.wikipedia (front page) | 44 / 64 | 1.1.1, 1.3.1, 4.1.2 | 2.4.1 (`region`) | 1.4.3 (review: image backgrounds), 2.1.1/3.3.2/2.4.4/3.1.2 (static pass) | static score dropped 50→44 as the v3.9 criteria landed (3.1.2 lang-of-parts now caught) — raw HTML vs JS DOM: use `a11y_audit_dom` on JS-heavy sites |
+| jquin.net | 98 / **88** | — | — | 2.4.4 (static, advisory) + **4.1.2 unnamed footer link** | **the toolkit found a real bug on its author's own site**: an icon-only footer link with no accessible name (caught by the improved rendered collector). Being fixed |
 
 axe's `region` rule (content OUTSIDE landmarks) is a different granularity
 from ours (that a bypass mechanism exists: main/skip link) — not a false

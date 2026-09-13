@@ -1,0 +1,41 @@
+# Credibility upkeep: re-measure the toolkit vs axe-core on real pages monthly.
+# Live sites drift — that is expected; the artifact is the evidence, the gate
+# is only "the bench must run without crashing and still find signals".
+name: axe benchmark
+on:
+  schedule:
+    - cron: '0 7 1 * *'   # first day of each month, 07:00 UTC
+  workflow_dispatch: {}
+
+jobs:
+  bench:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install playwright && playwright install chromium --with-deps
+      - name: Run benchmark (toolkit vs axe-core on real pages)
+        run: |
+          python3 bench/compara.py \
+            https://example.com \
+            https://www.gov.uk \
+            https://es.wikipedia.org/wiki/Wikipedia:Portada \
+            https://www.jquin.net > bench/results.json
+          python3 - <<'PY'
+          import json
+          rs = json.load(open('bench/results.json'))
+          assert len(rs) == 4, 'expected 4 results'
+          ok = [r for r in rs if 'error' not in r]
+          assert len(ok) == 4, f'bench errors: {[r.get("error","")[:60] for r in rs if "error" in r]}'
+          # sanity gate: the toolkit must still FIND things (not silently blind)
+          señales = sum(len(r['toolkit']['criterios']) for r in ok)
+          print(f'toolkit criteria found across sites: {señales}')
+          assert señales >= 4, 'toolkit found almost nothing — collector regression?'
+          print('BENCH OK')
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: axe-benchmark
+          path: bench/results.json
