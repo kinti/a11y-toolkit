@@ -16,6 +16,7 @@ import argparse
 import datetime
 import json
 import sys
+from xml.sax.saxutils import escape as _xesc
 
 _TEXTOS = {
     'es': {
@@ -44,7 +45,9 @@ def badge(score, fecha=None, alcance=None, lang='en'):
     t = _TEXTOS.get(lang, _TEXTOS['en'])
     fecha = fecha or datetime.date.today().isoformat()
     alcance = alcance or t['alcance']
-    titulo = t['titulo'].format(score=score, fecha=fecha, alcance=alcance)
+    fecha = _xesc(fecha)[:30]
+    alcance = _xesc(alcance)[:60]
+    titulo = _xesc(t['titulo'].format(score=score, fecha=fecha, alcance=alcance))
     color = _color(score)
     izq = len(t['nombre']) * 6.5 + 14
     der = len(f'{score}/100 · {fecha}') * 6.5 + 14

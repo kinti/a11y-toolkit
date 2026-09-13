@@ -22,6 +22,7 @@ import sys
 import a11yaudit
 import a11ybadge
 import a11yfix
+import a11ydom
 import a11yscroll
 import a11ybudget
 import a11ycrit
@@ -55,6 +56,8 @@ def main(argv=None):
         print('Subcomandos disponibles:', ', '.join(SUBCOMANDOS))
         return 0 if argv and argv[0] in ('-h', '--help') else 1
     modulo, sub = SUBCOMANDOS[argv[0]]
+    if sub and sub.endswith('_main'):
+        return getattr(modulo, sub)(argv[1:])   # función propia (reflow_main, kbd_main)
     args = ([sub] + argv[1:]) if sub else argv[1:]
     return modulo.main(args)
 

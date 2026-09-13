@@ -25,6 +25,7 @@ CLI:
 """
 
 import argparse
+import html as _html
 import json
 import re
 import sys
@@ -118,17 +119,18 @@ def autofix(html_text, lang=None, title=None, url='(html)'):
         aplicados.append({'senal': 'autocomplete',
                           'hecho': f'{n_ac} inputs con su token autocomplete (1.3.5)'})
 
-    # 3. lang de <html> (solo si falta y lo dan)
-    if lang:
+    # 3. lang de <html> (solo si falta y lo dan); BCP-47 validado y escapado:
+    #    este toolkit ESCRIBE HTML, no puede ser vector de inyección
+    if lang and re.fullmatch(r'[a-zA-Z]{2,3}(-[a-zA-Z0-9]{2,8})*', lang.strip()):
         m = _RE_HTML_TAG.search(fixed)
         if m and 'lang=' not in m.group(1).lower():
-            fixed = fixed[:m.start()] + f'<html lang="{lang}"' + m.group(1) + '>' + fixed[m.end():]
+            fixed = fixed[:m.start()] + f'<html lang="{_html.escape(lang.strip())}"' + m.group(1) + '>' + fixed[m.end():]
             aplicados.append({'senal': 'lang_missing',
-                              'hecho': f'<html lang="{lang}"> (3.1.1)'})
+                              'hecho': f'<html lang="{lang.strip()}"> (3.1.1)'})
 
-    # 4. title (solo si vacío y lo dan)
+    # 4. title (solo si vacío y lo dan); escapado por la misma razón
     if title and _RE_TITLE.search(fixed):
-        fixed = _RE_TITLE.sub(f'<title>{title}</title>', fixed, count=1)
+        fixed = _RE_TITLE.sub(lambda _m: f'<title>{_html.escape(title)}</title>', fixed, count=1)
         aplicados.append({'senal': 'title_missing', 'hecho': '<title> añadido (2.4.2)'})
 
     # 5. lo que NO se toca — honestidad operativa
@@ -157,19 +159,13 @@ def autofix(html_text, lang=None, title=None, url='(html)'):
 
 def main(argv):
     ap = argparse.ArgumentParser(description=__doc__)
-    g = ap.add_mutually_exclusive_group(required=True)
-    g.add_argument('--file')
-    g.add_argument('--stdin-audit', action='store_true')
+    ap.add_argument('--file', required=True)
     ap.add_argument('--lang', choices=['es', 'en', 'pt', 'fr', 'de', 'it', 'gl', 'ca', 'eu'])
     ap.add_argument('--title')
     ap.add_argument('-o', '--out')
     a = ap.parse_args(argv)
-    if a.file:
-        with open(a.file, encoding='utf-8', errors='replace') as f:
-            html_text = f.read()
-    else:
-        print('lee el HTML por stdin: a11ytoolkit audit --file x.html no sirve aquí; usa --file')
-        return 1
+    with open(a.file, encoding='utf-8', errors='replace') as f:
+        html_text = f.read()
     res = autofix(html_text, lang=a.lang, title=a.title, url=a.file)
     if a.out:
         with open(a.out, 'w', encoding='utf-8') as f:

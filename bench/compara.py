@@ -23,7 +23,11 @@ sys.path.insert(0, RAIZ)
 from a11yaudit import audit_url
 from a11ydom import audit_dom_url
 
-AXE_JS = open('/tmp/axe.min.js', encoding='utf-8').read()
+AXE_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'axe.min.js')
+if not os.path.exists(AXE_PATH):
+    import urllib.request
+    urllib.request.urlretrieve('https://cdn.jsdelivr.net/npm/axe-core@4.10.3/axe.min.js', AXE_PATH)
+AXE_JS = open(AXE_PATH, encoding='utf-8').read()
 
 # mapa señal-toolkit → criterio, para comparar por criterio WCAG
 CRIT_TOOLKIT = {'1.1.1', '1.2.2', '1.3.1', '1.3.5', '1.4.2', '1.4.3', '1.4.4',

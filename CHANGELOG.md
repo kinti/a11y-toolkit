@@ -1,5 +1,28 @@
 # Changelog
 
+## 3.9.1 — 2026-09-07 — "solidification"
+
+A self-audit found real damage; all fixed with the tests that would have
+caught each one.
+
+- **CRITICAL: the CLI dispatcher had been broken since v3.7.0** — `import
+  a11ydom` was missing, so EVERY `a11ytoolkit …` command died with NameError.
+  The MCP server (what all suites tested) was fine; the public CLI was not.
+  Fixed (import + `_main` dispatch mechanism for reflow/kbd).
+- **Injection hardening**: this toolkit writes HTML and SVG, so it must never
+  be an injection vector — `a11y_autofix` now escapes `title`, validates
+  `lang` against BCP-47 shape before writing; `a11y_badge` XML-escapes
+  fecha/alcance. Proven by adversarial tests (</title><script>, lang breaking
+  out of the attribute, SVG fecha injection).
+- **Doc-drift pinned by tests**: "26 criteria touched" is now asserted against
+  the real catalog (found it was 25 — 1.4.3 Contrast was never registered
+  despite being measured; registered, making the claim true).
+- Dead `--stdin-audit` argument removed from the fixer; bench/compara.py now
+  auto-downloads axe-core instead of depending on /tmp/axe.min.js.
+- **New suite `test_cli.py`**: every CLI subcommand executed as a real
+  subprocess against fixtures — the missing layer that let the dispatcher bug
+  ship twice. 6 suites in CI now.
+
 ## 3.9.0 — 2026-09-07 — "spec-fresh + WCAG 2.2 sweep"
 
 Two evidence-driven passes: the current MCP spec (2025-11-25, via Context7) and
