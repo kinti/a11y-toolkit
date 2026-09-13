@@ -164,7 +164,11 @@ def main(argv):
     a = p.parse_args(argv)
 
     if a.cmd == 'snapshot':
-        d = snapshot(a.url, a.out)
+        try:
+            d = snapshot(a.url, a.out)
+        except ImportError:
+            print(json.dumps({'error': 'Playwright no instalado: pip install playwright && playwright install chromium'}))
+            return 1
         print(json.dumps({'url': d['url'], 'elementos': len(d['elementos']),
                           'pasos_foco': len(d['orden_foco']), 'salida': a.out},
                          ensure_ascii=False, indent=1))
@@ -174,7 +178,8 @@ def main(argv):
     with open(a.b, encoding='utf-8') as f:
         jb = json.load(f)
     print(json.dumps(diff(ja, jb), ensure_ascii=False, indent=1))
-    return 0 if True else 1
+    veredicto = diff(ja, jb)
+    return 0 if veredicto['ok'] else 2
 
 
 if __name__ == '__main__':

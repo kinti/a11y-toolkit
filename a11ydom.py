@@ -75,6 +75,26 @@ _TD = {
                     '(inline equivalente, espaciado) que aquí se aproximan.'),
     },
     'en': {
+        'focus_obscured': ('{n} controls end up hidden behind fixed/sticky elements '
+                           'when focused (sticky headers, banners): {det}. Review (2.4.11).'),
+        'focus_obscured_rem': ('Author-fixed content must not hide the focused element '
+                               '(2.4.11, new in WCAG 2.2 AA): set scroll-padding-top to the '
+                               'fixed header height, or make it auto-collapse.'),
+        'kbd_trap': ('KEYBOARD TRAP: {n} controls caught in a cycle ({ciclo}) and Escape '
+                     'does not release. Focus cannot leave (2.1.2).'),
+        'kbd_trap_rem': ('Every focus-containing component (modal, menu) must release with '
+                         'Escape (ideally click-outside too): close it and return focus to '
+                         'the trigger. Test it with the keyboard alone.'),
+        'reflow_fail': ('{n} elements overflow at {w}px width (horizontal scroll): {det}. '
+                        'With correct reflow there is no one-dimensional scroll at 320px (1.4.10).'),
+        'reflow_fail_rem': ('Use fluid layouts (flex/grid, max-width instead of fixed width) '
+                            'and media queries: content must reflow to 320px without '
+                            'horizontal scroll. Exceptions: data tables, maps, charts.'),
+        'state_contrast': ('{n} controls with insufficient :focus/:hover state contrast '
+                           '(<3:1): {det}. Review.'),
+        'state_contrast_rem': ('The control text needs contrast when focused or hovered too '
+                               '(1.4.3); DISABLED controls are exempt under WCAG. Adjust the '
+                               ':focus and :hover colors.'),
         'contrast_fail': ('{n} text areas with insufficient contrast: {det}. '
                           '(computed fg/background, with alpha compositing).'),
         'contrast_fail_rem': ('Raise contrast to ≥4.5:1 (≥3:1 for large text). The effective '

@@ -1,5 +1,29 @@
 # Changelog
 
+## 3.9.5 — 2026-09-07 — "solid by construction"
+
+The fragility classes eliminated at the root, not patched again.
+
+- **`test_solido.py` (invariants suite)**: catalog es/en parity, every
+  finding key has its `_rem` pair, CRIT parity, version equality
+  (pyproject == server == server.json), README/GIF tool+prompt counts pinned
+  against reality, and a deterministic hostile-HTML fuzz battery.
+  **It caught a real shipped bug on its first run**: four rendered-mode
+  signals (focus_obscured, kbd_trap, reflow_fail, state_contrast) existed
+  only in Spanish — English users received the raw signal key as the finding
+  text since v3.6. EN texts added.
+- **`scripts/versionar.py` / `make release V=X.Y.Z`**: the single command for
+  releases — atomic bump of all four files with anchor asserts, fast suites
+  as a gate, refuses to proceed on red. Replaces ten releases of manual
+  triple bumps.
+- **`.githooks/pre-push` (`make hooks`)**: no push leaves this repo with a
+  red suite again — the exact failure that shipped 3.9.3 is now structurally
+  impossible in any clone that ran `make hooks` once.
+- a11ydiff: graceful message without Playwright (was a raw traceback) and
+  `diff` now exits 0/2 by verdict (dead `0 if True else 1` finally retired).
+- Makefile (test/fast/hooks/visual/release), CONTRIBUTING "hard-won rules"
+  section, CI runs the invariants suite.
+
 ## 3.9.4 — 2026-09-07 — "fresh eyes, round two" (supersedes 3.9.3: explicit criterion registry shipped)
 
 Same content as 3.9.3 plus the registry fix (26/26 standalone, no import side effects). 3.9.3 was published minutes before the hotfix; same-version republication is not possible on PyPI.

@@ -1,0 +1,15 @@
+#!/usr/bin/env bash
+# Guardián de push: NADA sale con una suite rota.
+# Se activa una vez:  git config core.hooksPath .githooks
+set -euo pipefail
+cd "$(git rev-parse --show-toplevel)"
+echo "[pre-push] suites rápidas (contrast, audit, v32, solido, mcp):"
+for t in test_contrast.py test_audit.py test_v32.py test_solido.py test_mcp.py; do
+  if ! python3 "$t" >/dev/null 2>&1; then
+    echo "  ✗ $t FALLA — push cancelado."
+    echo "  Corre: python3 $t"
+    exit 1
+  fi
+  echo "  ✓ $t"
+done
+echo "[pre-push] verde. Empujando…"
