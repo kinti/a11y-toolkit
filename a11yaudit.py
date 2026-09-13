@@ -1,18 +1,19 @@
 #!/usr/bin/env python3
-"""Auditoría exprés de accesibilidad sobre HTML (heurísticas WCAG 2.2, cero dependencias).
+"""Express WCAG 2.2 audit over HTML (heuristics, zero dependencies).
 
-a11y_audit_url / audit_html revisan señales automáticas de las que derivan
-criterios concretos de WCAG 2.2. Cada hallazgo incluye remediación concreta.
+a11y_audit_url / audit_html check automatic signals mapped to concrete WCAG
+2.2 criteria. Every finding carries concrete remediation.
 
-Criterios cubiertos (estáticos): 1.1.1, 1.2.2, 1.3.1, 1.4.4, 2.1.1, 2.2.1,
-2.4.1, 2.4.2, 2.4.3, 3.1.1, 3.2.5, 3.3.2, 4.1.2.
+Criteria covered (static): 1.1.1, 1.2.2, 1.3.1, 1.4.4, 2.1.1, 2.2.1, 2.4.1,
+2.4.2, 2.4.3, 3.1.1, 3.2.5, 3.3.2, 4.1.2 (+ 1.3.5, 1.4.2, 2.4.4 and ARIA
+value validation since v3.1+).
 
-La automatización cubre ~un tercio de WCAG: la revisión manual sigue siendo
-insustituible. Esta herramienta es filtro, no veredicto.
+Automation covers ~one third of WCAG: manual review remains irreplaceable.
+This tool is a filter, not a verdict.
 
 CLI:
-  a11yaudit.py --url https://example.com [--lang en]
-  a11yaudit.py --file pagina.html
+  a11yaudit.py --url https://example.com [--lang es]
+  a11yaudit.py --file page.html
 """
 
 import argparse
@@ -139,6 +140,7 @@ CRIT = {
 
 T = {
     'es': {
+        'descarga_error': 'no se pudo descargar: {e}',
         'imgs_alt': '{n} <img> sin atributo alt (ni siquiera alt="").',
         'imgs_alt_rem': 'Añade alt a cada <img>: texto descriptivo si aporta información, alt="" si es decorativa. En <input type="image"> y <area> es igual de obligatorio.',
         'input_img_alt': '<input type="image"> sin alt (botón gráfico sin nombre).',
@@ -229,6 +231,7 @@ T = {
                     'auditoría).'),
     },
     'en': {
+        'descarga_error': 'could not download: {e}',
         'imgs_alt': '{n} <img> without an alt attribute (not even alt="").',
         'imgs_alt_rem': 'Add alt to every <img>: descriptive text when it conveys information, alt="" when decorative. Same requirement for <input type="image"> and <area>.',
         'input_img_alt': '<input type="image"> without alt (image button with no name).',
@@ -642,7 +645,7 @@ def calcular_score(hallazgos):
     return max(0, 100 - penal)
 
 
-def audit_html(html_text, url='(html)', lang='es'):
+def audit_html(html_text, url='(html)', lang='en'):
     """Analiza una cadena HTML y devuelve el informe de hallazgos (es/en)."""
     p = _Auditor()
     try:
@@ -839,7 +842,7 @@ _T_ESQUEMA = {
 }
 
 
-def audit_url(url, timeout=30, lang='es'):
+def audit_url(url, timeout=30, lang='en'):
     if url.split(':')[0].lower() not in ('http', 'https'):
         return {'error': _T_ESQUEMA.get(lang, _T_ESQUEMA['es'])}
     try:
@@ -847,7 +850,7 @@ def audit_url(url, timeout=30, lang='es'):
     except ValueError as e:
         return {'error': str(e)}
     except Exception as e:  # noqa: BLE001
-        return {'error': f'no se pudo descargar: {e}'}
+        return {'error': _t(lang, 'descarga_error').format(e=e)}
     return audit_html(html_text, url, lang=lang)
 
 
@@ -872,7 +875,7 @@ def _enlaces_internos(html_text, base_url, origen):
     return out
 
 
-def audit_site(url, max_pages=5, timeout=30, lang='es'):
+def audit_site(url, max_pages=5, timeout=30, lang='en'):
     """Audita la URL y hasta max_pages-1 páginas más del mismo dominio
     (descubrimiento por enlaces). Igual de cero-dependencias que el resto."""
     max_pages = max(1, min(20, int(max_pages)))
@@ -881,7 +884,7 @@ def audit_site(url, max_pages=5, timeout=30, lang='es'):
     except ValueError as e:
         return {'error': str(e)}
     except Exception as e:  # noqa: BLE001
-        return {'error': f'no se pudo descargar: {e}'}
+        return {'error': _t(lang, 'descarga_error').format(e=e)}
     informes = [audit_html(html_text, url, lang=lang)]
     vistos = {url.split('#')[0].rstrip('/')}
     cola = _enlaces_internos(html_text, url, url)
@@ -921,7 +924,7 @@ def main(argv):
     g = ap.add_mutually_exclusive_group(required=True)
     g.add_argument('--url')
     g.add_argument('--file')
-    ap.add_argument('--lang', default='es', choices=['es', 'en'])
+    ap.add_argument('--lang', default='en', choices=['en', 'es'])
     ap.add_argument('--pages', type=int, default=1,
                     help='páginas del mismo dominio a auditar (site crawl ligero)')
     a = ap.parse_args(argv)

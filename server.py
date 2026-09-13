@@ -55,7 +55,7 @@ try:
 except ImportError:
     ARIALIVE_JS = None  # repo checkout: read the file
 
-VERSION = '3.9.5'
+VERSION = '3.10.0'
 
 INSTRUCTIONS = (
     'Accessibility toolkit (WCAG 2.2), multilanguage es/en. '
@@ -92,7 +92,7 @@ TOOLS = [
             'url': {'type': 'string', 'description': 'URL to fetch and audit'},
             'html': {'type': 'string', 'description': 'raw HTML to audit directly (overrides url)'},
             'pages': {'type': 'integer', 'description': 'light same-domain crawl: audit up to N pages, aggregated by score and recurring signals (default 1, max 20)'},
-            'lang': {'type': 'string', 'enum': ['es', 'en'], 'description': 'output language (es default)'},
+            'lang': {'type': 'string', 'enum': ['es', 'en'], 'description': 'output language (en default)'},
             'timeout': {'type': 'number', 'description': 'fetch timeout seconds (30 default)'},
         }},
     },
@@ -120,7 +120,7 @@ TOOLS = [
                         'background. If AA fails, suggests the nearest passing color.'),
         'inputSchema': {'type': 'object', 'properties': {
             'fg': {'type': 'string'}, 'bg': {'type': 'string'},
-            'lang': {'type': 'string', 'enum': ['es', 'en'], 'description': 'output language (es default)'},
+            'lang': {'type': 'string', 'enum': ['es', 'en'], 'description': 'output language (en default)'},
         }, 'required': ['fg', 'bg']},
     },
     {
@@ -205,7 +205,7 @@ TOOLS = [
                         'announcement with time, politeness, role and text — what a screen '
                         'reader would say, visible on screen.'),
         'inputSchema': {'type': 'object', 'properties': {
-            'lang': {'type': 'string', 'enum': ['es', 'en'], 'description': 'monitor panel language (es default)'},
+            'lang': {'type': 'string', 'enum': ['es', 'en'], 'description': 'monitor panel language (en default)'},
         }},
     },
     {
@@ -463,15 +463,15 @@ def _texto(obj):
 
 def llamar(nombre, args):
     if nombre == 'a11y_contrast_pair':
-        return _texto(pair_fn(args['fg'], args['bg'], lang=args.get('lang', 'es')))
+        return _texto(pair_fn(args['fg'], args['bg'], lang=args.get('lang', 'en')))
     if nombre == 'a11y_contrast_image':
         return _texto(image_contrast(args['path'], args['text_color'],
-                                     region=args.get('region'), sample=args.get('sample', 4), lang=args.get('lang', 'es')))
+                                     region=args.get('region'), sample=args.get('sample', 4), lang=args.get('lang', 'en')))
     if nombre == 'a11y_suggest_color':
         fg, bg = parse_color(args['fg']), parse_color(args['bg'])
         if not fg or not bg:
             return _texto({'error': 'invalid color'})
-        return _texto(sugerir(fg, bg, float(args.get('target', 4.5)), args.get('lang', 'es')) or {'resultado': None})
+        return _texto(sugerir(fg, bg, float(args.get('target', 4.5)), args.get('lang', 'en')) or {'resultado': None})
     if nombre == 'a11y_generate_declaration':
         res = declaracion_fn(
             args['entidad'], args['url'], args['estado'],
@@ -480,7 +480,7 @@ def llamar(nombre, args):
             fecha_revision=args.get('fecha_revision'), feedback=args.get('feedback'),
             reclamacion=args.get('reclamacion'), marco=args.get('marco', 'rd1112'),
             disponibilidad_alternativa=args.get('disponibilidad_alternativa'),
-            lang=args.get('lang', 'es'))
+            lang=args.get('lang', 'en'))
         if 'error' in res:
             return {'content': [{'type': 'text', 'text': res['error']}], 'isError': True}
         salida = args.get('output_path')
@@ -493,19 +493,19 @@ def llamar(nombre, args):
         try:
             if args.get('html'):
                 return _texto(audit_html_fn(args['html'], args.get('url') or '(html)',
-                                            lang=args.get('lang', 'es')))
+                                            lang=args.get('lang', 'en')))
             if args.get('pages', 1) > 1:
                 return _texto(audit_site_fn(args['url'], max_pages=args['pages'],
                                             timeout=args.get('timeout', 30),
-                                            lang=args.get('lang', 'es')))
+                                            lang=args.get('lang', 'en')))
             return _texto(audit_url_fn(args['url'], timeout=args.get('timeout', 30),
-                                       lang=args.get('lang', 'es')))
+                                       lang=args.get('lang', 'en')))
         except Exception as e:  # noqa: BLE001
             return {'content': [{'type': 'text', 'text': f'error: {e}'}], 'isError': True}
     if nombre == 'a11y_audit_dom':
         try:
             return _texto(audit_dom_url(args['url'], timeout=args.get('timeout', 45),
-                                        lang=args.get('lang', 'es')))
+                                        lang=args.get('lang', 'en')))
         except ImportError:
             return {'content': [{'type': 'text',
                                  'text': 'Playwright not installed: pip install playwright && playwright install chromium (or use a11y_audit_url for the zero-dependency static audit)'}],
@@ -544,7 +544,7 @@ def llamar(nombre, args):
     if nombre == 'a11y_scroll':
         try:
             return _texto(audit_scroll(args['url'], max_tandas=args.get('max_tandas', 5),
-                                       lang=args.get('lang', 'es')))
+                                       lang=args.get('lang', 'en')))
         except ImportError:
             return {'content': [{'type': 'text',
                                  'text': 'Playwright not installed: pip install playwright && playwright install chromium'}],
@@ -554,7 +554,7 @@ def llamar(nombre, args):
     if nombre == 'a11y_keyboard':
         try:
             return _texto(audit_keyboard(args['url'], max_pasos=args.get('max_pasos', 60),
-                                         lang=args.get('lang', 'es')))
+                                         lang=args.get('lang', 'en')))
         except ImportError:
             return {'content': [{'type': 'text',
                                  'text': 'Playwright not installed: pip install playwright && playwright install chromium'}],
@@ -567,7 +567,7 @@ def llamar(nombre, args):
     if nombre == 'a11y_reflow':
         try:
             return _texto(audit_reflow(args['url'], timeout=args.get('timeout', 45),
-                                       lang=args.get('lang', 'es')))
+                                       lang=args.get('lang', 'en')))
         except ImportError:
             return {'content': [{'type': 'text',
                                  'text': 'Playwright not installed: pip install playwright && playwright install chromium'}],
@@ -575,7 +575,7 @@ def llamar(nombre, args):
         except Exception as e:  # noqa: BLE001
             return {'content': [{'type': 'text', 'text': f'error: {e}'}], 'isError': True}
     if nombre == 'a11y_criterion':
-        return _texto(criterio_fn(args['code'], lang=args.get('lang', 'es')))
+        return _texto(criterio_fn(args['code'], lang=args.get('lang', 'en')))
     if nombre == 'a11y_badge':
         svg = badge_fn(args['score'], fecha=args.get('fecha'),
                        lang=args.get('lang', 'en'))

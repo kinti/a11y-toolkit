@@ -1,17 +1,16 @@
 #!/usr/bin/env python3
-"""Export SARIF 2.1.0 — convierte un informe del auditor al formato que GitHub
-acepta para pintar hallazgos dentro de los Pull Requests (code scanning).
+"""SARIF 2.1.0 export — findings as GitHub code-scanning annotations.
 
-Mecanismo: los hallazgos viajan en el estándar de intercambio (OASIS SARIF),
-no en un formato propio. Sube el fichero con la acción oficial:
+Mechanism: findings travel in the OASIS interchange standard, not a bespoke
+format. Upload with the official action:
 
   - uses: github/codeql-action/upload-sarif@v3
     with: { sarif_file: a11y.sarif }
 
-Los hallazgos aparecen como avisos del repositorio; en PRs, solo los nuevos.
+Findings appear as repository alerts; in PRs, only new ones surface.
 
 CLI:
-  a11ysarif.py --url https://example.com -o a11y.sarif [--lang en]
+  a11ysarif.py --url https://example.com -o a11y.sarif [--lang es]
   a11ysarif.py --from-audit audit.json -o a11y.sarif
 """
 
@@ -109,7 +108,7 @@ def main(argv):
     g.add_argument('--from-audit', help='informe JSON ya generado')
     ap.add_argument('-o', '--out', default='a11y.sarif')
     ap.add_argument('--pages', type=int, default=1)
-    ap.add_argument('--lang', default='es', choices=['es', 'en'])
+    ap.add_argument('--lang', default='en', choices=['en', 'es'])
     a = ap.parse_args(argv)
     if a.from_audit:
         with open(a.from_audit, encoding='utf-8') as f:

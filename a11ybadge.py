@@ -1,15 +1,15 @@
 #!/usr/bin/env python3
-"""Insignia SVG honesta — score de accesibilidad con fecha y alcance, sin promesas.
+"""Honest SVG badge — accessibility score with date and scope, no promises.
 
-La lección del sector (FTC × accessiBe, 1M$, 2025): el sello que promete
-"conforme" acaba en multa. Esta insignia solo afirma lo que el toolkit puede
-demostrar: una puntuación sobre lo automatizable, la fecha y el alcance
-(screening). Es SVG accesible (role="img" + <title>), sin dependencias.
+The industry lesson (FTC v. accessiBe, $1M, 2025): a badge that promises
+"compliant" ends in a fine. This badge only states what the toolkit can
+demonstrate: a score over what is automatable, the date and the scope
+(screening). Accessible SVG (role="img" + <title>), zero dependencies.
 
-Colores por score: ≥90 verde · 75-89 lima · 50-74 naranja · <50 rojo.
+Score colors: ≥90 green · 75-89 lime · 50-74 orange · <50 red.
 
 CLI:
-  a11ybadge.py --score 92 [--fecha 2026-09-07] [--alcance screening] [--lang en] [--out badge.svg]
+  a11ybadge.py --score 92 [--fecha 2026-09-07] [--scope screening] [--lang en] [--out badge.svg]
 """
 
 import argparse

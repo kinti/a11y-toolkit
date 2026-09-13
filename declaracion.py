@@ -1,16 +1,16 @@
 #!/usr/bin/env python3
-"""Generador de Declaración de Accesibilidad (multilenguaje es/en).
+"""Accessibility Statement generator (bilingual es/en).
 
-- marco 'rd1112': art. 10 del RD 1112/2018 (ES) o declaración estilo Directiva
-  (UE) 2016/2102 / EN 301 549 (EN) — sector público.
-- marco 'eaa': Ley 11/2023 (ES) o información de accesibilidad del servicio
-  conforme a la Directiva (UE) 2019/882 — European Accessibility Act (EN).
+- framework 'rd1112': art. 10 of RD 1112/2018 (ES) or Directive (EU)
+  2016/2102 / EN 301 549 style statement (EN) — public sector.
+- framework 'eaa': Ley 11/2023 (ES) or the service accessibility information
+  under Directive (EU) 2019/882 — European Accessibility Act (EN).
 
-El HTML generado es accesible de nacimiento (lang correcto, jerarquía de
-encabezados, listas semánticas, fechas en <time>).
+The generated HTML is accessible by construction (correct lang, heading
+hierarchy, semantic lists, dates in <time>).
 
-Uso:
-  declaracion.py --entidad "Nome" --url "https://…" --estado parcial \
+Usage:
+  declaracion.py --entidad "Name" --url "https://…" --estado parcial \
       --no-accesible "…" --feedback "a@b.gal" [--marco rd1112|eaa] \
       [--lang es|en] [--output decl.html]
 """
@@ -140,7 +140,7 @@ TXT = {
 def generar(entidad, url, estado, contenido_no_accesible=None, metodo=None,
             fecha_evaluacion=None, fecha_revision=None, feedback=None,
             reclamacion=None, marco='rd1112', disponibilidad_alternativa=None,
-            lang='es'):
+            lang='en'):
     """Devuelve dict con 'html' y resumen. marco: 'rd1112'|'eaa' · lang: 'es'|'en'."""
     t = TXT.get(lang, TXT['es'])
     if estado not in ESTADOS['es']:
@@ -234,7 +234,7 @@ def main(argv):
     p.add_argument('--reclamacion')
     p.add_argument('--disponibilidad-alternativa')
     p.add_argument('--marco', default='rd1112', choices=['rd1112', 'eaa'])
-    p.add_argument('--lang', default='es', choices=['es', 'en'])
+    p.add_argument('--lang', default='en', choices=['en', 'es'])
     p.add_argument('--output')
     a = p.parse_args(argv)
     res = generar(a.entidad, a.url, a.estado, a.no_accesible, a.metodo,

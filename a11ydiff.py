@@ -1,22 +1,20 @@
 #!/usr/bin/env python3
-"""Diff de accesibilidad entre builds — detecta regresiones antes de producción.
+"""Accessibility regression diff between builds — catch regressions before production.
 
-Dos comandos:
+Two commands:
 
-  snapshot   Captura de una URL: elementos interactivos (tag, rol, nombre
-             accesible, href) en orden DOM + orden de tabulación real (Tab a
-             Tab). Requiere Playwright (pip install playwright && playwright
-             install chromium).
+  snapshot   Capture a URL: interactive elements (tag, role, accessible name,
+             href) in DOM order + the REAL tab order + the computed
+             accessibility tree. Requires Playwright.
 
-  diff       Compara dos snapshots: interactivos añadidos/eliminados/renom-
-             brados (mismo id, distinto nombre accesible) y cambios en el
-             orden de foco.
+  diff       Compare two snapshots: added/removed/renamed interactives,
+             focus-order and accessibility-tree changes.
 
-Uso:
-  a11ydiff.py snapshot https://jquin.net --out antes.json
-  # ...deploy...
-  a11ydiff.py snapshot https://jquin.net --out despues.json
-  a11ydiff.py diff antes.json despues.json
+Usage:
+  a11ydiff.py snapshot https://jquin.net --out before.json
+  # …deploy…
+  a11ydiff.py snapshot https://jquin.net --out after.json
+  a11ydiff.py diff before.json after.json     # exit 0 ok / 2 regressions
 """
 
 import argparse

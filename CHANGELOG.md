@@ -1,5 +1,24 @@
 # Changelog
 
+## 3.10.0 — 2026-09-07 — "actually English-first"
+
+The repo claimed EN-first while defaulting to Spanish. A full-language audit
+fixed every surface:
+
+- **Default output language is now ENGLISH everywhere** (39 call sites:
+  all functions, CLI argparse, MCP server; `--lang es` / `lang: "es"` still
+  selects Spanish — the bilingual output remains the product feature).
+- **bench/README.md translated** (36 Spanish lines — a whole doc had shipped
+  in Spanish).
+- **All 13 module docstrings in English** — they are the CLI `--help` text.
+- Remaining Spanish runtime/argparse strings translated (contrast usage
+  hints, budget errors, download errors now bilingual via the catalog).
+- **CI fixed for Python 3.10**: test_solido imported `tomllib` (3.11+);
+  version now parsed with a regex — stdlib-only on 3.9+ again.
+- Process fix after two mid-flight script aborts: mechanical regex replaces
+  with post-verification grep instead of anchor-asserted batches that abort
+  halfway and leave trees half-applied.
+
 ## 3.9.5 — 2026-09-07 — "solid by construction"
 
 The fragility classes eliminated at the root, not patched again.

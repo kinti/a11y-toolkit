@@ -1,24 +1,24 @@
 #!/usr/bin/env python3
-"""Auditor de SCROLL INFINITO — el desastre accesible documentado que nadie automatiza.
+"""Infinite-scroll auditor — the documented a11y disaster nobody automates.
 
-Fuentes: guía de Deque «Infinite Scrolling & Role=Feed Accessibility Issues» y el
-patrón Feed de WAI-ARIA APG. NO existe técnica de fallo oficial W3C (verificado
-2026-09); los criterios aplicables son 2.4.3 (orden de foco), 4.1.3 (mensajes de
-estado) y 2.2.2 (contenido auto-actualizado).
+Sources: Deque's "Infinite Scrolling & Role=Feed Accessibility Issues" and the
+WAI-ARIA APG Feed pattern. NO official W3C failure technique exists
+(verified 2026-09); applicable criteria: 2.4.3 (focus order), 4.1.3 (status
+messages) and 2.2.2 (auto-updating content).
 
-Lo que mide, con Tab/foco reales y un observador de regiones vivas:
-  1. ¿El foco sobrevive a cada tanda de carga? (si el elemento enfocado desaparece
-     o queda fuera de pantalla, es el fallo documentado)
-  2. ¿Se anuncia el contenido nuevo? (regiones aria-live/status/feed que reciben
-     texto durante la carga; contenedor con role="feed")
-  3. ¿El feed termina o al menos ofrece alternativa? (botón «cargar más»,
-     alcance del pie de página, fin detectable)
-  4. Estructura: role="feed" + role="article" (patrón APG) como señal positiva.
+What it measures, with real focus and a live-region observer:
+  1. Does focus SURVIVE each loading batch? (re-rendering the container
+     destroys it — the documented failure)
+  2. Is new content ANNOUNCED? (aria-live/status regions receiving text
+     during loading; role="feed" container)
+  3. Does the feed END or offer an alternative? ("load more" button, footer
+     reachability, detectable end)
+  4. Structure: role="feed" + role="article" (APG pattern) as positive signal.
 
-Requiere Playwright local. Es filtro con juicio honesto, no veredicto.
+Requires local Playwright. A filter with honest judgment, not a verdict.
 
 CLI:
-  a11yscroll.py https://medio.con/seccion [--tandas 5] [--lang en]
+  a11yscroll.py https://medium.com/section [--tandas 5] [--lang es]
 """
 
 import argparse
@@ -104,7 +104,7 @@ def _agrega(hallazgos, lang, sev, code, key, **fmt):
     })
 
 
-def audit_scroll(url, max_tandas=5, lang='es', timeout=45):
+def audit_scroll(url, max_tandas=5, lang='en', timeout=45):
     from playwright.sync_api import sync_playwright
     with sync_playwright() as p:
         nav = p.chromium.launch()
@@ -217,7 +217,7 @@ def main(argv):
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument('url')
     ap.add_argument('--tandas', type=int, default=5)
-    ap.add_argument('--lang', default='es', choices=['es', 'en'])
+    ap.add_argument('--lang', default='en', choices=['en', 'es'])
     ap.add_argument('--timeout', type=int, default=45)
     a = ap.parse_args(argv)
     try:

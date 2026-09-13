@@ -1,25 +1,26 @@
 #!/usr/bin/env python3
-"""Presupuesto de accesibilidad — la lección de Google SRE aplicada a WCAG.
+"""Accessibility error budget — Google SRE's lesson applied to WCAG.
 
-La parálisis clásica: la auditoría encuentra 40 fallos, nadie puede arreglarlos
-esta semana, así que nadie activa el control. El presupuesto rompe el bloqueo:
-se ACEPTA la línea base actual y solo lo NUEVO bloquea. Cada arreglo baja la
-base; cada regresión grita.
+The classic paralysis: the audit finds 40 issues, nobody can fix them this
+week, so nobody turns the control on. The budget breaks the deadlock: today's
+baseline is ACCEPTED and only what is NEW blocks. Every fix lowers the
+baseline; every regression screams.
 
-Fichero de presupuesto (budget.json):
+Budget file (budget.json):
 
   {
     "url": "https://mysite",
-    "senales": ["imgs_alt", "field_label"],       // base aceptada
-    "bloqueantes": ["alta", "media"],              // severidades que bloquean
-    "max_nuevos": 0,                               // cuántos nuevos se toleran
-    "fecha_revision": "2026-12-07"                 // caducidad de la base (opcional)
+    "senales": ["imgs_alt", "field_label"],       // accepted baseline
+    "bloqueantes": ["alta", "media"],              // severities that block
+    "max_nuevos": 0,                               // how many new ones tolerated
+    "fecha_revision": "2026-12-07"                 // baseline expiry (optional)
   }
 
-Genera la base con:  a11ytoolkit audit --url https://mysite | a11ytoolkit budget --init
-Compara con:         a11ytoolkit budget --budget budget.json --audit audit.json
+Generate the baseline:  a11ytoolkit audit --url https://mysite | a11ytoolkit budget --init
+Compare with:           a11ytoolkit budget --budget budget.json --audit audit.json
+Exit code: 0 ok / 2 blocked.
 
-Sólo compara claves estables ('senal') y severidades, no textos.
+Only stable keys ('senal') and severities are compared, never prose.
 """
 
 import argparse

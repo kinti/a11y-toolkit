@@ -1,14 +1,13 @@
 #!/usr/bin/env python3
-"""Conocimiento de criterios WCAG 2.2 (es/en) — el «qué es» detrás del auditor.
+"""WCAG 2.2 criterion knowledge (es/en) — the "what it is" behind the auditor.
 
-a11y_criterion(code) devuelve, para cada criterio que el toolkit evalúa: nombre
-oficial, nivel, qué exige, fallos habituales, cómo comprobarlo a mano y con qué
-herramienta del toolkit. Es el puente entre un hallazgo automático y la
-comprensión real del criterio (lo que otros servidores MCP resuelven con un
-servidor de conocimiento aparte).
+a11y_criterion(code) returns, for every criterion the toolkit evaluates: the
+official name, level, what it requires, typical failures, how to verify it
+manually and with which toolkit tool. It is the bridge between an automated
+finding and actually understanding the criterion.
 
 CLI:
-  a11ycrit.py 2.5.8 [--lang en]
+  a11ycrit.py 2.5.8 [--lang es]
   a11ycrit.py --list
 """
 
@@ -263,7 +262,7 @@ _C = {
 _NIVEL = {'A': 'A', 'AA': 'AA', 'AAA': 'AAA'}
 
 
-def criterio(code, lang='es'):
+def criterio(code, lang='en'):
     code = code.strip()
     if code not in _C:
         return {'error': f'criterio desconocido: {code}',
@@ -286,7 +285,7 @@ def criterio(code, lang='es'):
 def main(argv):
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument('code', nargs='?')
-    ap.add_argument('--lang', default='es', choices=['es', 'en'])
+    ap.add_argument('--lang', default='en', choices=['en', 'es'])
     ap.add_argument('--list', action='store_true')
     a = ap.parse_args(argv)
     if a.list or not a.code:

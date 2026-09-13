@@ -1,27 +1,25 @@
 #!/usr/bin/env python3
-"""Autofix determinista — SOLO correcciones demostrablemente seguras.
+"""Deterministic autofix — ONLY provably safe corrections.
 
-La lección del sector (overlays "IA" tipo accessiBe, multa FTC de 1M$): arreglar
-accesibilidad inyectando conjeturas termina en multa. Este módulo hace lo
-contrario: una lista corta de transformaciones donde el arreglo correcto es
-ÚNICO y verificable, y para todo lo demás un «no lo toco, esto es lo que haría
-falta» honesto.
+The industry lesson (overlay vendors, the accessiBe FTC fine): fixing
+accessibility by injecting guesses ends in fines. This module does the
+opposite: a short closed list of transformations where the correct fix is
+UNIQUE and verifiable, and for everything else an honest "not touched —
+here is what it would take".
 
-Transformaciones (lista cerrada, auditable):
-  1. viewport        — elimina user-scalable=no/0 y maximum-scale<2 (1.4.4).
-                       El zoom es un derecho; quitar el bloqueo nunca rompe nada.
-  2. autocomplete    — añade el token determinista a inputs que lo exigen (1.3.5):
-                       type=email→email, type=tel→tel, type=url→url, y name/id que
-                       casan con el patrón de datos personales (name, postal-code…).
-  3. lang de <html>  — SOLO si falta y la persona usuaria da --lang.
-  4. <title> vacío   — SOLO si la persona usuaria da --title.
+Transformations (closed, auditable list):
+  1. viewport        — removes user-scalable=no/0 and maximum-scale<2 (1.4.4).
+  2. autocomplete    — adds the deterministic token to inputs that require it
+                       (1.3.5): type=email→email, tel→tel, url→url, and name/id
+                       matching the personal-data pattern (name, postal-code…).
+  3. <html> lang     — ONLY if missing and the caller provides --lang.
+  4. empty <title>   — ONLY if the caller provides --title.
 
-Todo lo demás (alt, contraste, nombres accesibles…) exige criterio humano o del
-agente: se enumera en «no_aplicados» con la remediación correspondiente.
+Everything else (alt, contrast, accessible names…) requires human or agent
+judgment: listed under "no_aplicados" with the remediation.
 
 CLI:
-  a11yfix.py --file pagina.html [--lang es] [--title "T"] [-o fixed.html]
-  audit --file pagina.html | a11yfix.py --lang es --title "T" -o fixed.html   (stdin JSON)
+  a11yfix.py --file page.html [--lang es] [--title "T"] [-o fixed.html]
 """
 
 import argparse
@@ -134,7 +132,7 @@ def autofix(html_text, lang=None, title=None, url='(html)'):
         aplicados.append({'senal': 'title_missing', 'hecho': '<title> añadido (2.4.2)'})
 
     # 5. lo que NO se toca — honestidad operativa
-    informe = audit_html(html_text, url, lang='es')
+    informe = audit_html(html_text, url, lang='en')
     no_toca = {
         'imgs_alt': 'no sabemos si la imagen es decorativa: alt="" o descriptivo lo decide alguien',
         'ctrl_name': 'el nombre accesible exige saber qué hace el control',

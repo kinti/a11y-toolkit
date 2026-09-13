@@ -1,21 +1,17 @@
 #!/usr/bin/env python3
-"""Auditoría RENDERIZADA de accesibilidad vía Playwright (lo que el HTML estático no ve).
+"""RENDERED accessibility audit via Playwright (what static HTML cannot see).
 
-a11y_audit_dom carga la URL en Chromium y evalúa el DOM ya computado:
+a11y_audit_dom loads the URL in Chromium and evaluates the computed DOM:
+text contrast against effective backgrounds with alpha compositing, 24×24
+target size (WCAG 2.2's 2.5.8), focus indicator heuristic, :focus/:hover state
+contrast, open shadow DOM, same-origin iframes — plus the static signals on
+the live DOM.
 
-- Contraste REAL de todo el texto visible (color computado vs fondo efectivo con
-  composición de transparencias) — criterio 1.4.3.
-- Target Size mínimo 24×24 — criterio WCAG 2.2 nuevo 2.5.8 (con excepciones: enlaces
-  inline en párrafo/lista).
-- Indicador de foco visible (outline/box-shadow) — 2.4.7, heurístico.
-- Las señales estáticas, sobre el DOM renderizado (alt, nombres accesibles, labels,
-  encabezados, lang/title, viewport, tabindex, aria-hidden, videos, tablas, ids).
-
-Requiere Playwright local: pip install playwright && playwright install chromium.
-Es filtro, no veredicto: heurísticas honestas, las dudosas se marcan como «revisar».
+Requires local Playwright: pip install playwright && playwright install chromium.
+Honest heuristics — a filter, not a verdict.
 
 CLI:
-  a11ydom.py https://example.com [--lang en] [--timeout 45]
+  a11ydom.py https://example.com [--lang es] [--timeout 45]
 """
 
 import argparse
@@ -412,7 +408,7 @@ def _agrega(hallazgos, lang, severidad, code, key, ejemplos=None, **fmt):
     hallazgos.append(h)
 
 
-def audit_dom(datos, url='(rendered)', lang='es'):
+def audit_dom(datos, url='(rendered)', lang='en'):
     """Agrega los datos JS del DOM en un informe con la misma forma que audit_html."""
     hallazgos = []
 
@@ -625,7 +621,7 @@ _JS_OVERFLOW = r'''() => {
 }'''
 
 
-def audit_reflow(url, timeout=45, lang='es'):
+def audit_reflow(url, timeout=45, lang='en'):
     """Reflujo 320px — criterio 1.4.10 (AA), la comprobación que ni axe ni
     Lighthouse automatizan. Nota de método: el estándar define el reflujo como
     «320 CSS px, equivalente a 1280px al 400% de zoom», y el zoom real del
@@ -698,7 +694,7 @@ _STOP_META = r"""(i) => {
 }"""
 
 
-def audit_keyboard(url, max_pasos=60, lang='es', timeout=45):
+def audit_keyboard(url, max_pasos=60, lang='en', timeout=45):
     """Detección de TRAMPAS DE TECLADO (2.1.2) con Tab real.
 
     Recorre hasta max_pasos tabulaciones reales en Chromium, registra la
@@ -786,7 +782,7 @@ def audit_keyboard(url, max_pasos=60, lang='es', timeout=45):
     }
 
 
-def audit_dom_url(url, timeout=45, lang='es'):
+def audit_dom_url(url, timeout=45, lang='en'):
     """Carga la URL en Chromium y devuelve el informe renderizado.
 
     Escanea también los iframes same-origin (hasta 4) y contrasta los estados
@@ -832,7 +828,7 @@ def audit_dom_url(url, timeout=45, lang='es'):
 def main(argv):
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument('url')
-    ap.add_argument('--lang', default='es', choices=['es', 'en'])
+    ap.add_argument('--lang', default='en', choices=['en', 'es'])
     ap.add_argument('--timeout', type=int, default=45)
     a = ap.parse_args(argv)
     try:
@@ -850,7 +846,7 @@ def main(argv):
 def reflow_main(argv):
     ap = argparse.ArgumentParser(description='Reflujo 320px (1.4.10)')
     ap.add_argument('url')
-    ap.add_argument('--lang', default='es', choices=['es', 'en'])
+    ap.add_argument('--lang', default='en', choices=['en', 'es'])
     ap.add_argument('--timeout', type=int, default=45)
     a = ap.parse_args(argv)
     try:
@@ -865,7 +861,7 @@ def reflow_main(argv):
 def kbd_main(argv):
     ap = argparse.ArgumentParser(description='Trampas de teclado (2.1.2) con Tab real')
     ap.add_argument('url')
-    ap.add_argument('--lang', default='es', choices=['es', 'en'])
+    ap.add_argument('--lang', default='en', choices=['en', 'es'])
     ap.add_argument('--max-pasos', type=int, default=60)
     a = ap.parse_args(argv)
     try:

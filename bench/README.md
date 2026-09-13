@@ -1,54 +1,53 @@
-# Benchmark: a11y-toolkit vs axe-core 4.10 — páginas reales
+# Benchmark: a11y-toolkit vs axe-core 4.10 — real pages
 
-Metodología: en la MISMA página de Chromium y con el MISMO Playwright se ejecutan
-(a) el auditor estático de a11y-toolkit sobre el HTML servido, (b) `a11y_audit_dom`
-(renderizado) y (c) axe-core 4.10.3 inyectado. Se comparan los criterios WCAG
-reportados por cada uno. Última ejecución: 2026-09-07, v3.5.0 (shadow DOM).
+Methodology: on the SAME Chromium page and with the SAME Playwright, we run
+(a) a11y-toolkit's static auditor on the served HTML, (b) `a11y_audit_dom`
+(rendered) and (c) axe-core 4.10.3 injected. The criteria each reports are
+compared. Last run: 2026-09-07, v3.5.0 (shadow DOM).
 
-Repítelo: `python3 bench/compara.py <url…>` (necesita /tmp/axe.min.js — descárgalo
-de cdn.jsdelivr.net/npm/axe-core).
+Reproduce it: `python3 bench/compara.py <url…>` (axe.min.js auto-downloads).
 
-## Resultados
+## Results
 
-| Página | Toolkit (est/dom) | Coincide con axe | Solo axe | Solo toolkit | Veredicto del triaje |
+| Page | Toolkit (static/rendered) | Matches axe | axe only | Toolkit only | Triage verdict |
 |---|---|---|---|---|---|
-| example.com | 94 / 94 | 2.4.1 | — | — | acuerdo perfecto |
-| **gov.uk** | 98 / **82** | — | 2.4.1 (`region`, 2 nodos) | **1.4.3 REAL** + 1.3.1 + 2.5.8 | **encontramos un fallo real que axe no reporta**: botón "Search GOV.UK", `#1d70b8` sobre `#d2e2f1` a 13px = 3.91:1 < 4.5 (verificado a mano). axe manda contraste a "incomplete"; nosotros lo calculamos |
-| es.wikipedia (Portada) | 50 / 64 | 1.1.1, 1.3.1, 4.1.2 | 2.4.1 (`region`) | 1.4.3 (revisar: fondos con imagen), 2.1.1/3.3.2/2.4.4 (del pase estático) | HTML crudo vs DOM con JS: en sitios con mucho JS, usa `a11y_audit_dom` |
-| jquin.net | 98 / 100 | — | — | 2.4.4 (aviso baja) | el sitio del autor pasa su propia auditoría |
+| example.com | 94 / 94 | 2.4.1 | — | — | perfect agreement |
+| **gov.uk** | 98 / **82** | — | 2.4.1 (`region`, 2 nodes) | **REAL 1.4.3** + 1.3.1 + 2.5.8 | **we found a real failure axe does not report**: "Search GOV.UK" button, `#1d70b8` on `#d2e2f1` at 13px = 3.91:1 < 4.5 (manually verified). axe files contrast under "incomplete"; we compute it |
+| es.wikipedia (front page) | 50 / 64 | 1.1.1, 1.3.1, 4.1.2 | 2.4.1 (`region`) | 1.4.3 (review: image backgrounds), 2.1.1/3.3.2/2.4.4 (static pass) | raw HTML vs JS-rendered DOM: on JS-heavy sites use `a11y_audit_dom` |
+| jquin.net | 98 / 100 | — | — | 2.4.4 (low advisory) | the author's site passes its own audit |
 
-`region` de axe (contenido FUERA de landmarks) es una comprobación de granularidad
-distinta a la nuestra (que existe el mecanismo: main/skip-link), no un falso negativo.
+axe's `region` rule (content OUTSIDE landmarks) is a different granularity
+from ours (that a bypass mechanism exists: main/skip link) — not a false
+negative on our side.
 
-## Falsos positivos que este benchmark destapó (y sus arreglos, v3.4.0)
+## False positives this benchmark drove out (fixed in v3.4.0)
 
-1. `aria-hidden="true"` sobre controles con `tabindex="-1"` — no son tabulables;
-   2.4.7/4.1.2 no aplican. **Arreglado** (estático + DOM).
-2. Contenedor oculto tipo **honeypot** (input con `tabindex="-1"` dentro) reportado
-   como control oculto. **Arreglado**: solo se reporta si algún descendiente es
-   tabulable.
-3. **Skip-link oculto** (1×1px con clip) reportado por 2.5.8. **Arreglado**: los
-   elementos visualmente ocultos se excluyen del chequeo de tamaño.
-4. Un **único enlace genérico** reportado como 2.4.4 — el contexto de la frase suele
-   desambiguar. **Arreglado**: solo se reporta con repetición (≥2).
-5. Enlaces inline de 20-24px: la **excepción de espaciado** de 2.5.8 no es medible
-   sin layout completo; si todos los casos son inline, el hallazgo baja a "baja"
-   (revisar) en lugar de "media".
+1. `aria-hidden="true"` on controls with `tabindex="-1"` — not tabbable;
+   2.4.7/4.1.2 do not apply. **Fixed** (static + rendered).
+2. Hidden **honeypot** container (input with `tabindex="-1"` inside) reported
+   as a hidden control. **Fixed**: only reported when a descendant is tabbable.
+3. **Hidden skip link** (1×1px clipped) reported by 2.5.8. **Fixed**:
+   visually hidden elements are excluded from the target-size check.
+4. A **single generic link** reported as 2.4.4 — surrounding sentence context
+   usually disambiguates. **Fixed**: only reported on repetition (≥2).
+5. Inline links at 20-24px: the 2.5.8 **spacing exception** is not measurable
+   without full layout; when all cases are inline the finding drops to "low"
+   (review) instead of "medium".
 
-Todos los casos tienen fixture de regresión en `test_dom.py` / `test_audit.py`.
+Every case has a regression fixture in `test_dom.py` / `test_audit.py`.
 
-## Límites conocidos y honestos
+## Known, honest limits
 
-- axe y nosotros usamos umbrales distintos para "violación" vs "needs review";
-  axe devuelve muchos contrastes como *incomplete* (excluidos aquí), nosotros los
-  calculamos — de ahí los hallazgos de contraste que axe no lista.
-- El pase estático refleja el HTML SERVIDO (antes de JS): en SPAs y sitios muy
-  dinámicos es un filtro de primera pasada, no la verdad final.
-- **Shadow DOM (v3.5.0)**: el colector atraviesa shadow roots ABIERTOS (tope 20
-  raíces, profundidad 6) — contrast, targets, nombres, imágenes, foco y estados.
-  Validado con fixture de web component (los 4 fallos interiores detectados con
-  rutas `mi-tarjeta ::slotted> …`) y en producción: github.com (5 raíces) y
-  m3.material.io (2 raíces) se escanea sin errores. Shadow roots CERRADOS son
-  imposibles por diseño del navegador — se declara, no se oculta.
-- Regla `list_structure` (1.3.1) añadida: hijos ilegales de `<ul>/<ol>` (regla
-  `list` de axe).
+- axe and we draw the violation vs "needs review" line differently; axe
+  returns many contrast results as *incomplete* (excluded here) while we
+  compute them — hence contrast findings axe does not list.
+- The static pass reflects the SERVED HTML (pre-JS): on SPAs and highly
+  dynamic sites it is a first-pass filter, not the final truth.
+- **Shadow DOM (v3.5.0)**: the collector traverses OPEN shadow roots (up to
+  20, depth 6) — contrast, targets, names, images, focus and states. Validated
+  with a web-component fixture (all four inner failures detected with
+  `mi-tarjeta ::slotted> …` paths) and in production: github.com (5 roots) and
+  m3.material.io (2 roots) scan without errors. CLOSED roots are impossible by
+  browser design — declared, not hidden.
+- `list_structure` rule (1.3.1) added: illegal children of `<ul>/<ol>`
+  (axe's `list` rule).

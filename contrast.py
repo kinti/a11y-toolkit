@@ -1,14 +1,14 @@
 #!/usr/bin/env python3
-"""A11Y Contrast Toolkit — núcleo compartido (CLI, skill y MCP). Multilenguaje es/en.
+"""A11Y Contrast Toolkit — shared core (CLI, skill and MCP). Bilingual es/en.
 
-1. Par de colores planos  →  ratios y veredictos 1.4.3 / 1.4.6 / 1.4.11
-2. Texto sobre imagen     →  muestreo píxel a píxel de la zona del texto
+1. Flat color pair     →  ratios and 1.4.3 / 1.4.6 / 1.4.11 verdicts
+2. Text over image     →  pixel-by-pixel sampling of the text area
 
-Cero dependencias: Pillow si existe, si no `sips` (macOS); PPM siempre.
+Zero dependencies: Pillow if present, else `sips` (macOS); PPM always.
 
-Uso:
-  contrast.py pair "#ffffff" "#000000" [--lang en]
-  contrast.py image foto.jpg --text "#ffffff" [--region 120,40,420,90] [--sample 4] [--lang en]
+Usage:
+  contrast.py pair "#ffffff" "#000000" [--lang es]
+  contrast.py image photo.jpg --text "#ffffff" [--region 120,40,420,90] [--sample 4] [--lang es]
 """
 
 import json
@@ -199,14 +199,14 @@ def ratio(fg, bg):
     return (l1 + 0.05) / (l2 + 0.05)
 
 
-def veredictos(r, lang='es'):
+def veredictos(r, lang='en'):
     return [
         {'criterio': n, 'nivel': lvl, 'umbral': u, 'cumple': r >= u}
         for n, lvl, u in _t(lang)['criterios']
     ]
 
 
-def sugerir(fg, bg, objetivo=4.5, lang='es'):
+def sugerir(fg, bg, objetivo=4.5, lang='en'):
     """Color opaco más cercano (distancia RGB) al original que cumple el objetivo.
 
     Prueba mezclas hacia blanco y hacia negro y elige la de menor distancia real,
@@ -235,7 +235,7 @@ def sugerir(fg, bg, objetivo=4.5, lang='es'):
     return mejor
 
 
-def pair(fg_s, bg_s, con_sugerencia=True, lang='es'):
+def pair(fg_s, bg_s, con_sugerencia=True, lang='en'):
     fg, bg = parse_color(fg_s), parse_color(bg_s)
     if not fg or not bg:
         return {'error': _t(lang)['color_invalido']}
@@ -295,7 +295,7 @@ def cargar_imagen(ruta):
     if ruta.lower().endswith('.ppm'):
         return _cargar_ppm(ruta)
     if not shutil.which('sips'):
-        raise RuntimeError('necesitas Pillow (pip install pillow) o macOS (sips)')
+        raise RuntimeError('need Pillow (pip install pillow) or macOS (sips)')
     with tempfile.NamedTemporaryFile(suffix='.ppm', delete=False) as tf:
         tmp = tf.name
     try:
@@ -314,7 +314,7 @@ def _percentil(vals, p):
     return s[k]
 
 
-def image_contrast(ruta, texto_color, region=None, sample=4, lang='es'):
+def image_contrast(ruta, texto_color, region=None, sample=4, lang='en'):
     t9 = _t(lang)
     c = parse_color(texto_color)
     if not c:
@@ -397,7 +397,7 @@ def main(argv):
     if len(argv) < 1 or argv[0] not in ('pair', 'image'):
         print(__doc__)
         return 1
-    lang = 'es'
+    lang = 'en'
     flags = {}
     posicionales = []
     i = 1
@@ -408,7 +408,7 @@ def main(argv):
             i += 1
         elif v in ('--region', '--sample', '--text'):
             if i + 1 >= len(argv):
-                print(f'falta el valor de {v}')
+                print(f'missing value for {v}')
                 return 1
             flags[v] = argv[i + 1]
             i += 1
@@ -419,12 +419,12 @@ def main(argv):
         i += 1
     if argv[0] == 'pair':
         if len(posicionales) < 2:
-            print('uso: contrast.py pair "#texto" "#fondo" [--lang es|en]')
+            print('usage: contrast.py pair "#text" "#background" [--lang es|en]')
             return 1
         res = pair(posicionales[0], posicionales[1], con_sugerencia=True, lang=lang)
     else:
         if not posicionales or '--text' not in flags:
-            print('uso: contrast.py image ruta.jpg --text "#ffffff" [--region x,y,w,h] [--sample N] [--lang es|en]')
+            print('usage: contrast.py image photo.jpg --text "#ffffff" [--region x,y,w,h] [--sample N] [--lang es|en]')
             return 1
         res = image_contrast(posicionales[0], flags['--text'],
                              region=flags.get('--region'),

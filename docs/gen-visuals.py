@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
-"""Genera los visuales del repo con las salidas REALES de las herramientas:
-  docs/social-preview.png  (1280×640, para GitHub Settings → Social preview)
-  docs/demo.gif            (terminal animado audit → fix → verify, ~11 s)
+"""Generates the repo visuals using REAL tool output:
+  docs/social-preview.png  (1280×640, for GitHub Settings → Social preview)
+  docs/demo.gif            (animated terminal: audit → fix → verify, ~11 s)
 
-Playwright renderiza fotogramas HTML; Pillow ensambla el GIF. El terminal es
-acumulativo (como uno real) y todo lo que se ve es salida genuina de a11y.
+Playwright renders HTML frames; Pillow assembles the GIF. The terminal is
+cumulative (like a real one) and everything shown is genuine a11y output.
 """
 
 import os

@@ -17,7 +17,6 @@ import os
 import re
 import subprocess
 import sys
-import tomllib
 
 AQUI = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, AQUI)
@@ -32,7 +31,7 @@ _hallazgo = {k for k in es
              if not k.endswith(('_rem', '_nota')) and k not in
              ('limites', 'interp', 'criterios', 'score_nota', 'aclarar', 'oscurecer',
               'sin_copia', 'color_invalido', 'region_invalida', 'region_fuera',
-              'sin_pixeles', 'carga_error', 'texto_opaco')}
+              'sin_pixeles', 'carga_error', 'texto_opaco', 'descarga_error')}
 sin_rem = sorted(k for k in _hallazgo if f'{k}_rem' not in es)
 assert not sin_rem, f"hallazgos sin _rem (KeyError al emitir): {sin_rem}"
 assert set(CRIT['es']) == set(CRIT['en']), 'CRIT desparejo es/en'
@@ -43,7 +42,7 @@ assert set(_TD['es']) == set(_TD['en']), 'catálogo DOM desparejo'
 
 # ---------- 2. versiones ----------
 import server  # noqa: E402
-pp = tomllib.load(open(os.path.join(AQUI, 'pyproject.toml'), 'rb'))['project']['version']
+pp = re.search(r'version = "([\d.]+)"', open(os.path.join(AQUI, "pyproject.toml"), encoding="utf-8").read()).group(1)
 sj = json.load(open(os.path.join(AQUI, 'server.json')))['version']
 assert pp == server.VERSION == sj, f'versión derivada: pyproject={pp} server={server.VERSION} server.json={sj}'
 
