@@ -51,7 +51,7 @@ try:
 except ImportError:
     ARIALIVE_JS = None  # repo checkout: read the file
 
-VERSION = '3.8.0'
+VERSION = '3.9.0'
 
 INSTRUCTIONS = (
     'Accessibility toolkit (WCAG 2.2), multilanguage es/en. '
@@ -421,6 +421,33 @@ def _prompt(nombre, args):
     txt = t[nombre][L]
     return {'description': next(p['description'] for p in _PROMPTS if p['name'] == nombre),
             'messages': [{'role': 'user', 'content': {'type': 'text', 'text': txt}}]}
+
+
+# Títulos UI + annotations (MCP spec 2025-11-25): los clientes pueden aprobar
+# automáticamente las tools de solo lectura → menos fricción en cada uso.
+_ANN = {
+    'a11y_audit_url':        ('Express WCAG audit', True, True),
+    'a11y_audit_dom':        ('Rendered WCAG audit', True, True),
+    'a11y_reflow':           ('320px reflow check', True, True),
+    'a11y_keyboard':         ('Keyboard-trap detector', True, True),
+    'a11y_scroll':           ('Infinite-scroll audit', True, True),
+    'a11y_snapshot':         ('A11y snapshot + tab order', True, True),
+    'a11y_diff':             ('Snapshot regression diff', True, False),
+    'a11y_diff_urls':        ('Staging vs production diff', True, True),
+    'a11y_contrast_pair':    ('Contrast ratio + verdicts', True, False),
+    'a11y_contrast_image':   ('Text-over-image contrast', True, False),
+    'a11y_suggest_color':    ('Nearest passing color', True, False),
+    'a11y_generate_declaration': ('Accessibility statement (EAA/RD 1112)', False, False),
+    'a11y_autofix':          ('Deterministic safe auto-fixes', True, False),
+    'a11y_aria_live_snippet': ('aria-live monitor snippet', True, False),
+    'a11y_badge':            ('Honest SVG badge', True, False),
+    'a11y_criterion':        ('WCAG criterion explained', True, False),
+}
+for _t in TOOLS:
+    _titulo, _ro, _ow = _ANN[_t['name']]
+    _t['title'] = 'a11y-toolkit: ' + _titulo
+    _t['annotations'] = {'readOnlyHint': _ro, 'destructiveHint': not _ro,
+                         'idempotentHint': True, 'openWorldHint': _ow}
 
 
 def _texto(obj):

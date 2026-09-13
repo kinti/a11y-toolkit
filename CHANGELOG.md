@@ -1,5 +1,32 @@
 # Changelog
 
+## 3.9.0 — 2026-09-07 — "spec-fresh + WCAG 2.2 sweep"
+
+Two evidence-driven passes: the current MCP spec (2025-11-25, via Context7) and
+the full WCAG 2.2 criteria list, hunting what is automatable and missing.
+
+- **MCP protocol modernization**: every tool now carries `title` (UI display
+  name) and `annotations` per the current spec — readOnlyHint/destructiveHint/
+  idempotentHint/openWorldHint. Clients can auto-approve read-only tools:
+  less confirmation friction on every call.
+- **Five new automated criteria** (26 criteria now touched):
+  - **2.5.3 Label in Name** (AA): aria-label must CONTAIN the visible text —
+    voice-input users say what they see (static).
+  - **3.1.2 Language of Parts** (AA): element-level lang validity, BCP-47
+    (static).
+  - **2.5.2 Pointer Cancellation** (A, advisory): down-event activation
+    suspicion — onmousedown/ontouchstart/onpointerdown (static).
+  - **3.3.8 Accessible Authentication** (AA, NEW in WCAG 2.2): captcha
+    detection (reCAPTCHA/hCaptcha/Turnstile/inputs) with the alternative
+    requirement stated (static).
+  - **2.4.11 Focus Not Obscured (Minimum)** (AA, NEW in WCAG 2.2): root-cause
+    detection in the rendered audit — sticky/fixed header height vs
+    scroll-padding-top. Empirically separated: without padding → flagged,
+    with 64px padding → clean. (The per-stop intersection approach was
+    discarded: browser minimal-scroll never lands under headers in DOM order.)
+- a11y_criterion catalog extended to the new criteria.
+- Regression fixtures for all five. 16 MCP tools + 5 prompts.
+
 ## 3.8.0 — 2026-09-07 — "the infinite scroll auditor"
 
 The one nobody automates. Documentary basis (verified): Deque's «Infinite

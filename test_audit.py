@@ -80,6 +80,22 @@ g2 = audit_html('<html lang="es"><head><title>t</title></head><body><h1>a</h1><m
                 '<a href="/x">Más</a><a href="/y">leer más</a></main></body></html>')
 assert any(h['senal'] == 'generic_link' for h in g2['hallazgos'])
 
+# v3.9: 2.5.3 label-in-name, 3.1.2 idioma de partes, 2.5.2 down-event, 3.3.8 captcha
+v39 = '''<html lang="es"><head><title>t</title></head><body><main><h1>a</h1>
+<a href="/x" aria-label="Más información promocional">Ver ofertas</a>
+<a href="/y" aria-label="Ver ofertas y más">Ver ofertas</a>
+<blockquote lang="xx">cita</blockquote>
+<button onmousedown="go()">Rápido</button>
+<script src="https://www.google.com/recaptcha/api.js"></script>
+</main></body></html>'''
+rv39 = audit_html(v39, lang='en')
+sv39 = {x['senal'] for x in rv39['hallazgos']}
+for esperada in ('label_in_name', 'lang_partes', 'down_event', 'captcha'):
+    assert esperada in sv39, f'falta {esperada}: {sorted(sv39)}'
+ok253 = audit_html('<html lang="es"><head><title>t</title></head><body><main><h1>a</h1>'
+                   '<a href="/x" aria-label="Ver ofertas y más">Ver ofertas</a></main></body></html>')
+assert not any(h['senal'] == 'label_in_name' for h in ok253['hallazgos'])
+
 # labels huérfanos detectados (el label for= el de verdad; el suelto, no)
 lo = audit_html('<html lang="es"><head><title>t</title></head><body><h1>a</h1><main>'
                 '<label>Sin campo</label><input id="ok" type="text"><label for="ok">Ok</label>'

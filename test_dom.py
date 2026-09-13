@@ -52,6 +52,13 @@ customElements.define('mi-tarjeta', class extends HTMLElement {
 ruta = os.path.join('/tmp', 'a11ydom_fixture.html')
 with open(ruta, 'w', encoding='utf-8') as f:
     f.write(FIXTURE.replace('</head>', SHADOW_JS + '</head>'))
+# v3.9 2.4.11: header sticky SIN scroll-padding debe disparar; con él, no
+FIX_MAL = '<!doctype html><html lang="es"><head><title>s</title><style>header{position:sticky;top:0;height:60px;background:#eee}</style></head><body><header>h</header><main><h1>x</h1><button>ok</button></main></body></html>'
+FIX_BIEN = FIX_MAL.replace('</style>', 'html{scroll-padding-top:64px}</style>')
+with open(os.path.join('/tmp', 'sticky_mal.html'), 'w', encoding='utf-8') as f:
+    f.write(FIX_MAL)
+with open(os.path.join('/tmp', 'sticky_bien.html'), 'w', encoding='utf-8') as f:
+    f.write(FIX_BIEN)
 
 r = subprocess.run([sys.executable, os.path.join(AQUI, 'a11ydom.py'),
                     'file://' + ruta, '--lang', 'en'],
@@ -75,6 +82,13 @@ senales = {h['senal']: h for h in d['hallazgos']}
 assert 'aria_hidden_focusable' not in senales, senales.get('aria_hidden_focusable')
 f258 = senales.get('target_small')
 assert f258 is None or not any('1×1' in str(e) for e in f258.get('ejemplos', []))
+
+# 2.4.11: causa raíz header-fijo-vs-scroll-padding
+from a11ydom import audit_dom_url
+mal = audit_dom_url('file:///tmp/sticky_mal.html', lang='en')
+bien = audit_dom_url('file:///tmp/sticky_bien.html', lang='en')
+assert any(h['senal'] == 'focus_obscured' for h in mal['hallazgos']), mal['resumen']
+assert not any(h['senal'] == 'focus_obscured' for h in bien['hallazgos'])
 # el párrafo con buen contraste NO provoca hallazgo: solo 2 zonas malas agrupadas
 f14 = next(h for h in d['hallazgos'] if h['criterio'].startswith('1.4.3'))
 assert '2.85:1' in f14['hallazgo'] and 'remediacion' in f14

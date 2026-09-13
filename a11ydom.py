@@ -48,6 +48,11 @@ _TD = {
                                 'contrastada (2.4.7).'),
         'focus_not_focusable': '{n} controles que no reciben foco con .focus(): {det}.',
         'focus_not_focusable_rem': 'Si debe ser interactivo, que sea enfocable (tabindex="0"); si no, quítalo de la ruta de tabulación.',
+        'focus_obscured': ('{n} controles quedan tapados por elementos fijos/sticky al '
+                           'recibir el foco (cabeceras sticky, banners): {det}. Revisar (2.4.11).'),
+        'focus_obscured_rem': ('Un elemento fijo no debe ocultar el elemento enfocado (2.4.11, '
+                               'nuevo en WCAG 2.2 AA): usa scroll-padding-top igual a la altura '
+                               'del header fijo, o hazlo auto-colapsable.'),
         'state_contrast': ('{n} controles con contraste insuficiente en estado :focus/:hover '
                            '(<3:1): {det}. Revisar.'),
         'state_contrast_rem': ('El texto del control también necesita contraste cuando está '
@@ -97,9 +102,11 @@ _TD = {
 }
 
 CRIT['es']['1.4.10'] = '1.4.10 Reflujo'
+CRIT['es']['2.4.11'] = '2.4.11 Foco no ocultado (mínimo)'
 CRIT['es']['2.1.2'] = '2.1.2 Sin trampa de teclado'
 CRIT['es']['2.5.8'] = '2.5.8 Tamaño del objetivo (mínimo)'
 CRIT['en']['1.4.10'] = '1.4.10 Reflow'
+CRIT['en']['2.4.11'] = '2.4.11 Focus Not Obscured (Minimum)'
 CRIT['en']['2.1.2'] = '2.1.2 No Keyboard Trap'
 CRIT['en']['2.5.8'] = '2.5.8 Target Size (Minimum)'
 CRIT['es']['2.4.7'] = '2.4.7 Foco visible'
@@ -116,9 +123,14 @@ _JS = r'''(maxEj) => {
   const out = { contrast: {}, contrastReview: 0, targets: [], unnamed: [], fields: [],
                 imgs: [], iframes: [], headings: [], tabindex: [], ariaHidden: [],
                 blank: 0, videos: 0, videoSubs: 0, tables: 0, tableTh: 0,
-                focus: [], focusFail: [], focusContrast: [], marks: 0, ids: {},
-                lang: null, title: '', viewport: null, refresh: null,
+                focus: [], focusFail: [], focusContrast: [], focusObscured: [], marks: 0,
+                ids: {}, lang: null, title: '', viewport: null, refresh: null,
                 main: false, skip: false, elements: 0, shadow_roots: 0 };
+  const fijos = [...document.querySelectorAll('*')].filter(el => {
+    const s = getComputedStyle(el);
+    return (s.position === 'fixed' || s.position === 'sticky') && s.display !== 'none'
+           && el.getBoundingClientRect().height > 8;
+  }).slice(0, 12);
 
   // ---- raíces: document + shadow roots ABIERTOS (tope 20, profundidad 6) ----
   const roots = [document];
@@ -361,6 +373,19 @@ _JS = r'''(maxEj) => {
       if (rf2 < 3 && out.focusContrast.length < 20)
         out.focusContrast.push({ ej: path(el), ratio: Math.round(rf2 * 100) / 100 });
     }
+    // (2.4.11 por parada se cubre abajo con la causa raíz)
+  }
+  // 2.4.11 causa raíz: header fijo arriba sin scroll-padding-top suficiente →
+  // saltos de ancla y de foco aterrizan tapados. Determinista y sin falsos
+  // negativos de recorridos.
+  if (fijos.length && out.focusObscured.length === 0) {
+    const sp = parseFloat(getComputedStyle(document.documentElement).scrollPaddingTop) || 0;
+    const top_fijos = fijos.map(f => f.getBoundingClientRect()).filter(q => q.top <= 20);
+    const hmax = top_fijos.length ? Math.max(...top_fijos.map(q => q.height)) : 0;
+    if (hmax > sp + 4) {
+      out.focusObscured.push('header fijo de ' + Math.round(hmax) + 'px con scroll-padding-top de '
+                             + Math.round(sp) + 'px');
+    }
   }
   if (prevFocus && prevFocus.blur) { try { prevFocus.focus(); } catch (e) {} }
 
@@ -412,6 +437,12 @@ def audit_dom(datos, url='(rendered)', lang='es'):
         _agrega(hallazgos, lang, 'media', '1.4.3', 'state_contrast',
                 ejemplos=[f"{e['ej']} = {e['ratio']}:1" for e in estados],
                 n=len(estados), det=det)
+
+    # 2.ter 2.4.11 foco ocultado por fijos
+    if datos.get('focusObscured'):
+        _agrega(hallazgos, lang, 'media', '2.4.11', 'focus_obscured',
+                ejemplos=datos['focusObscured'], n=len(datos['focusObscured']),
+                det=', '.join(datos['focusObscured'][:3]))
 
     # 3. Foco
     if datos.get('focus'):

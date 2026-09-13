@@ -89,6 +89,10 @@ CRIT = {
         '3.2.5': '3.2.5 Cambio a petición',
         '3.3.2': '3.3.2 Etiquetas o instrucciones',
         '1.3.5': '1.3.5 Identificar el propósito de la entrada',
+        '2.5.2': '2.5.2 Cancelación del puntero',
+        '2.5.3': '2.5.3 Etiqueta en el nombre',
+        '3.1.2': '3.1.2 Idioma de las partes',
+        '3.3.8': '3.3.8 Autenticación accesible',
         '1.4.2': '1.4.2 Control del audio',
         '2.4.4': '2.4.4 Propósito de los enlaces (en contexto)',
         '4.1.2': '4.1.2 Nombre, función, valor',
@@ -107,6 +111,10 @@ CRIT = {
         '3.2.5': '3.2.5 Change on Request',
         '3.3.2': '3.3.2 Labels or Instructions',
         '1.3.5': '1.3.5 Identify Input Purpose',
+        '2.5.2': '2.5.2 Pointer Cancellation',
+        '2.5.3': '2.5.3 Label in Name',
+        '3.1.2': '3.1.2 Language of Parts',
+        '3.3.8': '3.3.8 Accessible Authentication',
         '1.4.2': '1.4.2 Audio Control',
         '2.4.4': '2.4.4 Link Purpose (In Context)',
         '4.1.2': '4.1.2 Name, Role, Value',
@@ -169,6 +177,14 @@ T = {
         'autocomplete_rem': 'Añade autocomplete con el token correcto (email, tel, name, postal-code…, 1.3.5): relleno automático y voz de accesibilidad con sobrecoste cero.',
         'aria_ref_missing': '{n} referencias aria-labelledby/describedby apuntan a ids que no existen: {ej}.',
         'aria_ref_missing_rem': 'Corrige o elimina la referencia: un aria-labelledby roto deja el control sin nombre accesible.',
+        'label_in_name': '{n} controles cuyo aria-label no contiene el texto visible («{ej}»): quien dicta por voz dice lo que ve (2.5.3).',
+        'label_in_name_rem': 'El nombre accesible debe CONTENER la etiqueta visible: «Ofertas de verano (abre en ventana nueva)», no «Más info». Sustituye el aria-label por texto visible + sufijo.',
+        'lang_partes': '{n} atributos lang en elementos no válidos (BCP-47): {ej}.',
+        'lang_partes_rem': 'Los fragmentos en otro idioma llevan lang con código válido (3.1.2): <blockquote lang="en">…</blockquote>.',
+        'down_event': '{n} manejadores en down-event (onmousedown/ontouchstart/onpointerdown): {ej}. Revisar (2.5.2).',
+        'down_event_rem': 'Activa en el UP-event (onclick/onmouseup): permite abortar arrastrando fuera — la regla de 2.5.2.',
+        'captcha': 'Detectado captcha ({ej}): 3.3.8 exige alternativa sin test cognitivo para el acceso.',
+        'captcha_rem': 'Ofrece alternativas: email mágico, OAuth, soporte humano. Un CAPTCHA sin alternativa excluye (3.3.8, nuevo en WCAG 2.2 AA).',
         'list_structure': '{n} hijos ilegales dentro de <ul>/<ol> (solo <li>, <script> y <template> son válidos).',
         'list_structure_rem': 'Mete el contenido suelto en <li> o usa otro contenedor: los lectores anuncian la lista con su número de ítems y se saltan lo que no es <li>.',
         'aria_value_invalid': '{n} valores de atributos ARIA inválidos: {ej}. Tecnología asistida los ignora.',
@@ -251,6 +267,14 @@ T = {
         'autocomplete_rem': 'Add autocomplete with the right token (email, tel, name, postal-code…, 1.3.5): free accessibility and autofill at zero cost.',
         'aria_ref_missing': '{n} aria-labelledby/describedby references point to ids that do not exist: {ej}.',
         'aria_ref_missing_rem': 'Fix or remove the reference: a broken aria-labelledby leaves the control with no accessible name.',
+        'label_in_name': '{n} controls whose aria-label does not contain the visible text («{ej}»): voice-input users say what they see (2.5.3).',
+        'label_in_name_rem': 'The accessible name must CONTAIN the visible label: "Summer offers (opens in new window)", not "More info". Use visible text + suffix.',
+        'lang_partes': '{n} invalid lang attributes on elements (BCP-47): {ej}.',
+        'lang_partes_rem': 'Foreign-language fragments carry lang with a valid code (3.1.2): <blockquote lang="en">…</blockquote>.',
+        'down_event': '{n} down-event handlers (onmousedown/ontouchstart/onpointerdown): {ej}. Review (2.5.2).',
+        'down_event_rem': 'Activate on the UP event (onclick/onmouseup): dragging away can abort — that is rule 2.5.2.',
+        'captcha': 'Captcha detected ({ej}): 3.3.8 requires a non-cognitive-test alternative for access.',
+        'captcha_rem': 'Offer alternatives: magic links, OAuth, human support. A CAPTCHA without an alternative excludes (3.3.8, new in WCAG 2.2 AA).',
         'list_structure': '{n} illegal children inside <ul>/<ol> (only <li>, <script> and <template> are valid).',
         'list_structure_rem': 'Wrap loose content in <li> or use another container: screen readers announce the list with its item count and skip non-<li> content.',
         'aria_value_invalid': '{n} invalid ARIA attribute values: {ej}. Assistive tech ignores them.',
@@ -348,6 +372,10 @@ class _Auditor(HTMLParser):
         self._lista_prof = 0
         self._li_prof = 0
         self._lista_malos = 0
+        self.label_no_name = []     # (texto visible, aria-label) 2.5.3
+        self.langs_partes = []      # lang inválidos en elementos no-html
+        self.down_events = []       # onmousedown/ontouchstart/onpointerdown
+        self.captchas = []          # detección 3.3.8
         self._skip_labels_pend = []  # labels declarados antes que su campo
 
     def _cierra_control(self, tag):
@@ -365,6 +393,10 @@ class _Auditor(HTMLParser):
             if not c.get('img_interna'):
                 self.sitios.setdefault(tag, []).append(a)
         if tag == 'a':
+            visible = ' '.join(texto.lower().split())
+            al = ' '.join((a.get('aria-label') or '').lower().split())
+            if visible and al and visible not in al:
+                self.label_no_name.append((texto[:40], a.get('aria-label')[:60]))
             if (a.get('target') or '').lower() == '_blank':
                 self.blank_total += 1
                 if not _BLANK_HINT.search(texto) and not _BLANK_HINT.search(a.get('aria-label') or '') \
@@ -468,6 +500,23 @@ class _Auditor(HTMLParser):
                                       'video', 'audio', 'details', 'summary'):
             if a.get('onclick') and not a.get('role') and 'tabindex' not in a:
                 self.click_sueltos.append(tag)
+        # v3.9: 3.1.2 idioma de partes (elemento no-html con lang inválido)
+        if tag != 'html' and a.get('lang'):
+            prim = a['lang'].strip().lower().split('-')[0]
+            if prim and prim not in _LANG_CODES:
+                self.langs_partes.append(f'{tag} lang="{a["lang"]}"')
+        # v3.9: 2.5.2 sospecha de activación en down-event
+        for _de in ('onmousedown', 'ontouchstart', 'onpointerdown'):
+            if a.get(_de):
+                self.down_events.append(f'{tag}[{_de}]')
+                break
+        # v3.9: 3.3.8 captcha
+        for _v in (a.get('src') or '', a.get('href') or '', a.get('id') or ''):
+            if re.search(r'recaptcha|hcaptcha|turnstile|captcha', _v, re.I):
+                self.captchas.append(f'{tag} {_v[:50]}')
+                break
+        if (a.get('name') or '').lower().find('captcha') >= 0:
+            self.captchas.append(f'input name={a["name"][:30]}')
         # v3.1/v3.3: validez ARIA (atributos, referencias y VALORES)
         for _ar in _ARIA_IDREFS:
             if a.get(_ar):
@@ -691,6 +740,20 @@ def audit_html(html_text, url='(html)', lang='es'):
                n=len(p.autocomplete_faltan), ej=', '.join(p.autocomplete_faltan[:4]))
     if p.medios_autoplay:
         add('media', '1.4.2', 'video_autoplay', n=p.medios_autoplay)
+    if p.label_no_name:
+        _ln = p.label_no_name[0]
+        add_ej('media', '2.5.3', 'label_in_name',
+               [f'«{t}» vs aria-label «{al}»' for t, al in p.label_no_name],
+               n=len(p.label_no_name), ej=f'{_ln[0]} ≠ {_ln[1]}')
+    if p.langs_partes:
+        add_ej('media', '3.1.2', 'lang_partes', p.langs_partes,
+               n=len(p.langs_partes), ej=', '.join(p.langs_partes[:4]))
+    if p.down_events:
+        add_ej('media', '2.5.2', 'down_event', p.down_events,
+               n=len(p.down_events), ej=', '.join(p.down_events[:4]))
+    if p.captchas:
+        add_ej('media', '3.3.8', 'captcha', p.captchas,
+               n=len(p.captchas), ej=', '.join(p.captchas[:2]))
     lm_dups = [f'{lm} ×{t[1]}' for lm, t in p.landmarks.items()
                if t[1] > 1 and t[0] == t[1]]
     if lm_dups:
