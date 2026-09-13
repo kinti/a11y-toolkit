@@ -529,16 +529,18 @@ class _Auditor(HTMLParser):
                 continue
             _val = (_val or '').strip().lower()
             if _ar in _ARIA_BOOL and _val not in ('true', 'false', 'undefined'):
-                self.aria_valores.append(f'{_ar}="{_val}" (true/false)')
+                self.aria_valores.append({'attr': _ar, 'val': _val, 'tipo': 'bool'})
             elif _ar in _ARIA_INT and not _val.isdigit():
-                self.aria_valores.append(f'{_ar}="{_val}" (entero)')
+                self.aria_valores.append({'attr': _ar, 'val': _val, 'tipo': 'int'})
             elif _ar in _ARIA_NUM:
                 try:
                     float(_val)
                 except ValueError:
-                    self.aria_valores.append(f'{_ar}="{_val}" (número)')
+                    self.aria_valores.append({'attr': _ar, 'val': _val, 'tipo': 'num'})
             elif _ar in _ARIA_TOKENS and _val not in _ARIA_TOKENS[_ar]:
-                self.aria_valores.append(f'{_ar}="{_val}" ({"/".join(sorted(v for v in _ARIA_TOKENS[_ar] if v))})')
+                self.aria_valores.append({'attr': _ar, 'val': _val,
+                                          'tipo': 'tokens',
+                                          'lista': '/'.join(sorted(v for v in _ARIA_TOKENS[_ar] if v))})
         if a.get('role'):
             rol = a['role'].strip().split()[0].lower()
             if rol not in _ROLES_ARIA and not rol.startswith('doc-'):
@@ -728,8 +730,12 @@ def audit_html(html_text, url='(html)', lang='es'):
         add_ej('alta', '4.1.2', 'aria_ref_missing', refs_rotas, n=len(refs_rotas),
                ej=refs_rotas[0])
     if p.aria_valores:
-        add_ej('media', '4.1.2', 'aria_value_invalid', p.aria_valores,
-               n=len(p.aria_valores), ej=', '.join(p.aria_valores[:4]))
+        _eti = {'es': {'bool': 'true/false', 'int': 'entero', 'num': 'número', 'tokens': 'valores'},
+                'en': {'bool': 'true/false', 'int': 'integer', 'num': 'number', 'tokens': 'one of'}}
+        ejes = [f"{v['attr']}=\"{v['val']}\" ({v['lista'] if v['tipo'] == 'tokens' else _eti[lang][v['tipo']]})"
+                for v in p.aria_valores]
+        add_ej('media', '4.1.2', 'aria_value_invalid', ejes,
+               n=len(p.aria_valores), ej=', '.join(ejes[:4]))
     if p.roles_desconocidos:
         add_ej('media', '4.1.2', 'role_unknown',
                sorted(set(p.roles_desconocidos)), n=len(p.roles_desconocidos),
@@ -813,7 +819,15 @@ def _descarga(url, timeout=30):
             return datos.decode('utf-8', 'replace')
 
 
+_T_ESQUEMA = {
+    'es': 'solo se auditan URLs http/https; para HTML local usa --file / el argumento html',
+    'en': 'only http/https URLs can be audited; for local HTML use --file / the html argument',
+}
+
+
 def audit_url(url, timeout=30, lang='es'):
+    if url.split(':')[0].lower() not in ('http', 'https'):
+        return {'error': _T_ESQUEMA.get(lang, _T_ESQUEMA['es'])}
     try:
         html_text = _descarga(url, timeout=timeout)
     except ValueError as e:

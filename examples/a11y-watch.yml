@@ -43,5 +43,5 @@ jobs:
       - name: Generate badge
         if: always()
         run: |
-          SCORE=$(python3 -c "import json;print(json.load(open('audit.json')).get('score',0))")
+          SCORE=$(python3 -c "import json;d=json.load(open('audit.json'));print(d.get('score') or d.get('score_medio') or 0)")
           a11ytoolkit badge --score "$SCORE" --lang en --out badge-a11y.svg

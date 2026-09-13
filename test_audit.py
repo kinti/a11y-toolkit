@@ -129,4 +129,22 @@ assert 0 <= rv['score'] < 100 and 'score_nota' in rv
 assert audit_html('<html lang="es"><head><title>t</title></head><body><main><h1>a</h1></main></body></html>')['score'] == 100
 
 print('CASOS LIMITE AUDITOR OK ✓ (nombre por imagen, select/textarea, lang, skip, _blank avisado, label huérfano)')
+# v3.9.2: pureza de idioma — la salida EN no contiene español
+import re as _re
+_ES = _re.compile(r'\b(sobre|entero|número|revisar|elementos|enlaces|ventana|campos)\b')
+kitchen = audit_html('''<html lang="es"><head><title>t</title></head><body><main><h1>a</h1>
+<div aria-level="cero">x</div><div aria-valuenow="alto">y</div>
+<table><tr><td>a</td></tr></table></main></body></html>''', lang='en')
+for _h in kitchen['hallazgos']:
+    for _campo in ('hallazgo', 'remediacion'):
+        assert not _ES.search(_h[_campo]), f"fuga ES en {_h['senal']}.{_campo}: {_h[_campo][:80]}"
+    for _e in _h.get('ejemplos', []):
+        assert not _ES.search(str(_e)), f"fuga ES en ej de {_h['senal']}: {_e}"
+# v3.9.2: audit_url rechaza esquemas no http(s) (lectura local vía URL bloqueada)
+from a11yaudit import audit_url as _au
+_r = _au('file:///etc/passwd', lang='en')
+assert 'error' in _r and 'http/https' in _r['error'], _r
+_r2 = _au('ftp://x/y', lang='es')
+assert 'error' in _r2
+
 print('V3.1 OK ✓ (ARIA roto/desconocido, autocomplete 1.3.5, autoplay 1.4.2, enlaces 2.4.4, landmarks, accesskey, multi-label, score 0-100, valores ARIA)')

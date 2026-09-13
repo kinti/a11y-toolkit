@@ -18,6 +18,10 @@ Tools:
   - a11y_aria_live_snippet(lang?)                 injectable live-region monitor
   - a11y_criterion(code, lang?)                   WCAG 2.2 criterion explained
   - a11y_badge(score, lang?, fecha?)              honest SVG badge (score+date+scope)
+  - a11y_autofix(html, lang?, title?)             deterministic safe fixes
+  - a11y_reflow(url, …)                           320px reflow check (1.4.10)
+  - a11y_keyboard(url, …)                         keyboard-trap detection (2.1.2)
+  - a11y_scroll(url, …)                           infinite-scroll audit
 
 Prompts: audit-page, fix-contrast, pre-deploy-check, declaration-eaa.
 
@@ -51,7 +55,7 @@ try:
 except ImportError:
     ARIALIVE_JS = None  # repo checkout: read the file
 
-VERSION = '3.9.1'
+VERSION = '3.9.2'
 
 INSTRUCTIONS = (
     'Accessibility toolkit (WCAG 2.2), multilanguage es/en. '

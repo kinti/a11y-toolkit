@@ -412,7 +412,8 @@ def audit_dom(datos, url='(rendered)', lang='es'):
         det = '; '.join(f"{f['fg']} vs {f['bg']} = {f['ratio']}:1"
                         + (' (grande)' if f['large'] else '') + f" ×{f['n']}"
                         for f in fallos[:4])
-        ejemplos = [f"{f['fg']} sobre {f['bg']} → {f['ratio']}:1 (p. ej. {f['ej']})" for f in fallos]
+        _sobre, _pej = ('sobre', 'p. ej.') if lang == 'es' else ('over', 'e.g.')
+        ejemplos = [f"{f['fg']} {_sobre} {f['bg']} → {f['ratio']}:1 ({_pej} {f['ej']})" for f in fallos]
         _agrega(hallazgos, lang, 'alta', '1.4.3', 'contrast_fail',
                 ejemplos=ejemplos, n=len(fallos), det=det)
     if datos.get('contrastReview'):

@@ -1,5 +1,27 @@
 # Changelog
 
+## 3.9.2 — 2026-09-07 — "fresh eyes"
+
+A from-zero re-review, as if the reviewer had never seen the repo.
+
+- **Security: `a11y_audit_url` no longer accepts non-http(s) schemes.** A
+  probe showed `file:///etc/…` was actually opened (local file read via URL —
+  an exfiltration channel if a prompt-injected agent points the tool at local
+  paths; findings flow back into the conversation). Local HTML has `--file` /
+  the `html` argument. Threat model documented in SECURITY.md (rendered tools
+  keep file:// for fixtures: the MCP already runs with user privileges; the
+  meaningful boundary is exfiltration channels).
+- **Language purity enforced by test**: EN outputs no longer leak Spanish —
+  ARIA-value labels said `(entero)`/`(número)` and DOM contrast examples said
+  "sobre… (p. ej. …)" in English reports. Now language-aware, with a
+  kitchen-sink regression test grepping for Spanish in every EN field.
+- **False claim removed**: README said "Listed on Smithery too" — the listing
+  was never claimed (the badge 404'd and was removed earlier).
+- server.py docstring listed 10 of 16 tools (agents reading the module header
+  saw a stale map) — complete now. README Development section now lists all
+  6 suites. Watch recipe badge step reads `score` or `score_medio` (crawl
+  mode has no top-level score — the step would have crashed).
+
 ## 3.9.1 — 2026-09-07 — "solidification"
 
 A self-audit found real damage; all fixed with the tests that would have

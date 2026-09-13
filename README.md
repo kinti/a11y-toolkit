@@ -158,12 +158,12 @@ machine except the URL you explicitly audit.
 ## Development
 
 ```bash
-python3 test_contrast.py && python3 test_audit.py && python3 test_dom.py && python3 test_mcp.py
+python3 test_contrast.py && python3 test_audit.py && python3 test_v32.py && python3 test_dom.py && python3 test_cli.py && python3 test_mcp.py
 ```
 
 `test_dom.py` self-skips without Playwright. Releases: tag `vX.Y.Z` → CI publishes to PyPI
-(trusted publishing); `server.json` is the official MCP Registry manifest. Listed on
-[Smithery](https://smithery.ai) too. Contributions welcome — see
+(trusted publishing); `server.json` is the official MCP Registry manifest. Contributions
+welcome — see
 [CONTRIBUTING.md](CONTRIBUTING.md) (the golden rules: zero dependencies at the core,
 es/en strings everywhere, honest scope notes).
 
