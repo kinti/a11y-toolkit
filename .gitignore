@@ -10,3 +10,4 @@ build/
 .pytest_cache/
 playwright-report/
 test-results/
+bench/axe.min.js

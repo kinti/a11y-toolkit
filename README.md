@@ -30,7 +30,7 @@ makes "is it accessible?" a one-question ask — and "then fix it" a one-command
 | **Focus-order regression detection** | ✗ | ✓ |
 | Runs with **zero dependencies** (stdlib only; Playwright optional for the deep pass) | heavy runtimes | ✓ |
 | Screen-reader **aria-live announcement monitor** | ✗ | ✓ |
-| **0-100 score** computed from weighted findings | ✓ (Lighthouse, subset of rules) | ✓ (fuller rule set) |
+| **0-100 score** computed from weighted findings | ✓ (subset of axe rules) | ✓ (weighted across 26 WCAG criteria) |
 | **Criterion explanations** on demand for agents | ✗ | ✓ |
 | Static core parity: ARIA validity, autocomplete 1.3.5, link purpose, list structure, duplicate ids | ✓ | ✓ |
 | Output optimized for **MCP/LLM consumption** (JSON, severity-ranked, es/en) | ✗ | ✓ |

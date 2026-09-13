@@ -51,10 +51,14 @@ SUBCOMANDOS = {
 
 def main(argv=None):
     argv = list(sys.argv[1:] if argv is None else argv)
-    if not argv or argv[0] in ('-h', '--help') or argv[0] not in SUBCOMANDOS:
+    if not argv or argv[0] in ('-h', '--help'):
         print(__doc__)
-        print('Subcomandos disponibles:', ', '.join(SUBCOMANDOS))
-        return 0 if argv and argv[0] in ('-h', '--help') else 1
+        print('Subcomandos disponibles:', ', '.join(sorted(SUBCOMANDOS)))
+        return 0
+    if argv[0] not in SUBCOMANDOS:
+        print(__doc__)
+        print(f'Subcomando desconocido: {argv[0]}. Disponibles:', ', '.join(sorted(SUBCOMANDOS)))
+        return 2
     modulo, sub = SUBCOMANDOS[argv[0]]
     if sub and sub.endswith('_main'):
         return getattr(modulo, sub)(argv[1:])   # función propia (reflow_main, kbd_main)

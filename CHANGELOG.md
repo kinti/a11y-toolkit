@@ -1,5 +1,26 @@
 # Changelog
 
+## 3.9.3 — 2026-09-07 — "fresh eyes, round two"
+
+A second from-zero pass over surfaces the first one didn't attack.
+
+- **Protocol battery**: the server under hostile input — unknown tool, missing
+  required args, unknown prompt, unknown method, notifications, raw garbage.
+  Exactly 5 responses for 7 inputs (notifications and garbage correctly
+  ignored), tool errors as isError results, -32601 for unknown methods,
+  protocolVersion 2025-11-25 echoed. No crashes, no hangs.
+- **CLI coverage gap closed**: image / declaration / snapshot / diff had never
+  been executed through the dispatcher by any suite — all verified working
+  (diff self-comparison → ok:true).
+- **Comparison table honesty**: "✓ (fuller rule set)" vs Lighthouse was not
+  sustainable (~41 signals vs ~57 axe rules in Lighthouse) — now states the
+  factual "weighted across 26 WCAG criteria". No comparison games in an
+  honesty-branded project.
+- CLI ergonomics: bare `a11ytoolkit` now exits 0 (help convention), unknown
+  subcommand exits 2 with the list; dead code removed from test_cli;
+  bench/compara.py verified self-contained (axe auto-downloads; the 553KB
+  MPL-licensed engine is gitignored, never redistributed).
+
 ## 3.9.2 — 2026-09-07 — "fresh eyes"
 
 A from-zero re-review, as if the reviewer had never seen the repo.
