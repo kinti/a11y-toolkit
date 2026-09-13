@@ -101,16 +101,6 @@ _TD = {
     },
 }
 
-CRIT['es']['1.4.10'] = '1.4.10 Reflujo'
-CRIT['es']['2.4.11'] = '2.4.11 Foco no ocultado (mínimo)'
-CRIT['es']['2.1.2'] = '2.1.2 Sin trampa de teclado'
-CRIT['es']['2.5.8'] = '2.5.8 Tamaño del objetivo (mínimo)'
-CRIT['en']['1.4.10'] = '1.4.10 Reflow'
-CRIT['en']['2.4.11'] = '2.4.11 Focus Not Obscured (Minimum)'
-CRIT['en']['2.1.2'] = '2.1.2 No Keyboard Trap'
-CRIT['en']['2.5.8'] = '2.5.8 Target Size (Minimum)'
-CRIT['es']['2.4.7'] = '2.4.7 Foco visible'
-CRIT['en']['2.4.7'] = '2.4.7 Focus Visible'
 
 
 def _t(lang, key):

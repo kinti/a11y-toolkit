@@ -97,6 +97,14 @@ CRIT = {
         '1.4.3': '1.4.3 Contraste (mínimo)',
         '2.4.4': '2.4.4 Propósito de los enlaces (en contexto)',
         '4.1.2': '4.1.2 Nombre, función, valor',
+
+        # criterios evaluados por el modo renderizado (a11ydom) — explícitos
+        # aquí para que el catálogo sea completo sin depender de import colateral
+        '2.4.7': '2.4.7 Foco visible',
+        '2.5.8': '2.5.8 Tamaño del objetivo (mínimo)',
+        '1.4.10': '1.4.10 Reflujo',
+        '2.1.2': '2.1.2 Sin trampa de teclado',
+        '2.4.11': '2.4.11 Foco no ocultado (mínimo)',
     },
     'en': {
         '1.1.1': '1.1.1 Non-text Content',
@@ -120,6 +128,12 @@ CRIT = {
         '1.4.3': '1.4.3 Contrast (Minimum)',
         '2.4.4': '2.4.4 Link Purpose (In Context)',
         '4.1.2': '4.1.2 Name, Role, Value',
+
+        '2.4.7': '2.4.7 Focus Visible',
+        '2.5.8': '2.5.8 Target Size (Minimum)',
+        '1.4.10': '1.4.10 Reflow',
+        '2.1.2': '2.1.2 No Keyboard Trap',
+        '2.4.11': '2.4.11 Focus Not Obscured (Minimum)',
     },
 }
 

@@ -17,9 +17,15 @@ A second from-zero pass over surfaces the first one didn't attack.
   factual "weighted across 26 WCAG criteria". No comparison games in an
   honesty-branded project.
 - CLI ergonomics: bare `a11ytoolkit` now exits 0 (help convention), unknown
-  subcommand exits 2 with the list; dead code removed from test_cli;
-  bench/compara.py verified self-contained (axe auto-downloads; the 553KB
-  MPL-licensed engine is gitignored, never redistributed).
+  subcommand exits 2 with the list; bench/compara.py verified self-contained
+  (axe auto-downloads; the 553KB MPL-licensed engine is gitignored, never
+  redistributed).
+- **Import-order fragility eliminated (found the hard way)**: the 26-criteria
+  count depended on `import a11ydom` side effects — removing a seemingly dead
+  import in test_cli silently dropped it to 21. The registry is now complete
+  and explicit in a11yaudit; the scattered CRIT mutations in a11ydom are gone.
+  Meta-lesson recorded: silent str.replace patches need asserts on the anchor
+  — this exact failure mode struck three times now.
 
 ## 3.9.2 — 2026-09-07 — "fresh eyes"
 
