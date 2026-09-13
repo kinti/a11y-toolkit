@@ -16,7 +16,7 @@ uvx --from a11y-toolkit a11ytoolkit image hero.jpg --text "#fff" --region 120,40
 uvx --from a11y-toolkit a11ytoolkit declaration --entidad "Acme" --url https://acme.example --estado parcial --marco eaa --lang en --output decl.html
 ```
 
-All output is es/en (pass `--lang en` or the `lang` MCP argument; default es).
+All output is English by default; pass `--lang es` (or the `lang: "es"` MCP argument) for Spanish.
 
 ## Decide in one step
 
