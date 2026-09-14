@@ -1,5 +1,34 @@
 # Changelog
 
+## 3.12.0 — 2026-09-07 — "the honest two-thirds"
+
+Can you cover all of WCAG? No — several criteria are judgment by definition,
+and claiming otherwise is the overlay trap. So we grew the two coverages that
+are honest: machine signals and knowledge.
+
+- **12 new partial signals** on previously manual-only criteria, all
+  review-severity where judgment is still needed:
+  static — 2.2.2 (marquee/blink/inline infinite animations), 2.5.1
+  (gesture/drag handlers with no click alternative), 2.5.4
+  (deviceorientation/devicemotion), 1.3.4 (orientation lock incl. script
+  bodies), 1.2.3/1.2.5 (missing descriptions tracks), 1.3.3 (sensory-only
+  instruction text, es+en patterns);
+  rendered — **1.4.12 Text Spacing** (injects the official override set and
+  counts clipped texts — not even axe automates this), 1.4.1 Use of Color
+  (link-in-text-block: color-only links, no underline, <3:1 vs surrounding
+  text), 1.3.2 (DOM-vs-visual order inversions per parent), 2.2.2 (computed
+  looping animations);
+  site-level — 3.2.3 (nav-signature drift across crawled pages) and 2.4.5
+  (multiple ways: search/sitemap detection) via the existing crawl, as a
+  pure function (evaluar_sitio) testable without network.
+- **Criteria touched: 26 → 38 of ~55 A/AA.** Knowledge catalog complete:
+  every touched OR manual A/AA criterion (53) now has an a11y_criterion
+  entry — the manual ones say exactly how an agent verifies them by hand.
+- Evidence pack homework list shrank 27 → 15, each removal backed by a
+  real signal (not promises). README/comparison updated to 38.
+- Regression fixtures for every new signal; the criteria-count invariant now
+  asserted in one place only.
+
 ## 3.11.0 — 2026-09-07 — "the countersignature-ready pack"
 
 Born from an outside insight (a UK marketplace founder noted the seam our own

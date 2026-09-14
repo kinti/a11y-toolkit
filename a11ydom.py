@@ -131,7 +131,8 @@ _JS = r'''(maxEj) => {
                 blank: 0, videos: 0, videoSubs: 0, tables: 0, tableTh: 0,
                 focus: [], focusFail: [], focusContrast: [], focusObscured: [], marks: 0,
                 ids: {}, lang: null, title: '', viewport: null, refresh: null,
-                main: false, skip: false, elements: 0, shadow_roots: 0 };
+                main: false, skip: false, elements: 0, shadow_roots: 0,
+                colorOnly: [], orderInversions: 0, loopingAnims: 0 };
   const fijos = [...document.querySelectorAll('*')].filter(el => {
     const s = getComputedStyle(el);
     return (s.position === 'fixed' || s.position === 'sticky') && s.display !== 'none'
@@ -248,6 +249,58 @@ _JS = r'''(maxEj) => {
   };
   for (const r of roots) escanea_textos(r);
   out.contrast = [...fails.values()].slice(0, 40);
+
+  // ---- 1.4.1 use of color: inline links distinguishable ONLY by color ----
+  for (const el of deepQ('a[href]')) {
+    if (out.colorOnly.length >= 12) break;
+    if (!getComputedStyle(el).display.includes('inline')) continue;
+    const cont = el.closest('p, li, dd, dt, td, figcaption, blockquote');
+    if (!cont || cont.textContent.trim().length < 40) continue;   // needs surrounding prose
+    const s = getComputedStyle(el);
+    if (s.textDecorationLine.includes('underline') || parseInt(s.fontWeight || '400', 10) >= 600) continue;
+    if (el.querySelector('img, svg')) continue;                    // icon = extra cue
+    const cl = parseCol(s.color), cp = parseCol(getComputedStyle(cont).color);
+    if (cl && cp && ratioOf(cl, cp) < 3)
+      out.colorOnly.push(path(el));
+  }
+
+  // ---- 1.3.2 meaningful sequence: DOM order vs visual order, same parent ----
+  {
+    const porPadre = new Map();
+    for (const el of deepQ('p, li, h1, h2, h3, h4, h5, h6')) {
+      if (porPadre.size > 200) break;
+      if (!el.offsetParent) continue;
+      const r = el.getBoundingClientRect();
+      if (r.height < 4 || r.width < 4) continue;
+      const p = el.parentElement;
+      if (!p) continue;
+      if (!porPadre.has(p)) porPadre.set(p, []);
+      porPadre.get(p).push({ top: r.top });
+    }
+    let inv = 0;
+    for (const lista of porPadre.values()) {
+      for (let i = 0; i < lista.length - 1; i++)
+        if (lista[i + 1].top + 4 < lista[i].top) inv++;   // next-in-DOM clearly above
+    }
+    out.orderInversions = inv;
+  }
+
+  // ---- 2.2.2 computed looping animations (review-only count) ----
+  {
+    let n = 0;
+    for (const r of roots) {
+      for (const el of r.querySelectorAll('*')) {
+        if (n >= 30) break;
+        const cs = getComputedStyle(el);
+        if (cs.animationIterationCount === 'infinite' && cs.animationName !== 'none') {
+          const durs = (cs.animationDuration || '0s').split(',').map(x => {
+            const v = parseFloat(x) || 0; return x.includes('ms') ? v / 1000 : v; });
+          if (Math.max(...durs, 0) > 0.15) n++;
+        }
+      }
+    }
+    out.loopingAnims = n;
+  }
 
   // ---- target size 2.5.8 (todas las raíces) ----
   for (const el of deepQ(INTER)) {
@@ -451,6 +504,21 @@ def audit_dom(datos, url='(rendered)', lang='en'):
                 ejemplos=datos['focusObscured'], n=len(datos['focusObscured']),
                 det=', '.join(datos['focusObscured'][:3]))
 
+    # v3.12 rendered-only partial signals (review-severity honesty)
+    if datos.get('colorOnly'):
+        _agrega(hallazgos, lang, 'baja', '1.4.1', 'color_only_link',
+                ejemplos=datos['colorOnly'], n=len(datos['colorOnly']))
+    if datos.get('orderInversions'):
+        _agrega(hallazgos, lang, 'baja', '1.3.2', 'dom_visual_order',
+                n=datos['orderInversions'])
+    if datos.get('loopingAnims'):
+        _agrega(hallazgos, lang, 'baja', '2.2.2', 'motion_moving',
+                ejemplos=[], n=datos['loopingAnims'],
+                ej=f"{datos['loopingAnims']} looping CSS animations")
+    if datos.get('spacingClipped'):
+        _agrega(hallazgos, lang, 'media', '1.4.12', 'text_spacing_clip',
+                ejemplos=datos['spacingClipped'], n=len(datos['spacingClipped']))
+
     # 3. Foco
     if datos.get('focus'):
         _agrega(hallazgos, lang, 'media', '2.4.7', 'focus_invisible',
@@ -545,6 +613,27 @@ def audit_dom(datos, url='(rendered)', lang='en'):
         'limites': _t(lang, 'limites'),
     }
 
+
+_JS_SPACING = r'''() => {
+  // WCAG 1.4.12 Text Spacing: the documented override set, applied globally,
+  // then measure which texts get clipped by height-constrained containers.
+  const css = document.createElement('style');
+  css.id = 'a11y-spacing-1412';
+  css.textContent = '*{line-height:1.5!important;letter-spacing:0.12em!important;'
+    + 'word-spacing:0.16em!important} p{margin-bottom:2em!important}';
+  document.head.appendChild(css);
+  const clip = [];
+  for (const el of document.querySelectorAll('p, li, h1, h2, h3, h4, h5, h6, a, span, label')) {
+    if (clip.length >= 15) break;
+    if (!el.offsetParent) continue;
+    const s = getComputedStyle(el);
+    const clipped = (s.overflow === 'hidden' || s.overflowY === 'hidden')
+                    && el.scrollHeight > el.clientHeight + 3;
+    if (clipped) clip.push(el.tagName.toLowerCase() + (el.id ? '#' + el.id : ''));
+  }
+  css.remove();
+  return clip;
+}'''
 
 _JS_HOVER = r'''(i) => {
   const el = document.querySelector('[data-a11yidx="' + i + '"]');
@@ -800,6 +889,8 @@ def audit_dom_url(url, timeout=45, lang='en'):
                 return {'error': f'no se pudo cargar: {e}'}
         try:
             datos = page.evaluate(_JS, MAX_EJEMPLOS)
+            # 1.4.12: inject the WCAG spacing overrides, count clipped texts
+            datos['spacingClipped'] = page.evaluate(_JS_SPACING)
             # iframes same-origin: mismo colector por frame
             subs = []
             for fr in page.frames[1:5]:

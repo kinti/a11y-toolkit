@@ -82,7 +82,7 @@ else:
 r = run('evidence', '/tmp/cli_audit.json', '-o', os.path.join('/tmp', 'cli_pack.json'))
 assert r.returncode == 0, r.stderr[-300:]
 pk = json.loads(r.stdout)
-assert pk['sha256'] and pk['resumen']['manual-only'] >= 20
+assert pk['sha256'] and 10 <= pk['resumen']['manual-only'] <= 16  # shrank from 27 as signals landed
 
 # 3. seguridad: nada de lo que escribe este toolkit es vector de inyección
 sys.path.insert(0, AQUI)
@@ -99,6 +99,6 @@ assert '<script>' not in b and '<' not in b[b.find('2026'):b.find('2026') + 20],
 
 # 4. la afirmación del README («26 criterios tocados») queda clavada
 from a11yaudit import CRIT  # noqa: E402
-assert len(CRIT['es']) == 26, f'README dice 26 criterios, CRIT tiene {len(CRIT["es"])}'
+assert len(CRIT['es']) == 38, f'README claims 38 criteria, CRIT has {len(CRIT["es"])}'
 
 print('CLI SMOKE OK ✓ (todos los subcomandos, inyección bloqueada, 26 criterios verificados)')

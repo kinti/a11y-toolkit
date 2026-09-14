@@ -129,6 +129,34 @@ assert 0 <= rv['score'] < 100 and 'score_nota' in rv
 assert audit_html('<html lang="es"><head><title>t</title></head><body><main><h1>a</h1></main></body></html>')['score'] == 100
 
 print('CASOS LIMITE AUDITOR OK ✓ (nombre por imagen, select/textarea, lang, skip, _blank avisado, label huérfano)')
+# v3.12: partial signals on previously manual-only criteria
+v312 = '''<html lang="es"><head><title>t</title></head><body><main><h1>a</h1>
+<marquee>oferta</marquee>
+<div ontouchmove="swipe()">card</div>
+<script>screen.orientation.lock('portrait'); addEventListener('devicemotion', s);</script>
+<p>haz clic en el botón de la derecha</p>
+<video src="v.mp4"></video>
+</main></body></html>'''
+rv312 = audit_html(v312, lang='en')
+sv312 = {x['senal'] for x in rv312['hallazgos']}
+for esperada in ('motion_moving', 'gesture_no_click', 'motion_actuation',
+                 'orientation_lock', 'audio_desc_missing', 'sensory_text'):
+    assert esperada in sv312, f'{esperada} missing: {sorted(sv312)}'
+limpio312 = audit_html('<html lang="es"><head><title>t</title></head><body><main><h1>a</h1><p>x</p></main></body></html>', lang='en')
+assert not (sv312 & {x['senal'] for x in limpio312['hallazgos']})
+# site-level: pure function separates consistent from drifting nav
+from a11yaudit import _Auditor, evaluar_sitio
+paginas = ['<nav><a href="/">H</a><a href="/x">X</a></nav>' for _ in range(2)] + ['<nav><a href="/">H</a><a href="/y">Y</a></nav>']
+parsers = []
+for cuerpo in paginas:
+    p = _Auditor(); p.feed(f'<html lang="en"><head><title>t</title></head><body>{cuerpo}<main><h1>a</h1></main></body></html>'); p.close(); parsers.append(p)
+sen_sitio = {f['senal'] for f in evaluar_sitio(parsers, lang='en')}
+assert {'nav_inconsistent', 'no_multiple_ways'} <= sen_sitio
+parsers_ok = [_p for _p in [(_Auditor()) for _ in range(3)]]
+for _p, cuerpo in zip(parsers_ok, ['<nav><a href="/">H</a></nav><input type="search">' for _ in range(3)]):
+    _p.feed(f'<html lang="en"><head><title>t</title></head><body>{cuerpo}<main><h1>a</h1></main></body></html>'); _p.close()
+assert evaluar_sitio(parsers_ok, lang='en') == []
+
 # v3.9.2: pureza de idioma — la salida EN no contiene español
 import re as _re
 _ES = _re.compile(r'\b(sobre|entero|número|revisar|elementos|enlaces|ventana|campos)\b')

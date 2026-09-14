@@ -52,6 +52,13 @@ _TEXTO_GENERICO = {'more', 'read more', 'learn more', 'click here', 'here', 'thi
                    'más', 'leer más', 'saber más', 'pincha aquí', 'aquí', 'ver más',
                    'seguir leyendo', 'detalle', 'detalles', 'enlace', 'continuar', 'ver'}
 
+# 1.3.3: instructions that rely on position/shape alone (es + en, review-only)
+_SENSORIAL = re.compile(
+    r'(?:el|la|los|las)?\s*(?:bot[oó]n|enlace|icono)\s+(?:de|a|hacia)\s+(?:la\s+)?'
+    r'(?:derecha|izquierda|arriba|abajo)|(?:pulsa|haz clic en)\s+(?:el|la)\s+'
+    r'(?:redondo|verde|cuadrado)|(?:the\s+)?(?:button|link|icon)\s+(?:on|to)\s+(?:the\s+)?'
+    r'(?:right|left|top|bottom)|(?:click|press)\s+(?:the\s+)?(?:round|green|square)', re.I)
+
 # Campos que con frecuencia recogen datos personales (1.3.5)
 _DATO_PERSONAL = re.compile(
     r'(^|[\W_])(name|nombre|email|correo|phone|telefono|tel|address|direccion|postal|zip|'
@@ -102,6 +109,18 @@ CRIT = {
         # criterios evaluados por el modo renderizado (a11ydom) — explícitos
         # aquí para que el catálogo sea completo sin depender de import colateral
         '2.4.7': '2.4.7 Foco visible',
+        '2.2.2': '2.2.2 Poner en pausa, detener, ocultar',
+        '2.5.1': '2.5.1 Gestos de puntero',
+        '2.5.4': '2.5.4 Activación por movimiento',
+        '1.4.1': '1.4.1 Uso del color',
+        '1.3.2': '1.3.2 Secuencia significativa',
+        '1.3.3': '1.3.3 Características sensoriales',
+        '1.3.4': '1.3.4 Orientación',
+        '1.2.3': '1.2.3 Audiodescripción o alternativa media',
+        '1.2.5': '1.2.5 Audiodescripción (pregrabado)',
+        '3.2.3': '3.2.3 Navegación coherente',
+        '3.2.4': '3.2.4 Identificación coherente',
+        '2.4.5': '2.4.5 Múltiples vías',
         '2.5.8': '2.5.8 Tamaño del objetivo (mínimo)',
         '1.4.10': '1.4.10 Reflujo',
         '2.1.2': '2.1.2 Sin trampa de teclado',
@@ -131,6 +150,18 @@ CRIT = {
         '4.1.2': '4.1.2 Name, Role, Value',
 
         '2.4.7': '2.4.7 Focus Visible',
+        '2.2.2': '2.2.2 Pause, Stop, Hide',
+        '2.5.1': '2.5.1 Pointer Gestures',
+        '2.5.4': '2.5.4 Motion Actuation',
+        '1.4.1': '1.4.1 Use of Color',
+        '1.3.2': '1.3.2 Meaningful Sequence',
+        '1.3.3': '1.3.3 Sensory Characteristics',
+        '1.3.4': '1.3.4 Orientation',
+        '1.2.3': '1.2.3 Audio Description or Media Alternative',
+        '1.2.5': '1.2.5 Audio Description (Prerecorded)',
+        '3.2.3': '3.2.3 Consistent Navigation',
+        '3.2.4': '3.2.4 Consistent Identification',
+        '2.4.5': '2.4.5 Multiple Ways',
         '2.5.8': '2.5.8 Target Size (Minimum)',
         '1.4.10': '1.4.10 Reflow',
         '2.1.2': '2.1.2 No Keyboard Trap',
@@ -203,6 +234,28 @@ T = {
         'down_event_rem': 'Activa en el UP-event (onclick/onmouseup): permite abortar arrastrando fuera — la regla de 2.5.2.',
         'captcha': 'Detectado captcha ({ej}): 3.3.8 exige alternativa sin test cognitivo para el acceso.',
         'captcha_rem': 'Ofrece alternativas: email mágico, OAuth, soporte humano. Un CAPTCHA sin alternativa excluye (3.3.8, nuevo en WCAG 2.2 AA).',
+        'motion_moving': '{n} contenidos en movimiento/bucle sin control de pausa visible: {ej}. Revisar (2.2.2).',
+        'motion_moving_rem': 'Contenido que se mueve/parpadea >5 s necesita un mecanismo de pausa/parada (2.2.2): <marquee> no tiene ninguno; las animaciones en bucle, tampoco por defecto.',
+        'gesture_no_click': '{n} manejadores de gesto/arrastre sin alternativa de clic visible: {ej}. Revisar (2.5.1).',
+        'gesture_no_click_rem': 'Toda función por gesto (swipe/arrastre) necesita alternativa sin gesto: botón «anterior/siguiente» o clic simple (2.5.1).',
+        'motion_actuation': '{n} manejadores de deviceorientation/devicemotion sin alternativa de UI: {ej}. Revisar (2.5.4).',
+        'motion_actuation_rem': 'Lo que se activa moviendo el dispositivo debe poder activarse también con UI (botón) y desactivarse (2.5.4).',
+        'color_only_link': 'Enlaces distinguibles solo por color detectados en el pase renderizado (1.4.1).',
+        'color_only_link_rem': 'El enlace dentro de texto necesita subrayado u otro distintivo, o contraste ≥3:1 con el texto que lo rodea (1.4.1).',
+        'sensory_text': 'Instrucciones que apelan solo a los sentidos: «{ej}». Revisar (1.3.3).',
+        'sensory_text_rem': 'No instruyas por posición/forma/color solos («el botón de la derecha»): nombra las cosas (1.3.3).',
+        'orientation_lock': 'Bloqueo de orientación detectado: {ej}. Revisar (1.3.4).',
+        'orientation_lock_rem': 'El contenido no debe bloquearse a una orientación salvo excepción demostrable (1.3.4): elimina screen.orientation.lock() y los media queries que fuercen una sola orientación.',
+        'audio_desc_missing': '{n} <video> sin track de audiodescripción (1.2.3/1.2.5): pendiente de juicio humano.',
+        'audio_desc_missing_rem': 'Si el vídeo tiene información visual esencial no narrada, publica audiodescripción (track kind="descriptions" o alternativa) — decide una persona viendo el vídeo.',
+        'nav_inconsistent': 'La navegación repetida cambia entre páginas del sitio ({ej}) (3.2.3).',
+        'nav_inconsistent_rem': 'Los mecanismos de navegación repetidos deben aparecer en el mismo orden relativo en todas las páginas (3.2.3): plantilla común.',
+        'no_multiple_ways': 'Sin vía alternativa para encontrar páginas (sin búsqueda, sin mapa, sin índice) en las páginas muestreadas (2.4.5).',
+        'no_multiple_ways_rem': 'Ofrece al menos dos vías: navegación + búsqueda o sitemap (2.4.5).',
+        'dom_visual_order': 'Orden DOM distinto del orden visual en {n} bloques de texto: revisar con teclado (1.3.2).',
+        'dom_visual_order_rem': 'El orden de lectura programático debe coincidir con el visual: revisa flex order, grid placement y position absolute (1.3.2).',
+        'text_spacing_clip': '{n} textos recortados al aplicar los espaciados de 1.4.12 (line-height 1.5, letter 0.12em): revisar.',
+        'text_spacing_clip_rem': 'El contenido debe sobrevivir a los overrides de espaciado de texto sin recortarse: sustituye alturas fijas por min-height (1.4.12).',
         'list_structure': '{n} hijos ilegales dentro de <ul>/<ol> (solo <li>, <script> y <template> son válidos).',
         'list_structure_rem': 'Mete el contenido suelto en <li> o usa otro contenedor: los lectores anuncian la lista con su número de ítems y se saltan lo que no es <li>.',
         'aria_value_invalid': '{n} valores de atributos ARIA inválidos: {ej}. Tecnología asistida los ignora.',
@@ -294,6 +347,28 @@ T = {
         'down_event_rem': 'Activate on the UP event (onclick/onmouseup): dragging away can abort — that is rule 2.5.2.',
         'captcha': 'Captcha detected ({ej}): 3.3.8 requires a non-cognitive-test alternative for access.',
         'captcha_rem': 'Offer alternatives: magic links, OAuth, human support. A CAPTCHA without an alternative excludes (3.3.8, new in WCAG 2.2 AA).',
+        'motion_moving': '{n} moving/looping contents with no visible pause control: {ej}. Review (2.2.2).',
+        'motion_moving_rem': 'Content moving/blinking >5s needs a pause/stop mechanism (2.2.2): <marquee> has none; looping animations do not either by default.',
+        'gesture_no_click': '{n} gesture/drag handlers with no visible click alternative: {ej}. Review (2.5.1).',
+        'gesture_no_click_rem': 'Every gesture function (swipe/drag) needs a non-gesture alternative: prev/next button or plain click (2.5.1).',
+        'motion_actuation': '{n} deviceorientation/devicemotion handlers with no UI alternative: {ej}. Review (2.5.4).',
+        'motion_actuation_rem': 'What motion activates must also be activatable via UI (button) and disablable (2.5.4).',
+        'color_only_link': 'Links distinguishable only by color detected in the rendered pass (1.4.1).',
+        'color_only_link_rem': 'A link inside text needs underline or another cue, or ≥3:1 contrast against surrounding text (1.4.1).',
+        'sensory_text': 'Instructions appealing to senses alone: "{ej}". Review (1.3.3).',
+        'sensory_text_rem': 'Do not instruct by position/shape/color alone ("the button on the right"): name things (1.3.3).',
+        'orientation_lock': 'Orientation lock detected: {ej}. Review (1.3.4).',
+        'orientation_lock_rem': 'Content must not be locked to one orientation unless the exception demonstrably applies (1.3.4): remove screen.orientation.lock() and orientation-forcing media queries.',
+        'audio_desc_missing': '{n} <video> without audio-description track (1.2.3/1.2.5): pending human judgment.',
+        'audio_desc_missing_rem': 'If the video carries essential visual information not narrated, publish audio description (track kind="descriptions" or alternative) — a person watching the video decides.',
+        'nav_inconsistent': 'Repeated navigation changes across site pages ({ej}) (3.2.3).',
+        'nav_inconsistent_rem': 'Repeated navigation mechanisms must appear in the same relative order on every page (3.2.3): shared template.',
+        'no_multiple_ways': 'No alternative way to find pages (no search, no sitemap, no index) across sampled pages (2.4.5).',
+        'no_multiple_ways_rem': 'Offer at least two ways: navigation + search or sitemap (2.4.5).',
+        'dom_visual_order': 'DOM order differs from visual order in {n} text blocks: review with keyboard (1.3.2).',
+        'dom_visual_order_rem': 'Programmatic reading order must match visual order: check flex order, grid placement and position absolute (1.3.2).',
+        'text_spacing_clip': '{n} texts clipped when the 1.4.12 spacing overrides apply (line-height 1.5, letter 0.12em): review.',
+        'text_spacing_clip_rem': 'Content must survive text-spacing overrides without clipping: replace fixed heights with min-height (1.4.12).',
         'list_structure': '{n} illegal children inside <ul>/<ol> (only <li>, <script> and <template> are valid).',
         'list_structure_rem': 'Wrap loose content in <li> or use another container: screen readers announce the list with its item count and skip non-<li> content.',
         'aria_value_invalid': '{n} invalid ARIA attribute values: {ej}. Assistive tech ignores them.',
@@ -344,6 +419,7 @@ class _Auditor(HTMLParser):
         self.lang = None
         self.title = ''
         self._en_title = False
+        self._en_script = False
         self.headings = []        # (nivel, texto)
         self._nivel_h = None
         self._texto_h = []
@@ -395,6 +471,16 @@ class _Auditor(HTMLParser):
         self.langs_partes = []      # lang inválidos en elementos no-html
         self.down_events = []       # onmousedown/ontouchstart/onpointerdown
         self.captchas = []          # detección 3.3.8
+        self.moviles = []           # marquee/blink/inline infinite animation (2.2.2)
+        self.nav_hrefs = set()      # hrefs inside <nav> (site-level 3.2.3 signature)
+        self._en_nav = 0
+        self.tiene_busqueda = False
+        self.tiene_sitemap = False
+        self.gestos = []            # touchmove/drag handlers (2.5.1)
+        self.motions = []           # deviceorientation/devicemotion (2.5.4)
+        self.orientation_locks = [] # screen.orientation.lock / orientation MQ (1.3.4)
+        self.videos_descriptions = 0   # videos WITH descriptions track
+        self.sensory = []           # sensory-only instruction patterns (1.3.3)
         self._skip_labels_pend = []  # labels declarados antes que su campo
 
     def _cierra_control(self, tag):
@@ -445,6 +531,8 @@ class _Auditor(HTMLParser):
             self.lang = (a.get('lang') or '').strip()
         elif tag == 'title':
             self._en_title = True
+        elif tag == 'script':
+            self._en_script = True
         elif tag == 'meta':
             if a.get('name', '').lower() == 'viewport':
                 self.viewport = a.get('content', '')
@@ -458,12 +546,19 @@ class _Auditor(HTMLParser):
         elif tag == 'iframe':
             if not (a.get('title') or a.get('aria-label')):
                 self.iframes_sin_title.append((a.get('src') or '')[:100])
+        elif tag == 'nav':
+            self._en_nav += 1
         elif tag in _CONTROLES:
             # Enlace no interactivo (ancla pura sin href): no se audita.
             if tag == 'a' and not (a.get('href') or '').strip():
                 pass
             else:
                 self._ctrl.append({'tag': tag, 'attrs': a, 'texto': [], 'img_interna': False})
+                href = (a.get('href') or '').strip()
+                if self._en_nav and href and not href.startswith('#'):
+                    self.nav_hrefs.add(href.split('#')[0].rstrip('/'))
+                if href and re.search(r'sitemap|site-map|mapa-del-sitio|mapa_web|mapaweb', href, re.I):
+                    self.tiene_sitemap = True
         elif tag == 'input':
             self._nota_campo()
             tipo = (a.get('type') or 'text').lower()
@@ -473,6 +568,8 @@ class _Auditor(HTMLParser):
             elif tipo in ('submit', 'button', 'reset'):
                 if not (a.get('value') or a.get('aria-label') or a.get('alt')):
                     self.sitios.setdefault('input:' + tipo, []).append(a)
+            if tipo == 'search' or re.search(r'search|busqueda|b[uú]squeda', (a.get('name') or '') + (a.get('id') or ''), re.I):
+                self.tiene_busqueda = True
             elif tipo in _CAMPOS:
                 tiene_nombre = a.get('aria-label') or a.get('aria-labelledby') or a.get('title')
                 if not tiene_nombre and self._label_depth == 0:
@@ -494,6 +591,13 @@ class _Auditor(HTMLParser):
                 if self._labels_for[a['for']] > 1:
                     self.labels_for_dups[a['for']] = self._labels_for[a['for']]
                 self._labels_stack[-1] = True
+        elif tag == 'marquee':
+            self.moviles.append('<marquee>')
+        elif tag == 'blink':
+            self.moviles.append('<blink>')
+        elif tag == 'track':
+            if (a.get('kind') or '').lower() == 'descriptions':
+                self.videos_descriptions += 1
         elif tag in ('video', 'audio'):
             if tag == 'video':
                 self.videos += 1
@@ -529,6 +633,22 @@ class _Auditor(HTMLParser):
             if a.get(_de):
                 self.down_events.append(f'{tag}[{_de}]')
                 break
+        # v3.12: 2.2.2 inline looping animation
+        estilo = a.get('style') or ''
+        if 'animation' in estilo and 'infinite' in estilo:
+            self.moviles.append(f'{tag}[style animation…infinite]')
+        # v3.12: 2.5.1 gesture without click alternative (attribute-level hint)
+        if a.get('ontouchmove') or a.get('ondrag'):
+            if not (a.get('onclick') or tag in ('input', 'button', 'a')):
+                self.gestos.append(f'{tag}[{list(a)[0] if a else ""}]')
+        # v3.12: 2.5.4 motion actuation handlers
+        for _ma in ('ondeviceorientation', 'ondevicemotion'):
+            if a.get(_ma):
+                self.motions.append(f'{tag}[{_ma}]')
+        # v3.12: 1.3.4 orientation lock hints (attribute/inline level)
+        if tag == 'meta' and 'orientation' in (a.get('content') or '').lower() \
+                and 'lock' in (a.get('content') or '').lower():
+            self.orientation_locks.append('meta orientation lock')
         # v3.9: 3.3.8 captcha
         for _v in (a.get('src') or '', a.get('href') or '', a.get('id') or ''):
             if re.search(r'recaptcha|hcaptcha|turnstile|captcha', _v, re.I):
@@ -595,10 +715,14 @@ class _Auditor(HTMLParser):
     def handle_endtag(self, tag):
         if tag == 'title':
             self._en_title = False
+        elif tag == 'script':
+            self._en_script = False
         elif tag == 'label':
             self._label_depth = max(0, self._label_depth - 1)
             if self._labels_stack and not self._labels_stack.pop():
                 self.labels_huerfanos += 1
+        elif tag == 'nav':
+            self._en_nav = max(0, self._en_nav - 1)
         elif tag == 'li':
             self._li_prof = max(0, self._li_prof - 1)
         elif tag in ('ul', 'ol'):
@@ -626,9 +750,21 @@ class _Auditor(HTMLParser):
                     self.h1s += 1
             self._nivel_h = None
 
+    def handle_script_espera(self, data):
+        # v3.12: signals that only appear in script bodies
+        if 'screen.orientation.lock' in data:
+            self.orientation_locks.append('screen.orientation.lock()')
+        for _ma in ("addEventListener('deviceorientation'",
+                    'addEventListener("deviceorientation"',
+                    "addEventListener('devicemotion'", 'addEventListener("devicemotion"'):
+            if _ma in data:
+                self.motions.append(_ma.split('(')[1].strip('\'"'))
+
     def handle_data(self, data):
         if self._en_title:
             self.title += data
+        elif getattr(self, '_en_script', False):
+            self.handle_script_espera(data)
         else:
             # Un texto puede pertenecer a la vez a un enlace dentro de un
             # encabezado (<h2><a>Guías</a></h2>): alimenta a ambos.
@@ -636,6 +772,9 @@ class _Auditor(HTMLParser):
                 self._ctrl[-1]['texto'].append(data)
             if self._nivel_h is not None:
                 self._texto_h.append(data)
+            m = _SENSORIAL.search(data)
+            if m and len(self.sensory) < 6:
+                self.sensory.append(m.group(0).strip()[:60])
 
 
 def calcular_score(hallazgos):
@@ -779,6 +918,23 @@ def audit_html(html_text, url='(html)', lang='en'):
     if p.captchas:
         add_ej('media', '3.3.8', 'captcha', p.captchas,
                n=len(p.captchas), ej=', '.join(p.captchas[:2]))
+    # v3.12: partial signals on previously manual-only criteria
+    if p.moviles:
+        add_ej('baja', '2.2.2', 'motion_moving', p.moviles,
+               n=len(p.moviles), ej=', '.join(p.moviles[:3]))
+    if p.gestos:
+        add_ej('baja', '2.5.1', 'gesture_no_click', p.gestos,
+               n=len(p.gestos), ej=', '.join(p.gestos[:3]))
+    if p.motions:
+        add_ej('baja', '2.5.4', 'motion_actuation', p.motions,
+               n=len(p.motions), ej=', '.join(p.motions[:3]))
+    if p.orientation_locks:
+        add_ej('baja', '1.3.4', 'orientation_lock', p.orientation_locks,
+               n=len(p.orientation_locks), ej=', '.join(p.orientation_locks[:2]))
+    if p.videos and p.videos_descriptions < p.videos:
+        add('baja', '1.2.3', 'audio_desc_missing', n=p.videos - p.videos_descriptions)
+    if p.sensory:
+        add('baja', '1.3.3', 'sensory_text', ej='; '.join(p.sensory[:2])[:70])
     lm_dups = [f'{lm} ×{t[1]}' for lm, t in p.landmarks.items()
                if t[1] > 1 and t[0] == t[1]]
     if lm_dups:
@@ -875,6 +1031,26 @@ def _enlaces_internos(html_text, base_url, origen):
     return out
 
 
+def evaluar_sitio(parsers, lang='en'):
+    """Site-level criteria over the crawled parsers: 3.2.3/3.2.4 consistency,
+    2.4.5 multiple ways. Pure function so tests need no network."""
+    out = []
+    if len(parsers) >= 3:
+        firmas = [frozenset(p.nav_hrefs) for p in parsers if p.nav_hrefs]
+        if len(firmas) >= 3 and len(set(firmas)) > 1:
+            out.append({'severidad': 'media', 'criterio': _crit(lang, '3.2.3'),
+                        'senal': 'nav_inconsistent',
+                        'hallazgo': _t(lang, 'nav_inconsistent').format(
+                            ej=f'{len(set(firmas))} distintas en {len(firmas)} páginas'),
+                        'remediacion': _t(lang, 'nav_inconsistent_rem')})
+    if parsers and not any(p.tiene_busqueda or p.tiene_sitemap for p in parsers):
+        out.append({'severidad': 'media', 'criterio': _crit(lang, '2.4.5'),
+                    'senal': 'no_multiple_ways',
+                    'hallazgo': _t(lang, 'no_multiple_ways'),
+                    'remediacion': _t(lang, 'no_multiple_ways_rem')})
+    return out
+
+
 def audit_site(url, max_pages=5, timeout=30, lang='en'):
     """Audita la URL y hasta max_pages-1 páginas más del mismo dominio
     (descubrimiento por enlaces). Igual de cero-dependencias que el resto."""
@@ -885,7 +1061,10 @@ def audit_site(url, max_pages=5, timeout=30, lang='en'):
         return {'error': str(e)}
     except Exception as e:  # noqa: BLE001
         return {'error': _t(lang, 'descarga_error').format(e=e)}
+    p0 = _Auditor()
+    p0.feed(html_text[:MAX_HTML]); p0.close()
     informes = [audit_html(html_text, url, lang=lang)]
+    parsers = [p0]
     vistos = {url.split('#')[0].rstrip('/')}
     cola = _enlaces_internos(html_text, url, url)
     while cola and len(informes) < max_pages:
@@ -898,10 +1077,18 @@ def audit_site(url, max_pages=5, timeout=30, lang='en'):
         except Exception:  # noqa: BLE001
             continue
         informes.append(audit_html(html_pg, siguiente, lang=lang))
+        pg = _Auditor()
+        pg.feed(html_pg[:MAX_HTML]); pg.close()
+        parsers.append(pg)
         if len(informes) < max_pages:
             for nuevo in _enlaces_internos(html_pg, siguiente, url):
                 if nuevo not in vistos:
                     cola.append(nuevo)
+    hallazgos_sitio = evaluar_sitio(parsers, lang=lang)
+    for h in hallazgos_sitio:
+        for inf in informes[:1]:
+            inf.setdefault('hallazgos', []).append(h)
+            inf['score'] = calcular_score(inf['hallazgos'])
     scores = [pg['score'] for pg in informes if 'score' in pg]
     hallazgos_por_senal = {}
     for pg in informes:
