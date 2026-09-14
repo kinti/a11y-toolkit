@@ -22,6 +22,7 @@ Tools:
   - a11y_reflow(url, …)                           320px reflow check (1.4.10)
   - a11y_keyboard(url, …)                         keyboard-trap detection (2.1.2)
   - a11y_scroll(url, …)                           infinite-scroll audit
+  - a11y_evidence(informes, …)                   countersignature-ready evidence pack
 
 Prompts: audit-page, fix-contrast, pre-deploy-check, declaration-eaa.
 
@@ -45,6 +46,7 @@ from a11yaudit import audit_url as audit_url_fn, audit_html as audit_html_fn  # 
 from a11ydom import audit_dom_url, audit_reflow, audit_keyboard  # noqa: E402
 from a11yfix import autofix as autofix_fn  # noqa: E402
 from a11yscroll import audit_scroll  # noqa: E402
+from a11yevidence import empaquetar as empaquetar_fn  # noqa: E402
 from a11ydiff import snapshot as snapshot_fn, diff as diff_fn  # noqa: E402
 from a11ycrit import criterio as criterio_fn  # noqa: E402
 from a11ybadge import badge as badge_fn  # noqa: E402
@@ -55,7 +57,7 @@ try:
 except ImportError:
     ARIALIVE_JS = None  # repo checkout: read the file
 
-VERSION = '3.10.0'
+VERSION = '3.11.0'
 
 INSTRUCTIONS = (
     'Accessibility toolkit (WCAG 2.2), multilanguage es/en. '
@@ -284,6 +286,25 @@ TOOLS = [
         }, 'required': ['url']},
     },
     {
+        'name': 'a11y_evidence',
+        'description': ('Builds the COUNTERSIGNATURE-READY evidence pack: the machine→human '
+                        'handoff object for WCAG conformance work. Takes one or more audit '
+                        'reports (any mode — static, rendered, reflow, keyboard, scroll) and '
+                        'returns: a full criteria matrix (automated-fail / automated-review / '
+                        'not-flagged — NOT pass / manual-only), the list of A/AA criteria with '
+                        'no automated signal anywhere (the human reviewer homework list), every '
+                        'artifact SHA-256-hashed with timestamps, an empty signature block '
+                        '(name, credential, date) whose statement must reference the pack\'s '
+                        'own sha256, and the tamper-evidence rule stated. Vendor-neutral: any '
+                        'qualified human can countersign it. Evidence, never conformance.'),
+        'inputSchema': {'type': 'object', 'properties': {
+            'informes': {'type': 'array', 'items': {'type': 'object'},
+                         'description': 'audit report objects (any mode)'},
+            'snapshot': {'type': 'object', 'description': 'a11y_snapshot output (optional)'},
+            'evaluador': {'type': 'object', 'description': '{"nombre":…, "credencial":…, "fecha_revision":…} to prefill the signature block'},
+        }, 'required': ['informes']},
+    },
+    {
         'name': 'a11y_criterion',
         'description': ('Explains a WCAG 2.2 success criterion in plain language (es/en): '
                         'what it requires, typical failures, and how to verify it with this '
@@ -445,6 +466,7 @@ _ANN = {
     'a11y_autofix':          ('Deterministic safe auto-fixes', True, False),
     'a11y_aria_live_snippet': ('aria-live monitor snippet', True, False),
     'a11y_badge':            ('Honest SVG badge', True, False),
+    'a11y_evidence':         ('Evidence pack (countersignature-ready)', True, False),
     'a11y_criterion':        ('WCAG criterion explained', True, False),
 }
 for _t in TOOLS:
@@ -559,6 +581,12 @@ def llamar(nombre, args):
             return {'content': [{'type': 'text',
                                  'text': 'Playwright not installed: pip install playwright && playwright install chromium'}],
                     'isError': True}
+        except Exception as e:  # noqa: BLE001
+            return {'content': [{'type': 'text', 'text': f'error: {e}'}], 'isError': True}
+    if nombre == 'a11y_evidence':
+        try:
+            return _texto(empaquetar_fn(args['informes'], snapshot=args.get('snapshot'),
+                                        evaluador=args.get('evaluador')))
         except Exception as e:  # noqa: BLE001
             return {'content': [{'type': 'text', 'text': f'error: {e}'}], 'isError': True}
     if nombre == 'a11y_autofix':

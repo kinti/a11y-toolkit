@@ -1,5 +1,24 @@
 # Changelog
 
+## 3.11.0 — 2026-09-07 — "the countersignature-ready pack"
+
+Born from an outside insight (a UK marketplace founder noted the seam our own
+ladder already documented: an agent can produce a thorough audit and still not
+a conformance statement, because conformance needs a person behind it). We
+took the design lesson, not the dependency.
+
+- **New tool `a11y_evidence`** (17th): builds the vendor-neutral machine→human
+  handoff object. Input: any mix of audit reports (static, rendered, reflow,
+  keyboard, scroll) + optional snapshot. Output: full criteria matrix
+  (automated-fail / automated-review / not-flagged — explicitly NOT pass /
+  manual-only), the 27 A/AA criteria with no automated signal anywhere (the
+  human reviewer's homework), every artifact SHA-256-hashed with timestamps,
+  and an empty signature block whose statement must reference the pack's own
+  hash — tamper-evidence by construction. Any qualified human can
+  countersign it; the toolkit never claims conformance.
+- CLI `a11ytoolkit evidence`, wcagem-guide tier 2→3 bridge section, skill
+  decision-table row. Hash determinism and tamper-response tested.
+
 ## 3.10.0 — 2026-09-07 — "actually English-first"
 
 The repo claimed EN-first while defaulting to Spanish. A full-language audit

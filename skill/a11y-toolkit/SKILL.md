@@ -35,6 +35,7 @@ All output is English by default; pass `--lang es` (or the `lang: "es"` MCP argu
 | "a badge for the audited site" | `a11y_badge` (score + date + "automated screening" scope — never claims conformance) |
 | "audit the section, not just one page" | `pages` parameter (or `a11ytoolkit audit --pages N`): light same-domain crawl, aggregated by mean/worst score |
 | "full evaluation / conformance / WCAG-EM" | the `conformance-wcagem` prompt — three tiers, escalate one at a time; protocol in `references/wcagem-guide.md` |
+| "produce something a human auditor can sign" | `a11y_evidence`: the countersignature-ready pack (criteria matrix + hashed artifacts + empty signature block). Vendor-neutral — any qualified human, any marketplace, or the consultant herself |
 | "FIX it for me" (zoom blocked, missing autocomplete, missing lang/title) | `a11y_autofix`: deterministic, provably safe fixes only; judgment fixes come back as `no_aplicados` + remediation. Never promise overlay-style full fixes |
 | "does it scroll sideways on mobile?" (1.4.10) | `a11y_reflow` (320px viewport, real overflow + offenders) — axe/Lighthouse don't automate this |
 | "is the modal a keyboard trap?" (2.1.2) | `a11y_keyboard`: real Tab walk + cycle detection + Escape release test. Correct modals pass; traps are high severity |

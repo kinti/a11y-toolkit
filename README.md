@@ -7,7 +7,7 @@
 [![Python 3.9+](https://img.shields.io/badge/python-3.9%2B-blue.svg)](pyproject.toml)
 [![MCP](https://img.shields.io/badge/Model%20Context%20Protocol-server-purple)](https://modelcontextprotocol.io)
 
-**16 MCP tools + 5 prompts + a skill** that give any AI agent (Claude, Cursor, Windsurf,
+**17 MCP tools + 5 prompts + a skill** that give any AI agent (Claude, Cursor, Windsurf,
 Codex…) the full WCAG 2.2 loop: **audit → fix → document → watch**. Zero dependencies at
 its core; every finding ships with a concrete remediation your agent can apply.
 
@@ -35,7 +35,7 @@ makes "is it accessible?" a one-question ask — and "then fix it" a one-command
 | Static core parity: ARIA validity, autocomplete 1.3.5, link purpose, list structure, duplicate ids | ✓ | ✓ |
 | Output optimized for **MCP/LLM consumption** (JSON, severity-ranked, es/en) | ✗ | ✓ |
 
-## The tools (16)
+## The tools (17)
 
 | Tool | What it does |
 |---|---|
@@ -50,6 +50,7 @@ makes "is it accessible?" a one-question ask — and "then fix it" a one-command
 | `a11y_diff` | Regression diff between two snapshots: added/removed/renamed interactives, focus-order changes. |
 | `a11y_diff_urls` | Snapshot two URLs and diff in one call (staging vs production). |
 | `a11y_aria_live_snippet` | Injectable monitor logging every aria-live announcement (time, politeness, role, text) — what a screen reader would say, visible on screen. |
+| `a11y_evidence` | **The countersignature-ready evidence pack**: full criteria matrix (fail/review/not-flagged/manual-only), artifacts SHA-256-hashed, empty signature block referencing the pack's hash. The vendor-neutral machine→human handoff — any qualified human can countersign it. |
 | `a11y_criterion` | Explains any WCAG 2.2 criterion in plain language: what it requires, typical failures, and which toolkit tool verifies it. |
 | `a11y_scroll` | **Infinite-scroll audit** — the documented disaster nobody automates (Deque + APG Feed pattern): real scrolling batches, does focus SURVIVE, is new content ANNOUNCED, does the feed END or offer load-more. |
 | `a11y_keyboard` | **Keyboard-trap detection (2.1.2) with REAL Tab walking**: up to 60 stops, cycle detection, and the decisive test — does Escape release? Correct modals are not reported. |

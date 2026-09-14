@@ -15,6 +15,7 @@
   a11ytoolkit reflow https://web                          # 320px reflow (1.4.10)
   a11ytoolkit kbd https://web                             # keyboard traps? (2.1.2)
   a11ytoolkit scroll https://medium/section               # infinite-scroll audit
+  a11ytoolkit evidence audit.json -o pack.json           # countersignature-ready pack
 """
 
 import sys
@@ -23,6 +24,7 @@ import a11yaudit
 import a11ybadge
 import a11yfix
 import a11ydom
+import a11yevidence
 import a11yscroll
 import a11ybudget
 import a11ycrit
@@ -43,6 +45,7 @@ SUBCOMANDOS = {
     'fix': (a11yfix, None),
     'kbd': (a11ydom, 'kbd_main'),
     'scroll': (a11yscroll, None),
+    'evidence': (a11yevidence, None),
     'reflow': (a11ydom, 'reflow_main'),
     'badge': (a11ybadge, None),
     'budget': (a11ybudget, None),

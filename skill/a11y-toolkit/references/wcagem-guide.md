@@ -39,6 +39,16 @@ structured + random sampling, human-verified results.
 - State the refresh cadence: re-run Tier 1 monthly (see `examples/a11y-watch.yml`),
   full Tier 2-3 yearly or after major changes.
 
+## The evidence pack (tier 2→3 bridge)
+
+Before asking a human to sign, build the countersignature-ready pack:
+`a11y_evidence` with every audit report (static, rendered, reflow, keyboard,
+scroll) and the snapshot. It yields the full criteria matrix (including the
+A/AA criteria with no automated signal anywhere — the human's homework list),
+hashes every artifact, and leaves the signature block empty, tied to the
+pack's own SHA-256. Any qualified human can countersign it; the toolkit never
+claims conformance itself.
+
 ## Report skeleton (Tier 2-3)
 
 ```

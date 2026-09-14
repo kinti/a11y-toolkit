@@ -79,6 +79,11 @@ if TIENE_PW:
 else:
     print('SKIP reflow/kbd/scroll: Playwright no instalado')
 
+r = run('evidence', '/tmp/cli_audit.json', '-o', os.path.join('/tmp', 'cli_pack.json'))
+assert r.returncode == 0, r.stderr[-300:]
+pk = json.loads(r.stdout)
+assert pk['sha256'] and pk['resumen']['manual-only'] >= 20
+
 # 3. seguridad: nada de lo que escribe este toolkit es vector de inyección
 sys.path.insert(0, AQUI)
 from a11yfix import autofix  # noqa: E402
