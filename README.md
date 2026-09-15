@@ -67,6 +67,10 @@ WCAG-EM ladder).
 
 > Registry name: `mcp-name: io.github.kinti/a11y-toolkit` · PyPI: [a11y-toolkit](https://pypi.org/project/a11y-toolkit/)
 
+Works with **any MCP-capable client** — Claude Code/Desktop, Cursor, Windsurf,
+VS Code, Codex CLI, OpenCode, ZCode, Zed, Cline, Continue, Kimi Code… See
+[docs/clients.md](docs/clients.md) for every verified config format.
+
 **Claude Code** (one command):
 
 ```bash
