@@ -60,6 +60,15 @@ assert m_gif and int(m_gif.group(1)) == len(server.TOOLS) and int(m_gif.group(2)
 doc_server = server.__doc__
 assert all(t['name'] in doc_server for t in server.TOOLS), 'docstring del server incompleto'
 
+# ---------- 3b. tool schema hygiene (the Glama/TDQS penalties, pinned) ----------
+for _t in server.TOOLS:
+    for _p, _d in _t['inputSchema'].get('properties', {}).items():
+        assert _d.get('description'), f"{_t['name']}.{_p} lacks a description"
+    assert ' — ' in _t['description'] or _t['name'] == 'a11y_badge', \
+        f"{_t['name']} lacks sibling-routing guidance"
+    for _k in ('title', 'annotations'):
+        assert _t.get(_k), f"{_t['name']} lacks {_k}"
+
 # ---------- 4. fuzz determinista: HTML hostil no crashea ----------
 HOSTILES = [
     '<html><body><p' * 40 + 'x',                       # anidamiento roto

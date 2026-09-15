@@ -1,5 +1,22 @@
 # Changelog
 
+## 3.12.1 — 2026-09-15 — "the missing descriptions"
+
+Glama/TDQS scored us 4/5; the breakdown pointed at real gaps, now closed:
+
+- **100% parameter documentation**: every input of all 17 tools carries a
+  description (a11y_generate_declaration went from 8% coverage and 3.6/5 —
+  the worst tool — to fully documented, including what estado/marco/reclamacion
+  mean legally).
+- **Sibling-routing guidance** added to every tool description ("prefer
+  a11y_audit_dom when…") — the TDQS Usage Guidelines dimension.
+- Both pinned by test_solido: a parameter without a description, or a tool
+  without routing/title/annotations, now fails CI. The score cannot rot.
+- Deliberately NOT changed: tool names (verb/noun mix — renaming would break
+  published users for a heuristic) and the 17-tool count (>15 "ideal" — each
+  maps to a distinct workflow step; cutting tools to please a scorer would
+  make the toolkit worse).
+
 ## 3.12.0 — 2026-09-07 — "the honest two-thirds"
 
 Can you cover all of WCAG? No — several criteria are judgment by definition,

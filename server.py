@@ -57,7 +57,7 @@ try:
 except ImportError:
     ARIALIVE_JS = None  # repo checkout: read the file
 
-VERSION = '3.12.0'
+VERSION = '3.12.1'
 
 INSTRUCTIONS = (
     'Accessibility toolkit (WCAG 2.2), multilanguage es/en. '
@@ -447,6 +447,98 @@ def _prompt(nombre, args):
     return {'description': next(p['description'] for p in _PROMPTS if p['name'] == nombre),
             'messages': [{'role': 'user', 'content': {'type': 'text', 'text': txt}}]}
 
+
+# ── Parameter documentation (100% coverage, pinned by test_solido) ──────────
+# TDQS/Glama's top penalty was undocumented params; this table is the single
+# source, injected at import time so the literals above stay readable.
+_PARAM_DOCS = {
+ ('a11y_audit_url', 'url'): 'Page URL to fetch and audit (http/https only; local HTML goes in the html argument)',
+ ('a11y_audit_url', 'html'): 'Raw HTML string to audit directly (overrides url — use for pages you already fetched or local files)',
+ ('a11y_audit_url', 'pages'): 'Light same-domain crawl: audit up to N pages discovered by links, aggregated by mean/worst score and recurring signals (1 = single page)',
+ ('a11y_audit_url', 'timeout'): 'Fetch timeout in seconds per page (default 30)',
+ ('a11y_audit_dom', 'url'): 'Page URL to load in Chromium (http/https or file:// for local fixtures)',
+ ('a11y_audit_dom', 'timeout'): 'Page load timeout in seconds (default 45)',
+ ('a11y_audit_url', 'lang'): 'Output language for findings and remediation (default en)',
+ ('a11y_audit_dom', 'lang'): 'Output language for findings and remediation (default en)',
+ ('a11y_reflow', 'url'): 'Page URL to test at 320px (http/https or file://)',
+ ('a11y_reflow', 'timeout'): 'Page load timeout in seconds (default 45)',
+ ('a11y_reflow', 'lang'): 'Output language (default en)',
+ ('a11y_keyboard', 'url'): 'Page URL to Tab-walk (http/https or file://)',
+ ('a11y_keyboard', 'lang'): 'Output language (default en)',
+ ('a11y_keyboard', 'max_pasos'): 'Maximum real Tab presses before giving up (default 60)',
+ ('a11y_scroll', 'url'): 'Feed URL to audit (best on feeds you own or can authenticate into)',
+ ('a11y_scroll', 'lang'): 'Output language (default en)',
+ ('a11y_scroll', 'max_tandas'): 'Scroll batches to load and evaluate (default 5)',
+ ('a11y_contrast_pair', 'fg'): 'Foreground/text color: #hex, rgb(), hsl() or a CSS color name; alpha composites over bg',
+ ('a11y_contrast_pair', 'bg'): 'Background color: same formats; alpha composites over white',
+ ('a11y_contrast_image', 'path'): 'Local path to the screenshot/image the text sits on (PNG/JPG/PPM)',
+ ('a11y_contrast_image', 'text_color'): 'The text color as rendered over the image (must be opaque)',
+ ('a11y_contrast_image', 'region'): 'Text bounding box as "x,y,width,height" in pixels (strongly recommended: defines what to sample)',
+ ('a11y_contrast_image', 'sample'): 'Pixel step: 4 samples every 4px (auto-raised for huge regions)',
+ ('a11y_contrast_image', 'lang'): 'Output language (default en)',
+ ('a11y_suggest_color', 'fg'): 'The failing foreground color to fix',
+ ('a11y_suggest_color', 'bg'): 'The background it must pass against',
+ ('a11y_suggest_color', 'target'): 'Ratio to reach: 4.5 normal text, 3.0 large text/UI, 7.0 AAA (default 4.5)',
+ ('a11y_generate_declaration', 'entidad'): 'Legal entity name as it should appear in the statement (company, body…)',
+ ('a11y_generate_declaration', 'url'): 'Website URL the statement covers',
+ ('a11y_generate_declaration', 'estado'): 'Compliance state: plena | parcial | no_conforme (parcial is the honest default when findings exist)',
+ ('a11y_generate_declaration', 'contenido_no_accesible'): 'Non-accessible content list: one string per item, ideally criterion + reason + alternative',
+ ('a11y_generate_declaration', 'metodo'): 'How conformance was evaluated (e.g. "self-evaluation: a11y-toolkit screening + manual review")',
+ ('a11y_generate_declaration', 'fecha_evaluacion'): 'ISO date of the last evaluation (YYYY-MM-DD)',
+ ('a11y_generate_declaration', 'fecha_revision'): 'ISO date of the next scheduled review',
+ ('a11y_generate_declaration', 'feedback'): 'Contact channel for accessibility feedback (email or URL)',
+ ('a11y_generate_declaration', 'reclamacion'): 'Claim/complaint procedure URL or address (legally required in several jurisdictions)',
+ ('a11y_generate_declaration', 'marco'): 'Legal framework: rd1112 (Spanish public sector, art. 10) or eaa (European Accessibility Act / private sector)',
+ ('a11y_generate_declaration', 'disponibilidad_alternativa'): 'Where to get the content in an alternative accessible format',
+ ('a11y_generate_declaration', 'output_path'): 'Local path to save the statement HTML (omit to receive it inline)',
+ ('a11y_generate_declaration', 'lang'): 'Statement language (default en; es uses the Spanish legal wording)',
+ ('a11y_snapshot', 'url'): 'Page URL to snapshot (http/https or file://)',
+ ('a11y_diff', 'a'): 'BEFORE snapshot: inline JSON (starts with {) or path to the snapshot file',
+ ('a11y_diff', 'b'): 'AFTER snapshot: inline JSON or file path',
+ ('a11y_diff_urls', 'url_a'): 'First URL (usually staging)',
+ ('a11y_diff_urls', 'url_b'): 'Second URL (usually production)',
+ ('a11y_autofix', 'html'): 'Raw HTML to apply the closed allowlist of deterministic fixes to',
+ ('a11y_autofix', 'lang'): 'BCP-47 language to set on <html> ONLY if it is missing (e.g. "es")',
+ ('a11y_autofix', 'title'): 'Page title to set ONLY if <title> is empty',
+ ('a11y_badge', 'score'): '0-100 score from an audit result (int/float)',
+ ('a11y_badge', 'fecha'): 'ISO date shown on the badge (today by default)',
+ ('a11y_badge', 'lang'): 'Badge language (default en)',
+ ('a11y_criterion', 'code'): 'WCAG criterion number, e.g. "1.4.3", "2.5.8"',
+ ('a11y_criterion', 'lang'): 'Explanation language (default en)',
+ ('a11y_evidence', 'informes'): 'Audit report objects to bundle (any mode: static, rendered, reflow, keyboard, scroll)',
+ ('a11y_evidence', 'snapshot'): 'Optional a11y_snapshot output to include as an artifact',
+ ('a11y_evidence', 'evaluador'): 'Optional prefill for the signature block: {"nombre":…, "credencial":…, "fecha_revision":…}',
+ ('a11y_aria_live_snippet', 'lang'): 'Monitor panel language (default en)',
+}
+
+# Routing guidance: one "prefer sibling X" sentence per tool (TDQS dimension).
+_ROUTING = {
+ 'a11y_audit_url': 'Prefer a11y_audit_dom when JS renders the content or contrast/2.5.8/focus matter; use pages for light multi-page sampling.',
+ 'a11y_audit_dom': 'Use instead of a11y_audit_url on JS-heavy pages; needs local Playwright.',
+ 'a11y_reflow': 'Scope: 320px reflow only (1.4.10); for the full rendered pass use a11y_audit_dom.',
+ 'a11y_keyboard': 'Scope: keyboard traps (2.1.2); focus visibility is part of a11y_audit_dom.',
+ 'a11y_scroll': 'For paginated feeds only; general page audit is a11y_audit_url/dom.',
+ 'a11y_contrast_pair': 'For flat pairs; text over images needs a11y_contrast_image.',
+ 'a11y_contrast_image': 'Use instead of a11y_contrast_pair whenever the background is a photo/gradient.',
+ 'a11y_suggest_color': 'The fixer companion to a11y_contrast_pair failures.',
+ 'a11y_snapshot': 'Capture half of the watch loop; compare with a11y_diff (or a11y_diff_urls for two live URLs).',
+ 'a11y_diff': 'Compares two existing snapshots; a11y_diff_urls snapshots both for you.',
+ 'a11y_diff_urls': 'Convenience for staging-vs-production; manual control is snapshot + a11y_diff.',
+ 'a11y_autofix': 'Only the closed allowlist of provably safe fixes; judgment fixes come back as no_aplicados with remediation.',
+ 'a11y_badge': 'Scope: the honest SVG seal for audited sites; the machine-readable bundle is a11y_evidence.',
+ 'a11y_criterion': 'Knowledge lookup; does not fetch or audit anything.',
+ 'a11y_evidence': 'The tier-3 handoff object; feed it every audit report you have.',
+ 'a11y_aria_live_snippet': 'Diagnostics aid to inject in a browser; not an audit by itself.',
+ 'a11y_generate_declaration': 'Legal statement generator; drive contenido_no_accesible from audit findings and a11y_evidence.',
+}
+
+for _t in TOOLS:
+    _props = _t['inputSchema'].get('properties', {})
+    for _p, _desc in _PARAM_DOCS.items():
+        if _p[0] == _t['name'] and _p[1] in _props:
+            _props[_p[1]].setdefault('description', _desc)
+    if _t['name'] in _ROUTING and _ROUTING[_t['name']] not in _t['description']:
+        _t['description'] += ' — ' + _ROUTING[_t['name']]
 
 # Títulos UI + annotations (MCP spec 2025-11-25): los clientes pueden aprobar
 # automáticamente las tools de solo lectura → menos fricción en cada uso.
