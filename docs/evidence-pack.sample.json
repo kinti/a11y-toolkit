@@ -1,0 +1,325 @@
+{
+ "formato": "a11y-evidence-pack/1",
+ "generado": "2026-09-16T11:55:18+00:00",
+ "herramienta": "a11y-toolkit (github.com/kinti/a11y-toolkit)",
+ "resumen": {
+  "automated-fail": 3,
+  "automated-review": 1,
+  "not-flagged": 34,
+  "manual-only": 15
+ },
+ "criterios": [
+  {
+   "criterio": "1.1.1 1.1.1 Non-text Content",
+   "estado": "not-flagged",
+   "nota": "not-flagged ≠ pass: no automated signal fired on this sample"
+  },
+  {
+   "criterio": "1.2.2 1.2.2 Captions (Prerecorded)",
+   "estado": "not-flagged",
+   "nota": "not-flagged ≠ pass: no automated signal fired on this sample"
+  },
+  {
+   "criterio": "1.2.3 1.2.3 Audio Description or Media Alternative",
+   "estado": "not-flagged",
+   "nota": "not-flagged ≠ pass: no automated signal fired on this sample"
+  },
+  {
+   "criterio": "1.2.5 1.2.5 Audio Description (Prerecorded)",
+   "estado": "not-flagged",
+   "nota": "not-flagged ≠ pass: no automated signal fired on this sample"
+  },
+  {
+   "criterio": "1.3.1 1.3.1 Info and Relationships",
+   "estado": "automated-fail",
+   "nota": null
+  },
+  {
+   "criterio": "1.3.2 1.3.2 Meaningful Sequence",
+   "estado": "automated-review",
+   "nota": null
+  },
+  {
+   "criterio": "1.3.3 1.3.3 Sensory Characteristics",
+   "estado": "not-flagged",
+   "nota": "not-flagged ≠ pass: no automated signal fired on this sample"
+  },
+  {
+   "criterio": "1.3.4 1.3.4 Orientation",
+   "estado": "not-flagged",
+   "nota": "not-flagged ≠ pass: no automated signal fired on this sample"
+  },
+  {
+   "criterio": "1.3.5 1.3.5 Identify Input Purpose",
+   "estado": "not-flagged",
+   "nota": "not-flagged ≠ pass: no automated signal fired on this sample"
+  },
+  {
+   "criterio": "1.4.1 1.4.1 Use of Color",
+   "estado": "not-flagged",
+   "nota": "not-flagged ≠ pass: no automated signal fired on this sample"
+  },
+  {
+   "criterio": "1.4.10 1.4.10 Reflow",
+   "estado": "not-flagged",
+   "nota": "not-flagged ≠ pass: no automated signal fired on this sample"
+  },
+  {
+   "criterio": "1.4.2 1.4.2 Audio Control",
+   "estado": "not-flagged",
+   "nota": "not-flagged ≠ pass: no automated signal fired on this sample"
+  },
+  {
+   "criterio": "1.4.3 1.4.3 Contrast (Minimum)",
+   "estado": "automated-fail",
+   "nota": null
+  },
+  {
+   "criterio": "1.4.4 1.4.4 Resize Text",
+   "estado": "not-flagged",
+   "nota": "not-flagged ≠ pass: no automated signal fired on this sample"
+  },
+  {
+   "criterio": "2.1.1 2.1.1 Keyboard",
+   "estado": "not-flagged",
+   "nota": "not-flagged ≠ pass: no automated signal fired on this sample"
+  },
+  {
+   "criterio": "2.1.2 2.1.2 No Keyboard Trap",
+   "estado": "not-flagged",
+   "nota": "not-flagged ≠ pass: no automated signal fired on this sample"
+  },
+  {
+   "criterio": "2.2.1 2.2.1 Timing Adjustable",
+   "estado": "not-flagged",
+   "nota": "not-flagged ≠ pass: no automated signal fired on this sample"
+  },
+  {
+   "criterio": "2.2.2 2.2.2 Pause, Stop, Hide",
+   "estado": "not-flagged",
+   "nota": "not-flagged ≠ pass: no automated signal fired on this sample"
+  },
+  {
+   "criterio": "2.4.1 2.4.1 Bypass Blocks",
+   "estado": "not-flagged",
+   "nota": "not-flagged ≠ pass: no automated signal fired on this sample"
+  },
+  {
+   "criterio": "2.4.11 2.4.11 Focus Not Obscured (Minimum)",
+   "estado": "not-flagged",
+   "nota": "not-flagged ≠ pass: no automated signal fired on this sample"
+  },
+  {
+   "criterio": "2.4.2 2.4.2 Page Titled",
+   "estado": "not-flagged",
+   "nota": "not-flagged ≠ pass: no automated signal fired on this sample"
+  },
+  {
+   "criterio": "2.4.3 2.4.3 Focus Order",
+   "estado": "not-flagged",
+   "nota": "not-flagged ≠ pass: no automated signal fired on this sample"
+  },
+  {
+   "criterio": "2.4.4 2.4.4 Link Purpose (In Context)",
+   "estado": "not-flagged",
+   "nota": "not-flagged ≠ pass: no automated signal fired on this sample"
+  },
+  {
+   "criterio": "2.4.5 2.4.5 Multiple Ways",
+   "estado": "not-flagged",
+   "nota": "not-flagged ≠ pass: no automated signal fired on this sample"
+  },
+  {
+   "criterio": "2.4.7 2.4.7 Focus Visible",
+   "estado": "not-flagged",
+   "nota": "not-flagged ≠ pass: no automated signal fired on this sample"
+  },
+  {
+   "criterio": "2.5.1 2.5.1 Pointer Gestures",
+   "estado": "not-flagged",
+   "nota": "not-flagged ≠ pass: no automated signal fired on this sample"
+  },
+  {
+   "criterio": "2.5.2 2.5.2 Pointer Cancellation",
+   "estado": "not-flagged",
+   "nota": "not-flagged ≠ pass: no automated signal fired on this sample"
+  },
+  {
+   "criterio": "2.5.3 2.5.3 Label in Name",
+   "estado": "not-flagged",
+   "nota": "not-flagged ≠ pass: no automated signal fired on this sample"
+  },
+  {
+   "criterio": "2.5.4 2.5.4 Motion Actuation",
+   "estado": "not-flagged",
+   "nota": "not-flagged ≠ pass: no automated signal fired on this sample"
+  },
+  {
+   "criterio": "2.5.8 2.5.8 Target Size (Minimum)",
+   "estado": "automated-fail",
+   "nota": null
+  },
+  {
+   "criterio": "3.1.1 3.1.1 Language of Page",
+   "estado": "not-flagged",
+   "nota": "not-flagged ≠ pass: no automated signal fired on this sample"
+  },
+  {
+   "criterio": "3.1.2 3.1.2 Language of Parts",
+   "estado": "not-flagged",
+   "nota": "not-flagged ≠ pass: no automated signal fired on this sample"
+  },
+  {
+   "criterio": "3.2.3 3.2.3 Consistent Navigation",
+   "estado": "not-flagged",
+   "nota": "not-flagged ≠ pass: no automated signal fired on this sample"
+  },
+  {
+   "criterio": "3.2.4 3.2.4 Consistent Identification",
+   "estado": "not-flagged",
+   "nota": "not-flagged ≠ pass: no automated signal fired on this sample"
+  },
+  {
+   "criterio": "3.2.5 3.2.5 Change on Request",
+   "estado": "not-flagged",
+   "nota": "not-flagged ≠ pass: no automated signal fired on this sample"
+  },
+  {
+   "criterio": "3.3.2 3.3.2 Labels or Instructions",
+   "estado": "not-flagged",
+   "nota": "not-flagged ≠ pass: no automated signal fired on this sample"
+  },
+  {
+   "criterio": "3.3.8 3.3.8 Accessible Authentication",
+   "estado": "not-flagged",
+   "nota": "not-flagged ≠ pass: no automated signal fired on this sample"
+  },
+  {
+   "criterio": "4.1.2 4.1.2 Name, Role, Value",
+   "estado": "not-flagged",
+   "nota": "not-flagged ≠ pass: no automated signal fired on this sample"
+  },
+  {
+   "criterio": "1.2.1 Audio-only and Video-only (Prerecorded)",
+   "estado": "manual-only",
+   "nota": "no automated signal exists for this criterion in this toolkit"
+  },
+  {
+   "criterio": "1.2.4 Captions (Live)",
+   "estado": "manual-only",
+   "nota": "no automated signal exists for this criterion in this toolkit"
+  },
+  {
+   "criterio": "1.4.12 Text Spacing",
+   "estado": "manual-only",
+   "nota": "no automated signal exists for this criterion in this toolkit"
+  },
+  {
+   "criterio": "1.4.13 Content on Hover or Focus",
+   "estado": "manual-only",
+   "nota": "no automated signal exists for this criterion in this toolkit"
+  },
+  {
+   "criterio": "2.1.4 Character Key Shortcuts",
+   "estado": "manual-only",
+   "nota": "no automated signal exists for this criterion in this toolkit"
+  },
+  {
+   "criterio": "2.3.1 Three Flashes or Below Threshold",
+   "estado": "manual-only",
+   "nota": "no automated signal exists for this criterion in this toolkit"
+  },
+  {
+   "criterio": "2.4.6 Headings and Labels (quality, not structure)",
+   "estado": "manual-only",
+   "nota": "no automated signal exists for this criterion in this toolkit"
+  },
+  {
+   "criterio": "2.5.7 Dragging Movements",
+   "estado": "manual-only",
+   "nota": "no automated signal exists for this criterion in this toolkit"
+  },
+  {
+   "criterio": "3.2.1 On Focus",
+   "estado": "manual-only",
+   "nota": "no automated signal exists for this criterion in this toolkit"
+  },
+  {
+   "criterio": "3.2.2 On Input",
+   "estado": "manual-only",
+   "nota": "no automated signal exists for this criterion in this toolkit"
+  },
+  {
+   "criterio": "3.3.1 Error Identification",
+   "estado": "manual-only",
+   "nota": "no automated signal exists for this criterion in this toolkit"
+  },
+  {
+   "criterio": "3.3.3 Error Suggestion",
+   "estado": "manual-only",
+   "nota": "no automated signal exists for this criterion in this toolkit"
+  },
+  {
+   "criterio": "3.3.4 Error Prevention (Legal, Financial, Data)",
+   "estado": "manual-only",
+   "nota": "no automated signal exists for this criterion in this toolkit"
+  },
+  {
+   "criterio": "3.3.7 Redundant Entry",
+   "estado": "manual-only",
+   "nota": "no automated signal exists for this criterion in this toolkit"
+  },
+  {
+   "criterio": "4.1.3 Status Messages (beyond scroll-mode observer)",
+   "estado": "manual-only",
+   "nota": "no automated signal exists for this criterion in this toolkit"
+  }
+ ],
+ "manual_pendiente": [
+  "1.2.1 Audio-only and Video-only (Prerecorded)",
+  "1.2.4 Captions (Live)",
+  "1.4.12 Text Spacing",
+  "1.4.13 Content on Hover or Focus",
+  "2.1.4 Character Key Shortcuts",
+  "2.3.1 Three Flashes or Below Threshold",
+  "2.4.6 Headings and Labels (quality, not structure)",
+  "2.5.7 Dragging Movements",
+  "3.2.1 On Focus",
+  "3.2.2 On Input",
+  "3.3.1 Error Identification",
+  "3.3.3 Error Suggestion",
+  "3.3.4 Error Prevention (Legal, Financial, Data)",
+  "3.3.7 Redundant Entry",
+  "4.1.3 Status Messages (beyond scroll-mode observer)"
+ ],
+ "artefactos": [
+  {
+   "tipo": "informe:static",
+   "url": "https://www.gov.uk",
+   "sha256": "51f8064019b8ae5d172411b95a2b10e72b561c9b4fccdf7ab177247c9d9cb4b2",
+   "score": 98
+  },
+  {
+   "tipo": "informe:rendered",
+   "url": "https://www.gov.uk",
+   "sha256": "1141b3f6565bebab6103cc3245ea4958d39ea903f60a7d4c30ee64331ce065c1",
+   "score": 74
+  },
+  {
+   "tipo": "informe:reflow",
+   "url": "https://www.gov.uk",
+   "sha256": "9faec825eab0a13690a776ae2bc926eac650a7564f20eea4928a9a60c7c67f9c",
+   "score": 100
+  }
+ ],
+ "evaluador": {
+  "nombre": null,
+  "credencial": null,
+  "fecha_revision": null,
+  "declaracion": null,
+  "nota": "any countersignature must reference pack.sha256 and state which criteria the human reviewed beyond the automated matrix"
+ },
+ "notas": null,
+ "aviso": "This pack is evidence, not conformance: it says what machines found and what remains for a human. A conformance claim requires the firma block completed by a qualified person who reviewed the manual list.",
+ "sha256": "2d73629844c18c8fbcd19b65ae09fc1fd926e0b054cddb3baaa4b30067b92669"
+}

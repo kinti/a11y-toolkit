@@ -50,7 +50,7 @@ makes "is it accessible?" a one-question ask — and "then fix it" a one-command
 | `a11y_diff` | Regression diff between two snapshots: added/removed/renamed interactives, focus-order changes. |
 | `a11y_diff_urls` | Snapshot two URLs and diff in one call (staging vs production). |
 | `a11y_aria_live_snippet` | Injectable monitor logging every aria-live announcement (time, politeness, role, text) — what a screen reader would say, visible on screen. |
-| `a11y_evidence` | **The countersignature-ready evidence pack**: full criteria matrix (fail/review/not-flagged/manual-only), artifacts SHA-256-hashed, empty signature block referencing the pack's hash. The vendor-neutral machine→human handoff — any qualified human can countersign it. |
+| `a11y_evidence` | **The countersignature-ready evidence pack**: full criteria matrix (fail/review/not-flagged/manual-only), artifacts SHA-256-hashed, empty signature block referencing the pack's hash. The vendor-neutral machine→human handoff — any qualified human can countersign it. Spec: [docs/evidence-pack-schema.md](docs/evidence-pack-schema.md), real sample included. |
 | `a11y_criterion` | Explains any WCAG 2.2 criterion in plain language: what it requires, typical failures, and which toolkit tool verifies it. |
 | `a11y_scroll` | **Infinite-scroll audit** — the documented disaster nobody automates (Deque + APG Feed pattern): real scrolling batches, does focus SURVIVE, is new content ANNOUNCED, does the feed END or offer load-more. |
 | `a11y_keyboard` | **Keyboard-trap detection (2.1.2) with REAL Tab walking**: up to 60 stops, cycle detection, and the decisive test — does Escape release? Correct modals are not reported. |
