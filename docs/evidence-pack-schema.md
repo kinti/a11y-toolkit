@@ -17,14 +17,19 @@ this document is the citable spec. A real sample from public audits:
 | `formato` | string, always `a11y-evidence-pack/1` | Format + major version. Pack/2 will be additive only (new optional fields); a validator must reject unknown majors. |
 | `generado` | ISO 8601 UTC | When the pack was built. |
 | `herramienta` | string | Producing tool and repo. |
-| `resumen` | object | Counts per status over the whole matrix: `automated-fail`, `automated-review`, `not-flagged`, `manual-only`. |
-| `criterios` | array | **The full matrix.** One entry per tracked WCAG 2.2 A/AA criterion: `{criterio: "1.4.3 Contrast (Minimum)", estado, nota?}`. Statuses: `automated-fail` (a signal fired), `automated-review` (a low-severity/review signal fired), `not-flagged` (no signal fired on this sample — **explicitly NOT pass**), `manual-only` (no automated signal exists for this criterion in the producing tool). |
-| `manual_pendiente` | array of strings | The criteria a human must cover by hand (the `manual-only` subset). |
+| `resumen` | object | Counts per status over the whole matrix: `automated-fail`, `automated-review`, `not-flagged`, `manual-only`, `agent-verified`. |
+| `criterios` | array | **The full matrix.** One entry per tracked WCAG 2.2 A/AA criterion: `{criterio: "1.4.3 Contrast (Minimum)", estado, nota?}`. Statuses: `automated-fail` (a signal fired), `automated-review` (a low-severity/review signal fired), `not-flagged` (no signal fired on this sample — **explicitly NOT pass**), `manual-only` (no automated signal exists in the producing tool), `agent-verified` (an agent or human verified this criterion against this sample per the manual-checklist protocol — verification NEVER erases an `automated-fail`). |
+| `manual_pendiente` | array of strings | The criteria still needing human coverage (the `manual-only` subset NOT yet `agent-verified`). |
+| `verificacion` | object? | Present when criterion codes were passed as verified: `{fuente: "agent"|"human", protocolo}`. |
 | `artefactos` | array | The input reports. Each: `{tipo: "informe:static\|rendered\|reflow\|keyboard\|scroll" \| "snapshot:a11y", url?, score?, sha256}`. `sha256` = SHA-256 of the artifact's canonical JSON (`sort_keys`, no whitespace). |
 | `evaluador` | object | The signature block, empty by design: `{nombre, credencial, fecha_revision, declaracion, nota}`. `declaracion` is what the human asserts; `nota` states the signing rule (below). |
 | `notas` | string? | Free text from the producer. |
 | `aviso` | string | The standing honesty statement: evidence, not conformance. |
 | `sha256` | string | **Pack hash**: SHA-256 of the pack's canonical JSON **with the `sha256` field removed**. Any mutation of any field breaks it. |
+
+**Pack/1 compatibility note**: `agent-verified` and `verificacion` were added
+as an additive extension within pack/1 (2026-09-15) — new optional status
+value and field, no renames or removals, per the versioning promise below.
 
 ## The hash rule (normative)
 

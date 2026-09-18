@@ -1,5 +1,21 @@
 # Changelog
 
+## 3.13.1 — 2026-09-15 — "the review pass"
+
+The post-release from-zero review caught three drifts, one functional:
+
+- **`verificados` was documented in the a11y_evidence schema but the server
+  dispatch did not pass it through** — the function worked, the MCP tool
+  ignored the parameter. Found by calling the installed PyPI package
+  end-to-end; now pinned by an MCP-level regression test (schema-documents-
+  it ≠ dispatch-passes-it — the same class as the CLI dispatcher bug of
+  3.9.1: every public path needs its own test through the real boundary).
+- The published spec (docs/evidence-pack-schema.md) predating agent-verified:
+  status and `verificacion` field now documented, with the pack/1 additive-
+  extension note for anyone building against it.
+- docs/evidence-pack.sample.json regenerated (36 matrix entries carried the
+  duplicated-criterion-code bug from pre-3.13; sample now built with 3.13).
+
 ## 3.13.0 — 2026-09-15 — "beyond"
 
 The three gaps a real consultant hits daily — and no MCP a11y tool covers.

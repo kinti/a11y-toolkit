@@ -57,7 +57,7 @@ try:
 except ImportError:
     ARIALIVE_JS = None  # repo checkout: read the file
 
-VERSION = '3.13.0'
+VERSION = '3.13.1'
 
 INSTRUCTIONS = (
     'Accessibility toolkit (WCAG 2.2), multilanguage es/en. '
@@ -684,7 +684,8 @@ def llamar(nombre, args):
     if nombre == 'a11y_evidence':
         try:
             return _texto(empaquetar_fn(args['informes'], snapshot=args.get('snapshot'),
-                                        evaluador=args.get('evaluador')))
+                                        evaluador=args.get('evaluador'),
+                                        verificados=args.get('verificados')))
         except Exception as e:  # noqa: BLE001
             return {'content': [{'type': 'text', 'text': f'error: {e}'}], 'isError': True}
     if nombre == 'a11y_autofix':

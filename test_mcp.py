@@ -37,6 +37,13 @@ REQ = [
                 'arguments': {'fg': 'hsl(0,0%,60%)', 'bg': 'white'}}},
     {'jsonrpc': '2.0', 'id': 14, 'method': 'tools/call',
      'params': {'name': 'a11y_criterion', 'arguments': {'code': '2.5.8', 'lang': 'en'}}},
+    {'jsonrpc': '2.0', 'id': 17, 'method': 'tools/call',
+     'params': {'name': 'a11y_evidence',
+                'arguments': {'informes': [{'url': 'https://t.example', 'score': 88,
+                                             'hallazgos': [{'criterio': '1.1.1 Non-text Content',
+                                                            'severidad': 'alta', 'senal': 'imgs_alt',
+                                                            'hallazgo': 'x', 'remediacion': 'y'}]}],
+                              'verificados': ['1.4.1', '1.1.1']}}},
     {'jsonrpc': '2.0', 'id': 15, 'method': 'tools/call',
      'params': {'name': 'a11y_badge', 'arguments': {'score': 92, 'lang': 'en'}}},
     {'jsonrpc': '2.0', 'id': 16, 'method': 'tools/call',
@@ -51,7 +58,7 @@ resp = [json.loads(l) for l in p.stdout.splitlines() if l.strip()]
 por_id = {r.get('id'): r for r in resp}
 
 init = por_id[1]['result']
-assert init['serverInfo']['name'] == 'a11y-toolkit' and init['serverInfo']['version'] == '3.13.0'
+assert init['serverInfo']['name'] == 'a11y-toolkit' and init['serverInfo']['version'] == '3.13.1'
 assert 'WCAG' in init['instructions'] and 'prompts' in init['capabilities']
 
 nombres = [t['name'] for t in por_id[2]['result']['tools']]
@@ -81,6 +88,10 @@ fx = json.loads(por_id[16]['result']['content'][0]['text'])
 fxs = sorted(a['senal'] for a in fx['aplicados'])
 assert fxs == ['autocomplete', 'lang_missing', 'title_missing', 'zoom_no'], fxs
 assert 'user-scalable' not in fx['fixed_html'] and 'autocomplete="email"' in fx['fixed_html']
+ev = json.loads(por_id[17]['result']['content'][0]['text'])
+estados = {m['criterio'].split(' ')[0]: m['estado'] for m in ev['criterios']}
+assert estados['1.4.1'] == 'agent-verified', f"dispatch no pasa verificados: {estados['1.4.1']}"
+assert estados['1.1.1'] == 'automated-fail'
 b15 = por_id[15]['result']['content'][0]['text']
 assert b15.startswith('<svg') and '92/100' in b15 and 'role="img"' in b15
 c14 = json.loads(por_id[14]['result']['content'][0]['text'])
