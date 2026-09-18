@@ -1,5 +1,29 @@
 # Changelog
 
+## 3.13.0 — 2026-09-15 — "beyond"
+
+The three gaps a real consultant hits daily — and no MCP a11y tool covers.
+
+- **Sitemap-driven site audits**: `a11ytoolkit audit --pages N` now enumerates
+  pages from /sitemap.xml first (WCAG-EM's own sampling source, incl. nested
+  sitemap indexes, bounded at 200 URLs), falling back to link discovery when
+  no sitemap exists. The report records which strategy ran (`descubrimiento`).
+  Two real bugs found shipping it: nested sitemaps exceeded the 3MB fetch
+  ceiling (sitemaps now parse a 2MB prefix — full files are not needed for a
+  bounded sample), and the no-crawl extension guard (.xml is a non-HTML
+  extension!) was eating the nested sitemaps themselves.
+- **Audits behind login**: all five rendered tools (audit_dom, reflow,
+  keyboard, scroll, snapshot) accept `auth_state` — a path to a Playwright
+  storage_state JSON exported from a logged-in session. Staging environments
+  are finally auditable; the file stays local, nothing is uploaded.
+- **The agent-verified status**: the conformance ladder always promised
+  "agent-verified" but the evidence pack could not record it. `verificados`
+  (criterion codes checked against the sample per the skill's manual
+  checklist) now promotes manual-only and not-flagged criteria to
+  `agent-verified` in the matrix, with the verification source recorded —
+  and automated-fail STAYS fail: verification never erases a finding. The
+  human homework list shrinks to what is actually unreviewed.
+
 ## 3.12.1 — 2026-09-15 — "the missing descriptions"
 
 Glama/TDQS scored us 4/5; the breakdown pointed at real gaps, now closed:

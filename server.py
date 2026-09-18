@@ -57,7 +57,7 @@ try:
 except ImportError:
     ARIALIVE_JS = None  # repo checkout: read the file
 
-VERSION = '3.12.1'
+VERSION = '3.13.0'
 
 INSTRUCTIONS = (
     'Accessibility toolkit (WCAG 2.2), multilanguage es/en. '
@@ -112,6 +112,7 @@ TOOLS = [
             'url': {'type': 'string'},
             'lang': {'type': 'string', 'enum': ['es', 'en']},
             'timeout': {'type': 'number', 'description': 'page load timeout seconds (45 default)'},
+            'auth_state': {'type': 'string', 'description': 'Path to a Playwright storage_state JSON (exported session) to audit behind login — local file, never uploaded'},
         }, 'required': ['url']},
     },
     {
@@ -178,7 +179,8 @@ TOOLS = [
                         '(aria snapshot — what a screen reader announces). Save it before a '
                         'deploy and compare after with a11y_diff. Requires local Playwright.'),
         'inputSchema': {'type': 'object', 'properties': {
-            'url': {'type': 'string'},
+            'url': {'type': 'string', 'description': 'Page URL to snapshot (http/https or file://)'},
+            'auth_state': {'type': 'string', 'description': 'Path to a Playwright storage_state JSON (exported session) to snapshot behind login'},
         }, 'required': ['url']},
     },
     {
@@ -251,6 +253,7 @@ TOOLS = [
             'url': {'type': 'string'},
             'lang': {'type': 'string', 'enum': ['es', 'en']},
             'timeout': {'type': 'number'},
+            'auth_state': {'type': 'string', 'description': 'Path to a Playwright storage_state JSON (exported session) to test behind login'},
         }, 'required': ['url']},
     },
     {
@@ -265,6 +268,7 @@ TOOLS = [
             'url': {'type': 'string'},
             'lang': {'type': 'string', 'enum': ['es', 'en']},
             'max_pasos': {'type': 'integer', 'description': 'max real Tab presses (60 default)'},
+            'auth_state': {'type': 'string', 'description': 'Path to a Playwright storage_state JSON (exported session) to Tab-walk behind login'},
         }, 'required': ['url']},
     },
     {
@@ -283,6 +287,7 @@ TOOLS = [
             'url': {'type': 'string'},
             'lang': {'type': 'string', 'enum': ['es', 'en']},
             'max_tandas': {'type': 'integer', 'description': 'scroll batches (5 default)'},
+            'auth_state': {'type': 'string', 'description': 'Path to a Playwright storage_state JSON (exported session) to audit an authenticated feed'},
         }, 'required': ['url']},
     },
     {
@@ -302,6 +307,7 @@ TOOLS = [
                          'description': 'audit report objects (any mode)'},
             'snapshot': {'type': 'object', 'description': 'a11y_snapshot output (optional)'},
             'evaluador': {'type': 'object', 'description': '{"nombre":…, "credencial":…, "fecha_revision":…} to prefill the signature block'},
+            'verificados': {'type': 'array', 'items': {'type': 'string'}, 'description': 'Criterion codes an agent/human verified against this sample (manual checklist protocol) — they become agent-verified in the matrix; automated-fail stays fail'},
         }, 'required': ['informes']},
     },
     {

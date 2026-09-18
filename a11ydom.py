@@ -710,7 +710,7 @@ _JS_OVERFLOW = r'''() => {
 }'''
 
 
-def audit_reflow(url, timeout=45, lang='en'):
+def audit_reflow(url, timeout=45, lang='en', auth_state=None):
     """Reflujo 320px — criterio 1.4.10 (AA), la comprobación que ni axe ni
     Lighthouse automatizan. Nota de método: el estándar define el reflujo como
     «320 CSS px, equivalente a 1280px al 400% de zoom», y el zoom real del
@@ -783,7 +783,7 @@ _STOP_META = r"""(i) => {
 }"""
 
 
-def audit_keyboard(url, max_pasos=60, lang='en', timeout=45):
+def audit_keyboard(url, max_pasos=60, lang='en', timeout=45, auth_state=None):
     """Detección de TRAMPAS DE TECLADO (2.1.2) con Tab real.
 
     Recorre hasta max_pasos tabulaciones reales en Chromium, registra la
@@ -794,7 +794,8 @@ def audit_keyboard(url, max_pasos=60, lang='en', timeout=45):
     from playwright.sync_api import sync_playwright
     with sync_playwright() as p:
         nav = p.chromium.launch()
-        page = nav.new_page()
+        ctx = nav.new_context(storage_state=auth_state) if auth_state else nav
+        page = ctx.new_page() if auth_state else nav.new_page()
         try:
             page.goto(url, wait_until='load', timeout=timeout * 1000)
             page.wait_for_timeout(400)
@@ -871,15 +872,18 @@ def audit_keyboard(url, max_pasos=60, lang='en', timeout=45):
     }
 
 
-def audit_dom_url(url, timeout=45, lang='en'):
+def audit_dom_url(url, timeout=45, lang='en', auth_state=None):
     """Carga la URL en Chromium y devuelve el informe renderizado.
 
     Escanea también los iframes same-origin (hasta 4) y contrasta los estados
-    :hover reales de los primeros controles marcados."""
+    :hover reales de los primeros controles marcados. auth_state: ruta a un
+    storage_state de Playwright (cookies/localStorage exportados con la sesión
+    iniciada) para auditar detrás de login."""
     from playwright.sync_api import sync_playwright
     with sync_playwright() as p:
         nav = p.chromium.launch()
-        page = nav.new_page()
+        ctx = nav.new_context(storage_state=auth_state) if auth_state else nav
+        page = ctx.new_page() if auth_state else nav.new_page()
         try:
             page.goto(url, wait_until='load', timeout=timeout * 1000)
             page.wait_for_timeout(400)

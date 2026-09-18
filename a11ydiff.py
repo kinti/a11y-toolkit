@@ -50,12 +50,13 @@ COLECTOR = r'''() => {
 }'''
 
 
-def snapshot(url, salida=None):
+def snapshot(url, salida=None, auth_state=None):
     """Captura una URL. Con salida=None devuelve los datos sin escribir fichero."""
     from playwright.sync_api import sync_playwright
     with sync_playwright() as p:
         nav = p.chromium.launch()
-        page = nav.new_page()
+        ctx = nav.new_context(storage_state=auth_state) if auth_state else nav
+        page = ctx.new_page() if auth_state else nav.new_page()
         page.goto(url, wait_until='networkidle', timeout=45000)
         elementos = page.evaluate(COLECTOR)
 

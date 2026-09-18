@@ -966,15 +966,16 @@ def audit_html(html_text, url='(html)', lang='en'):
     }
 
 
-def _descarga(url, timeout=30):
+def _descarga(url, timeout=30, truncar_en=None):
     req = urllib.request.Request(url, headers={
         'User-Agent': 'Mozilla/5.0 (compatible; a11y-toolkit/3.2; WCAG audit)',
         'Accept': 'text/html,application/xhtml+xml',
         'Accept-Encoding': 'gzip',
     })
     with urllib.request.urlopen(req, timeout=timeout) as r:
-        datos = r.read(MAX_HTML + 1)
-        if len(datos) > MAX_HTML:
+        techo = truncar_en or MAX_HTML
+        datos = r.read(techo + 1)
+        if len(datos) > techo and truncar_en is None:
             raise ValueError(f'HTML > {MAX_HTML // 1000000} MB, demasiado grande')
         if (r.headers.get('Content-Encoding') or '').lower() == 'gzip' or datos[:2] == b'\x1f\x8b':
             import gzip
@@ -1008,6 +1009,44 @@ def audit_url(url, timeout=30, lang='en'):
     except Exception as e:  # noqa: BLE001
         return {'error': _t(lang, 'descarga_error').format(e=e)}
     return audit_html(html_text, url, lang=lang)
+
+
+_LOC = re.compile(r'<loc>\s*([^<\s]+)\s*</loc>', re.I)
+_SITEMAP_MAX = 200
+
+
+def _urls_sitemap(url, timeout=30):
+    """Same-domain page URLs from /sitemap.xml (and nested sitemap indexes,
+    one level). Zero dependencies, bounded."""
+    from urllib.parse import urlsplit, urljoin
+    host = urlsplit(url).netloc
+    vistos, paginas = set(), []
+    cola = [urljoin(url, '/sitemap.xml')]
+    while cola and len(paginas) < _SITEMAP_MAX:
+        sm = cola.pop(0)
+        if sm in vistos:
+            continue
+        vistos.add(sm)
+        try:
+            datos = _descarga(sm, timeout=timeout, truncar_en=2_000_000)
+        except Exception:  # noqa: BLE001
+            continue
+        if not datos.lstrip().startswith('<'):
+            continue
+        for loc in _LOC.findall(datos)[:_SITEMAP_MAX]:
+            partes = urlsplit(loc)
+            if partes.scheme not in ('http', 'https') or partes.netloc != host:
+                continue
+            limpio = loc.split('#')[0].rstrip('/')
+            if limpio.endswith('.xml'):                     # nested sitemap
+                if len(cola) < 8:
+                    cola.append(limpio)
+                continue
+            if _NO_RASTREAR.search(partes.path):
+                continue
+            if limpio not in paginas:
+                paginas.append(limpio)
+    return paginas
 
 
 _HREF = re.compile(r'<a\s[^>]*?href=["\']([^"\']+)["\']', re.I)
@@ -1051,7 +1090,7 @@ def evaluar_sitio(parsers, lang='en'):
     return out
 
 
-def audit_site(url, max_pages=5, timeout=30, lang='en'):
+def audit_site(url, max_pages=5, timeout=30, lang='en', desde_sitemap=True):
     """Audita la URL y hasta max_pages-1 páginas más del mismo dominio
     (descubrimiento por enlaces). Igual de cero-dependencias que el resto."""
     max_pages = max(1, min(20, int(max_pages)))
@@ -1066,7 +1105,8 @@ def audit_site(url, max_pages=5, timeout=30, lang='en'):
     informes = [audit_html(html_text, url, lang=lang)]
     parsers = [p0]
     vistos = {url.split('#')[0].rstrip('/')}
-    cola = _enlaces_internos(html_text, url, url)
+    # discovery: sitemap first (WCAG-EM's own enumeration), links as fallback
+    cola = (_urls_sitemap(url, timeout=timeout) if desde_sitemap else [])         or _enlaces_internos(html_text, url, url)
     while cola and len(informes) < max_pages:
         siguiente = cola.pop(0)
         if siguiente in vistos:
@@ -1080,7 +1120,7 @@ def audit_site(url, max_pages=5, timeout=30, lang='en'):
         pg = _Auditor()
         pg.feed(html_pg[:MAX_HTML]); pg.close()
         parsers.append(pg)
-        if len(informes) < max_pages:
+        if len(informes) < max_pages and not desde_sitemap:
             for nuevo in _enlaces_internos(html_pg, siguiente, url):
                 if nuevo not in vistos:
                     cola.append(nuevo)
@@ -1097,6 +1137,7 @@ def audit_site(url, max_pages=5, timeout=30, lang='en'):
     return {
         'url': url,
         'modo': 'site',
+        'descubrimiento': 'sitemap' if desde_sitemap and _urls_sitemap(url, timeout) else 'links',
         'paginas': len(informes),
         'score_medio': round(sum(scores) / len(scores)) if scores else None,
         'score_peor': min(scores) if scores else None,
@@ -1117,7 +1158,8 @@ def main(argv):
     a = ap.parse_args(argv)
     if a.url:
         try:
-            res = (audit_site(a.url, max_pages=a.pages, lang=a.lang)
+            res = (audit_site(a.url, max_pages=a.pages, lang=a.lang,
+                              desde_sitemap=not a.no_sitemap)
                    if a.pages > 1 else audit_url(a.url, lang=a.lang))
         except Exception as e:  # noqa: BLE001
             print(json.dumps({'error': f'no se pudo descargar: {e}'}))

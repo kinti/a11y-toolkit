@@ -51,7 +51,8 @@ MANUAL_AA = [
     '4.1.3 Status Messages (beyond scroll-mode observer)',
 ]
 
-_ESTADOS = ('automated-fail', 'automated-review', 'not-flagged', 'manual-only')
+_ESTADOS = ('automated-fail', 'automated-review', 'not-flagged', 'manual-only',
+            'agent-verified')
 
 
 def _canon(obj):
@@ -62,8 +63,15 @@ def _sha256(obj):
     return hashlib.sha256(_canon(obj).encode('utf-8')).hexdigest()
 
 
-def empaquetar(informes, snapshot=None, evaluador=None, notas=None):
-    """Informes (lista de dicts JSON) → paquete de evidencia contrafirmable."""
+def empaquetar(informes, snapshot=None, evaluador=None, notas=None, verificados=None):
+    """Informes (lista de dicts JSON) → paquete de evidencia contrafirmable.
+
+    verificados: lista de códigos de criterio ("1.4.1", "3.3.1"…) que un
+    agente o una persona han verificado manualmente sobre esta muestra
+    (protocolo del checklist del skill). El criterio pasa a estado
+    'agent-verified' — salvo que una señal automática diera fail, que
+    permanece como fail (el fallo no se borra verificando). La fuente
+    (agente/humano, fecha) queda registrada en el bloque verificacion."""
     ahora = datetime.now(timezone.utc).isoformat(timespec='seconds')
 
     # matriz de criterios: los que tocamos (estado según hallazgos) + manuales
@@ -80,15 +88,28 @@ def empaquetar(informes, snapshot=None, evaluador=None, notas=None):
             if tocados.get(code) != 'automated-fail':
                 tocados[code] = estado
 
+    verificados = {v.split(' ')[0] for v in (verificados or [])}
     matriz = []
     for code in sorted(CRIT['en']):
         estado = tocados.get(code, 'not-flagged')
-        matriz.append({'criterio': f"{code} {CRIT['en'][code]}", 'estado': estado,
-                       'nota': 'not-flagged ≠ pass: no automated signal fired on this sample'
-                               if estado == 'not-flagged' else None})
-    for nombre in MANUAL_AA:
+        if code in verificados and estado != 'automated-fail':
+            estado = 'agent-verified'
+        nota = None
+        if estado == 'not-flagged':
+            nota = 'not-flagged ≠ pass: no automated signal fired on this sample'
+        elif estado == 'agent-verified':
+            nota = 'verified against this sample per the manual checklist protocol'
+        matriz.append({'criterio': CRIT['en'][code], 'estado': estado,
+                       'nota': nota})
+    manuales_restantes = [m for m in MANUAL_AA if m.split(' ')[0] not in verificados]
+    for nombre in manuales_restantes:
         matriz.append({'criterio': nombre, 'estado': 'manual-only',
                        'nota': 'no automated signal exists for this criterion in this toolkit'})
+    for code in sorted(verificados):
+        if any(code in m for m in MANUAL_AA) and not any(m.startswith(code) for m in manuales_restantes):
+            matriz.append({'criterio': next(m for m in MANUAL_AA if m.startswith(code)),
+                           'estado': 'agent-verified',
+                           'nota': 'verified against this sample per the manual checklist protocol'})
 
     resumen = {e: sum(1 for m in matriz if m['estado'] == e) for e in _ESTADOS}
 
@@ -108,6 +129,8 @@ def empaquetar(informes, snapshot=None, evaluador=None, notas=None):
         'resumen': resumen,
         'criterios': matriz,
         'manual_pendiente': [m['criterio'] for m in matriz if m['estado'] == 'manual-only'],
+        'verificacion': ({'fuente': 'agent', 'protocolo': 'skill manual checklist'}
+                         if verificados else None),
         'artefactos': artefactos,
         'evaluador': {  # bloque a completar por la persona que firma
             'nombre': (evaluador or {}).get('nombre'),

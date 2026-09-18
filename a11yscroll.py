@@ -104,11 +104,13 @@ def _agrega(hallazgos, lang, sev, code, key, **fmt):
     })
 
 
-def audit_scroll(url, max_tandas=5, lang='en', timeout=45):
+def audit_scroll(url, max_tandas=5, lang='en', timeout=45, auth_state=None):
     from playwright.sync_api import sync_playwright
     with sync_playwright() as p:
         nav = p.chromium.launch()
-        page = nav.new_page(viewport={'width': 1280, 'height': 800})
+        ctx = nav.new_context(storage_state=auth_state) if auth_state else nav
+        page = ctx.new_page(viewport={'width': 1280, 'height': 800}) if auth_state \
+            else nav.new_page(viewport={'width': 1280, 'height': 800})
         try:
             page.goto(url, wait_until='load', timeout=timeout * 1000)
             page.wait_for_timeout(500)
