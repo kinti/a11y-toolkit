@@ -31,6 +31,10 @@ this document is the citable spec. A real sample from public audits:
 as an additive extension within pack/1 (2026-09-15) — new optional status
 value and field, no renames or removals, per the versioning promise below.
 
+**On field names**: keys like `informes`, `evaluador`, `senal` are historical
+Spanish from the format's origin, frozen for pack/1 stability (builders depend
+on them); any pack/2 keeps every existing key untouched.
+
 ## The hash rule (normative)
 
 Canonical form is `json.dumps(obj, ensure_ascii=False, sort_keys=True,

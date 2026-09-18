@@ -57,7 +57,7 @@ try:
 except ImportError:
     ARIALIVE_JS = None  # repo checkout: read the file
 
-VERSION = '3.13.1'
+VERSION = '3.13.2'
 
 INSTRUCTIONS = (
     'Accessibility toolkit (WCAG 2.2), multilanguage es/en. '
@@ -67,6 +67,9 @@ INSTRUCTIONS = (
     'a11y_contrast_image, a11y_suggest_color) → DOCUMENT (a11y_generate_declaration: '
     'RD 1112/2018 or European Accessibility Act wording) → WATCH (a11y_snapshot — '
     'includes the computed accessibility tree — + a11y_diff across deploys). '
+    'Site sampling reads /sitemap.xml first (WCAG-EM enumeration, links as fallback); '
+    'rendered tools accept auth_state (Playwright storage_state) to audit behind login; '
+    'a11y_evidence records verificados codes as agent-verified (automated-fail stays fail). '
     'a11y_criterion explains what any criterion means. Every tool returns es/en '
     'findings with concrete remediation. '
     'Automation covers about one third of WCAG: pair audits with the manual checklist '

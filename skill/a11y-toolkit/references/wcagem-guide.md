@@ -15,7 +15,7 @@ conformance claims** — that honesty is the product.
 Based on WCAG-EM (W3C Website Accessibility Conformance Evaluation Methodology):
 structured + random sampling, human-verified results.
 
-1. **Sample** (WCAG-EM step 3-4): include the structured pages — home,
+1. **Sample** (WCAG-EM step 3-4) — enumerate candidates from /sitemap.xml (the crawl does this automatically): include the structured pages — home,
    contact, login/signup, one content page, one complete form flow, one page
    with rich interaction — plus 1-2 random pages from the crawl. Minimum ~10
    pages for a small site.

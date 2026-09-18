@@ -1106,7 +1106,8 @@ def audit_site(url, max_pages=5, timeout=30, lang='en', desde_sitemap=True):
     parsers = [p0]
     vistos = {url.split('#')[0].rstrip('/')}
     # discovery: sitemap first (WCAG-EM's own enumeration), links as fallback
-    cola = (_urls_sitemap(url, timeout=timeout) if desde_sitemap else [])         or _enlaces_internos(html_text, url, url)
+    urls_sm = _urls_sitemap(url, timeout=timeout) if desde_sitemap else []
+    cola = urls_sm or _enlaces_internos(html_text, url, url)
     while cola and len(informes) < max_pages:
         siguiente = cola.pop(0)
         if siguiente in vistos:
@@ -1137,7 +1138,7 @@ def audit_site(url, max_pages=5, timeout=30, lang='en', desde_sitemap=True):
     return {
         'url': url,
         'modo': 'site',
-        'descubrimiento': 'sitemap' if desde_sitemap and _urls_sitemap(url, timeout) else 'links',
+        'descubrimiento': 'sitemap' if urls_sm else 'links',
         'paginas': len(informes),
         'score_medio': round(sum(scores) / len(scores)) if scores else None,
         'score_peor': min(scores) if scores else None,

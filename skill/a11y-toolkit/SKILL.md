@@ -33,7 +33,9 @@ All output is English by default; pass `--lang es` (or the `lang: "es"` MCP argu
 | "watch the site / only NEW regressions should block" | `a11ytoolkit budget`: accept the baseline once, then only new blocking findings fail (exit 2). Recipe: `examples/a11y-watch.yml` (weekly GitHub Action) |
 | "put these findings in the PR / code scanning" | `a11ytoolkit sarif --from-audit audit.json -o a11y.sarif` → upload with github/codeql-action/upload-sarif |
 | "a badge for the audited site" | `a11y_badge` (score + date + "automated screening" scope — never claims conformance) |
-| "audit the section, not just one page" | `pages` parameter (or `a11ytoolkit audit --pages N`): light same-domain crawl, aggregated by mean/worst score |
+| "audit the section, not just one page" | `pages` parameter (or `a11ytoolkit audit --pages N`): sitemap-first same-domain crawl (links fallback), aggregated by mean/worst score |
+| "the staging site is behind a login" | rendered tools accept `auth_state`: path to a Playwright storage_state JSON exported from a logged-in session — file stays local |
+| "record what I verified by hand/agent" | pass `verificados` (criterion codes) to `a11y_evidence`: they become agent-verified in the matrix; automated-fail never erases |
 | "full evaluation / conformance / WCAG-EM" | the `conformance-wcagem` prompt — three tiers, escalate one at a time; protocol in `references/wcagem-guide.md` |
 | "produce something a human auditor can sign" | `a11y_evidence`: the countersignature-ready pack (criteria matrix + hashed artifacts + empty signature block). Vendor-neutral — any qualified human, any marketplace, or the consultant herself |
 | "FIX it for me" (zoom blocked, missing autocomplete, missing lang/title) | `a11y_autofix`: deterministic, provably safe fixes only; judgment fixes come back as `no_aplicados` + remediation. Never promise overlay-style full fixes |

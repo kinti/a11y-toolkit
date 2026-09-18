@@ -79,8 +79,12 @@ def empaquetar(informes, snapshot=None, evaluador=None, notas=None, verificados=
     tocados = {}
     for inf in informes:
         for h in inf.get('hallazgos', []):
-            code = h['criterio'].split(' ')[0]
-            texto = h.get('hallazgo', '').lower()
+            crit = h.get('criterio')
+            if not crit or not isinstance(crit, str):   # informe malformado: saltar
+                continue
+            code = crit.split(' ')[0]
+            texto = h.get('hallazgo', '') or ''
+            texto = texto.lower() if isinstance(texto, str) else ''
             estado = 'automated-review' if (h.get('severidad') == 'baja'
                                             and ('review' in texto or 'revisar' in texto)) \
                 else 'automated-fail'
