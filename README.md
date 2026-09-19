@@ -7,79 +7,100 @@
 [![Python 3.9+](https://img.shields.io/badge/python-3.9%2B-blue.svg)](pyproject.toml)
 [![MCP](https://img.shields.io/badge/Model%20Context%20Protocol-server-purple)](https://modelcontextprotocol.io)
 
-**19 MCP tools + 5 prompts + a skill** that give any AI agent (Claude, Cursor, Windsurf,
-Codex…) the full WCAG 2.2 loop: **audit → fix → document → watch**. Zero dependencies at
-its core; every finding ships with a concrete remediation your agent can apply.
+**19 MCP tools + 5 prompts + a skill** covering the full WCAG 2.2 loop: **audit → fix →
+document → watch → hand off**. **50 of 54 A/AA criteria carry automated signals (92%)**.
+Zero dependencies at the core; every finding ships with a concrete remediation your
+agent can apply.
 
-Accessibility is not optional anymore: the **European Accessibility Act is in force since
-June 2025**, ADA suits keep landing, and AI agents now write most of the web. This toolkit
-makes "is it accessible?" a one-question ask — and "then fix it" a one-command job.
+The **European Accessibility Act** is in force since June 2025, ADA suits keep landing,
+and AI agents now write most of the web. A scan is not a defence — the machine finds,
+the human signs.
 
 <p align="center">
-  <img src="docs/demo.gif" alt="a11y-toolkit in action: audit a page (score 64), get the nearest passing color (#767676), re-audit (94) — real tool output" width="720">
+  <img src="docs/demo.gif" alt="a11y-toolkit in action: audit (score 64), nearest passing color, re-audit (94) — real tool output" width="720">
 </p>
 
 ## What no other a11y tool gives an agent
 
 | Capability | axe-core / Lighthouse / pa11y | a11y-toolkit |
 |---|---|---|
-| Text contrast over **images/gradients** (pixel sampling of the real background, hostile-zone grid) | ✗ | ✓ |
-| Legal **accessibility statements** (EAA / RD 1112/2018), accessible HTML, es/en | ✗ | ✓ |
-| **Regression watch** between builds: accessible names + real tab-order diff | ✗ | ✓ |
-| **Remediation text per finding**, written for an agent to apply | ✗ | ✓ |
-| **Focus-order regression detection** | ✗ | ✓ |
-| Runs with **zero dependencies** (stdlib only; Playwright optional for the deep pass) | heavy runtimes | ✓ |
-| Screen-reader **aria-live announcement monitor** | ✗ | ✓ |
-| **0-100 score** computed from weighted findings | ✓ (subset of axe rules) | ✓ (weighted across 50 WCAG criteria) |
-| **Criterion explanations** on demand for agents | ✗ | ✓ |
-| Static core parity: ARIA validity, autocomplete 1.3.5, link purpose, list structure, duplicate ids | ✓ | ✓ |
-| Output optimized for **MCP/LLM consumption** (JSON, severity-ranked, es/en) | ✗ | ✓ |
+| Text contrast over **images/gradients** (pixel sampling, hostile-zone grid) | ✗ | ✓ |
+| **Form error testing**: fills invalid data, submits, judges announcement (3.3.1/3.3.3) | ✗ | ✓ |
+| **Keyboard traps** with real Tab walking + Escape-release test (2.1.2) | ✗ | ✓ |
+| **Infinite-scroll audit**: focus survival, announcements, feed end (2.4.3, 4.1.3) | ✗ | ✓ |
+| **Reflow at 320px** (1.4.10) + **text spacing override** (1.4.12) | ✗ | ✓ |
+| **W3C Nu validator** integration (doctype, structural validity, mapped to criteria) | ✗ | ✓ |
+| **Focus/input-triggered navigation** detection (3.2.1/3.2.2) | ✗ | ✓ |
+| **Legal accessibility statements** (EAA / RD 1112/2018), es/en | ✗ | ✓ |
+| **Evidence pack** for human countersigning (SHA-256, criteria matrix) | ✗ | ✓ |
+| **Deterministic autofix** incl. accessible form-error layer (3.3.1/3.3.3) | ✗ | ✓ |
+| **Regression watch**: budget, SARIF→GitHub PRs, tab-order + tree diffs | ✗ | ✓ |
+| **Open shadow DOM** traversal + same-origin iframes | partial | ✓ |
+| **Placeholder-only labels**, fieldset/legend, label quality, financial confirmation | ✗ | ✓ |
+| Runs with **zero dependencies** at core (Playwright optional) | heavy runtimes | ✓ |
+| Output optimized for **MCP/LLM consumption** (JSON, es/en, severity-ranked) | ✗ | ✓ |
 
 ## The tools (19)
 
+### Audit
+
 | Tool | What it does |
 |---|---|
-| `a11y_audit_url` | Express static WCAG audit of a URL **or raw HTML**: 40+ signals — **50 WCAG criteria touched** — with a **weighted 0-100 score** (alt, accessible names, labels, autocomplete 1.3.5, keyboard onclick, unknown ARIA roles, broken aria-labelledby, unnamed duplicated landmarks, meta refresh, skip mechanism, lang validity, title, headings, blocked zoom, captions, autoplay audio, generic/duplicated link text, target=_blank warnings, tabindex>0, aria-hidden-on-focusable, tables, duplicate ids, accesskeys). Per-finding remediation. |
-| `a11y_audit_dom` | **Rendered audit** (local Playwright/Chromium): real computed text contrast vs effective backgrounds with alpha compositing (1.4.3), minimum target size 24×24 (**2.5.8 — new in WCAG 2.2**), focus-indicator heuristic (2.4.7), **:focus/:hover state contrast**, **open shadow DOM traversed** — all static checks on the live DOM. |
-| `a11y_contrast_pair` | Exact ratio + verdicts 1.4.3/1.4.6/1.4.11. Accepts `#hex`, `rgb()`, `hsl()`, **CSS color names**; alpha composites over the background. Suggests the nearest passing color. |
-| `a11y_contrast_image` | **Text over images**: pixel-level sampling of the actual background → worst/median/p95 ratio, % area passing AA, hostile-zone detection on a 3×3 grid. |
-| *(rendered audit)* | adds **:focus/:hover state contrast** (disabled exempt) and **same-origin iframes** |
-| `a11y_suggest_color` | Nearest opaque color (true RGB distance) reaching the target ratio (4.5 default). |
-| `a11y_generate_declaration` | Legal accessibility statement in HTML: RD 1112/2018 art. 10 (Spanish public sector) or **European Accessibility Act** wording (Directive (EU) 2019/882 / Ley 11/2023). es/en. The document is itself accessible. |
-| `a11y_snapshot` | Interactive elements (tag, role, accessible name, href) + **real tab focus order** + the **computed accessibility tree** (what a screen reader announces). Requires Playwright. |
-| `a11y_diff` | Regression diff between two snapshots: added/removed/renamed interactives, focus-order changes. |
-| `a11y_diff_urls` | Snapshot two URLs and diff in one call (staging vs production). |
-| `a11y_aria_live_snippet` | Injectable monitor logging every aria-live announcement (time, politeness, role, text) — what a screen reader would say, visible on screen. |
-| `a11y_evidence` | **The countersignature-ready evidence pack**: full criteria matrix (fail/review/not-flagged/manual-only), artifacts SHA-256-hashed, empty signature block referencing the pack's hash. Records agent-verified criteria (`verificados` — a fail never erases). The vendor-neutral machine→human handoff — any qualified human can countersign it. Spec: [docs/evidence-pack-schema.md](docs/evidence-pack-schema.md), real sample included. |
-| `a11y_criterion` | Explains any WCAG 2.2 criterion in plain language: what it requires, typical failures, and which toolkit tool verifies it. |
-| `a11y_html_validate` | **The W3C's own parser as a mode** (validator.w3.org/nu): doctype, encoding, structural validity + authoritative alt/lang/role findings, mapped to criteria. Self-hosted vnu supported; html mode's privacy trade-off documented. |
-| `a11y_forms` | **Form error testing (3.3.1/3.3.3)** — the guided flow nobody automates: fills validatable fields with invalid data, really submits, and judges whether errors are identified and announced in the post-submit DOM. |
-| `a11y_scroll` | **Infinite-scroll audit** — the documented disaster nobody automates (Deque + APG Feed pattern): real scrolling batches, does focus SURVIVE, is new content ANNOUNCED, does the feed END or offer load-more. |
-| `a11y_keyboard` | **Keyboard-trap detection (2.1.2) with REAL Tab walking**: up to 60 stops, cycle detection, and the decisive test — does Escape release? Correct modals are not reported. |
-| `a11y_autofix` | **Deterministic safe auto-fixes** on HTML: unblock zoom (1.4.4), exact autocomplete tokens (1.3.5), missing lang, empty title. Forms without their own error handling get an **accessible error layer** injected (3.3.1 identification + 3.3.3 attribute-derived suggestions). Everything requiring judgment is returned as `no_aplicados` with the reason — the honest anti-overlay. |
-| `a11y_reflow` | **Reflow at 320px (1.4.10)** — the check axe and Lighthouse don't automate: real horizontal scroll + overflowing elements at 320px viewport. |
-| `a11y_badge` | Returns an **honest badge** as accessible SVG: score, date, scope ("automated screening"), never "conformant" — the anti-overclaim seal. |
+| `a11y_audit_url` | Express static audit of a URL or raw HTML: 40+ signals across 50 WCAG criteria with a weighted 0-100 score. Covers alt, names, labels, autocomplete (1.3.5), ARIA validity (roles/refs/values), headings, zoom, lang, captions, autoplay, link purpose (2.4.4), list structure, duplicate ids/accesskeys, placeholder-only labels, fieldset/legend for radio groups, label quality, required-field indication, financial forms without confirmation (3.3.4), character-key shortcuts (2.1.4), drag handlers (2.5.7), status regions (4.1.3), heading quality (2.4.6), sensory instructions (1.3.3), orientation lock (1.3.4), images of text (1.4.5), consistent help (3.2.6), site-level nav consistency (3.2.3) and multiple ways (2.4.5). |
+| `a11y_audit_dom` | **Rendered audit** in Chromium: computed text contrast with alpha compositing (1.4.3), target size 24×24 (**2.5.8 — new in WCAG 2.2**), focus indicator (2.4.7), **:focus/:hover state contrast**, **text spacing override** (1.4.12 — injects WCAG spacing, counts clipped texts), **color-only links** (1.4.1), **DOM-vs-visual order** (1.3.2), looping animations (2.2.2), **open shadow DOM traversed**, **same-origin iframes scanned**. Accepts `auth_state` for behind-login auditing. |
+| `a11y_forms` | **Form error testing** (3.3.1/3.3.3): fills validatable fields with invalid data, really submits, judges whether errors are identified and announced in the post-submit DOM. Native browser validation counts (unless `novalidate`). |
+| `a11y_keyboard` | **Keyboard traps** (2.1.2) with real Tab walking + cycle detection + Escape-release test. Also detects **focus-triggered navigation** (3.2.1) and **input-triggered navigation** (3.2.2). |
+| `a11y_scroll` | **Infinite-scroll audit**: does focus survive each batch? Is new content announced (4.1.3)? Does the feed end or offer load-more? |
+| `a11y_reflow` | **320px reflow** (1.4.10): real horizontal scroll + overflowing elements. |
+| `a11y_html_validate` | **W3C Nu validator** (validator.w3.org/nu): doctype, encoding, structural validity, authoritative alt/lang/role findings mapped to criteria. Self-hosted vnu supported. |
 
-**5 prompts** (slash-commands in supporting clients): `audit-page` (full audit workflow +
-what automation can't check), `fix-contrast`, `pre-deploy-check` (audit + diff → GO/NO-GO),
-`declaration-eaa` (collects legal fields, generates), `conformance-wcagem` (the three-tier
-WCAG-EM ladder).
+### Fix
+
+| Tool | What it does |
+|---|---|
+| `a11y_autofix` | **Deterministic safe fixes**: unblock zoom (1.4.4), autocomplete tokens (1.3.5), missing lang, empty title, **accessible form-error layer** (aria-invalid + describedby + attribute-derived suggestions — skips forms with their own handling). Judgment fixes returned as `no_aplicados` with remediation. |
+| `a11y_contrast_pair` | Exact ratio + verdicts 1.4.3/1.4.6/1.4.11. Accepts #hex, rgb(), hsl(), CSS names; alpha composites. Suggests nearest passing color. |
+| `a11y_contrast_image` | **Text over images**: pixel-level sampling → worst/median/p95 ratio, % area passing AA, hostile-zone grid. |
+| `a11y_suggest_color` | Nearest opaque color reaching the target ratio. |
+
+### Document
+
+| Tool | What it does |
+|---|---|
+| `a11y_generate_declaration` | Legal statement: RD 1112/2018 art. 10 or **European Accessibility Act** (EAA). es/en. The document is itself accessible. |
+| `a11y_badge` | **Honest SVG badge**: score, date, "automated screening" scope — never claims conformance. |
+| `a11y_criterion` | Explains any WCAG 2.2 criterion: what it requires, typical failures, which tool verifies it. |
+
+### Watch
+
+| Tool | What it does |
+|---|---|
+| `a11y_snapshot` | Interactive elements + real tab order + **computed accessibility tree** (what a screen reader announces). |
+| `a11y_diff` | Regression diff between snapshots: interactives, focus order, tree changes. |
+| `a11y_diff_urls` | Snapshot two URLs and diff (staging vs production). |
+| `a11y_aria_live_snippet` | Injectable monitor logging every aria-live announcement. |
+
+### Hand off
+
+| Tool | What it does |
+|---|---|
+| `a11y_evidence` | **Countersignature-ready evidence pack**: full criteria matrix (fail/review/not-flagged/agent-verified/manual-only), SHA-256-hashed artifacts, empty signature block tied to the pack hash. Spec: [docs/evidence-pack-schema.md](docs/evidence-pack-schema.md). |
+
+**5 prompts**: `audit-page`, `fix-contrast`, `pre-deploy-check` (GO/NO-GO), `declaration-eaa`, `conformance-wcagem` (three-tier WCAG-EM ladder).
 
 ## Install
 
-> Registry name: `mcp-name: io.github.kinti/a11y-toolkit` · PyPI: [a11y-toolkit](https://pypi.org/project/a11y-toolkit/)
+> Registry: `io.github.kinti/a11y-toolkit` · PyPI: [a11y-toolkit](https://pypi.org/project/a11y-toolkit/) · Zenodo DOI: `10.5281/zenodo.22843722`
 
-Works with **any MCP-capable client** — Claude Code/Desktop, Cursor, Windsurf,
-VS Code, Codex CLI, OpenCode, ZCode, Zed, Cline, Continue, Kimi Code… See
+Works with **any MCP-capable client** — Claude Code/Desktop, Cursor, Windsurf, VS Code,
+Codex CLI, OpenCode, ZCode, Zed, Cline, Continue, Kimi Code… See
 [docs/clients.md](docs/clients.md) for every verified config format.
-
-**Claude Code** (one command):
 
 ```bash
 claude mcp add a11y-toolkit -- uvx --from a11y-toolkit a11y-toolkit-mcp
 ```
 
-**Any MCP client with JSON config** (Claude Desktop, Cursor, Windsurf, VS Code…):
+Or with JSON config:
 
 ```json
 {
@@ -93,18 +114,11 @@ claude mcp add a11y-toolkit -- uvx --from a11y-toolkit a11y-toolkit-mcp
 }
 ```
 
-Or from the repo without publishing:
+Rendered tools use Playwright **if present** (`pip install playwright && playwright
+install chromium`); everything else works with zero dependencies. Rendered tools accept
+`auth_state` (Playwright storage_state path) to audit behind login.
 
-```json
-{ "mcpServers": { "a11y-toolkit": {
-    "command": "uvx", "args": ["--from", "git+https://github.com/kinti/a11y-toolkit", "a11y-toolkit-mcp"] } } }
-```
-
-The rendered audit, snapshots and diffs use Playwright **if present**
-(`pip install playwright && playwright install chromium`); everything else works with
-zero dependencies.
-
-### The skill (teaches your agent when/how to use all of this)
+### The skill
 
 ```bash
 git clone https://github.com/kinti/a11y-toolkit && cd a11y-toolkit
@@ -114,87 +128,87 @@ git clone https://github.com/kinti/a11y-toolkit && cd a11y-toolkit
 ## CLI — same engine, one command
 
 ```bash
-a11ytoolkit pair "#1f2328" "#fbfaf7"                     # contrast, per-criterion verdicts
-a11ytoolkit image hero.jpg --text "#ffffff" --region 120,40,420,90
-a11ytoolkit audit --url https://example.com --lang en    # express static audit
-a11ytoolkit declaration --entidad "Acme" --url https://acme.example \
-       --estado parcial --marco eaa --lang en --output decl.html
-a11ytoolkit snapshot https://mysite --out before.json    # before deploy (needs Playwright)
-a11ytoolkit diff before.json after.json                  # after deploy
+a11ytoolkit audit --url https://example.com --pages 5   # sitemap-first crawl
+a11ytoolkit pair "#1f2328" "#fbfaf7"                    # contrast
+a11ytoolkit image hero.jpg --text "#fff" --region 120,40,420,90
+a11ytoolkit forms https://mysite/contact                # form errors
+a11ytoolkit kbd https://mysite                          # keyboard traps + 3.2.1/3.2.2
+a11ytoolkit reflow https://mysite                       # 320px reflow
+a11ytoolkit scroll https://medium.com/feed              # infinite scroll
+a11ytoolkit validate --url https://example.com          # W3C Nu
+a11ytoolkit fix --file page.html -o fixed.html          # safe autofix
+a11ytoolkit declaration --entidad "Acme" --url https://… --estado parcial --marco eaa
+a11ytoolkit snapshot https://mysite --out before.json   # before deploy
+a11ytoolkit diff before.json after.json                 # after deploy
+a11ytoolkit evidence audit.json -o pack.json            # countersignature-ready pack
+a11ytoolkit budget --budget budget.json --audit audit.json  # only NEW findings block
+a11ytoolkit sarif --from-audit audit.json -o a11y.sarif # GitHub code scanning
+a11ytoolkit badge --score 92 --out badge.svg            # honest SVG
 ```
 
-Run from a clone with `python3 a11y.py <subcommand>`; from PyPI with `uvx --from
-a11y-toolkit a11ytoolkit …`.
+## Coverage: 50 of 54 WCAG 2.2 A/AA criteria (92%)
 
-### Watch it continuously (the deployment gate)
+| With automated signal | Manual-only (genuinely human) |
+|---|---|
+| 1.1.1, 1.2.2, 1.2.3, 1.2.5, 1.3.1–1.3.5, 1.4.1–1.4.5, 1.4.10, 1.4.11, 1.4.12, 2.1.1, 2.1.2, 2.1.4, 2.2.1, 2.2.2, 2.4.1–2.4.7, 2.4.11, 2.5.1–2.5.4, 2.5.7, 2.5.8, 3.1.1, 3.1.2, 3.2.1–3.2.6, 3.3.1–3.3.4, 3.3.8, 4.1.2, 4.1.3 | 1.2.1 (audio transcripts), 1.2.4 (live captions), 1.4.13 (hover dismissibility), 2.3.1 (flash detection), 3.3.7 (redundant entry) |
 
-```bash
-a11ytoolkit audit --url https://mysite --pages 5 > audit.json        # light crawl
-python3 -m a11ybudget --init < audit.json > budget.json       # accept today's baseline
-a11ytoolkit budget --budget budget.json --audit audit.json           # only NEW findings block (exit 2)
-a11ytoolkit sarif --from-audit audit.json -o a11y.sarif              # GitHub code scanning format
-```
-
-`examples/a11y-watch.yml` turns this into a weekly scheduled check that fails
-on regressions and publishes the SARIF to code scanning.
-
-## Validated against real pages, not just fixtures
-
-Before shipping the current rule set we benchmarked against axe-core 4.10 on real
-pages ([methodology and results](bench/README.md)) — same Chromium, same Playwright.
-That pass **caught a real WCAG failure on gov.uk that axe does not report** (blue
-button text at 3.91:1, manually verified) and drove out five of our own false
-positives (hidden skip links reported as tiny targets, honeypot fields, non-tabbable
-`aria-hidden` controls, single-context generic links). Every divergence has a
-regression fixture.
+The 5 manual-only criteria each have a knowledge entry (`a11y_criterion`) telling the
+agent exactly how to verify them by hand. The boundary is printed on every report.
 
 ## Free online analyzer
 
-The machine half runs at **[a11y.jquin.net](https://a11y.jquin.net)** —
-a standalone project (the standalone analyzer project) with
-SSRF guarding, rate limiting and the downloadable evidence pack that ends every
-report at the exact boundary where a qualified human begins. Free forever, MIT.
+**[a11y.jquin.net](https://a11y.jquin.net)** — the machine half, free forever: full
+report, honest badge, evidence-pack download. SSRF-guarded, rate-limited. Every free
+report ends at the exact boundary where a qualified human begins.
+
+## Validated against real pages
+
+Benchmarked against axe-core 4.10 on real pages monthly ([methodology and
+results](bench/README.md)). Found a real WCAG failure on gov.uk that axe does not
+report (blue button at 3.91:1, manually verified). Drove out our own false positives
+(hidden skip links, honeypot fields, single-context generic links, image-alt accname
+— each with a regression fixture).
 
 ## Honesty, built in
 
-Automation covers **~1/3 of WCAG** — every audit says so. The `audit-page` prompt and the
-bundled skill then have the agent check what it *can* (keyboard operability, focus
-visibility, zoom reflow, announced errors) using
-[the manual checklist](skill/a11y-toolkit/references/wcag22-manual-checklist.md), and
-recommend a screen-reader pass for the rest. A filter, not a verdict.
+Every audit says: **automation covers 92% of A/AA criteria; the rest needs a human**.
+The `audit-page` prompt and the skill have the agent check what it can (keyboard,
+focus, zoom, announced errors) using [the manual
+checklist](skill/a11y-toolkit/references/wcag22-manual-checklist.md). A filter, not
+a verdict. The evidence pack is the handoff object for the human who signs.
 
 ## Security & scope
 
-A **local** tool: runs on your machine as your user. `path` (image) and `output_path`
-(statement) read/write local paths — use it in MCP clients you trust. Nothing leaves your
-machine except the URL you explicitly audit.
+A **local** tool: runs on your machine as your user. `a11y_audit_url` accepts
+http/https only (no `file://` — use `--file`/`html` for local HTML). `a11y_html_validate`
+in html mode POSTs content to the W3C service (url mode shares only the URL;
+self-hosted vnu supported). `path`/`output_path` read/write local paths — use it in
+MCP clients you trust.
 
 ## Development
 
 ```bash
-python3 test_contrast.py && python3 test_audit.py && python3 test_v32.py && python3 test_dom.py && python3 test_cli.py && python3 test_mcp.py
+python3 test_contrast.py && python3 test_audit.py && python3 test_v32.py \
+  && python3 test_dom.py && python3 test_cli.py && python3 test_solido.py \
+  && python3 test_mcp.py
 ```
 
-`test_dom.py` self-skips without Playwright. Releases: tag `vX.Y.Z` → CI publishes to PyPI
-(trusted publishing); `server.json` is the official MCP Registry manifest. Contributions
-welcome — see
-[CONTRIBUTING.md](CONTRIBUTING.md) (the golden rules: zero dependencies at the core,
-es/en strings everywhere, honest scope notes).
+`test_dom.py` self-skips without Playwright. `test_solido.py` enforces the design
+invariants (catalog parity, version alignment, count coverage, hostile-HTML fuzz).
+Releases: `make release V=X.Y.Z` — bumps, gates, tags and pushes atomically.
 
 ## Roadmap
 
-- [x] Rendered audit (computed contrast, target size 2.5.8, focus indicator)
-- [x] 0-100 weighted score · ARIA validity · criterion explanations
-- [x] Computed accessibility tree in snapshots + tree diff
-- [x] SARIF export → findings as GitHub code-scanning / PR annotations (`a11ytoolkit sarif`)
-- [x] Honest dated badge as accessible SVG (`a11y_badge`)
-- [x] Accessibility error budget: only NEW findings block (`a11ytoolkit budget` + `examples/a11y-watch.yml`)
-- [x] Multi-page same-domain crawl with aggregated scores (`pages` parameter)
-- [x] Scheduled surveillance recipe (weekly audit + budget gate as a GitHub Action)
-- [x] WCAG-EM conformance ladder (`conformance-wcagem` prompt + guided protocol)
-- [x] Same-origin iframes in the rendered audit + :focus/:hover state contrast
-
----
+- [x] Rendered audit (shadow DOM, state contrast, text spacing, color-only links)
+- [x] 0-100 score · ARIA validity · criterion knowledge (56 entries)
+- [x] Form error testing + autofix (find AND fix)
+- [x] Keyboard traps + focus/input navigation detection (2.1.2, 3.2.1, 3.2.2)
+- [x] Infinite scroll · reflow · W3C Nu validation
+- [x] SARIF export · error budget · scheduled surveillance recipe
+- [x] Evidence pack with agent-verified status (spec published)
+- [x] Form deep-dive: placeholder-only, fieldset, label quality, financial confirmation
+- [x] Sitemap-driven crawling · behind-login auditing (auth_state)
+- [x] 50/54 A/AA criteria with automated signals (92%)
 
 ## Author
 
