@@ -150,12 +150,10 @@ regression fixture.
 
 ## Free online analyzer
 
-The machine half runs as a tiny zero-dependency web service —
-[webapp/](webapp/README.md) (two files, stdlib only, SSRF-guarded and
-rate-limited for public hosting; Docker + Cloudflare-Tunnel deploy guide in
-[webapp/deploy-perfect-server.md](webapp/deploy-perfect-server.md)). Free forever, MIT: score, findings,
-badge and the downloadable evidence pack that ends every report at the
-exact boundary where a qualified human begins.
+The machine half runs at **[a11y.jquin.net](https://a11y.jquin.net)** —
+a standalone project ([~/Dev/A11Y-ANALYZER](https://github.com/kinti/a11y-analyzer)) with
+SSRF guarding, rate limiting and the downloadable evidence pack that ends every
+report at the exact boundary where a qualified human begins. Free forever, MIT.
 
 ## Honesty, built in
 
