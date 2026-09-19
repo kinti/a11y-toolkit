@@ -41,6 +41,18 @@ _C = {
         'es': ('Movimientos de arrastre', 'Toda acción de arrastre tiene alternativa sin arrastre.', 'Sliders you can only drag; kanban cards you can only drag-and-drop.', 'Manual: try every action with click/tap only; a11y_audit_url flags drag-handler suspicion.'),
         'en': ('Dragging Movements', 'Dragging operations have a non-dragging alternative.', 'Sliders you can only drag; kanban cards you can only drag-and-drop.', 'Manual: try every action with click/tap only; a11y_audit_url flags drag-handler suspicion.'),
     }),
+    '1.4.5': ('AA', {
+        'es': ('Imágenes de texto', 'Salvo logotipos, el texto se presenta como texto real, no como imagen.', 'Headings or paragraphs rendered as PNG/JPG; banner text baked into hero images.', 'a11y_audit_url flags images inside headings and book-length alts (review signal); you judg'),
+        'en': ('Images of Text', 'Except for logotypes, text is presented as real text, not images of text.', 'Headings or paragraphs rendered as PNG/JPG; banner text baked into hero images.', 'a11y_audit_url flags images inside headings and book-length alts (review signal); you judg'),
+    }),
+    '1.4.11': ('AA', {
+        'es': ('Contraste no textual', 'Componentes UI y objetos gráficos tienen al menos 3:1 contra colores adyacentes.', 'Icon buttons barely visible against their background; focus indicators too faint to see.', 'a11y_contrast_pair with target 3.0 for UI elements; the rendered audit checks focus-indica'),
+        'en': ('Non-text Contrast', 'UI components and graphical objects have at least 3:1 contrast against adjacent colors.', 'Icon buttons barely visible against their background; focus indicators too faint to see.', 'a11y_contrast_pair with target 3.0 for UI elements; the rendered audit checks focus-indica'),
+    }),
+    '3.2.6': ('A', {
+        'es': ('Ayuda coherente — NUEVO en 2.2', 'Si hay ayuda en varias páginas, aparece en el mismo orden relativo.', 'A "Contact us" link in the header on some pages and the footer on others.', 'a11ytoolkit audit --pages N (site-level help-link drift detection across the crawl).'),
+        'en': ('Consistent Help — NEW in WCAG 2.2', 'If help is available on multiple pages, it appears in the same relative order.', 'A "Contact us" link in the header on some pages and the footer on others.', 'a11ytoolkit audit --pages N (site-level help-link drift detection across the crawl).'),
+    }),
     '1.1.1': ('A', {
         'es': ('Contenido no textual',
                'Toda imagen funcional o informativa tiene alternativa textual equivalente; las decorativas se ocultan (alt="").',
