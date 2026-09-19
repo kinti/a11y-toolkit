@@ -90,7 +90,7 @@ the human signs.
 
 ## Install
 
-> Registry: `io.github.kinti/a11y-toolkit` · PyPI: [a11y-toolkit](https://pypi.org/project/a11y-toolkit/) · Zenodo DOI: `10.5281/zenodo.22843722`
+> mcp-name: io.github.kinti/a11y-toolkit · PyPI: [a11y-toolkit](https://pypi.org/project/a11y-toolkit/) · Zenodo DOI: `10.5281/zenodo.22843722`
 
 Works with **any MCP-capable client** — Claude Code/Desktop, Cursor, Windsurf, VS Code,
 Codex CLI, OpenCode, ZCode, Zed, Cline, Continue, Kimi Code… See
