@@ -1,3 +1,4 @@
+import re
 #!/usr/bin/env python3
 """Tests de la auditoría renderizada (a11ydom) contra un fixture local file://.
 
@@ -54,7 +55,7 @@ ruta = os.path.join('/tmp', 'a11ydom_fixture.html')
 with open(ruta, 'w', encoding='utf-8') as f:
     f.write(FIXTURE.replace('</head>', SHADOW_JS + '</head>'))
 # v3.9 2.4.11: header sticky SIN scroll-padding debe disparar; con él, no
-FIX_MAL = '<!doctype html><html lang="es"><head><title>s</title><style>header{position:sticky;top:0;height:60px;background:#eee}</style></head><body><header>h</header><main><h1>x</h1><button>ok</button></main></body></html>'
+FIX_MAL = '<!doctype html><html lang="es"><head><title>s</title><style>header{position:sticky;top:0;height:60px;background:#eee}</style></head><body><header>h</header><main><h1>Documento de prueba</h1><button>ok</button></main></body></html>'
 FIX_BIEN = FIX_MAL.replace('</style>', 'html{scroll-padding-top:64px}</style>')
 with open(os.path.join('/tmp', 'sticky_mal.html'), 'w', encoding='utf-8') as f:
     f.write(FIX_MAL)
@@ -86,7 +87,7 @@ if 'ctrl_name' in senales:
                    for e in senales['ctrl_name'].get('ejemplos', []))
 assert 'aria_hidden_focusable' not in senales, senales.get('aria_hidden_focusable')
 f258 = senales.get('target_small')
-assert f258 is None or not any('1×1' in str(e) for e in f258.get('ejemplos', []))
+assert f258 is None or not any(re.search(r'\(([0-2])×([0-2])px\)', str(e)) for e in f258.get('ejemplos', []))
 
 # 2.4.11: causa raíz header-fijo-vs-scroll-padding
 from a11ydom import audit_dom_url

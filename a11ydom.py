@@ -55,6 +55,10 @@ _TD = {
                                          'Sugerimos patrón: texto con formato/ejemplo cerca del campo.'),
         'form_navigated': 'El formulario navega al enviar; el comportamiento del error no es medible en la página ({ej}).',
         'form_navigated_rem': 'Captura la página de destino o prueba con un intercepto; el juicio del error requiere ver el DOM tras el envío.',
+        'focus_navigates': 'Al recibir foco, {ej} provocó un cambio de contexto (URL cambió a {url}) — 3.2.1.',
+        'focus_navigates_rem': 'Recibir foco nunca debe cambiar el contexto (3.2.1): revisa focus→location.href, focus→form.submit(), focus→window.open().',
+        'input_navigates': 'Cambiar {ej} provocó navegación automática (URL: {url}) — 3.2.2.',
+        'input_navigates_rem': 'Cambiar un ajuste nunca debe navegar sin petición del usuario (3.2.2): añade un botón «Aplicar» o confirma antes de enviar.',
         'focus_obscured': ('{n} controles quedan tapados por elementos fijos/sticky al '
                            'recibir el foco (cabeceras sticky, banners): {det}. Revisar (2.4.11).'),
         'focus_obscured_rem': ('Un elemento fijo no debe ocultar el elemento enfocado (2.4.11, '
@@ -93,6 +97,10 @@ _TD = {
                                          'Suggestion pattern: format/example text near the field.'),
         'form_navigated': 'The form navigates on submit; error behavior is not measurable in-page ({ej}).',
         'form_navigated_rem': 'Capture the destination page or intercept the submit; judging errors requires the post-submit DOM.',
+        'focus_navigates': 'Receiving focus on {ej} triggered a context change (URL changed to {url}) — 3.2.1.',
+        'focus_navigates_rem': 'Receiving focus must never change context (3.2.1): check focus→location.href, focus→form.submit(), focus→window.open().',
+        'input_navigates': 'Changing {ej} triggered automatic navigation (URL: {url}) — 3.2.2.',
+        'input_navigates_rem': 'Changing a setting must never navigate without user request (3.2.2): add an "Apply" button or confirm before submitting.',
         'focus_obscured': ('{n} controls end up hidden behind fixed/sticky elements '
                            'when focused (sticky headers, banners): {det}. Review (2.4.11).'),
         'focus_obscured_rem': ('Author-fixed content must not hide the focused element '
@@ -956,13 +964,18 @@ def audit_keyboard(url, max_pasos=60, lang='en', timeout=45, auth_state=None):
 
         page.evaluate("document.querySelectorAll('[data-a11ystop]').forEach(e => {"
                       " e.removeAttribute('data-a11ystop'); e.removeAttribute('data-a11yruta'); })")
+        url_antes = page.url
         seq = []
         rutas = {}
         for i in range(max_pasos):
             page.keyboard.press('Tab')
-            stop = page.evaluate(_JS_STOP, i)
+            try:
+                stop = page.evaluate(_JS_STOP, i)
+            except Exception:  # noqa: BLE001
+                # execution context destroyed = LA NAVEGACIÓN OCURRIÓ al enfocar (3.2.1)
+                break
             if stop is None:
-                break  # el foco salió de la página (fin del orden de tabulación)
+                break
             seq.append(stop)
             if stop not in rutas:
                 rutas[stop] = page.evaluate(_STOP_META, stop)
@@ -977,23 +990,67 @@ def audit_keyboard(url, max_pasos=60, lang='en', timeout=45, auth_state=None):
                     ciclo = seq[-p_:]
                     break
 
+        # 3.2.1: ¿el foco provocó navegación? (context destroyed = navegación)
+        foco_navego = None
+        try:
+            if page.url != url_antes:
+                foco_navego = page.url
+        except Exception:
+            foco_navego = url_antes + ' → (navigated away)'
+
+        # 3.2.2: ¿un select provoca navegación al cambiar?
+        input_navego = None
+        input_elem = None
+        if not foco_navego:
+            try:
+                sel = page.query_selector('select')
+                if sel:
+                    opts = sel.query_selector_all('option')
+                    if len(opts) > 1:
+                        url_pre = page.url
+                        sel.select_option(index=1)
+                        page.wait_for_timeout(600)
+                        if page.url != url_pre:
+                            input_navego = page.url
+                            input_elem = 'select'
+            except Exception:
+                pass
+
         esc_libera = None
-        if ciclo:
-            en_ciclo = set(ciclo)
-            page.keyboard.press('Escape')
-            page.wait_for_timeout(150)
-            for _ in range(3):
-                page.keyboard.press('Tab')
-                page.wait_for_timeout(80)
-                stop = page.evaluate(_JS_STOP, len(seq))
-                if stop is None or stop not in en_ciclo:
-                    esc_libera = True
-                    break
-            else:
-                esc_libera = False
-        nav.close()
+        if ciclo and not foco_navego:
+            try:
+                en_ciclo = set(ciclo)
+                page.keyboard.press('Escape')
+                page.wait_for_timeout(150)
+                for _ in range(3):
+                    page.keyboard.press('Tab')
+                    page.wait_for_timeout(80)
+                    stop = page.evaluate(_JS_STOP, len(seq))
+                    if stop is None or stop not in en_ciclo:
+                        esc_libera = True
+                        break
+                else:
+                    esc_libera = False
+            except Exception:
+                esc_libera = None
+        try:
+            nav.close()
+        except Exception:
+            pass
 
     hallazgos = []
+    if foco_navego:
+        hallazgos.append({
+            'severidad': 'alta', 'criterio': CRIT.get(lang, CRIT['es']).get('3.2.1', '3.2.1'),
+            'senal': 'focus_navigates',
+            'hallazgo': _t(lang, 'focus_navigates').format(ej='un elemento', url=foco_navego[:60]),
+            'remediacion': _t(lang, 'focus_navigates_rem')})
+    if input_navego:
+        hallazgos.append({
+            'severidad': 'alta', 'criterio': CRIT.get(lang, CRIT['es']).get('3.2.2', '3.2.2'),
+            'senal': 'input_navigates',
+            'hallazgo': _t(lang, 'input_navigates').format(ej=input_elem, url=input_navego[:60]),
+            'remediacion': _t(lang, 'input_navigates_rem')})
     if ciclo and esc_libera is False:
         elems = [rutas.get(i, f'parada {i}') for i in ciclo]
         hallazgos.append({

@@ -102,6 +102,12 @@ CRIT = {
         '3.1.2': '3.1.2 Idioma de las partes',
         '3.3.8': '3.3.8 Autenticación accesible',
         '3.3.1': '3.3.1 Identificación de errores',
+        '2.4.6': '2.4.6 Encabezados y etiquetas (calidad)',
+        '2.1.4': '2.1.4 Atajos de carácter único',
+        '2.5.7': '2.5.7 Movimientos de arrastre',
+        '3.2.1': '3.2.1 Al recibir foco',
+        '3.2.2': '3.2.2 Al recibir entrada',
+        '4.1.3': '4.1.3 Mensajes de estado',
         '3.2.6': '3.2.6 Ayuda coherente',
         '1.4.5': '1.4.5 Imágenes de texto',
         '1.4.11': '1.4.11 Contraste no textual',
@@ -150,6 +156,12 @@ CRIT = {
         '3.1.2': '3.1.2 Language of Parts',
         '3.3.8': '3.3.8 Accessible Authentication',
         '3.3.1': '3.3.1 Error Identification',
+        '2.4.6': '2.4.6 Headings and Labels (quality)',
+        '2.1.4': '2.1.4 Character Key Shortcuts',
+        '2.5.7': '2.5.7 Dragging Movements',
+        '3.2.1': '3.2.1 On Focus',
+        '3.2.2': '3.2.2 On Input',
+        '4.1.3': '4.1.3 Status Messages',
         '3.2.6': '3.2.6 Consistent Help',
         '1.4.5': '1.4.5 Images of Text',
         '1.4.11': '1.4.11 Non-text Contrast',
@@ -206,6 +218,14 @@ T = {
         'lang_invalid_rem': 'Usa el subtag principal ISO 639 correcto (es, en, pt…).',
         'title_missing': 'La página no tiene <title> con contenido.',
         'title_missing_rem': 'Escribe un <title> único y descriptivo por página (primer anuncio del lector, texto de la pestaña).',
+        'heading_quality': '{n} encabezados/labels sospechosamente genéricos o vagos: {ej}. Revisar (2.4.6).',
+        'heading_quality_rem': 'Los encabezados deben describir su sección: «Resultados del informe Q3», no «Sección 2» o «Más información» (2.4.6). Nombra las cosas.',
+        'char_shortcut': '{n} atajos de teclado de carácter único detectados: {ej}. Revisar (2.1.4).',
+        'char_shortcut_rem': 'Los atajos de una tecla deben poder desactivarse o remapearse, o activarse solo con foco (2.1.4): el usuario que dicta por voz dispara cada letra.',
+        'drag_no_alt': '{n} manejadores de arrastre sin alternativa visible de clic/botón: {ej}. Revisar (2.5.7).',
+        'drag_no_alt_rem': 'Toda acción por arrastre necesita alternativa sin arrastre: botones «arriba/abajo», menú contextual, flechas (2.5.7).',
+        'no_status_regions': 'No se detectan regiones de estado (aria-live/status/alert) en la página: los mensajes dinámicos no se anunciarán (4.1.3).',
+        'no_status_regions_rem': 'Añade role="status" o aria-live="polite" para toasts, confirmaciones de guardado, resultados de búsqueda (4.1.3).',
         'zoom_no': 'El viewport bloquea el zoom del usuario (user-scalable=no/0).',
         'zoom_no_rem': 'Elimina user-scalable=no y maximum-scale: el zoom es un derecho del usuario (1.4.4).',
         'zoom_max': 'El viewport limita el zoom (maximum-scale={v}; se recomienda no limitar o ≥2).',
@@ -323,6 +343,14 @@ T = {
         'lang_invalid_rem': 'Use the correct ISO 639 primary subtag (en, es, pt…).',
         'title_missing': 'The page has no <title> with content.',
         'title_missing_rem': 'Write a unique, descriptive <title> per page (screen reader\'s first announcement, tab text).',
+        'heading_quality': '{n} suspiciously generic or vague headings/labels: {ej}. Review (2.4.6).',
+        'heading_quality_rem': 'Headings should describe their section: "Q3 Report Results", not "Section 2" or "More info" (2.4.6). Name things.',
+        'char_shortcut': '{n} single-character keyboard shortcuts detected: {ej}. Review (2.1.4).',
+        'char_shortcut_rem': 'Single-key shortcuts must be disablable, remappable, or active only on focus (2.1.4): voice-dictation users trigger every letter.',
+        'drag_no_alt': '{n} drag handlers with no visible click/button alternative: {ej}. Review (2.5.7).',
+        'drag_no_alt_rem': 'Every drag action needs a non-dragging alternative: up/down buttons, context menu, arrows (2.5.7).',
+        'no_status_regions': 'No status regions (aria-live/status/alert) detected on the page: dynamic messages will not be announced (4.1.3).',
+        'no_status_regions_rem': 'Add role="status" or aria-live="polite" for toasts, save confirmations, search results (4.1.3).',
         'zoom_no': 'The viewport blocks user zoom (user-scalable=no/0).',
         'zoom_no_rem': 'Remove user-scalable=no and maximum-scale: zooming is the user\'s right (1.4.4).',
         'zoom_max': 'The viewport limits zoom (maximum-scale={v}; recommend no limit or ≥2).',
@@ -492,7 +520,11 @@ class _Auditor(HTMLParser):
         self.moviles = []           # marquee/blink/inline infinite animation (2.2.2)
         self.nav_hrefs = set()      # hrefs inside <nav> (site-level 3.2.3 signature)
         self.help_hrefs = set()     # help/contact links (site-level 3.2.6 signature)
-        self.imagenes_texto = []    # 1.4.5 suspicion: img inside heading or very long alt
+        self.imagenes_texto = []
+        self.headings_vagos = []
+        self.char_shortcuts = []
+        self.drag_handlers = []
+        self.status_regions = 0    # 1.4.5 suspicion: img inside heading or very long alt
         self._en_nav = 0
         self.tiene_busqueda = False
         self.tiene_sitemap = False
@@ -668,6 +700,13 @@ class _Auditor(HTMLParser):
         if a.get('ontouchmove') or a.get('ondrag'):
             if not (a.get('onclick') or tag in ('input', 'button', 'a')):
                 self.gestos.append(f'{tag}[{list(a)[0] if a else ""}]')
+        if a.get('draggable') and (a.get('draggable') or '').lower() != 'false':
+            if not a.get('onclick') and tag not in ('input', 'button'):
+                self.drag_handlers.append(f'{tag}[draggable]')
+        if a.get('aria-live') or (a.get('role') or '').lower() in ('status', 'alert', 'log'):
+            self.status_regions += 1
+        if a.get('accesskey') and len((a.get('accesskey') or '').strip()) == 1:
+            self.char_shortcuts.append(f'{tag}[accesskey]')
         # v3.12: 2.5.4 motion actuation handlers
         for _ma in ('ondeviceorientation', 'ondevicemotion'):
             if a.get(_ma):
@@ -775,9 +814,23 @@ class _Auditor(HTMLParser):
                 self.headings.append((self._nivel_h, texto[:80]))
                 if self._nivel_h == 1:
                     self.h1s += 1
+                bajo = texto.lower().strip()
+                if len(texto) < 4 or len(texto) > 120:
+                    self.headings_vagos.append(f'h{self._nivel_h} "{texto[:40]}"')
+                elif re.fullmatch(r'(secci[oó]n|section|chapter|cap[ií]tulo|m[aá]s|more|info|informaci[oó]n|information|details|detalle|click|ver|see|leer|read|continue|seguir)[\s\d.]*', bajo):
+                    self.headings_vagos.append(f'h{self._nivel_h} "{texto[:40]}"')
+                elif re.fullmatch(r'[\d.\s]+', bajo):
+                    self.headings_vagos.append(f'h{self._nivel_h} "{texto[:40]}"')
             self._nivel_h = None
 
+    _RE_CHAR_KEY = re.compile(r'key(?:Code)?\s*===?\s*["\']([a-zA-Z0-9])["\']', re.S)
+
     def handle_script_espera(self, data):
+        for m in self._RE_CHAR_KEY.finditer(data):
+            if len(self.char_shortcuts) < 5:
+                self.char_shortcuts.append(f"key === '{m.group(1)}'")
+        if re.search(r'addEventListener\s*\(\s*["\'](?:dragstart|dragover|drop)["\']', data, re.I):
+            self.drag_handlers.append('drag listener in script')
         # v3.12: signals that only appear in script bodies
         if 'screen.orientation.lock' in data:
             self.orientation_locks.append('screen.orientation.lock()')
@@ -942,6 +995,19 @@ def audit_html(html_text, url='(html)', lang='en'):
     if p.down_events:
         add_ej('media', '2.5.2', 'down_event', p.down_events,
                n=len(p.down_events), ej=', '.join(p.down_events[:4]))
+    if p.headings_vagos:
+        add_ej('baja', '2.4.6', 'heading_quality', p.headings_vagos,
+               n=len(p.headings_vagos), ej=', '.join(p.headings_vagos[:3]))
+    if p.char_shortcuts:
+        add_ej('baja', '2.1.4', 'char_shortcut', p.char_shortcuts,
+               n=len(p.char_shortcuts), ej=', '.join(p.char_shortcuts[:3]))
+    if p.drag_handlers:
+        add_ej('baja', '2.5.7', 'drag_no_alt', p.drag_handlers,
+               n=len(p.drag_handlers), ej=', '.join(p.drag_handlers[:3]))
+    # 4.1.3: solo si hay evidencia de dinamismo (scripts con eventos, forms, fetch/XHR)
+    dinamico = bool(p.click_sueltos or p._en_script or p.char_shortcuts or p.drag_handlers or p.campos_sin_label)
+    if dinamico and p.status_regions == 0:
+        add('media', '4.1.3', 'no_status_regions')
     if p.imagenes_texto:
         add_ej('baja', '1.4.5', 'images_of_text', p.imagenes_texto,
                n=len(p.imagenes_texto), ej2='')

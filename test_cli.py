@@ -24,10 +24,10 @@ def run(*args, stdin=None):
 
 with open(FIX, 'w', encoding='utf-8') as f:
     f.write('<!doctype html><html lang="es"><head><meta charset="utf-8"><title>T</title></head>'
-            '<body><main><h1>a</h1><button>ok</button></main></body></html>')
+            '<body><main><h1>Informe principal</h1><button>ok</button></main></body></html>')
 with open(FIX_MAL, 'w', encoding='utf-8') as f:
     f.write('<!doctype html><html><head><meta name="viewport" content="width=device-width, '
-            'user-scalable=no"><title></title></head><body><main><h1>a</h1>'
+            'user-scalable=no"><title></title></head><body><main><h1>Informe principal</h1>'
             '<img src="x.png"><input type="email" name="correo"></main></body></html>')
 
 # 1. subcomandos puros (sin Playwright)
@@ -99,6 +99,6 @@ assert '<script>' not in b and '<' not in b[b.find('2026'):b.find('2026') + 20],
 
 # 4. la afirmación del README («26 criterios tocados») queda clavada
 from a11yaudit import CRIT  # noqa: E402
-assert len(CRIT['es']) == 43, f'README claims 43 criteria, CRIT has {len(CRIT["es"])}'
+assert len(CRIT['es']) == 49, f'README claims 49 criteria, CRIT has {len(CRIT["es"])}'
 
 print('CLI SMOKE OK ✓ (todos los subcomandos, inyección bloqueada, 26 criterios verificados)')

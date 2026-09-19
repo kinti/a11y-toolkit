@@ -36,17 +36,10 @@ from datetime import datetime, timezone
 MANUAL_AA = [
     '1.2.1 Audio-only and Video-only (Prerecorded)',
     '1.2.4 Captions (Live)',
-    '1.4.12 Text Spacing',
     '1.4.13 Content on Hover or Focus',
-    '2.1.4 Character Key Shortcuts',
     '2.3.1 Three Flashes or Below Threshold',
-    '2.4.6 Headings and Labels (quality, not structure)',
-    '2.5.7 Dragging Movements',
-    '3.2.1 On Focus',
-    '3.2.2 On Input',
     '3.3.4 Error Prevention (Legal, Financial, Data)',
     '3.3.7 Redundant Entry',
-    '4.1.3 Status Messages (beyond scroll-mode observer)',
 ]
 
 _ESTADOS = ('automated-fail', 'automated-review', 'not-flagged', 'manual-only',
