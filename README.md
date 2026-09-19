@@ -7,8 +7,8 @@
 [![Python 3.9+](https://img.shields.io/badge/python-3.9%2B-blue.svg)](pyproject.toml)
 [![MCP](https://img.shields.io/badge/Model%20Context%20Protocol-server-purple)](https://modelcontextprotocol.io)
 
-**19 MCP tools + 5 prompts + a skill** covering the full WCAG 2.2 loop: **audit → fix →
-document → watch → hand off**. **50 of 54 A/AA criteria carry automated signals (92%)**.
+**21 MCP tools + 5 prompts + a skill** covering the full WCAG 2.2 loop: **audit → fix →
+document → watch → hand off**. **51 of 54 A/AA criteria carry automated signals (92%)**.
 Zero dependencies at the core; every finding ships with a concrete remediation your
 agent can apply.
 
@@ -40,13 +40,13 @@ the human signs.
 | Runs with **zero dependencies** at core (Playwright optional) | heavy runtimes | ✓ |
 | Output optimized for **MCP/LLM consumption** (JSON, es/en, severity-ranked) | ✗ | ✓ |
 
-## The tools (19)
+## The tools (21)
 
 ### Audit
 
 | Tool | What it does |
 |---|---|
-| `a11y_audit_url` | Express static audit of a URL or raw HTML: 40+ signals across 50 WCAG criteria with a weighted 0-100 score. Covers alt, names, labels, autocomplete (1.3.5), ARIA validity (roles/refs/values), headings, zoom, lang, captions, autoplay, link purpose (2.4.4), list structure, duplicate ids/accesskeys, placeholder-only labels, fieldset/legend for radio groups, label quality, required-field indication, financial forms without confirmation (3.3.4), character-key shortcuts (2.1.4), drag handlers (2.5.7), status regions (4.1.3), heading quality (2.4.6), sensory instructions (1.3.3), orientation lock (1.3.4), images of text (1.4.5), consistent help (3.2.6), site-level nav consistency (3.2.3) and multiple ways (2.4.5). |
+| `a11y_audit_url` | Express static audit of a URL or raw HTML: 40+ signals across 51 WCAG criteria with a weighted 0-100 score. Covers alt, names, labels, autocomplete (1.3.5), ARIA validity (roles/refs/values), headings, zoom, lang, captions, autoplay, link purpose (2.4.4), list structure, duplicate ids/accesskeys, placeholder-only labels, fieldset/legend for radio groups, label quality, required-field indication, financial forms without confirmation (3.3.4), character-key shortcuts (2.1.4), drag handlers (2.5.7), status regions (4.1.3), heading quality (2.4.6), sensory instructions (1.3.3), orientation lock (1.3.4), images of text (1.4.5), consistent help (3.2.6), site-level nav consistency (3.2.3) and multiple ways (2.4.5). |
 | `a11y_audit_dom` | **Rendered audit** in Chromium: computed text contrast with alpha compositing (1.4.3), target size 24×24 (**2.5.8 — new in WCAG 2.2**), focus indicator (2.4.7), **:focus/:hover state contrast**, **text spacing override** (1.4.12 — injects WCAG spacing, counts clipped texts), **color-only links** (1.4.1), **DOM-vs-visual order** (1.3.2), looping animations (2.2.2), **open shadow DOM traversed**, **same-origin iframes scanned**. Accepts `auth_state` for behind-login auditing. |
 | `a11y_forms` | **Form error testing** (3.3.1/3.3.3): fills validatable fields with invalid data, really submits, judges whether errors are identified and announced in the post-submit DOM. Native browser validation counts (unless `novalidate`). |
 | `a11y_keyboard` | **Keyboard traps** (2.1.2) with real Tab walking + cycle detection + Escape-release test. Also detects **focus-triggered navigation** (3.2.1) and **input-triggered navigation** (3.2.2). |
@@ -146,7 +146,7 @@ a11ytoolkit sarif --from-audit audit.json -o a11y.sarif # GitHub code scanning
 a11ytoolkit badge --score 92 --out badge.svg            # honest SVG
 ```
 
-## Coverage: 50 of 54 WCAG 2.2 A/AA criteria (92%)
+## Coverage: 51 of 54 WCAG 2.2 A/AA criteria (92%)
 
 | With automated signal | Manual-only (genuinely human) |
 |---|---|

@@ -36,7 +36,6 @@ from datetime import datetime, timezone
 MANUAL_AA = [
     '1.2.1 Audio-only and Video-only (Prerecorded)',
     '1.2.4 Captions (Live)',
-    '1.4.13 Content on Hover or Focus',
     '2.3.1 Three Flashes or Below Threshold',
     '3.3.7 Redundant Entry',
 ]

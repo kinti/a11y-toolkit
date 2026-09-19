@@ -59,6 +59,8 @@ _TD = {
         'focus_navigates_rem': 'Recibir foco nunca debe cambiar el contexto (3.2.1): revisa focus→location.href, focus→form.submit(), focus→window.open().',
         'input_navigates': 'Cambiar {ej} provocó navegación automática (URL: {url}) — 3.2.2.',
         'input_navigates_rem': 'Cambiar un ajuste nunca debe navegar sin petición del usuario (3.2.2): añade un botón «Aplicar» o confirma antes de enviar.',
+        'hover_not_dismissible': '{n} tooltips/overlays aparecen al hover/focus que NO se cierran con Escape (1.4.13).',
+        'hover_not_dismissible_rem': 'El contenido emergente debe poder cerrarse con Escape sin mover el puntero (1.4.13): añade keydown Escape que oculte el tooltip.',
         'focus_obscured': ('{n} controles quedan tapados por elementos fijos/sticky al '
                            'recibir el foco (cabeceras sticky, banners): {det}. Revisar (2.4.11).'),
         'focus_obscured_rem': ('Un elemento fijo no debe ocultar el elemento enfocado (2.4.11, '
@@ -101,6 +103,8 @@ _TD = {
         'focus_navigates_rem': 'Receiving focus must never change context (3.2.1): check focus→location.href, focus→form.submit(), focus→window.open().',
         'input_navigates': 'Changing {ej} triggered automatic navigation (URL: {url}) — 3.2.2.',
         'input_navigates_rem': 'Changing a setting must never navigate without user request (3.2.2): add an "Apply" button or confirm before submitting.',
+        'hover_not_dismissible': '{n} tooltips/overlays appearing on hover/focus that do NOT dismiss on Escape (1.4.13).',
+        'hover_not_dismissible_rem': 'Hover/focus-triggered content must be dismissible with Escape without moving the pointer (1.4.13): add a keydown Escape handler that hides the tooltip.',
         'focus_obscured': ('{n} controls end up hidden behind fixed/sticky elements '
                            'when focused (sticky headers, banners): {det}. Review (2.4.11).'),
         'focus_obscured_rem': ('Author-fixed content must not hide the focused element '
@@ -771,6 +775,134 @@ def audit_forms(url, timeout=45, lang='en', auth_state=None):
         'hallazgos': hallazgos,
         'limites': _t(lang, 'limites'),
     }
+
+
+def sr_transcript(url, timeout=45, lang='en', auth_state=None):
+    """Screen reader transcript: what a blind user HEARS on this page.
+
+    Walks the accessibility tree linearly (the order a screen reader reads)
+    and outputs the announcement text with roles, names and states — the
+    linearized reading experience. This is what `a11y_snapshot` captures as
+    structure; this function returns it as prose an agent can READ and
+    understand from a blind user's perspective.
+    """
+    from playwright.sync_api import sync_playwright
+    with sync_playwright() as p:
+        nav = p.chromium.launch()
+        ctx = nav.new_context(storage_state=auth_state) if auth_state else nav
+        page = ctx.new_page() if auth_state else nav.new_page()
+        try:
+            page.goto(url, wait_until='load', timeout=timeout * 1000)
+            page.wait_for_timeout(400)
+        except Exception as e:
+            nav.close()
+            return {'error': str(e)[:100]}
+
+        # aria snapshot: the accessibility tree in YAML-like format
+        try:
+            arbol = page.locator('body').aria_snapshot()
+        except Exception:
+            arbol = None
+        nav.close()
+
+    if not arbol:
+        return {'url': url, 'modo': 'sr-transcript',
+                'error': 'accessibility tree not available (Playwright >= 1.49 required)'}
+
+    # parse the YAML-like snapshot into linearized announcements
+    import re
+    anuncios = []
+    for linea in arbol.split('\n'):
+        stripped = linea.strip()
+        if not stripped.startswith('- '):
+            continue
+        # quitar el guion inicial; el resto es el anuncio
+        anuncio = stripped[2:].rstrip(':')
+        if anuncio:
+            anuncios.append(anuncio)
+
+    return {
+        'url': url,
+        'modo': 'sr-transcript',
+        'anuncios': anuncios[:200],  # cap
+        'total': len(anuncios),
+        'arbol_raw': arbol[:5000] if len(arbol) > 5000 else arbol,
+        'nota': ('Linearized announcement order — what a screen reader user hears. '
+                 'Roles and names as computed by the browser. Use this to understand '
+                 'the page from a blind user\'s perspective.'),
+    }
+
+
+_JS_HOVER_TEST = r'''() => {
+  // find elements that show tooltips/overlays on hover
+  const candidatos = [];
+  for (const el of document.querySelectorAll('[title], [data-tooltip], [aria-describedby]')) {
+    if (candidatos.length >= 10) break;
+    const r = el.getBoundingClientRect();
+    if (r.width > 10 && r.height > 10 && r.top >= 0 && r.top < innerHeight) {
+      candidatos.push({
+        tag: el.tagName.toLowerCase(),
+        id: el.id || '',
+        desc: el.getAttribute('aria-describedby') || el.getAttribute('title') || '',
+        rect: {x: r.x, y: r.y, w: r.width, h: r.height}
+      });
+    }
+  }
+  return candidatos;
+}'''
+
+def audit_hover(url, timeout=45, lang='en', auth_state=None):
+    """1.4.13 Content on Hover or Focus: do tooltips dismiss on Escape?"""
+    from playwright.sync_api import sync_playwright
+    with sync_playwright() as p:
+        nav = p.chromium.launch()
+        ctx = nav.new_context(storage_state=auth_state) if auth_state else nav
+        page = ctx.new_page() if auth_state else nav.new_page()
+        try:
+            page.goto(url, wait_until='load', timeout=timeout * 1000)
+            page.wait_for_timeout(400)
+        except Exception as e:
+            nav.close()
+            return {'error': str(e)[:100]}
+
+        candidatos = page.evaluate(_JS_HOVER_TEST)
+        no_dismissibles = []
+        for c in candidatos[:8]:
+            try:
+                # hover sobre el elemento
+                sel = f'{c["tag"]}#{c["id"]}' if c['id'] else c['tag']
+                page.hover(sel, timeout=2000)
+                page.wait_for_timeout(400)
+                # ¿apareció algo?
+                visibles_antes = page.evaluate(
+                    "() => document.querySelectorAll('[role=tooltip], [class*=tooltip], [class*=popover]:not([hidden])').length")
+                if visibles_antes == 0:
+                    continue  # no tooltip → no aplica
+                # Escape
+                page.keyboard.press('Escape')
+                page.wait_for_timeout(300)
+                visibles_despues = page.evaluate(
+                    "() => document.querySelectorAll('[role=tooltip], [class*=tooltip], [class*=popover]:not([hidden])').length")
+                if visibles_despues == visibles_antes:
+                    no_dismissibles.append(f'{c["tag"]}#{c["id"] or "no-id"}')
+            except Exception:
+                continue
+        nav.close()
+
+    hallazgos = []
+    if no_dismissibles:
+        from a11yaudit import calcular_score
+        hallazgos.append({
+            'severidad': 'baja', 'criterio': CRIT.get(lang, CRIT['es']).get('1.4.13', '1.4.13'),
+            'senal': 'hover_not_dismissible',
+            'hallazgo': _t(lang, 'hover_not_dismissible').format(n=len(no_dismissibles)),
+            'remediacion': _t(lang, 'hover_not_dismissible_rem'),
+            'ejemplos': no_dismissibles[:4]})
+        return {'url': url, 'modo': 'hover', 'score': calcular_score(hallazgos),
+                'resumen': {'alta': 0, 'media': 0, 'baja': len(hallazgos)},
+                'hallazgos': hallazgos}
+    return {'url': url, 'modo': 'hover', 'score': 100,
+            'resumen': {'alta': 0, 'media': 0, 'baja': 0}, 'hallazgos': []}
 
 
 _JS_SPACING = r'''() => {

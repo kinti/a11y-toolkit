@@ -23,6 +23,8 @@ Tools:
   - a11y_keyboard(url, …)                         keyboard-trap detection (2.1.2)
   - a11y_scroll(url, …)                           infinite-scroll audit
   - a11y_forms(url, …)                            form errors 3.3.1/3.3.3 (fill+submit)
+  - a11y_hover(url, …)                             tooltip Escape dismissibility (1.4.13)
+  - a11y_sr_transcript(url, …)                     what a blind user hears, linearized
   - a11y_html_validate(url|html, …)                W3C Nu parser view
   - a11y_evidence(informes, …)                   countersignature-ready evidence pack
 
@@ -45,7 +47,7 @@ if AQUI not in sys.path:
 from contrast import pair as pair_fn, image_contrast, sugerir, parse_color  # noqa: E402
 from declaracion import generar as declaracion_fn  # noqa: E402
 from a11yaudit import audit_url as audit_url_fn, audit_html as audit_html_fn  # noqa: E402
-from a11ydom import audit_dom_url, audit_reflow, audit_keyboard, audit_forms  # noqa: E402
+from a11ydom import audit_dom_url, audit_reflow, audit_keyboard, audit_forms, audit_hover, sr_transcript  # noqa: E402
 from a11yfix import autofix as autofix_fn  # noqa: E402
 from a11yscroll import audit_scroll  # noqa: E402
 from a11yvalidate import validar_url, validar_html  # noqa: E402
@@ -60,7 +62,7 @@ try:
 except ImportError:
     ARIALIVE_JS = None  # repo checkout: read the file
 
-VERSION = '3.18.2'
+VERSION = '3.19.0'
 
 INSTRUCTIONS = (
     'Accessibility toolkit (WCAG 2.2), multilanguage es/en. '
@@ -351,6 +353,34 @@ TOOLS = [
         }},
     },
     {
+        'name': 'a11y_hover',
+        'description': ('Content on Hover or Focus (1.4.13): finds tooltip/overlay '
+                        'candidates, hovers each, and tests whether Escape dismisses '
+                        'the result — tooltips that do not dismiss are flagged. '
+                        'Requires local Playwright. — Scope: tooltips only; full audit '
+                        'is a11y_audit_dom, keyboard traps are a11y_keyboard.'),
+        'inputSchema': {'type': 'object', 'properties': {
+            'url': {'type': 'string', 'description': 'Page URL to test'},
+            'lang': {'type': 'string', 'enum': ['es', 'en'], 'description': 'Output language (en default)'},
+            'timeout': {'type': 'number', 'description': 'Page load timeout (45 default)'},
+        }, 'required': ['url']},
+    },
+    {
+        'name': 'a11y_sr_transcript',
+        'description': ('Screen reader TRANSCRIPT: what a blind user HEARS on this page. '
+                        'Walks the accessibility tree linearly and returns the announcement '
+                        'text with roles, names and states — the linearized reading '
+                        'experience, as prose an agent can READ to understand the page '
+                        'from a blind user\'s perspective. — Read-only: for structure '
+                        'use a11y_snapshot, for keyboard traps use a11y_keyboard. '
+                        'Requires Playwright.'),
+        'inputSchema': {'type': 'object', 'properties': {
+            'url': {'type': 'string', 'description': 'Page URL to transcribe'},
+            'lang': {'type': 'string', 'enum': ['es', 'en'], 'description': 'Output language (en default)'},
+            'timeout': {'type': 'number', 'description': 'Page load timeout (45 default)'},
+        }, 'required': ['url']},
+    },
+    {
         'name': 'a11y_criterion',
         'description': ('Explains a WCAG 2.2 success criterion in plain language (es/en): '
                         'what it requires, typical failures, and how to verify it with this '
@@ -508,6 +538,11 @@ _PARAM_DOCS = {
  ('a11y_audit_dom', 'lang'): 'Output language for findings and remediation (default en)',
  ('a11y_reflow', 'url'): 'Page URL to test at 320px (http/https or file://)',
  ('a11y_forms', 'url'): 'Page URL containing the form(s) to fill and submit with invalid data',
+ ('a11y_hover', 'url'): 'Page URL to test tooltip dismissibility on',
+ ('a11y_hover', 'timeout'): 'Page load timeout in seconds (default 45)',
+ ('a11y_sr_transcript', 'url'): 'Page URL to get the screen reader announcement transcript',
+ ('a11y_sr_transcript', 'timeout'): 'Page load timeout in seconds (default 45)',
+
  ('a11y_autofix', 'form_errors'): 'Inject the accessible error layer into forms without their own handling (default true)',
  ('a11y_forms', 'timeout'): 'Page load timeout in seconds (default 45)',
  ('a11y_html_validate', 'url'): 'Page URL to validate via the W3C Nu service',
@@ -615,6 +650,8 @@ _ANN = {
     'a11y_aria_live_snippet': ('aria-live monitor snippet', True, False),
     'a11y_badge':            ('Honest SVG badge', True, False),
     'a11y_evidence':         ('Evidence pack (countersignature-ready)', True, False),
+    'a11y_hover':            ('Hover dismissibility (1.4.13)', True, True),
+    'a11y_sr_transcript':    ('Screen reader transcript', True, True),
     'a11y_criterion':        ('WCAG criterion explained', True, False),
 }
 for _t in TOOLS:
@@ -771,6 +808,22 @@ def llamar(nombre, args):
             return _texto(validar_url(args['url'], lang=args.get('lang', 'en'),
                                       base_url=args.get('base_url')))
         except Exception as e:  # noqa: BLE001
+            return {'content': [{'type': 'text', 'text': f'error: {e}'}], 'isError': True}
+    if nombre == 'a11y_hover':
+        try:
+            return _texto(audit_hover(args['url'], timeout=args.get('timeout', 45),
+                                       lang=args.get('lang', 'en')))
+        except ImportError:
+            return {'content': [{'type': 'text', 'text': 'Playwright not installed'}], 'isError': True}
+        except Exception as e:
+            return {'content': [{'type': 'text', 'text': f'error: {e}'}], 'isError': True}
+    if nombre == 'a11y_sr_transcript':
+        try:
+            return _texto(sr_transcript(args['url'], timeout=args.get('timeout', 45),
+                                        lang=args.get('lang', 'en')))
+        except ImportError:
+            return {'content': [{'type': 'text', 'text': 'Playwright not installed'}], 'isError': True}
+        except Exception as e:
             return {'content': [{'type': 'text', 'text': f'error: {e}'}], 'isError': True}
     if nombre == 'a11y_criterion':
         return _texto(criterio_fn(args['code'], lang=args.get('lang', 'en')))
