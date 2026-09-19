@@ -38,7 +38,6 @@ MANUAL_AA = [
     '1.2.4 Captions (Live)',
     '1.4.13 Content on Hover or Focus',
     '2.3.1 Three Flashes or Below Threshold',
-    '3.3.4 Error Prevention (Legal, Financial, Data)',
     '3.3.7 Redundant Entry',
 ]
 

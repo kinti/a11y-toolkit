@@ -59,6 +59,9 @@ _SENSORIAL = re.compile(
     r'(?:redondo|verde|cuadrado)|(?:the\s+)?(?:button|link|icon)\s+(?:on|to)\s+(?:the\s+)?'
     r'(?:right|left|top|bottom)|(?:click|press)\s+(?:the\s+)?(?:round|green|square)', re.I)
 
+# detección extendida de autocomplete (1.3.5)
+
+
 # Campos que con frecuencia recogen datos personales (1.3.5)
 _DATO_PERSONAL = re.compile(
     r'(^|[\W_])(name|nombre|email|correo|phone|telefono|tel|address|direccion|postal|zip|'
@@ -102,6 +105,7 @@ CRIT = {
         '3.1.2': '3.1.2 Idioma de las partes',
         '3.3.8': '3.3.8 Autenticación accesible',
         '3.3.1': '3.3.1 Identificación de errores',
+        '3.3.4': '3.3.4 Prevención de errores (legal, financiero)',
         '2.4.6': '2.4.6 Encabezados y etiquetas (calidad)',
         '2.1.4': '2.1.4 Atajos de carácter único',
         '2.5.7': '2.5.7 Movimientos de arrastre',
@@ -156,6 +160,7 @@ CRIT = {
         '3.1.2': '3.1.2 Language of Parts',
         '3.3.8': '3.3.8 Accessible Authentication',
         '3.3.1': '3.3.1 Error Identification',
+        '3.3.4': '3.3.4 Error Prevention (Legal, Financial)',
         '2.4.6': '2.4.6 Headings and Labels (quality)',
         '2.1.4': '2.1.4 Character Key Shortcuts',
         '2.5.7': '2.5.7 Dragging Movements',
@@ -226,6 +231,16 @@ T = {
         'drag_no_alt_rem': 'Toda acción por arrastre necesita alternativa sin arrastre: botones «arriba/abajo», menú contextual, flechas (2.5.7).',
         'no_status_regions': 'No se detectan regiones de estado (aria-live/status/alert) en la página: los mensajes dinámicos no se anunciarán (4.1.3).',
         'no_status_regions_rem': 'Añade role="status" o aria-live="polite" para toasts, confirmaciones de guardado, resultados de búsqueda (4.1.3).',
+        'placeholder_only': '{n} campos con placeholder como única etiqueta (sin <label>): {ej}. El placeholder desaparece al teclear (3.3.2).',
+        'placeholder_only_rem': 'El placeholder NO es una etiqueta: añade <label for="id"> visible. El placeholder desaparece al empezar a escribir y los lectores no siempre lo anuncian (3.3.2).',
+        'required_no_indication': '{n} campos required sin indicación visible de obligatoriedad: {ej} (3.3.2).',
+        'required_no_indication_rem': 'Los campos obligatorios deben indicarlo: asterisco con leyenda, texto "obligatorio" en el label, o aria-required anunciado (3.3.2).',
+        'fieldset_missing': '{n} grupos de radio/checkbox sin <fieldset><legend>: los lectores no anuncian la pregunta común (1.3.1).',
+        'fieldset_missing_rem': 'Envuelve los grupos en <fieldset><legend>Pregunta común</legend>…</fieldset> (1.3.1): sin esto, cada radio se anuncia suelto sin contexto.',
+        'label_vague': '{n} labels sospechosamente vagos: {ej} (2.4.6).',
+        'label_vague_rem': 'Los labels deben describir el campo: "Correo electrónico de contacto", no "Campo" o "Texto" (2.4.6).',
+        'financial_no_confirm': '{n} formulario(s) financiero(s)/legal(es) sin paso de confirmación detectable (3.3.4).',
+        'financial_no_confirm_rem': 'Los envíos con consecuencias legales/financieras deben ser reversibles, verificados o confirmados (3.3.4): checkbox de términos, botón "Revisar y confirmar", o paso de revisión.',
         'zoom_no': 'El viewport bloquea el zoom del usuario (user-scalable=no/0).',
         'zoom_no_rem': 'Elimina user-scalable=no y maximum-scale: el zoom es un derecho del usuario (1.4.4).',
         'zoom_max': 'El viewport limita el zoom (maximum-scale={v}; se recomienda no limitar o ≥2).',
@@ -351,6 +366,16 @@ T = {
         'drag_no_alt_rem': 'Every drag action needs a non-dragging alternative: up/down buttons, context menu, arrows (2.5.7).',
         'no_status_regions': 'No status regions (aria-live/status/alert) detected on the page: dynamic messages will not be announced (4.1.3).',
         'no_status_regions_rem': 'Add role="status" or aria-live="polite" for toasts, save confirmations, search results (4.1.3).',
+        'placeholder_only': '{n} fields using placeholder as their only label (no <label>): {ej}. The placeholder vanishes on input (3.3.2).',
+        'placeholder_only_rem': 'Placeholder is NOT a label: add a visible <label for="id">. The placeholder disappears when typing starts and screen readers do not always announce it (3.3.2).',
+        'required_no_indication': '{n} required fields with no visible required indication: {ej} (3.3.2).',
+        'required_no_indication_rem': 'Required fields must indicate it: asterisk with legend, "required" text in the label, or announced aria-required (3.3.2).',
+        'fieldset_missing': '{n} radio/checkbox groups without <fieldset><legend>: screen readers do not announce the common question (1.3.1).',
+        'fieldset_missing_rem': 'Wrap groups in <fieldset><legend>Common question</legend>…</fieldset> (1.3.1): without it, each radio is announced without context.',
+        'label_vague': '{n} suspiciously vague labels: {ej} (2.4.6).',
+        'label_vague_rem': 'Labels should describe the field: "Contact email address", not "Field" or "Text" (2.4.6).',
+        'financial_no_confirm': '{n} financial/legal form(s) without a detectable confirmation step (3.3.4).',
+        'financial_no_confirm_rem': 'Submissions with legal/financial consequences must be reversible, checked, or confirmed (3.3.4): terms checkbox, "Review and confirm" button, or review step.',
         'zoom_no': 'The viewport blocks user zoom (user-scalable=no/0).',
         'zoom_no_rem': 'Remove user-scalable=no and maximum-scale: zooming is the user\'s right (1.4.4).',
         'zoom_max': 'The viewport limits zoom (maximum-scale={v}; recommend no limit or ≥2).',
@@ -524,8 +549,17 @@ class _Auditor(HTMLParser):
         self.headings_vagos = []
         self.char_shortcuts = []
         self.drag_handlers = []
-        self.status_regions = 0    # 1.4.5 suspicion: img inside heading or very long alt
+        self.status_regions = 0
+        self.placeholder_only = []     # 3.3.2: placeholder sin label
+        self.required_sin_indicio = [] # 3.3.2: required sin * ni "obligatorio"
+        self.fieldsets_faltan = 0      # 1.3.1: radio/check groups sin fieldset
+        self._radio_group = {}         # name → count (para detectar grupos)
+        self.labels_vagos = []         # 2.4.6: label quality
+        self.financieros_sin_conf = 0  # 3.3.4: financial form no confirm
+        self._form_financiero = False
+        self._form_confirma = False    # 1.4.5 suspicion: img inside heading or very long alt
         self._en_nav = 0
+        self._en_fieldset = False
         self.tiene_busqueda = False
         self.tiene_sitemap = False
         self.gestos = []            # touchmove/drag handlers (2.5.1)
@@ -644,6 +678,7 @@ class _Auditor(HTMLParser):
                 self.campos_sin_label.append((tag, a.get('name', '')[:60], a.get('id')))
         elif tag == 'label':
             self._label_depth += 1
+            self._label_texto_actual = []
             self._labels_stack.append(False)
             if a.get('for'):
                 self._labels_for[a['for']] = self._labels_for.get(a['for'], 0) + 1
@@ -700,6 +735,38 @@ class _Auditor(HTMLParser):
         if a.get('ontouchmove') or a.get('ondrag'):
             if not (a.get('onclick') or tag in ('input', 'button', 'a')):
                 self.gestos.append(f'{tag}[{list(a)[0] if a else ""}]')
+        # forms: placeholder-only, required sin indicio, financial
+        if tag == 'form':
+            self._form_financiero = False
+            self._form_confirma = False
+            action = (a.get('action') or '').lower()
+            if re.search(r'pay|purchase|checkout|buy|order|contract|legal|billing',
+                         action, re.I):
+                self._form_financiero = True
+        if tag in ('input', 'select', 'textarea'):
+            if a.get('placeholder') and not (a.get('aria-label') or a.get('aria-labelledby')):
+                if self._label_depth == 0 and not a.get('id'):
+                    self.placeholder_only.append(f'{tag}[placeholder="{a.get("placeholder","")[:30]}"]')
+            if a.get('required') or a.get('aria-required') == 'true':
+                ph = (a.get('placeholder') or '').lower()
+                title_ = (a.get('title') or '').lower()
+                if not re.search(r'\*|requerid|obligator|required|necesari|precisa', ph + title_):
+                    self.required_sin_indicio.append(
+                        f'{tag}[name={a.get("name","?")}]')
+            if tag == 'input' and a.get('type') == 'radio':
+                nm = a.get('name') or '_sin_nombre'
+                self._radio_group[nm] = self._radio_group.get(nm, 0) + 1
+        if tag == 'fieldset':
+            self._en_fieldset = True
+        if tag in ('button', 'input'):
+            val = (a.get('value') or a.get('data-action') or '').lower()
+            if re.search(r'confirm|verificar|review|revisar|accept|aceptar', val):
+                self._form_confirma = True
+            # checkbox de términos
+        if tag == 'input' and a.get('type') == 'checkbox':
+            nm = (a.get('name') or '').lower()
+            if re.search(r'terms|accept|agree|terminos|aceptar|legal|privacy', nm):
+                self._form_confirma = True
         if a.get('draggable') and (a.get('draggable') or '').lower() != 'false':
             if not a.get('onclick') and tag not in ('input', 'button'):
                 self.drag_handlers.append(f'{tag}[draggable]')
@@ -785,8 +852,19 @@ class _Auditor(HTMLParser):
             self._en_script = False
         elif tag == 'label':
             self._label_depth = max(0, self._label_depth - 1)
+            if hasattr(self, '_label_texto_actual'):
+                txt = ' '.join(self._label_texto_actual).strip()
+                bajo = txt.lower()
+                if txt and (len(txt) < 2 or re.fullmatch(
+                    r'(campo|field|input|texto|text|dato|value|entrada|box|caja)[\s\d]*', bajo)):
+                    self.labels_vagos.append(f'"{txt[:30]}"')
             if self._labels_stack and not self._labels_stack.pop():
                 self.labels_huerfanos += 1
+        elif tag == 'fieldset':
+            self._en_fieldset = False
+        elif tag == 'form':
+            if self._form_financiero and not self._form_confirma:
+                self.financieros_sin_conf += 1
         elif tag == 'nav':
             self._en_nav = max(0, self._en_nav - 1)
         elif tag == 'li':
@@ -848,6 +926,8 @@ class _Auditor(HTMLParser):
         else:
             # Un texto puede pertenecer a la vez a un enlace dentro de un
             # encabezado (<h2><a>Guías</a></h2>): alimenta a ambos.
+            if self._label_depth > 0 and hasattr(self, '_label_texto_actual'):
+                self._label_texto_actual.append(data)
             if self._ctrl:
                 self._ctrl[-1]['texto'].append(data)
             if self._nivel_h is not None:
@@ -872,6 +952,11 @@ def audit_html(html_text, url='(html)', lang='en'):
         p.close()
     except Exception as e:  # noqa: BLE001
         return {'error': f'HTML no parseable: {e}'}
+
+    # 1.3.1: grupos de radio (name compartido, ≥2) sin fieldset
+    for nm, count in p._radio_group.items():
+        if count >= 2 and not p._en_fieldset:
+            p.fieldsets_faltan += 1
 
     # Campos cuyo id sí tiene un <label for> explícito en otro punto: fuera.
     p.campos_sin_label = [c for c in p.campos_sin_label if c[2] not in p._labels_for]
@@ -995,6 +1080,20 @@ def audit_html(html_text, url='(html)', lang='en'):
     if p.down_events:
         add_ej('media', '2.5.2', 'down_event', p.down_events,
                n=len(p.down_events), ej=', '.join(p.down_events[:4]))
+    # forms deep-dive
+    if p.placeholder_only:
+        add_ej('alta', '3.3.2', 'placeholder_only', p.placeholder_only,
+               n=len(p.placeholder_only), ej=', '.join(p.placeholder_only[:3]))
+    if p.required_sin_indicio:
+        add_ej('baja', '3.3.2', 'required_no_indication', p.required_sin_indicio,
+               n=len(p.required_sin_indicio), ej=', '.join(p.required_sin_indicio[:3]))
+    if p.fieldsets_faltan:
+        add('media', '1.3.1', 'fieldset_missing', n=p.fieldsets_faltan)
+    if p.labels_vagos:
+        add_ej('baja', '2.4.6', 'label_vague', p.labels_vagos,
+               n=len(p.labels_vagos), ej=', '.join(p.labels_vagos[:3]))
+    if p.financieros_sin_conf:
+        add('media', '3.3.4', 'financial_no_confirm', n=p.financieros_sin_conf)
     if p.headings_vagos:
         add_ej('baja', '2.4.6', 'heading_quality', p.headings_vagos,
                n=len(p.headings_vagos), ej=', '.join(p.headings_vagos[:3]))
