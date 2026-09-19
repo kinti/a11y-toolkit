@@ -1,0 +1,17 @@
+#!/usr/bin/env bash
+# Internal documents never reach the public repo — block at commit time.
+set -euo pipefail
+PATRONES=(drafts/ internal/ a11y-drafts/ .draft.md .local.md)
+STAGED=$(git diff --cached --name-only || true)
+for f in $STAGED; do
+  low=$(echo "$f" | tr 'A-Z' 'a-z')
+  for p in "${PATRONES[@]}"; do
+    if [[ "$low" == *"$p"* ]]; then
+      echo "✗ DOCUMENTO INTERNO EN COMMIT: $f"
+      echo "  El material interno (borradores, notas privadas) no se publica en el repo público."
+      echo "  Si es un falso positivo, renombra el fichero o usa git commit --no-verify conscientemente."
+      exit 1
+    fi
+  done
+done
+exit 0

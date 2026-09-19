@@ -11,3 +11,10 @@ build/
 playwright-report/
 test-results/
 bench/axe.min.js
+
+# Internal material — never publish to the public repo
+a11y-drafts/
+drafts/
+internal/
+*.draft.md
+*.local.md
