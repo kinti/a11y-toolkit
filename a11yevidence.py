@@ -83,6 +83,24 @@ def empaquetar(informes, snapshot=None, evaluador=None, notas=None, verificados=
                 tocados[code] = estado
 
     verificados = {v.split(' ')[0] for v in (verificados or [])}
+    # extraer valores medidos clave de los hallazgos (ratio, ejemplos)
+    valores = {}
+    for inf in informes:
+        for h in inf.get('hallazgos', []):
+            code = (h.get('criterio') or '').split(' ')[0]
+            if code not in valores:
+                val = {}
+                if 'ratio' in h.get('hallazgo', '').lower() or ':' in h.get('hallazgo', ''):
+                    import re as _re
+                    m = _re.search(r'([\d.]+):1', h.get('hallazgo', ''))
+                    if m:
+                        val['medido'] = f'{m.group(1)}:1'
+                ej = h.get('ejemplos', [])
+                if ej:
+                    val['ejemplo'] = str(ej[0])[:80]
+                if val:
+                    valores[code] = val
+
     matriz = []
     for code in sorted(CRIT['en']):
         estado = tocados.get(code, 'not-flagged')
@@ -93,8 +111,10 @@ def empaquetar(informes, snapshot=None, evaluador=None, notas=None, verificados=
             nota = 'not-flagged ≠ pass: no automated signal fired on this sample'
         elif estado == 'agent-verified':
             nota = 'verified against this sample per the manual checklist protocol'
-        matriz.append({'criterio': CRIT['en'][code], 'estado': estado,
-                       'nota': nota})
+        entrada = {'criterio': CRIT['en'][code], 'estado': estado, 'nota': nota}
+        if code in valores:
+            entrada['valor'] = valores[code]
+        matriz.append(entrada)
     manuales_restantes = [m for m in MANUAL_AA if m.split(' ')[0] not in verificados]
     for nombre in manuales_restantes:
         matriz.append({'criterio': nombre, 'estado': 'manual-only',
@@ -111,7 +131,8 @@ def empaquetar(informes, snapshot=None, evaluador=None, notas=None, verificados=
     for i, inf in enumerate(informes):
         artefactos.append({'tipo': f"informe:{inf.get('modo', 'static')}",
                            'url': inf.get('url'), 'sha256': _sha256(inf),
-                           'score': inf.get('score')})
+                           'score': inf.get('score'),
+                           'cuerpo': inf})  # embedded: pack self-verifying
     if snapshot:
         artefactos.append({'tipo': 'snapshot:a11y', 'url': snapshot.get('url'),
                            'sha256': _sha256(snapshot), 'elementos': len(snapshot.get('elementos', []))})
