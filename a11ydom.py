@@ -353,7 +353,11 @@ _JS = r'''(maxEj) => {
     if (!n) n = (el.getAttribute('title') || '').trim();
     if (!n && el.tagName === 'INPUT' && ['submit', 'button', 'reset'].includes(el.type)) n = el.value || '';
     if (!n && el.tagName === 'INPUT' && el.type === 'image') n = el.alt || '';
-    if (!n && ['A', 'BUTTON', 'SUMMARY'].includes(el.tagName)) n = (el.innerText || '').trim();
+    if (!n && ['A', 'BUTTON', 'SUMMARY'].includes(el.tagName)) {
+      n = (el.innerText || '').trim();
+      // accname: a descendant image's alt contributes to the link's name
+      if (!n) { const im = el.querySelector('img[alt]'); if (im) n = (im.getAttribute('alt') || '').trim(); }
+    }
     if (!n && el.tagName === 'IMG') n = el.getAttribute('alt') || '';
     return n.trim();
   };

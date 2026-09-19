@@ -32,6 +32,7 @@ a:focus{outline:none}.chico{padding:1px 2px}</style></head>
 <button aria-hidden="true" tabindex="-1">honeypot-btn</button>
 <div aria-hidden="true" class="robots"><label>robots only <input type="text" tabindex="-1"></label></div>
 <a href="#s" style="position:absolute;width:1px;height:1px;overflow:hidden">skip oculto</a>
+<a href="/b"><img src="badge.png" alt="Score badge 100/100"></a>
 <mi-tarjeta></mi-tarjeta>
 <iframe src="dom_fixture_hijo.html" title="hijo"></iframe>
 </main></body></html>'''
@@ -79,6 +80,10 @@ assert d.get('iframes_anidados', 0) == 1, d.get('iframes_anidados')   # iframe s
 assert any('iframe: y.png' in str(e) for h in d['hallazgos'] for e in h.get('ejemplos', []))
 # FPs corregidos tras el bench: honeypot aria-hidden, tabindex=-1 y skip oculto no se reportan
 senales = {h['senal']: h for h in d['hallazgos']}
+# v3.16.1: a link wrapping an image WITH alt has a name (accname) — never flagged
+if 'ctrl_name' in senales:
+    assert not any('badge.png' in str(e) or "src=\"b.png\"" in str(e)
+                   for e in senales['ctrl_name'].get('ejemplos', []))
 assert 'aria_hidden_focusable' not in senales, senales.get('aria_hidden_focusable')
 f258 = senales.get('target_small')
 assert f258 is None or not any('1×1' in str(e) for e in f258.get('ejemplos', []))

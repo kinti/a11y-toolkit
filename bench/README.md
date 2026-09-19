@@ -14,7 +14,7 @@ Reproduce it: `python3 bench/compara.py <url…>` (axe.min.js auto-downloads).
 | example.com | 94 / 94 | 2.4.1 | — | — | perfect agreement |
 | **gov.uk** | 98 / **82** | — | 2.4.1 (`region`, 2 nodes) | **REAL 1.4.3** + 1.3.1 + 2.5.8 | **we found a real failure axe does not report**: "Search GOV.UK" button, `#1d70b8` on `#d2e2f1` at 13px = 3.91:1 < 4.5 (manually verified). axe files contrast under "incomplete"; we compute it |
 | es.wikipedia (front page) | 44 / 64 | 1.1.1, 1.3.1, 4.1.2 | 2.4.1 (`region`) | 1.4.3 (review: image backgrounds), 2.1.1/3.3.2/2.4.4/3.1.2 (static pass) | static score dropped 50→44 as the v3.9 criteria landed (3.1.2 lang-of-parts now caught) — raw HTML vs JS DOM: use `a11y_audit_dom` on JS-heavy sites |
-| jquin.net | 98 / **88** | — | — | 2.4.4 (static, advisory) + **4.1.2 unnamed footer link** | **the toolkit found a real bug on its author's own site**: an icon-only footer link with no accessible name (caught by the improved rendered collector). Being fixed |
+| jquin.net | 98 / **100** | — | — | 2.4.4 (static, advisory) | initially reported as an unnamed footer link — **re-triage showed OUR collector's false positive** (a link wrapping an image *with* alt: accname-legal, axe agrees). Fixed with a regression fixture; the site passes clean. The triage discipline cuts both ways. |
 
 axe's `region` rule (content OUTSIDE landmarks) is a different granularity
 from ours (that a bypass mechanism exists: main/skip link) — not a false
