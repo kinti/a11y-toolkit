@@ -82,7 +82,7 @@ else:
 r = run('evidence', '/tmp/cli_audit.json', '-o', os.path.join('/tmp', 'cli_pack.json'))
 assert r.returncode == 0, r.stderr[-300:]
 pk = json.loads(r.stdout)
-assert pk['sha256'] and 10 <= pk['resumen']['manual-only'] <= 16  # shrank from 27 as signals landed
+assert pk['sha256'] and 4 <= pk['resumen']['manual-only'] <= 8  # genuinely human-only criteria  # shrank from 27 as signals landed
 
 # 3. seguridad: nada de lo que escribe este toolkit es vector de inyección
 sys.path.insert(0, AQUI)
