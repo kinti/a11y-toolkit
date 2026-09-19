@@ -7,7 +7,7 @@
 [![Python 3.9+](https://img.shields.io/badge/python-3.9%2B-blue.svg)](pyproject.toml)
 [![MCP](https://img.shields.io/badge/Model%20Context%20Protocol-server-purple)](https://modelcontextprotocol.io)
 
-**18 MCP tools + 5 prompts + a skill** that give any AI agent (Claude, Cursor, Windsurf,
+**19 MCP tools + 5 prompts + a skill** that give any AI agent (Claude, Cursor, Windsurf,
 Codex…) the full WCAG 2.2 loop: **audit → fix → document → watch**. Zero dependencies at
 its core; every finding ships with a concrete remediation your agent can apply.
 
@@ -30,16 +30,16 @@ makes "is it accessible?" a one-question ask — and "then fix it" a one-command
 | **Focus-order regression detection** | ✗ | ✓ |
 | Runs with **zero dependencies** (stdlib only; Playwright optional for the deep pass) | heavy runtimes | ✓ |
 | Screen-reader **aria-live announcement monitor** | ✗ | ✓ |
-| **0-100 score** computed from weighted findings | ✓ (subset of axe rules) | ✓ (weighted across 40 WCAG criteria) |
+| **0-100 score** computed from weighted findings | ✓ (subset of axe rules) | ✓ (weighted across 43 WCAG criteria) |
 | **Criterion explanations** on demand for agents | ✗ | ✓ |
 | Static core parity: ARIA validity, autocomplete 1.3.5, link purpose, list structure, duplicate ids | ✓ | ✓ |
 | Output optimized for **MCP/LLM consumption** (JSON, severity-ranked, es/en) | ✗ | ✓ |
 
-## The tools (18)
+## The tools (19)
 
 | Tool | What it does |
 |---|---|
-| `a11y_audit_url` | Express static WCAG audit of a URL **or raw HTML**: 33+ signals — **40 WCAG criteria touched** — with a **weighted 0-100 score** (alt, accessible names, labels, autocomplete 1.3.5, keyboard onclick, unknown ARIA roles, broken aria-labelledby, unnamed duplicated landmarks, meta refresh, skip mechanism, lang validity, title, headings, blocked zoom, captions, autoplay audio, generic/duplicated link text, target=_blank warnings, tabindex>0, aria-hidden-on-focusable, tables, duplicate ids, accesskeys). Per-finding remediation. |
+| `a11y_audit_url` | Express static WCAG audit of a URL **or raw HTML**: 36+ signals — **43 WCAG criteria touched** — with a **weighted 0-100 score** (alt, accessible names, labels, autocomplete 1.3.5, keyboard onclick, unknown ARIA roles, broken aria-labelledby, unnamed duplicated landmarks, meta refresh, skip mechanism, lang validity, title, headings, blocked zoom, captions, autoplay audio, generic/duplicated link text, target=_blank warnings, tabindex>0, aria-hidden-on-focusable, tables, duplicate ids, accesskeys). Per-finding remediation. |
 | `a11y_audit_dom` | **Rendered audit** (local Playwright/Chromium): real computed text contrast vs effective backgrounds with alpha compositing (1.4.3), minimum target size 24×24 (**2.5.8 — new in WCAG 2.2**), focus-indicator heuristic (2.4.7), **:focus/:hover state contrast**, **open shadow DOM traversed** — all static checks on the live DOM. |
 | `a11y_contrast_pair` | Exact ratio + verdicts 1.4.3/1.4.6/1.4.11. Accepts `#hex`, `rgb()`, `hsl()`, **CSS color names**; alpha composites over the background. Suggests the nearest passing color. |
 | `a11y_contrast_image` | **Text over images**: pixel-level sampling of the actual background → worst/median/p95 ratio, % area passing AA, hostile-zone detection on a 3×3 grid. |
@@ -52,6 +52,7 @@ makes "is it accessible?" a one-question ask — and "then fix it" a one-command
 | `a11y_aria_live_snippet` | Injectable monitor logging every aria-live announcement (time, politeness, role, text) — what a screen reader would say, visible on screen. |
 | `a11y_evidence` | **The countersignature-ready evidence pack**: full criteria matrix (fail/review/not-flagged/manual-only), artifacts SHA-256-hashed, empty signature block referencing the pack's hash. Records agent-verified criteria (`verificados` — a fail never erases). The vendor-neutral machine→human handoff — any qualified human can countersign it. Spec: [docs/evidence-pack-schema.md](docs/evidence-pack-schema.md), real sample included. |
 | `a11y_criterion` | Explains any WCAG 2.2 criterion in plain language: what it requires, typical failures, and which toolkit tool verifies it. |
+| `a11y_html_validate` | **The W3C's own parser as a mode** (validator.w3.org/nu): doctype, encoding, structural validity + authoritative alt/lang/role findings, mapped to criteria. Self-hosted vnu supported; html mode's privacy trade-off documented. |
 | `a11y_forms` | **Form error testing (3.3.1/3.3.3)** — the guided flow nobody automates: fills validatable fields with invalid data, really submits, and judges whether errors are identified and announced in the post-submit DOM. |
 | `a11y_scroll` | **Infinite-scroll audit** — the documented disaster nobody automates (Deque + APG Feed pattern): real scrolling batches, does focus SURVIVE, is new content ANNOUNCED, does the feed END or offer load-more. |
 | `a11y_keyboard` | **Keyboard-trap detection (2.1.2) with REAL Tab walking**: up to 60 stops, cycle detection, and the decisive test — does Escape release? Correct modals are not reported. |

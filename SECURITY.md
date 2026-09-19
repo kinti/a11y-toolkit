@@ -5,6 +5,9 @@
 a11y-toolkit is a **local** tool. It runs as your user on your machine:
 
 - The MCP server speaks stdio JSON-RPC with the client that launched it.
+- `a11y_html_validate` sends content to the W3C's public Nu service when
+  called in html mode (url mode shares only the URL, like a11y_audit_url);
+  self-hosted vnu instances are supported for sensitive content.
 - `a11y_audit_url` fetches **only http/https URLs** (non-http schemes are
   rejected — a prompt-injected caller cannot point it at `file://` to read
   local files; use `--file`/the `html` argument for local HTML). Standard

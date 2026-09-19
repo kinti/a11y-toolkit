@@ -23,6 +23,7 @@ Tools:
   - a11y_keyboard(url, …)                         keyboard-trap detection (2.1.2)
   - a11y_scroll(url, …)                           infinite-scroll audit
   - a11y_forms(url, …)                            form errors 3.3.1/3.3.3 (fill+submit)
+  - a11y_html_validate(url|html, …)                W3C Nu parser view
   - a11y_evidence(informes, …)                   countersignature-ready evidence pack
 
 Prompts: audit-page, fix-contrast, pre-deploy-check, declaration-eaa.
@@ -47,6 +48,7 @@ from a11yaudit import audit_url as audit_url_fn, audit_html as audit_html_fn  # 
 from a11ydom import audit_dom_url, audit_reflow, audit_keyboard, audit_forms  # noqa: E402
 from a11yfix import autofix as autofix_fn  # noqa: E402
 from a11yscroll import audit_scroll  # noqa: E402
+from a11yvalidate import validar_url, validar_html  # noqa: E402
 from a11yevidence import empaquetar as empaquetar_fn  # noqa: E402
 from a11ydiff import snapshot as snapshot_fn, diff as diff_fn  # noqa: E402
 from a11ycrit import criterio as criterio_fn  # noqa: E402
@@ -58,7 +60,7 @@ try:
 except ImportError:
     ARIALIVE_JS = None  # repo checkout: read the file
 
-VERSION = '3.15.0'
+VERSION = '3.16.0'
 
 INSTRUCTIONS = (
     'Accessibility toolkit (WCAG 2.2), multilanguage es/en. '
@@ -333,6 +335,22 @@ TOOLS = [
         }, 'required': ['url']},
     },
     {
+        'name': 'a11y_html_validate',
+        'description': ('The W3C\'s own parser as a toolkit mode: checks a URL or raw HTML '
+                        'against the Nu Html Checker (validator.w3.org/nu) — doctype, encoding, '
+                        'structural validity, plus alt/lang/role issues from the authoritative '
+                        'source, mapped to WCAG criteria where they overlap. PRIVACY: html mode '
+                        'POSTs the document to the W3C service (url mode shares only the URL, '
+                        'like a11y_audit_url); self-hosted vnu instances supported via base_url '
+                        'for sensitive content.'),
+        'inputSchema': {'type': 'object', 'properties': {
+            'url': {'type': 'string', 'description': 'Page URL to validate (shares the URL with the W3C service)'},
+            'html': {'type': 'string', 'description': 'Raw HTML to validate — POSTs the content to validator.w3.org/nu; use url or a self-hosted instance for sensitive pages'},
+            'base_url': {'type': 'string', 'description': 'Base URL of a self-hosted vnu instance (docker ghcr.io/validator/validator) instead of the public W3C service'},
+            'lang': {'type': 'string', 'enum': ['es', 'en'], 'description': 'Output language (en default)'},
+        }},
+    },
+    {
         'name': 'a11y_criterion',
         'description': ('Explains a WCAG 2.2 success criterion in plain language (es/en): '
                         'what it requires, typical failures, and how to verify it with this '
@@ -492,6 +510,10 @@ _PARAM_DOCS = {
  ('a11y_forms', 'url'): 'Page URL containing the form(s) to fill and submit with invalid data',
  ('a11y_autofix', 'form_errors'): 'Inject the accessible error layer into forms without their own handling (default true)',
  ('a11y_forms', 'timeout'): 'Page load timeout in seconds (default 45)',
+ ('a11y_html_validate', 'url'): 'Page URL to validate via the W3C Nu service',
+ ('a11y_html_validate', 'html'): 'Raw HTML — its CONTENT is sent to validator.w3.org/nu',
+ ('a11y_html_validate', 'base_url'): 'Self-hosted vnu instance base URL for sensitive content',
+
 
  ('a11y_reflow', 'timeout'): 'Page load timeout in seconds (default 45)',
  ('a11y_reflow', 'lang'): 'Output language (default en)',
@@ -579,6 +601,7 @@ _ANN = {
     'a11y_audit_dom':        ('Rendered WCAG audit', True, True),
     'a11y_reflow':           ('320px reflow check', True, True),
     'a11y_keyboard':         ('Keyboard-trap detector', True, True),
+    'a11y_html_validate':    ('W3C Nu validation', True, True),
     'a11y_forms':            ('Form error testing', True, True),
     'a11y_scroll':           ('Infinite-scroll audit', True, True),
     'a11y_snapshot':         ('A11y snapshot + tab order', True, True),
@@ -738,6 +761,15 @@ def llamar(nombre, args):
             return {'content': [{'type': 'text',
                                  'text': 'Playwright not installed: pip install playwright && playwright install chromium'}],
                     'isError': True}
+        except Exception as e:  # noqa: BLE001
+            return {'content': [{'type': 'text', 'text': f'error: {e}'}], 'isError': True}
+    if nombre == 'a11y_html_validate':
+        try:
+            if args.get('html'):
+                return _texto(validar_html(args['html'], lang=args.get('lang', 'en'),
+                                           base_url=args.get('base_url')))
+            return _texto(validar_url(args['url'], lang=args.get('lang', 'en'),
+                                      base_url=args.get('base_url')))
         except Exception as e:  # noqa: BLE001
             return {'content': [{'type': 'text', 'text': f'error: {e}'}], 'isError': True}
     if nombre == 'a11y_criterion':

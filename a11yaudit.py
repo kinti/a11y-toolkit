@@ -102,6 +102,9 @@ CRIT = {
         '3.1.2': '3.1.2 Idioma de las partes',
         '3.3.8': '3.3.8 Autenticación accesible',
         '3.3.1': '3.3.1 Identificación de errores',
+        '3.2.6': '3.2.6 Ayuda coherente',
+        '1.4.5': '1.4.5 Imágenes de texto',
+        '1.4.11': '1.4.11 Contraste no textual',
         '3.3.3': '3.3.3 Sugerencia ante errores',
         '1.4.2': '1.4.2 Control del audio',
         '1.4.3': '1.4.3 Contraste (mínimo)',
@@ -147,6 +150,9 @@ CRIT = {
         '3.1.2': '3.1.2 Language of Parts',
         '3.3.8': '3.3.8 Accessible Authentication',
         '3.3.1': '3.3.1 Error Identification',
+        '3.2.6': '3.2.6 Consistent Help',
+        '1.4.5': '1.4.5 Images of Text',
+        '1.4.11': '1.4.11 Non-text Contrast',
         '3.3.3': '3.3.3 Error Suggestion',
         '1.4.2': '1.4.2 Audio Control',
         '1.4.3': '1.4.3 Contrast (Minimum)',
@@ -230,6 +236,10 @@ T = {
         'autocomplete_rem': 'Añade autocomplete con el token correcto (email, tel, name, postal-code…, 1.3.5): relleno automático y voz de accesibilidad con sobrecoste cero.',
         'aria_ref_missing': '{n} referencias aria-labelledby/describedby apuntan a ids que no existen: {ej}.',
         'aria_ref_missing_rem': 'Corrige o elimina la referencia: un aria-labelledby roto deja el control sin nombre accesible.',
+        'help_inconsistent': 'La ayuda (contacto/soporte) aparece en posiciones o formas distintas entre páginas del sitio ({ej}). Revisar (3.2.6).',
+        'help_inconsistent_rem': 'Si la ayuda aparece en varias páginas, debe aparecer en el mismo orden relativo y de forma consistente (3.2.6, nuevo en 2.2): mismo menú, misma ubicación.',
+        'images_of_text': '{n} imágenes que parecen ser texto renderizado (alt muy largo{ej2}). Revisar (1.4.5).',
+        'images_of_text_rem': 'Salvo logotipos, presenta el texto como texto real (1.4.5): se re escala, se re-fluye y se traduce; una imagen no.',
         'label_in_name': '{n} controles cuyo aria-label no contiene el texto visible («{ej}»): quien dicta por voz dice lo que ve (2.5.3).',
         'label_in_name_rem': 'El nombre accesible debe CONTENER la etiqueta visible: «Ofertas de verano (abre en ventana nueva)», no «Más info». Sustituye el aria-label por texto visible + sufijo.',
         'lang_partes': '{n} atributos lang en elementos no válidos (BCP-47): {ej}.',
@@ -343,6 +353,10 @@ T = {
         'autocomplete_rem': 'Add autocomplete with the right token (email, tel, name, postal-code…, 1.3.5): free accessibility and autofill at zero cost.',
         'aria_ref_missing': '{n} aria-labelledby/describedby references point to ids that do not exist: {ej}.',
         'aria_ref_missing_rem': 'Fix or remove the reference: a broken aria-labelledby leaves the control with no accessible name.',
+        'help_inconsistent': 'Help (contact/support) appears in different places or shapes across site pages ({ej}). Review (3.2.6).',
+        'help_inconsistent_rem': 'When help appears on multiple pages, it must appear in the same relative order and consistently (3.2.6, new in 2.2): same menu, same place.',
+        'images_of_text': '{n} images that appear to be rendered text (very long alt{ej2}). Review (1.4.5).',
+        'images_of_text_rem': 'Except for logotypes, present text as real text (1.4.5): it rescales, reflows and translates; an image does not.',
         'label_in_name': '{n} controls whose aria-label does not contain the visible text («{ej}»): voice-input users say what they see (2.5.3).',
         'label_in_name_rem': 'The accessible name must CONTAIN the visible label: "Summer offers (opens in new window)", not "More info". Use visible text + suffix.',
         'lang_partes': '{n} invalid lang attributes on elements (BCP-47): {ej}.',
@@ -477,6 +491,8 @@ class _Auditor(HTMLParser):
         self.captchas = []          # detección 3.3.8
         self.moviles = []           # marquee/blink/inline infinite animation (2.2.2)
         self.nav_hrefs = set()      # hrefs inside <nav> (site-level 3.2.3 signature)
+        self.help_hrefs = set()     # help/contact links (site-level 3.2.6 signature)
+        self.imagenes_texto = []    # 1.4.5 suspicion: img inside heading or very long alt
         self._en_nav = 0
         self.tiene_busqueda = False
         self.tiene_sitemap = False
@@ -545,8 +561,12 @@ class _Auditor(HTMLParser):
         elif tag == 'img':
             if 'alt' not in a:
                 self.imgs_sin_alt.append(a.get('src', '')[:100])
-            if self._ctrl and (a.get('alt') or '').strip():
+            alt = (a.get('alt') or '').strip()
+            if self._ctrl and alt:
                 self._ctrl[-1]['img_interna'] = True
+            if self._nivel_h is not None or len(alt) > 120:
+                self.imagenes_texto.append('imagen dentro de encabezado' if self._nivel_h is not None
+                                           else f'alt de {len(alt)} caracteres')
         elif tag == 'iframe':
             if not (a.get('title') or a.get('aria-label')):
                 self.iframes_sin_title.append((a.get('src') or '')[:100])
@@ -561,6 +581,9 @@ class _Auditor(HTMLParser):
                 href = (a.get('href') or '').strip()
                 if self._en_nav and href and not href.startswith('#'):
                     self.nav_hrefs.add(href.split('#')[0].rstrip('/'))
+                if href and re.search(r'help|contact|support|ayuda|contacto|soporte|asistencia',
+                                      href, re.I):
+                    self.help_hrefs.add(href.split('#')[0].rstrip('/'))
                 if href and re.search(r'sitemap|site-map|mapa-del-sitio|mapa_web|mapaweb', href, re.I):
                     self.tiene_sitemap = True
         elif tag == 'input':
@@ -690,7 +713,7 @@ class _Auditor(HTMLParser):
                 self.roles_sin_estado.append(f'{tag}[role={rol}]')
         rol_landmark = a.get('role', '').lower() if a.get('role') in (
             'banner', 'contentinfo', 'navigation', 'complementary', 'main', 'form', 'search', 'region') else None
-        lm = tag if tag in ('header', 'footer', 'nav', 'aside', 'main') else rol_landmark
+        lm = tag if tag in ('header', 'footer', 'nav', 'aside', 'main', 'search') else rol_landmark
         if lm and not (a.get('aria-label') or a.get('aria-labelledby')):
             t = self.landmarks.setdefault(lm, [0, 0])
             t[0] += 1
@@ -919,6 +942,9 @@ def audit_html(html_text, url='(html)', lang='en'):
     if p.down_events:
         add_ej('media', '2.5.2', 'down_event', p.down_events,
                n=len(p.down_events), ej=', '.join(p.down_events[:4]))
+    if p.imagenes_texto:
+        add_ej('baja', '1.4.5', 'images_of_text', p.imagenes_texto,
+               n=len(p.imagenes_texto), ej2='')
     if p.captchas:
         add_ej('media', '3.3.8', 'captcha', p.captchas,
                n=len(p.captchas), ej=', '.join(p.captchas[:2]))
@@ -1086,6 +1112,14 @@ def evaluar_sitio(parsers, lang='en'):
                         'hallazgo': _t(lang, 'nav_inconsistent').format(
                             ej=f'{len(set(firmas))} distintas en {len(firmas)} páginas'),
                         'remediacion': _t(lang, 'nav_inconsistent_rem')})
+    # 3.2.6 Consistent Help (A, new in 2.2): help links stable across pages
+    firmas_help = [frozenset(p.help_hrefs) for p in parsers if p.help_hrefs]
+    if len(firmas_help) >= 2 and len(parsers) >= 3 and len(set(firmas_help)) > 1:
+        out.append({'severidad': 'media', 'criterio': _crit(lang, '3.2.6'),
+                    'senal': 'help_inconsistent',
+                    'hallazgo': _t(lang, 'help_inconsistent').format(
+                        ej=f'{len(set(firmas_help))} variantes en {len(firmas_help)} páginas'),
+                    'remediacion': _t(lang, 'help_inconsistent_rem')})
     if parsers and not any(p.tiene_busqueda or p.tiene_sitemap for p in parsers):
         out.append({'severidad': 'media', 'criterio': _crit(lang, '2.4.5'),
                     'senal': 'no_multiple_ways',

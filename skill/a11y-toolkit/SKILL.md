@@ -35,6 +35,7 @@ All output is English by default; pass `--lang es` (or the `lang: "es"` MCP argu
 | "a badge for the audited site" | `a11y_badge` (score + date + "automated screening" scope — never claims conformance) |
 | "audit the section, not just one page" | `pages` parameter (or `a11ytoolkit audit --pages N`): sitemap-first same-domain crawl (links fallback), aggregated by mean/worst score |
 | "the staging site is behind a login" | rendered tools accept `auth_state`: path to a Playwright storage_state JSON exported from a logged-in session — file stays local |
+| "what does the W3C validator say?" | `a11y_html_validate` (Nu parser: doctype, structure, authoritative alt/lang/role; self-hosted vnu for sensitive pages) |
 | "does the form explain what went wrong?" (3.3.1/3.3.3) | `a11y_forms`: fills invalid data, really submits, judges error identification/announcement in the post-submit DOM |
 | "record what I verified by hand/agent" | pass `verificados` (criterion codes) to `a11y_evidence`: they become agent-verified in the matrix; automated-fail never erases |
 | "full evaluation / conformance / WCAG-EM" | the `conformance-wcagem` prompt — three tiers, escalate one at a time; protocol in `references/wcagem-guide.md` |
