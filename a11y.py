@@ -18,6 +18,8 @@
   a11ytoolkit evidence audit.json -o pack.json           # countersignature-ready pack
   a11ytoolkit forms https://web/contact                 # form errors (3.3.1/3.3.3)
   a11ytoolkit validate --url https://web                # W3C Nu parser view
+  a11ytoolkit disprove --url https://web                # re-verify findings
+  a11ytoolkit ledger record --url https://web --audit r.json  # track coverage
 """
 
 import sys
@@ -28,6 +30,8 @@ import a11yfix
 import a11ydom
 import a11yevidence
 import a11yvalidate
+import a11ydisprove
+import a11yledger
 import a11yscroll
 import a11ybudget
 import a11ycrit
@@ -50,6 +54,8 @@ SUBCOMANDOS = {
     'scroll': (a11yscroll, None),
     'forms': (a11ydom, 'forms_main'),
     'validate': (a11yvalidate, None),
+    'disprove': (a11ydisprove, None),
+    'ledger': (a11yledger, None),
     'evidence': (a11yevidence, None),
     'reflow': (a11ydom, 'reflow_main'),
     'badge': (a11ybadge, None),

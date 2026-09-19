@@ -1,0 +1,152 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/kinti/a11y-toolkit/blob/main/docs/audit-report.schema.json",
+  "title": "a11y-toolkit audit report",
+  "description": "Formal schema for any audit report produced by a11y-toolkit (static, rendered, reflow, keyboard, scroll, forms, hover, w3c-nu). Validated programmatically — a consumer can trust the shape without reading the code.",
+  "type": "object",
+  "required": ["url", "modo", "score", "resumen", "hallazgos"],
+  "properties": {
+    "url": {
+      "type": "string",
+      "description": "The audited URL or '(html)' for inline HTML"
+    },
+    "modo": {
+      "type": "string",
+      "enum": ["static", "rendered", "reflow", "keyboard", "scroll", "forms", "hover", "w3c-nu", "site"],
+      "description": "The audit mode that produced this report"
+    },
+    "score": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 100,
+      "description": "Weighted score: high −12, medium −6, low −2 from 100"
+    },
+    "score_nota": {
+      "type": "string",
+      "description": "Honesty note about what the score measures"
+    },
+    "resumen": {
+      "type": "object",
+      "required": ["alta", "media", "baja"],
+      "properties": {
+        "alta": { "type": "integer", "minimum": 0 },
+        "media": { "type": "integer", "minimum": 0 },
+        "baja": { "type": "integer", "minimum": 0 }
+      },
+      "description": "Finding counts by severity"
+    },
+    "hallazgos": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["severidad", "criterio", "senal", "hallazgo", "remediacion"],
+        "properties": {
+          "severidad": {
+            "type": "string",
+            "enum": ["alta", "media", "baja"]
+          },
+          "criterio": {
+            "type": "string",
+            "pattern": "^\\d+\\.\\d+\\.\\d+\\s.+",
+            "description": "WCAG criterion code and name (e.g. '1.4.3 Contrast (Minimum)')"
+          },
+          "senal": {
+            "type": "string",
+            "description": "Stable signal identifier (e.g. 'imgs_alt', 'contrast_fail')"
+          },
+          "hallazgo": {
+            "type": "string",
+            "minLength": 10,
+            "description": "What was found, with measured values when available"
+          },
+          "remediacion": {
+            "type": "string",
+            "minLength": 10,
+            "description": "Concrete fix the agent can apply"
+          },
+          "ejemplos": {
+            "type": "array",
+            "items": { "type": "string" },
+            "maxItems": 6,
+            "description": "Specific elements that triggered the finding"
+          },
+          "estado": {
+            "type": "string",
+            "enum": ["confirmed", "rejected", "needs_validation"],
+            "description": "Verification status (present when the disprover has run)"
+          },
+          "razon_rechazo": {
+            "type": "string",
+            "description": "Why the finding was rejected (present when estado=rejected)"
+          }
+        }
+      }
+    },
+    "limites": {
+      "type": "string",
+      "description": "Honest scope note about what automation cannot check"
+    },
+    "elementos_analizados": {
+      "type": "integer",
+      "description": "Total elements parsed (static mode)"
+    },
+    "elementos_interactivos": {
+      "type": "integer",
+      "description": "Interactive elements found (rendered mode)"
+    },
+    "shadow_roots": {
+      "type": "integer",
+      "description": "Open shadow roots traversed (rendered mode)"
+    },
+    "iframes_anidados": {
+      "type": "integer",
+      "description": "Same-origin iframes scanned (rendered mode)"
+    },
+    "manual_pendiente_n": {
+      "type": "integer",
+      "description": "Criteria requiring human review (site mode / analyzer)"
+    },
+    "descubrimiento": {
+      "type": "string",
+      "enum": ["sitemap", "links"],
+      "description": "Page discovery strategy (site mode)"
+    },
+    "paginas": {
+      "type": "integer",
+      "description": "Pages audited (site mode)"
+    },
+    "score_medio": {
+      "type": "integer",
+      "description": "Mean score across pages (site mode)"
+    },
+    "informes": {
+      "type": "array",
+      "description": "Per-page reports (site mode)"
+    },
+    "campos_invalidados": {
+      "type": "integer",
+      "description": "Fields filled with invalid data (forms mode)"
+    },
+    "anuncios_vivos": {
+      "type": "array",
+      "description": "Live-region announcements captured (scroll mode)"
+    },
+    "pasos": {
+      "type": "integer",
+      "description": "Tab stops walked (keyboard mode)"
+    },
+    "paradas": {
+      "type": "array",
+      "description": "Tab stop descriptions (keyboard mode)"
+    },
+    "ciclo": {
+      "type": "object",
+      "description": "Keyboard trap cycle info (keyboard mode)"
+    },
+    "mediciones": {
+      "type": "object",
+      "description": "Reflow measurements at 320px (reflow mode)"
+    }
+  },
+  "additionalProperties": true
+}

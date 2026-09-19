@@ -25,6 +25,8 @@ Tools:
   - a11y_forms(url, …)                            form errors 3.3.1/3.3.3 (fill+submit)
   - a11y_hover(url, …)                             tooltip Escape dismissibility (1.4.13)
   - a11y_sr_transcript(url, …)                     what a blind user hears, linearized
+  - a11y_disprove(url, informe?, …)                re-verify findings → confirmed/rejected
+  - a11y_ledger(action, url?, informe?, …)          persistent coverage ledger
   - a11y_html_validate(url|html, …)                W3C Nu parser view
   - a11y_evidence(informes, …)                   countersignature-ready evidence pack
 
@@ -54,6 +56,8 @@ from a11yvalidate import validar_url, validar_html  # noqa: E402
 from a11yevidence import empaquetar as empaquetar_fn  # noqa: E402
 from a11ydiff import snapshot as snapshot_fn, diff as diff_fn  # noqa: E402
 from a11ycrit import criterio as criterio_fn  # noqa: E402
+from a11ydisprove import disprove as disprove_fn  # noqa: E402
+from a11yledger import record as ledger_record, gaps as ledger_gaps, summary as ledger_summary  # noqa: E402
 from a11ybadge import badge as badge_fn  # noqa: E402
 from a11yaudit import audit_site as audit_site_fn  # noqa: E402
 
@@ -62,7 +66,7 @@ try:
 except ImportError:
     ARIALIVE_JS = None  # repo checkout: read the file
 
-VERSION = '3.19.0'
+VERSION = '3.20.0'
 
 INSTRUCTIONS = (
     'Accessibility toolkit (WCAG 2.2), multilanguage es/en. '
@@ -381,6 +385,37 @@ TOOLS = [
         }, 'required': ['url']},
     },
     {
+        'name': 'a11y_disprove',
+        'description': ('Disprover pattern (from Cloudflare\'s security-audit-skill): '
+                        're-runs the audit against the live page and marks each finding '
+                        'confirmed or rejected — findings that don\'t reproduce are '
+                        'rejected with the reason. Catches false positives, race '
+                        'conditions, and page changes between audit and report. Returns '
+                        'a fresh score over confirmed findings only. — Run this before '
+                        'acting on any audit report.'),
+        'inputSchema': {'type': 'object', 'properties': {
+            'url': {'type': 'string', 'description': 'URL to re-verify against'},
+            'informe': {'type': 'object', 'description': 'existing audit report (optional; if absent, audits first)'},
+            'lang': {'type': 'string', 'enum': ['es', 'en'], 'description': 'Output language (en default)'},
+            'timeout': {'type': 'number', 'description': 'Timeout seconds (30 default)'},
+        }, 'required': ['url']},
+    },
+    {
+        'name': 'a11y_ledger',
+        'description': ('Coverage ledger (from Cloudflare\'s security-audit-skill): '
+                        'persistent record of what has been audited, when, and with what '
+                        'result. Actions: record (add audit result), gaps (what has never '
+                        'been checked on a URL), summary (portfolio overview). Accumulates '
+                        'across runs — second audits show resolved findings.'),
+        'inputSchema': {'type': 'object', 'properties': {
+            'action': {'type': 'string', 'enum': ['record', 'gaps', 'summary'],
+                       'description': 'What to do'},
+            'url': {'type': 'string', 'description': 'URL (for record/gaps)'},
+            'informe': {'type': 'object', 'description': 'audit report object (for record)'},
+            'ledger_path': {'type': 'string', 'description': 'ledger file path (default: a11y-ledger.json)'},
+        }, 'required': ['action']},
+    },
+    {
         'name': 'a11y_criterion',
         'description': ('Explains a WCAG 2.2 success criterion in plain language (es/en): '
                         'what it requires, typical failures, and how to verify it with this '
@@ -542,6 +577,14 @@ _PARAM_DOCS = {
  ('a11y_hover', 'timeout'): 'Page load timeout in seconds (default 45)',
  ('a11y_sr_transcript', 'url'): 'Page URL to get the screen reader announcement transcript',
  ('a11y_sr_transcript', 'timeout'): 'Page load timeout in seconds (default 45)',
+ ('a11y_disprove', 'url'): 'URL to re-verify findings against',
+ ('a11y_disprove', 'informe'): 'Existing audit report to verify (optional; audits first if absent)',
+ ('a11y_disprove', 'timeout'): 'Fetch timeout seconds (default 30)',
+ ('a11y_ledger', 'action'): 'record (add audit), gaps (what is missing), or summary (overview)',
+ ('a11y_ledger', 'url'): 'URL being audited (for record/gaps)',
+ ('a11y_ledger', 'informe'): 'Audit report object (for record action)',
+ ('a11y_ledger', 'ledger_path'): 'Path to the ledger JSON file (default: a11y-ledger.json)',
+
 
  ('a11y_autofix', 'form_errors'): 'Inject the accessible error layer into forms without their own handling (default true)',
  ('a11y_forms', 'timeout'): 'Page load timeout in seconds (default 45)',
@@ -652,6 +695,8 @@ _ANN = {
     'a11y_evidence':         ('Evidence pack (countersignature-ready)', True, False),
     'a11y_hover':            ('Hover dismissibility (1.4.13)', True, True),
     'a11y_sr_transcript':    ('Screen reader transcript', True, True),
+    'a11y_disprove':         ('Disprover: re-verify findings', True, True),
+    'a11y_ledger':           ('Coverage ledger (persistent)', True, False),
     'a11y_criterion':        ('WCAG criterion explained', True, False),
 }
 for _t in TOOLS:
@@ -823,6 +868,32 @@ def llamar(nombre, args):
                                         lang=args.get('lang', 'en')))
         except ImportError:
             return {'content': [{'type': 'text', 'text': 'Playwright not installed'}], 'isError': True}
+        except Exception as e:
+            return {'content': [{'type': 'text', 'text': f'error: {e}'}], 'isError': True}
+    if nombre == 'a11y_disprove':
+        try:
+            return _texto(disprove_fn(args['url'], informe=args.get('informe'),
+                                       timeout=args.get('timeout', 30),
+                                       lang=args.get('lang', 'en')))
+        except Exception as e:
+            return {'content': [{'type': 'text', 'text': f'error: {e}'}], 'isError': True}
+    if nombre == 'a11y_ledger':
+        try:
+            ruta = args.get('ledger_path', 'a11y-ledger.json')
+            accion = args['action']
+            if accion == 'record':
+                if not args.get('url') or not args.get('informe'):
+                    return _texto({'error': 'record requires url + informe'})
+                from a11yledger import record as _rec
+                return _texto(_rec(args['url'], args['informe'], ruta=ruta))
+            if accion == 'gaps':
+                if not args.get('url'):
+                    return _texto({'error': 'gaps requires url'})
+                from a11yledger import gaps as _gaps
+                return _texto(_gaps(args['url'], ruta=ruta))
+            if accion == 'summary':
+                from a11yledger import summary as _sum
+                return _texto(_sum(ruta=ruta))
         except Exception as e:
             return {'content': [{'type': 'text', 'text': f'error: {e}'}], 'isError': True}
     if nombre == 'a11y_criterion':

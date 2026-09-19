@@ -58,11 +58,11 @@ resp = [json.loads(l) for l in p.stdout.splitlines() if l.strip()]
 por_id = {r.get('id'): r for r in resp}
 
 init = por_id[1]['result']
-assert init['serverInfo']['name'] == 'a11y-toolkit' and init['serverInfo']['version'] == '3.19.0'
+assert init['serverInfo']['name'] == 'a11y-toolkit' and init['serverInfo']['version'] == '3.20.0'
 assert 'WCAG' in init['instructions'] and 'prompts' in init['capabilities']
 
 nombres = [t['name'] for t in por_id[2]['result']['tools']]
-assert len(nombres) == 21 and 'a11y_html_validate' in nombres and 'a11y_forms' in nombres, nombres
+assert len(nombres) == 23 and 'a11y_html_validate' in nombres and 'a11y_forms' in nombres, nombres
 assert all(t['description'][0].isupper() for t in por_id[2]['result']['tools'])  # EN-first
 
 d = json.loads(por_id[3]['result']['content'][0]['text'])

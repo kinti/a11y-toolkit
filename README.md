@@ -7,7 +7,7 @@
 [![Python 3.9+](https://img.shields.io/badge/python-3.9%2B-blue.svg)](pyproject.toml)
 [![MCP](https://img.shields.io/badge/Model%20Context%20Protocol-server-purple)](https://modelcontextprotocol.io)
 
-**21 MCP tools + 5 prompts + a skill** covering the full WCAG 2.2 loop: **audit → fix →
+**23 MCP tools + 5 prompts + a skill** covering the full WCAG 2.2 loop: **audit → fix →
 document → watch → hand off**. **51 of 54 A/AA criteria carry automated signals (92%)**.
 Zero dependencies at the core; every finding ships with a concrete remediation your
 agent can apply.
@@ -40,7 +40,7 @@ the human signs.
 | Runs with **zero dependencies** at core (Playwright optional) | heavy runtimes | ✓ |
 | Output optimized for **MCP/LLM consumption** (JSON, es/en, severity-ranked) | ✗ | ✓ |
 
-## The tools (21)
+## The tools (23)
 
 ### Audit
 
