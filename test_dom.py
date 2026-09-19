@@ -32,7 +32,7 @@ a:focus{outline:none}.chico{padding:1px 2px}</style></head>
 <button aria-hidden="true" tabindex="-1">honeypot-btn</button>
 <div aria-hidden="true" class="robots"><label>robots only <input type="text" tabindex="-1"></label></div>
 <a href="#s" style="position:absolute;width:1px;height:1px;overflow:hidden">skip oculto</a>
-<a href="/b"><img src="badge.png" alt="Score badge 100/100"></a>
+<a href="/b"><img src="badge.png" alt="Score badge 100/100" width="28" height="28"></a>
 <mi-tarjeta></mi-tarjeta>
 <iframe src="dom_fixture_hijo.html" title="hijo"></iframe>
 </main></body></html>'''
