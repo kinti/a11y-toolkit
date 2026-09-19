@@ -148,6 +148,14 @@ positives (hidden skip links reported as tiny targets, honeypot fields, non-tabb
 `aria-hidden` controls, single-context generic links). Every divergence has a
 regression fixture.
 
+## Free online analyzer
+
+The machine half runs as a tiny zero-dependency web service —
+[webapp/](webapp/README.md) (two files, stdlib only, SSRF-guarded and
+rate-limited for public hosting). Free forever, MIT: score, findings,
+badge and the downloadable evidence pack that ends every report at the
+exact boundary where a qualified human begins.
+
 ## Honesty, built in
 
 Automation covers **~1/3 of WCAG** — every audit says so. The `audit-page` prompt and the

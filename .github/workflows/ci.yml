@@ -18,6 +18,7 @@ jobs:
       - run: python test_v32.py
       - run: python test_solido.py
       - run: python test_cli.py
+      - run: python test_webapp.py
       - run: python test_mcp.py
       - name: Package smoke test (pip install .)
         run: |
