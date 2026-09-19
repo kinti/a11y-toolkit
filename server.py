@@ -22,6 +22,7 @@ Tools:
   - a11y_reflow(url, …)                           320px reflow check (1.4.10)
   - a11y_keyboard(url, …)                         keyboard-trap detection (2.1.2)
   - a11y_scroll(url, …)                           infinite-scroll audit
+  - a11y_forms(url, …)                            form errors 3.3.1/3.3.3 (fill+submit)
   - a11y_evidence(informes, …)                   countersignature-ready evidence pack
 
 Prompts: audit-page, fix-contrast, pre-deploy-check, declaration-eaa.
@@ -43,7 +44,7 @@ if AQUI not in sys.path:
 from contrast import pair as pair_fn, image_contrast, sugerir, parse_color  # noqa: E402
 from declaracion import generar as declaracion_fn  # noqa: E402
 from a11yaudit import audit_url as audit_url_fn, audit_html as audit_html_fn  # noqa: E402
-from a11ydom import audit_dom_url, audit_reflow, audit_keyboard  # noqa: E402
+from a11ydom import audit_dom_url, audit_reflow, audit_keyboard, audit_forms  # noqa: E402
 from a11yfix import autofix as autofix_fn  # noqa: E402
 from a11yscroll import audit_scroll  # noqa: E402
 from a11yevidence import empaquetar as empaquetar_fn  # noqa: E402
@@ -57,7 +58,7 @@ try:
 except ImportError:
     ARIALIVE_JS = None  # repo checkout: read the file
 
-VERSION = '3.13.2'
+VERSION = '3.14.0'
 
 INSTRUCTIONS = (
     'Accessibility toolkit (WCAG 2.2), multilanguage es/en. '
@@ -69,7 +70,8 @@ INSTRUCTIONS = (
     'includes the computed accessibility tree — + a11y_diff across deploys). '
     'Site sampling reads /sitemap.xml first (WCAG-EM enumeration, links as fallback); '
     'rendered tools accept auth_state (Playwright storage_state) to audit behind login; '
-    'a11y_evidence records verificados codes as agent-verified (automated-fail stays fail). '
+    'a11y_forms submits invalid data and judges error announcement (3.3.1/3.3.3). '
+         'a11y_evidence records verificados codes as agent-verified (automated-fail stays fail). '
     'a11y_criterion explains what any criterion means. Every tool returns es/en '
     'findings with concrete remediation. '
     'Automation covers about one third of WCAG: pair audits with the manual checklist '
@@ -314,6 +316,23 @@ TOOLS = [
         }, 'required': ['informes']},
     },
     {
+        'name': 'a11y_forms',
+        'description': ('Form error testing (3.3.1 Error Identification, 3.3.3 Error Suggestion) — '
+                        'the guided flow no competitor automates: fills every validatable field '
+                        'with INVALID data, really submits, and judges the post-submit DOM — are '
+                        'errors identified in text and associated with the field (aria-invalid + '
+                        'aria-describedby, error summary, role=alert), or does the form swallow '
+                        'them? Native browser validation counts as identification (unless the '
+                        'form has novalidate); forms that navigate on submit are honestly noted '
+                        'as not measurable in-page. Requires local Playwright.'),
+        'inputSchema': {'type': 'object', 'properties': {
+            'url': {'type': 'string', 'description': 'Page URL with the form(s) to test'},
+            'lang': {'type': 'string', 'enum': ['es', 'en'], 'description': 'Output language (en default)'},
+            'timeout': {'type': 'number', 'description': 'Page load timeout seconds (45 default)'},
+            'auth_state': {'type': 'string', 'description': 'Path to a Playwright storage_state JSON to test forms behind login'},
+        }, 'required': ['url']},
+    },
+    {
         'name': 'a11y_criterion',
         'description': ('Explains a WCAG 2.2 success criterion in plain language (es/en): '
                         'what it requires, typical failures, and how to verify it with this '
@@ -470,6 +489,9 @@ _PARAM_DOCS = {
  ('a11y_audit_url', 'lang'): 'Output language for findings and remediation (default en)',
  ('a11y_audit_dom', 'lang'): 'Output language for findings and remediation (default en)',
  ('a11y_reflow', 'url'): 'Page URL to test at 320px (http/https or file://)',
+ ('a11y_forms', 'url'): 'Page URL containing the form(s) to fill and submit with invalid data',
+ ('a11y_forms', 'timeout'): 'Page load timeout in seconds (default 45)',
+
  ('a11y_reflow', 'timeout'): 'Page load timeout in seconds (default 45)',
  ('a11y_reflow', 'lang'): 'Output language (default en)',
  ('a11y_keyboard', 'url'): 'Page URL to Tab-walk (http/https or file://)',
@@ -556,6 +578,7 @@ _ANN = {
     'a11y_audit_dom':        ('Rendered WCAG audit', True, True),
     'a11y_reflow':           ('320px reflow check', True, True),
     'a11y_keyboard':         ('Keyboard-trap detector', True, True),
+    'a11y_forms':            ('Form error testing', True, True),
     'a11y_scroll':           ('Infinite-scroll audit', True, True),
     'a11y_snapshot':         ('A11y snapshot + tab order', True, True),
     'a11y_diff':             ('Snapshot regression diff', True, False),
@@ -678,6 +701,17 @@ def llamar(nombre, args):
         try:
             return _texto(audit_keyboard(args['url'], max_pasos=args.get('max_pasos', 60),
                                          lang=args.get('lang', 'en')))
+        except ImportError:
+            return {'content': [{'type': 'text',
+                                 'text': 'Playwright not installed: pip install playwright && playwright install chromium'}],
+                    'isError': True}
+        except Exception as e:  # noqa: BLE001
+            return {'content': [{'type': 'text', 'text': f'error: {e}'}], 'isError': True}
+    if nombre == 'a11y_forms':
+        try:
+            return _texto(audit_forms(args['url'], timeout=args.get('timeout', 45),
+                                      lang=args.get('lang', 'en'),
+                                      auth_state=args.get('auth_state')))
         except ImportError:
             return {'content': [{'type': 'text',
                                  'text': 'Playwright not installed: pip install playwright && playwright install chromium'}],

@@ -44,6 +44,17 @@ _TD = {
                                 'contrastada (2.4.7).'),
         'focus_not_focusable': '{n} controles que no reciben foco con .focus(): {det}.',
         'focus_not_focusable_rem': 'Si debe ser interactivo, que sea enfocable (tabindex="0"); si no, quítalo de la ruta de tabulación.',
+        'form_error_missing': ('{n} formularios enviados con datos inválidos SIN identificación de error: '
+                               'nada de aria-invalid, aria-describedby con texto, role=alert ni texto de error (3.3.1).'),
+        'form_error_missing_rem': ('Los errores deben describirse en texto y asociarse al campo: aria-invalid="true" + '
+                                   'un mensaje enlazado con aria-describedby (o un resumen con focus al enviar). '
+                                   'El borde rojo solo no es un error identificado.'),
+        'form_error_no_suggestion': ('{n} campos con error identificado pero sin sugerencia de corrección '
+                                     'detectable (3.3.3). Revisar.'),
+        'form_error_no_suggestion_rem': ('Cuando la corrección se conoce, dila: «Usa DD/MM/AAAA», no «Fecha inválida» (3.3.3). '
+                                         'Sugerimos patrón: texto con formato/ejemplo cerca del campo.'),
+        'form_navigated': 'El formulario navega al enviar; el comportamiento del error no es medible en la página ({ej}).',
+        'form_navigated_rem': 'Captura la página de destino o prueba con un intercepto; el juicio del error requiere ver el DOM tras el envío.',
         'focus_obscured': ('{n} controles quedan tapados por elementos fijos/sticky al '
                            'recibir el foco (cabeceras sticky, banners): {det}. Revisar (2.4.11).'),
         'focus_obscured_rem': ('Un elemento fijo no debe ocultar el elemento enfocado (2.4.11, '
@@ -71,6 +82,17 @@ _TD = {
                     '(inline equivalente, espaciado) que aquí se aproximan.'),
     },
     'en': {
+        'form_error_missing': ('{n} forms submitted with invalid data with NO error identification: no '
+                               'aria-invalid, aria-describedby with text, role=alert, or error text (3.3.1).'),
+        'form_error_missing_rem': ('Errors must be described in text and associated with the field: '
+                                   'aria-invalid="true" + a message linked via aria-describedby (or a summary '
+                                   'that takes focus on submit). A red border alone is not an identified error.'),
+        'form_error_no_suggestion': ('{n} fields with an identified error but no detectable correction '
+                                     'suggestion (3.3.3). Review.'),
+        'form_error_no_suggestion_rem': ('When the correction is known, say it: "Use DD/MM/YYYY", not "Invalid date" (3.3.3). '
+                                         'Suggestion pattern: format/example text near the field.'),
+        'form_navigated': 'The form navigates on submit; error behavior is not measurable in-page ({ej}).',
+        'form_navigated_rem': 'Capture the destination page or intercept the submit; judging errors requires the post-submit DOM.',
         'focus_obscured': ('{n} controls end up hidden behind fixed/sticky elements '
                            'when focused (sticky headers, banners): {det}. Review (2.4.11).'),
         'focus_obscured_rem': ('Author-fixed content must not hide the focused element '
@@ -614,6 +636,131 @@ def audit_dom(datos, url='(rendered)', lang='en'):
     }
 
 
+_JS_FORM_FILL = r'''() => {
+  // Fill every validatable field with INVALID data, then submit. Returns what we touched.
+  const CAMPOS = 'input:not([type=hidden]):not([type=submit]):not([type=button]):not([type=reset]):not([type=image]), select, textarea';
+  const invalidos = {email: 'not-an-email', url: 'not-a-url', number: 'abc', tel: 'no-phone'};
+  const tocados = [];
+  for (const f of document.querySelectorAll('form')) {
+    if (f.querySelector('[novalidate]') || f.hasAttribute('novalidate')) { /* still try: JS may validate */ }
+    for (const el of f.querySelectorAll(CAMPOS)) {
+      if (el.disabled || el.readOnly) continue;
+      const tipo = (el.type || el.tagName.toLowerCase()).toLowerCase();
+      const exige = el.required || el.getAttribute('aria-required') === 'true'
+        || el.hasAttribute('pattern') || el.hasAttribute('minlength') || el.hasAttribute('min');
+      let val = '';
+      if (invalidos[tipo]) val = invalidos[tipo];
+      else if (tipo === 'checkbox' || tipo === 'radio') { continue; }
+      else if (!exige) continue;
+      else val = tipo === 'number' ? 'abc' : '';
+      el.value = val;
+      el.dispatchEvent(new Event('input', {bubbles: true}));
+      el.dispatchEvent(new Event('change', {bubbles: true}));
+      tocados.push({form: f.id || f.action || f.getAttribute('class') || 'form',
+                    campo: (el.name || el.id || tipo).toString().slice(0, 40)});
+    }
+    const btn = f.querySelector('button[type=submit], input[type=submit], button:not([type])');
+    if (btn) btn.click(); else if (f.requestSubmit) f.requestSubmit();
+  }
+  return tocados;
+}'''
+
+_JS_FORM_STATE = r'''() => {
+  // After submit: how were errors identified and announced?
+  const RX_ERR = /(error|invalid|required|obligatorio|requerido|inv[áa]lido|incorrecto|falta|requerid)/i;
+  const RX_SUG = /(format|example|ejemplo|usa |use |dd\/mm|mm\/dd|pattern|como |like |must be|debe)/i;
+  const out = { forms: [], alerts: 0 };
+  for (const a of document.querySelectorAll('[role=alert], [aria-live]')) {
+    if ((a.innerText || '').trim() && RX_ERR.test(a.innerText)) out.alerts++;
+  }
+  const CAMPOS = 'input:not([type=hidden]):not([type=submit]):not([type=button]):not([type=reset]):not([type=image]), select, textarea';
+  for (const f of document.querySelectorAll('form')) {
+    const info = { form: f.id || f.action || 'form', campos: 0, identificados: 0,
+                   sugeridos: 0, nativos: 0 };
+    for (const el of f.querySelectorAll(CAMPOS)) {
+      if (el.disabled) continue;
+      info.campos++;
+      let identificado = false, sugerido = false;
+      if (el.getAttribute('aria-invalid') === 'true') identificado = true;
+      const db = el.getAttribute('aria-describedby');
+      if (db) for (const id of db.split(/\s+/)) {
+        const r = document.getElementById(id);
+        if (r && (r.innerText || '').trim()) { identificado = true; if (RX_SUG.test(r.innerText)) sugerido = true; }
+      }
+      const cerca = el.closest('div, p, li, td, fieldset');
+      if (cerca && RX_ERR.test(cerca.innerText || '')) {
+        identificado = true;
+        const lbl = el.labels && el.labels[0] ? el.labels[0].innerText : '';
+        if (RX_SUG.test(cerca.innerText || '') ) sugerido = true;
+      }
+      // native validation only identifies errors when the form lets it fire
+      // (a novalidate form never shows the browser message — the API lying ≠ UX)
+      if (!f.noValidate && el.willValidate !== undefined && !el.checkValidity() && el.validationMessage) {
+        identificado = true; info.nativos++;
+      }
+      if (identificado) info.identificados++;
+      if (sugerido) info.sugeridos++;
+    }
+    out.forms.push(info);
+  }
+  return out;
+}'''
+
+def audit_forms(url, timeout=45, lang='en', auth_state=None):
+    """3.3.1 Error Identification / 3.3.3 Error Suggestion — the guided flow:
+    fill every validatable field with INVALID data, really submit, then judge
+    how errors are identified and announced in the post-submit DOM."""
+    from playwright.sync_api import sync_playwright
+    with sync_playwright() as p:
+        nav = p.chromium.launch()
+        ctx = nav.new_context(storage_state=auth_state) if auth_state else nav
+        page = ctx.new_page() if auth_state else nav.new_page()
+        try:
+            page.goto(url, wait_until='load', timeout=timeout * 1000)
+            page.wait_for_timeout(400)
+        except Exception as e:  # noqa: BLE001
+            nav.close()
+            return {'error': _t(lang, 'descarga_error').format(e=e)}
+        url_antes = page.url
+        tocados = page.evaluate(_JS_FORM_FILL)
+        page.wait_for_timeout(900)
+        navegado = page.url.split('#')[0] != url_antes.split('#')[0]
+        estado = None if navegado else page.evaluate(_JS_FORM_STATE)
+        nav.close()
+
+    hallazgos = []
+
+    def agrega(sev, code, key, **fmt):
+        hallazgos.append({'severidad': sev, 'criterio': CRIT.get(lang, CRIT['es']).get(code, code),
+                          'senal': key, 'hallazgo': _t(lang, key).format(**fmt),
+                          'remediacion': _t(lang, key + '_rem').format(**fmt)})
+
+    if navegado:
+        agrega('baja', '3.3.1', 'form_navigated', ej=page.url if False else 'submit')
+    elif tocados and estado is not None:
+        sin_identificar = [f['form'] for f in estado['forms']
+                           if f['campos'] and f['identificados'] == 0 and f['nativos'] == 0
+                           and estado['alerts'] == 0]
+        if sin_identificar:
+            agrega('alta', '3.3.1', 'form_error_missing', n=len(sin_identificar))
+        campos_err = sum(f['identificados'] for f in estado['forms'])
+        campos_sug = sum(f['sugeridos'] for f in estado['forms'])
+        if campos_err > 0 and campos_sug == 0:
+            agrega('baja', '3.3.3', 'form_error_no_suggestion', n=campos_err)
+
+    from a11yaudit import calcular_score
+    return {
+        'url': url, 'modo': 'forms',
+        'campos_invalidados': len(tocados),
+        'detalle': tocados[:10],
+        'score': calcular_score(hallazgos),
+        'resumen': {s_: sum(1 for h in hallazgos if h['severidad'] == s_)
+                    for s_ in ('alta', 'media', 'baja')},
+        'hallazgos': hallazgos,
+        'limites': _t(lang, 'limites'),
+    }
+
+
 _JS_SPACING = r'''() => {
   // WCAG 1.4.12 Text Spacing: the documented override set, applied globally,
   // then measure which texts get clipped by height-constrained containers.
@@ -948,6 +1095,21 @@ def reflow_main(argv):
         res = audit_reflow(a.url, timeout=a.timeout, lang=a.lang)
     except ImportError:
         print(json.dumps({'error': 'Playwright no instalado'}))
+        return 1
+    print(json.dumps(res, ensure_ascii=False, indent=1))
+    return 0
+
+
+def forms_main(argv):
+    ap = argparse.ArgumentParser(description='Form errors: fill invalid + submit + judge (3.3.1/3.3.3)')
+    ap.add_argument('url')
+    ap.add_argument('--lang', default='en', choices=['en', 'es'])
+    ap.add_argument('--timeout', type=int, default=45)
+    a = ap.parse_args(argv)
+    try:
+        res = audit_forms(a.url, timeout=a.timeout, lang=a.lang)
+    except ImportError:
+        print(json.dumps({'error': 'Playwright not installed'}))
         return 1
     print(json.dumps(res, ensure_ascii=False, indent=1))
     return 0

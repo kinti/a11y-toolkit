@@ -44,8 +44,6 @@ MANUAL_AA = [
     '2.5.7 Dragging Movements',
     '3.2.1 On Focus',
     '3.2.2 On Input',
-    '3.3.1 Error Identification',
-    '3.3.3 Error Suggestion',
     '3.3.4 Error Prevention (Legal, Financial, Data)',
     '3.3.7 Redundant Entry',
     '4.1.3 Status Messages (beyond scroll-mode observer)',

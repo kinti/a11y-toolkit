@@ -16,6 +16,7 @@
   a11ytoolkit kbd https://web                             # keyboard traps? (2.1.2)
   a11ytoolkit scroll https://medium/section               # infinite-scroll audit
   a11ytoolkit evidence audit.json -o pack.json           # countersignature-ready pack
+  a11ytoolkit forms https://web/contact                 # form errors (3.3.1/3.3.3)
 """
 
 import sys
@@ -45,6 +46,7 @@ SUBCOMANDOS = {
     'fix': (a11yfix, None),
     'kbd': (a11ydom, 'kbd_main'),
     'scroll': (a11yscroll, None),
+    'forms': (a11ydom, 'forms_main'),
     'evidence': (a11yevidence, None),
     'reflow': (a11ydom, 'reflow_main'),
     'badge': (a11ybadge, None),
