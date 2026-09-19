@@ -1,9 +1,11 @@
-# Smithery configuration file: https://smithery.ai/docs/config#smitheryyaml
+# Smithery configuration: https://smithery.ai/docs/config
 startCommand:
   type: stdio
   configSchema:
     type: object
     properties: {}
-  commandFunction:
-    |-
-    (config) => ({ command: 'python3', args: ['server.py'] })
+  commandFunction: |-
+    (config) => ({
+      command: 'uvx',
+      args: ['--from', 'a11y-toolkit', 'a11y-toolkit-mcp']
+    })
