@@ -44,6 +44,55 @@ _TOKEN_POR_PISTA = [
     (re.compile(r'(?:^|[\W_])(?:full)?name|nombre', re.I), 'name'),
 ]
 
+_RE_FORM = re.compile(r'<form\b[^>]*>', re.I)
+_RE_CAMPO = re.compile(r'<(input|select|textarea)\b[^>]*>', re.I)
+_RE_SCRIPTS = re.compile(r'<script\b.*?</script>', re.S | re.I)
+_RE_FORM_BLOQUE = re.compile(r'<form\b.*?</form>', re.S | re.I)
+
+_FRASES = {
+    'es': {'req': 'Completa este campo.', 'email': 'Escribe un correo como nombre@ejemplo.com.',
+           'url': 'Escribe una URL como https://ejemplo.com.', 'num': 'Escribe un número.',
+           'entre': 'Escribe un número entre %a y %b.', 'corto': 'Usa al menos %n caracteres.',
+           'patron': 'Sigue el formato esperado: %p.'},
+    'en': {'req': 'Fill in this field.', 'email': 'Enter an email like name@example.com.',
+           'url': 'Enter a URL like https://example.com.', 'num': 'Enter a number.',
+           'entre': 'Enter a number between %a and %b.', 'corto': 'Use at least %n characters.',
+           'patron': 'Follow the expected format: %p.'},
+}
+
+_JS_FORMAS = """<script>
+(function(){
+  var F = {req:%(req)s,email:%(email)s,url:%(url)s,num:%(num)s,entre:%(entre)s,corto:%(corto)s,patron:%(patron)s};
+  function sug(el){var v=el.validity;if(!v)return '';
+    if(v.valueMissing)return F.req;
+    if(v.typeMismatch){if(el.type==='email')return F.email;if(el.type==='url')return F.url;if(el.type==='number')return F.num;}
+    if(v.rangeUnderflow||v.rangeOverflow)return F.entre.replace('%%a',el.min).replace('%%b',el.max);
+    if(v.tooShort)return F.corto.replace('%%n',el.minLength);
+    if(v.patternMismatch)return el.pattern?F.patron.replace('%%p',el.pattern):F.req;
+    return '';}
+  document.querySelectorAll('form[data-a11yfx]').forEach(function(f){
+    f.noValidate=true;
+    f.addEventListener('submit',function(ev){
+      var first=null;
+      f.querySelectorAll('input,select,textarea').forEach(function(el){
+        var id=el.getAttribute('data-a11yfx-err'),msg=id?document.getElementById(id):null;
+        if(!el.checkValidity()){var t=sug(el)||el.validationMessage||'';
+          el.setAttribute('aria-invalid','true');
+          if(msg){msg.hidden=false;msg.textContent=t;}
+          if(!first)first=el;
+        }else{el.removeAttribute('aria-invalid');if(msg){msg.hidden=true;msg.textContent='';}}
+      });
+      if(first){ev.preventDefault();first.focus();}
+    });
+    f.addEventListener('input',function(ev){var el=ev.target;if(!el.getAttribute)return;
+      var id=el.getAttribute('data-a11yfx-err');if(!id)return;
+      if(el.checkValidity()){el.removeAttribute('aria-invalid');var m=document.getElementById(id);
+        if(m){m.hidden=true;m.textContent='';}}
+    });
+  });
+})();
+</script>"""
+
 _RE_INPUT = re.compile(r'<input\b[^>]*>', re.I)
 _RE_VIEWPORT = re.compile(r'(<meta\s[^>]*name=["\']viewport["\'][^>]*content=["\'])([^"\']*)(["\'])', re.I)
 _RE_HTML_TAG = re.compile(r'<html\b([^>]*)>', re.I)
@@ -72,7 +121,7 @@ def _viewport_limpio(content):
     return ', '.join(limpias), fuera
 
 
-def autofix(html_text, lang=None, title=None, url='(html)'):
+def autofix(html_text, lang=None, title=None, url='(html)', form_errors=True):
     """Aplica los arreglos seguros. Devuelve fixed_html + aplicados + no_aplicados."""
     aplicados = []
     fixed = html_text
@@ -130,6 +179,66 @@ def autofix(html_text, lang=None, title=None, url='(html)'):
     if title and _RE_TITLE.search(fixed):
         fixed = _RE_TITLE.sub(lambda _m: f'<title>{_html.escape(title)}</title>', fixed, count=1)
         aplicados.append({'senal': 'title_missing', 'hecho': '<title> añadido (2.4.2)'})
+
+    # 4b. form errors: accessible error layer (3.3.1 + 3.3.3 from attributes)
+    if form_errors and 'a11yfx' not in fixed:
+        scripts = _RE_SCRIPTS.findall(fixed)
+        if not any(('aria-invalid' in s or 'setCustomValidity' in s) for s in scripts):
+            import json as _json
+            estado = {'forms': 0, 'campos': 0}
+
+            def _tipo_de(tag):
+                m = re.search(r'type=["\']([\w-]+)', tag, re.I)
+                return m.group(1).lower() if m else ''
+
+            def _validable(tag):
+                tipo = _tipo_de(tag)
+                if re.search(r'\b(required|pattern|minlength)\b|\bmin\s*=', tag, re.I):
+                    return True
+                return tipo in ('email', 'url', 'number', 'tel', 'date', 'time',
+                                'datetime-local', 'month', 'week')
+
+            def _procesa_campo(tag):
+                if 'data-a11yfx-err' in tag or not _validable(tag):
+                    return tag
+                estado['campos'] += 1
+                fid = "a11yfx-e-%d-%d" % (estado['forms'], estado['campos'])
+                mdb = re.search(r'aria-describedby=["\']([^"\']*)["\']', tag, re.I)
+                if mdb:  # merge, preserving the existing reference
+                    nueva = 'aria-describedby="%s %s"' % (mdb.group(1), fid)
+                    tag = tag[:mdb.start()] + nueva + tag[mdb.end():]
+                    tag = tag[:-1] + ' data-a11yfx-err="%s">' % fid
+                else:
+                    tag = tag[:-1] + ' data-a11yfx-err="%s" aria-describedby="%s">' % (fid, fid)
+                return tag + '\n<p class="a11yfx-err" id="%s" hidden></p>' % fid
+
+            def _manejo_propio(atrs_form):
+                m = re.search(r'onsubmit=["\']([^"\']*)', atrs_form, re.I)
+                if not m:
+                    return False
+                cuerpo = m.group(1).strip().lower()
+                # a pure navigation guard is NOT error handling — common fixture/SPA pattern
+                return cuerpo not in ('return false', 'return!1', 'return !1')
+
+            def _procesa_bloque(mb):
+                bloque = mb.group(0)
+                apertura = re.match(r'<form\b[^>]*>', bloque, re.I).group(0)
+                if 'data-a11yfx' in apertura or _manejo_propio(apertura):
+                    return bloque  # custom error handling present: never fight it
+                estado['forms'] += 1
+                resto = bloque[len(apertura):]
+                resto = _RE_CAMPO.sub(lambda mc: _procesa_campo(mc.group(0)), resto)
+                return apertura[:-1] + ' data-a11yfx>' + resto
+
+            fixed = _RE_FORM_BLOQUE.sub(_procesa_bloque, fixed)
+            if estado['campos']:
+                fr = _FRASES.get(lang, _FRASES['en'])
+                js = _JS_FORMAS % {k: _json.dumps(v) for k, v in fr.items()}
+                fixed = fixed.replace('</body>', js + '\n</body>', 1)
+                aplicados.append({'senal': 'form_error_missing',
+                                  'hecho': f"accessible error layer on {estado['forms']} form(s), "
+                                           f"{estado['campos']} field(s) — 3.3.1 identification + "
+                                           f"3.3.3 attribute-derived suggestions"})
 
     # 5. lo que NO se toca — honestidad operativa
     informe = audit_html(html_text, url, lang='en')

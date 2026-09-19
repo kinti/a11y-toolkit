@@ -55,7 +55,7 @@ makes "is it accessible?" a one-question ask — and "then fix it" a one-command
 | `a11y_forms` | **Form error testing (3.3.1/3.3.3)** — the guided flow nobody automates: fills validatable fields with invalid data, really submits, and judges whether errors are identified and announced in the post-submit DOM. |
 | `a11y_scroll` | **Infinite-scroll audit** — the documented disaster nobody automates (Deque + APG Feed pattern): real scrolling batches, does focus SURVIVE, is new content ANNOUNCED, does the feed END or offer load-more. |
 | `a11y_keyboard` | **Keyboard-trap detection (2.1.2) with REAL Tab walking**: up to 60 stops, cycle detection, and the decisive test — does Escape release? Correct modals are not reported. |
-| `a11y_autofix` | **Deterministic safe auto-fixes** on HTML: unblock zoom (1.4.4), exact autocomplete tokens (1.3.5), missing lang, empty title. Everything requiring judgment is returned as `no_aplicados` with the reason — the honest anti-overlay. |
+| `a11y_autofix` | **Deterministic safe auto-fixes** on HTML: unblock zoom (1.4.4), exact autocomplete tokens (1.3.5), missing lang, empty title. Forms without their own error handling get an **accessible error layer** injected (3.3.1 identification + 3.3.3 attribute-derived suggestions). Everything requiring judgment is returned as `no_aplicados` with the reason — the honest anti-overlay. |
 | `a11y_reflow` | **Reflow at 320px (1.4.10)** — the check axe and Lighthouse don't automate: real horizontal scroll + overflowing elements at 320px viewport. |
 | `a11y_badge` | Returns an **honest badge** as accessible SVG: score, date, scope ("automated screening"), never "conformant" — the anti-overclaim seal. |
 

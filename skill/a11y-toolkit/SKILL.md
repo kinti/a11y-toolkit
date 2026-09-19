@@ -39,7 +39,7 @@ All output is English by default; pass `--lang es` (or the `lang: "es"` MCP argu
 | "record what I verified by hand/agent" | pass `verificados` (criterion codes) to `a11y_evidence`: they become agent-verified in the matrix; automated-fail never erases |
 | "full evaluation / conformance / WCAG-EM" | the `conformance-wcagem` prompt — three tiers, escalate one at a time; protocol in `references/wcagem-guide.md` |
 | "produce something a human auditor can sign" | `a11y_evidence`: the countersignature-ready pack (criteria matrix + hashed artifacts + empty signature block). Vendor-neutral — any qualified human, any marketplace, or the consultant herself |
-| "FIX it for me" (zoom blocked, missing autocomplete, missing lang/title) | `a11y_autofix`: deterministic, provably safe fixes only; judgment fixes come back as `no_aplicados` + remediation. Never promise overlay-style full fixes |
+| "FIX it for me" (zoom blocked, missing autocomplete, missing lang/title) | `a11y_autofix`: deterministic safe fixes + the accessible form-error layer (3.3.1/3.3.3, skips forms with their own handling); judgment fixes come back as `no_aplicados` + remediation. Never promise overlay-style full fixes |
 | "does it scroll sideways on mobile?" (1.4.10) | `a11y_reflow` (320px viewport, real overflow + offenders) — axe/Lighthouse don't automate this |
 | "is the modal a keyboard trap?" (2.1.2) | `a11y_keyboard`: real Tab walk + cycle detection + Escape release test. Correct modals pass; traps are high severity |
 | "infinite scroll / feed / more posts keep loading" | `a11y_scroll`: real scroll batches — focus survival (2.4.3), announcements (4.1.3), end or load-more (Deque/APG Feed). Best on feeds you own or can log into |

@@ -58,7 +58,7 @@ try:
 except ImportError:
     ARIALIVE_JS = None  # repo checkout: read the file
 
-VERSION = '3.14.0'
+VERSION = '3.15.0'
 
 INSTRUCTIONS = (
     'Accessibility toolkit (WCAG 2.2), multilanguage es/en. '
@@ -490,6 +490,7 @@ _PARAM_DOCS = {
  ('a11y_audit_dom', 'lang'): 'Output language for findings and remediation (default en)',
  ('a11y_reflow', 'url'): 'Page URL to test at 320px (http/https or file://)',
  ('a11y_forms', 'url'): 'Page URL containing the form(s) to fill and submit with invalid data',
+ ('a11y_autofix', 'form_errors'): 'Inject the accessible error layer into forms without their own handling (default true)',
  ('a11y_forms', 'timeout'): 'Page load timeout in seconds (default 45)',
 
  ('a11y_reflow', 'timeout'): 'Page load timeout in seconds (default 45)',
@@ -727,7 +728,8 @@ def llamar(nombre, args):
             return {'content': [{'type': 'text', 'text': f'error: {e}'}], 'isError': True}
     if nombre == 'a11y_autofix':
         return _texto(autofix_fn(args['html'], lang=args.get('lang'),
-                                 title=args.get('title'), url=args.get('url') or '(html)'))
+                                 title=args.get('title'), url=args.get('url') or '(html)',
+                                 form_errors=args.get('form_errors', True)))
     if nombre == 'a11y_reflow':
         try:
             return _texto(audit_reflow(args['url'], timeout=args.get('timeout', 45),
