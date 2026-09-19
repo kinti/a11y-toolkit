@@ -151,7 +151,7 @@ regression fixture.
 ## Free online analyzer
 
 The machine half runs at **[a11y.jquin.net](https://a11y.jquin.net)** —
-a standalone project ([~/Dev/A11Y-ANALYZER](https://github.com/kinti/a11y-analyzer)) with
+a standalone project (the standalone analyzer project) with
 SSRF guarding, rate limiting and the downloadable evidence pack that ends every
 report at the exact boundary where a qualified human begins. Free forever, MIT.
 
