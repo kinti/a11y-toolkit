@@ -8,9 +8,10 @@
 [![MCP](https://img.shields.io/badge/Model%20Context%20Protocol-server-purple)](https://modelcontextprotocol.io)
 
 **23 MCP tools + 5 prompts + a skill** covering the full WCAG 2.2 loop: **audit → fix →
-document → watch → hand off**. **51 of 54 A/AA criteria carry automated signals (92%)**.
+document → watch → hand off**. **51 of 54 A/AA criteria carry automated signals (94%)**.
 Zero dependencies at the core; every finding ships with a concrete remediation your
-agent can apply.
+agent can apply. Works with Chromium, Firefox, WebKit, Chrome or Edge — whatever you
+have.
 
 The **European Accessibility Act** is in force since June 2025, ADA suits keep landing,
 and AI agents now write most of the web. A scan is not a defence — the machine finds,
@@ -31,13 +32,17 @@ the human signs.
 | **Reflow at 320px** (1.4.10) + **text spacing override** (1.4.12) | ✗ | ✓ |
 | **W3C Nu validator** integration (doctype, structural validity, mapped to criteria) | ✗ | ✓ |
 | **Focus/input-triggered navigation** detection (3.2.1/3.2.2) | ✗ | ✓ |
+| **Screen reader transcript**: what a blind user hears, linearized | ✗ | ✓ |
+| **Hover dismissibility**: tooltips that don't close on Escape (1.4.13) | ✗ | ✓ |
 | **Legal accessibility statements** (EAA / RD 1112/2018), es/en | ✗ | ✓ |
 | **Evidence pack** for human countersigning (SHA-256, criteria matrix) | ✗ | ✓ |
 | **Deterministic autofix** incl. accessible form-error layer (3.3.1/3.3.3) | ✗ | ✓ |
 | **Regression watch**: budget, SARIF→GitHub PRs, tab-order + tree diffs | ✗ | ✓ |
+| **Coverage ledger**: persistent audit knowledge accumulated across runs | ✗ | ✓ |
+| **Disprover**: re-verifies findings against the live page, rejects false positives | ✗ | ✓ |
 | **Open shadow DOM** traversal + same-origin iframes | partial | ✓ |
 | **Placeholder-only labels**, fieldset/legend, label quality, financial confirmation | ✗ | ✓ |
-| Runs with **zero dependencies** at core (Playwright optional) | heavy runtimes | ✓ |
+| Runs with **zero dependencies** at core (Playwright optional, any browser) | heavy runtimes | ✓ |
 | Output optimized for **MCP/LLM consumption** (JSON, es/en, severity-ranked) | ✗ | ✓ |
 
 ## The tools (23)
@@ -46,13 +51,15 @@ the human signs.
 
 | Tool | What it does |
 |---|---|
-| `a11y_audit_url` | Express static audit of a URL or raw HTML: 40+ signals across 51 WCAG criteria with a weighted 0-100 score. Covers alt, names, labels, autocomplete (1.3.5), ARIA validity (roles/refs/values), headings, zoom, lang, captions, autoplay, link purpose (2.4.4), list structure, duplicate ids/accesskeys, placeholder-only labels, fieldset/legend for radio groups, label quality, required-field indication, financial forms without confirmation (3.3.4), character-key shortcuts (2.1.4), drag handlers (2.5.7), status regions (4.1.3), heading quality (2.4.6), sensory instructions (1.3.3), orientation lock (1.3.4), images of text (1.4.5), consistent help (3.2.6), site-level nav consistency (3.2.3) and multiple ways (2.4.5). |
-| `a11y_audit_dom` | **Rendered audit** in Chromium: computed text contrast with alpha compositing (1.4.3), target size 24×24 (**2.5.8 — new in WCAG 2.2**), focus indicator (2.4.7), **:focus/:hover state contrast**, **text spacing override** (1.4.12 — injects WCAG spacing, counts clipped texts), **color-only links** (1.4.1), **DOM-vs-visual order** (1.3.2), looping animations (2.2.2), **open shadow DOM traversed**, **same-origin iframes scanned**. Accepts `auth_state` for behind-login auditing. |
+| `a11y_audit_url` | Express static audit of a URL or raw HTML: 40+ signals across 51 WCAG criteria with a weighted 0-100 score. Covers alt, accessible names, labels, autocomplete (1.3.5), ARIA validity (roles/refs/values), headings, zoom, lang, captions, autoplay, link purpose (2.4.4), list structure, duplicate ids/accesskeys, placeholder-only labels, fieldset/legend for radio groups, label quality, required-field indication, financial forms without confirmation (3.3.4), character-key shortcuts (2.1.4), drag handlers (2.5.7), status regions (4.1.3), heading quality (2.4.6), sensory instructions (1.3.3), orientation lock (1.3.4), images of text (1.4.5), consistent help (3.2.6), site-level nav consistency (3.2.3) and multiple ways (2.4.5). |
+| `a11y_audit_dom` | **Rendered audit** in Chromium/Firefox/WebKit: computed text contrast with alpha compositing (1.4.3), target size 24×24 (**2.5.8 — new in WCAG 2.2**), focus indicator (2.4.7), **:focus/:hover state contrast**, **text spacing override** (1.4.12 — injects WCAG spacing, counts clipped texts), **color-only links** (1.4.1), **DOM-vs-visual order** (1.3.2), looping animations (2.2.2), **open shadow DOM traversed**, **same-origin iframes scanned**. Accepts `auth_state` for behind-login auditing and `browser` for engine selection. |
 | `a11y_forms` | **Form error testing** (3.3.1/3.3.3): fills validatable fields with invalid data, really submits, judges whether errors are identified and announced in the post-submit DOM. Native browser validation counts (unless `novalidate`). |
 | `a11y_keyboard` | **Keyboard traps** (2.1.2) with real Tab walking + cycle detection + Escape-release test. Also detects **focus-triggered navigation** (3.2.1) and **input-triggered navigation** (3.2.2). |
 | `a11y_scroll` | **Infinite-scroll audit**: does focus survive each batch? Is new content announced (4.1.3)? Does the feed end or offer load-more? |
 | `a11y_reflow` | **320px reflow** (1.4.10): real horizontal scroll + overflowing elements. |
 | `a11y_html_validate` | **W3C Nu validator** (validator.w3.org/nu): doctype, encoding, structural validity, authoritative alt/lang/role findings mapped to criteria. Self-hosted vnu supported. |
+| `a11y_hover` | **Hover dismissibility** (1.4.13): finds tooltip/overlay candidates, hovers each, and tests whether Escape dismisses the result. |
+| `a11y_sr_transcript` | **Screen reader transcript**: what a blind user HEARS on this page — linearized accessibility tree as prose. The single best tool for "does this page make sense without sight?" |
 
 ### Fix
 
@@ -84,7 +91,9 @@ the human signs.
 
 | Tool | What it does |
 |---|---|
-| `a11y_evidence` | **Countersignature-ready evidence pack**: full criteria matrix (fail/review/not-flagged/agent-verified/manual-only), SHA-256-hashed artifacts, empty signature block tied to the pack hash. Spec: [docs/evidence-pack-schema.md](docs/evidence-pack-schema.md). |
+| `a11y_evidence` | **Countersignature-ready evidence pack**: full criteria matrix (fail/review/not-flagged/agent-verified/manual-only), SHA-256-hashed artifacts **with embedded report bodies** (self-verifying), empty signature block tied to the pack hash, **measured values** (e.g. "3.91:1") surfaced per criterion. Spec: [docs/evidence-pack-schema.md](docs/evidence-pack-schema.md). |
+| `a11y_disprove` | **Disprover pattern**: re-runs the audit against the live page and marks each finding confirmed or rejected — findings that don't reproduce are rejected with the reason. Returns a fresh score over confirmed findings only. |
+| `a11y_ledger` | **Coverage ledger**: persistent record of what has been audited, when, and with what result. Actions: record, gaps, summary. Accumulates across runs. |
 
 **5 prompts**: `audit-page`, `fix-contrast`, `pre-deploy-check` (GO/NO-GO), `declaration-eaa`, `conformance-wcagem` (three-tier WCAG-EM ladder).
 
@@ -114,9 +123,10 @@ Or with JSON config:
 }
 ```
 
-Rendered tools use Playwright **if present** (`pip install playwright && playwright
-install chromium`); everything else works with zero dependencies. Rendered tools accept
-`auth_state` (Playwright storage_state path) to audit behind login.
+Rendered tools use Playwright **if present** and accept a `browser` parameter
+(`auto`, `chromium`, `firefox`, `webkit`, `chrome`, `msedge` — auto-detects the first
+available). Accept `auth_state` (Playwright storage_state path) to audit behind login.
+Everything else works with zero dependencies.
 
 ### The skill
 
@@ -136,23 +146,25 @@ a11ytoolkit kbd https://mysite                          # keyboard traps + 3.2.1
 a11ytoolkit reflow https://mysite                       # 320px reflow
 a11ytoolkit scroll https://medium.com/feed              # infinite scroll
 a11ytoolkit validate --url https://example.com          # W3C Nu
+a11ytoolkit hover https://mysite                        # tooltip dismissibility
 a11ytoolkit fix --file page.html -o fixed.html          # safe autofix
 a11ytoolkit declaration --entidad "Acme" --url https://… --estado parcial --marco eaa
 a11ytoolkit snapshot https://mysite --out before.json   # before deploy
 a11ytoolkit diff before.json after.json                 # after deploy
 a11ytoolkit evidence audit.json -o pack.json            # countersignature-ready pack
+a11ytoolkit disprove --url https://mysite               # re-verify findings
 a11ytoolkit budget --budget budget.json --audit audit.json  # only NEW findings block
 a11ytoolkit sarif --from-audit audit.json -o a11y.sarif # GitHub code scanning
 a11ytoolkit badge --score 92 --out badge.svg            # honest SVG
 ```
 
-## Coverage: 51 of 54 WCAG 2.2 A/AA criteria (92%)
+## Coverage: 51 of 54 WCAG 2.2 A/AA criteria (94%)
 
 | With automated signal | Manual-only (genuinely human) |
 |---|---|
-| 1.1.1, 1.2.2, 1.2.3, 1.2.5, 1.3.1–1.3.5, 1.4.1–1.4.5, 1.4.10, 1.4.11, 1.4.12, 2.1.1, 2.1.2, 2.1.4, 2.2.1, 2.2.2, 2.4.1–2.4.7, 2.4.11, 2.5.1–2.5.4, 2.5.7, 2.5.8, 3.1.1, 3.1.2, 3.2.1–3.2.6, 3.3.1–3.3.4, 3.3.8, 4.1.2, 4.1.3 | 1.2.1 (audio transcripts), 1.2.4 (live captions), 1.4.13 (hover dismissibility), 2.3.1 (flash detection), 3.3.7 (redundant entry) |
+| 1.1.1, 1.2.2, 1.2.3, 1.2.5, 1.3.1–1.3.5, 1.4.1, 1.4.2, 1.4.3, 1.4.5, 1.4.10–1.4.12, 2.1.1, 2.1.2, 2.1.4, 2.2.1, 2.2.2, 2.4.1–2.4.7, 2.4.11, 2.5.1–2.5.4, 2.5.7, 2.5.8, 3.1.1, 3.1.2, 3.2.1–3.2.6, 3.3.1–3.3.4, 3.3.8, 4.1.2, 4.1.3 | 1.2.1 (audio transcripts), 1.2.4 (live captions), 2.3.1 (flash detection), 3.3.7 (redundant entry) |
 
-The 5 manual-only criteria each have a knowledge entry (`a11y_criterion`) telling the
+The 4 manual-only criteria each have a knowledge entry (`a11y_criterion`) telling the
 agent exactly how to verify them by hand. The boundary is printed on every report.
 
 ## Free online analyzer
@@ -171,11 +183,12 @@ report (blue button at 3.91:1, manually verified). Drove out our own false posit
 
 ## Honesty, built in
 
-Every audit says: **automation covers 92% of A/AA criteria; the rest needs a human**.
+Every audit says: **automation covers 94% of A/AA criteria; the rest needs a human**.
 The `audit-page` prompt and the skill have the agent check what it can (keyboard,
 focus, zoom, announced errors) using [the manual
 checklist](skill/a11y-toolkit/references/wcag22-manual-checklist.md). A filter, not
-a verdict. The evidence pack is the handoff object for the human who signs.
+a verdict. The evidence pack is the handoff object for the human who signs — and now
+includes a screen reader transcript so the reviewer sees what a blind user hears.
 
 ## Security & scope
 
@@ -205,10 +218,12 @@ Releases: `make release V=X.Y.Z` — bumps, gates, tags and pushes atomically.
 - [x] Keyboard traps + focus/input navigation detection (2.1.2, 3.2.1, 3.2.2)
 - [x] Infinite scroll · reflow · W3C Nu validation
 - [x] SARIF export · error budget · scheduled surveillance recipe
-- [x] Evidence pack with agent-verified status (spec published)
+- [x] Evidence pack with agent-verified status (spec published, self-verifying)
 - [x] Form deep-dive: placeholder-only, fieldset, label quality, financial confirmation
 - [x] Sitemap-driven crawling · behind-login auditing (auth_state)
-- [x] 50/54 A/AA criteria with automated signals (92%)
+- [x] 51/54 A/AA criteria with automated signals (94%)
+- [x] Browser auto-detection (Chromium, Firefox, WebKit, Chrome, Edge)
+- [x] Screen reader transcript · hover dismissibility · disprover · coverage ledger
 
 ## Author
 
