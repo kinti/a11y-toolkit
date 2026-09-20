@@ -44,6 +44,16 @@ still valid pack/1 — they just need the reports alongside.
 are marked `not-run` instead of `not-flagged`. This distinguishes "the
 machine looked and found nothing" from "the machine was not asked to look."
 
+## Content privacy (normative)
+
+Findings describe **structure and measurements, never page content**. Alt
+text, link text, headings, labels, error messages, form field values, and
+any user-supplied text are the things that are **never quoted** in any
+finding, example, or remediation string. The hallazgo field describes the
+structural issue; ejemplos carry CSS paths, rgb() color pairs, pixel sizes,
+and WCAG codes. If any finding text appears to quote page content, that is
+a bug — report it.
+
 ## The hash rule (normative)
 
 Canonical form is `json.dumps(obj, ensure_ascii=False, sort_keys=True,
