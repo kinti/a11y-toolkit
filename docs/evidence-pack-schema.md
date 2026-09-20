@@ -54,6 +54,16 @@ structural issue; ejemplos carry CSS paths, rgb() color pairs, pixel sizes,
 and WCAG codes. If any finding text appears to quote page content, that is
 a bug — report it.
 
+## Effort class table (for pricing)
+
+The exchange maps each criterion to an effort class from **its own published
+table** — the pack does NOT set the bill. This is the proposed seed:
+
+| Class | Criteria | Typical effort |
+|---|---|---|
+| Simple (3-5 min) | 1.1.1, 1.2.2, 1.2.3, 1.2.5, 1.3.1, 1.3.4, 1.3.5, 1.4.2, 1.4.4, 1.4.5, 2.2.1, 2.2.2, 2.4.1, 2.4.2, 2.4.3, 2.4.4, 2.5.2, 2.5.3, 2.5.4, 3.1.1, 3.1.2, 3.2.3, 3.2.4, 3.2.5, 3.2.6, 3.3.2, 3.3.8, 4.1.2 | 28 criteria — instant checks (alt, tokens, viewport, roles) |
+| Complex (10-15 min) | 1.3.2, 1.3.3, 1.4.1, 1.4.3, 1.4.10, 1.4.12, 2.1.1, 2.1.2, 2.2.2, 2.4.5, 2.4.6, 2.4.7, 2.5.7, 2.5.8, 3.3.1, 3.3.3, 3.3.4, 4.1.3 | 18 criteria — rendered, interaction, or review (contrast, Tab walk, forms, reflow) |
+
 ## The hash rule (normative)
 
 Canonical form is `json.dumps(obj, ensure_ascii=False, sort_keys=True,
