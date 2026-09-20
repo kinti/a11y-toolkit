@@ -22,14 +22,60 @@ import sys
 from a11yaudit import CRIT, T, calcular_score
 
 # browser pool: Chromium reutilizable entre llamadas consecutivas
-_POOL = {'playwright': None, 'browser': None}
+_POOL = {'playwright': None, 'browser': None, 'tipo': None}
+
+# cadena de detección: el primer navegador disponible gana.
+# El usuario puede forzar con el parámetro 'browser' (chromium, firefox,
+# webkit, chrome, msedge) o dejar 'auto' para que use lo que tenga.
+_CADENA = [
+    ('chromium', lambda pw: pw.chromium.launch(headless=True)),
+    ('firefox', lambda pw: pw.firefox.launch(headless=True)),
+    ('webkit', lambda pw: pw.webkit.launch(headless=True)),
+    ('chrome', lambda pw: p.chromium.launch(channel='chrome', headless=True)),
+    ('msedge', lambda pw: p.chromium.launch(channel='msedge', headless=True)),
+]
+
+_BROWSER_POR_PARAM = {
+    'chromium': lambda pw: pw.chromium.launch(headless=True),
+    'firefox': lambda pw: pw.firefox.launch(headless=True),
+    'webkit': lambda pw: pw.webkit.launch(headless=True),
+    'chrome': lambda pw: pw.chromium.launch(channel='chrome', headless=True),
+    'msedge': lambda pw: pw.chromium.launch(channel='msedge', headless=True),
+}
 
 
-def _get_browser(pw, headless=True):
+def _detectar_browser(pw, preferido=None):
+    """Devuelve (browser, nombre). Usa el preferido si está disponible,
+    si no prueba la cadena completa y devuelve el primero que arranque."""
+    if preferido and preferido != 'auto':
+        fn = _BROWSER_POR_PARAM.get(preferido)
+        if fn:
+            try:
+                br = fn(pw)
+                return br, preferido
+            except Exception:
+                pass
+    for nombre, fn in _CADENA:
+        try:
+            br = fn(pw)
+            return br, nombre
+        except Exception:
+            continue
+    raise RuntimeError(
+        'ningún navegador disponible. Instala uno: '
+        'pip install playwright && playwright install chromium')
+
+
+def _get_browser(pw, headless=True, preferido=None):
     """Devuelve un browser del pool (o crea uno si no existe)."""
-    if _POOL['browser'] is None or not _POOL['browser'].is_connected():
-        _POOL['browser'] = pw.chromium.launch(headless=headless)
-    return _POOL['browser']
+    if _POOL['browser'] is not None and _POOL['browser'].is_connected() and \
+            _POOL['tipo'] == (preferido or 'auto'):
+        return _POOL['browser']
+    _close_pool()
+    br, tipo = _detectar_browser(pw, preferido)
+    _POOL['browser'] = br
+    _POOL['tipo'] = tipo
+    return br
 
 
 def _close_pool():
@@ -798,7 +844,7 @@ def audit_forms(url, timeout=45, lang='en', auth_state=None):
     }
 
 
-def sr_transcript(url, timeout=45, lang='en', auth_state=None):
+def sr_transcript(url, timeout=45, lang='en', auth_state=None, browser='auto'):
     """Screen reader transcript: what a blind user HEARS on this page.
 
     Walks the accessibility tree linearly (the order a screen reader reads)
@@ -809,7 +855,7 @@ def sr_transcript(url, timeout=45, lang='en', auth_state=None):
     """
     from playwright.sync_api import sync_playwright
     pw = sync_playwright().start()
-    nav = _get_browser(pw)
+    nav = _get_browser(pw, preferido=browser)
     ctx = nav.new_context(storage_state=auth_state) if auth_state else nav
     page = ctx.new_page() if auth_state else nav.new_page()
     try:
@@ -1025,7 +1071,7 @@ _JS_OVERFLOW = r'''() => {
 }'''
 
 
-def audit_reflow(url, timeout=45, lang='en', auth_state=None):
+def audit_reflow(url, timeout=45, lang='en', auth_state=None, browser='auto'):
     """Reflujo 320px — criterio 1.4.10 (AA), la comprobación que ni axe ni
     Lighthouse automatizan. Nota de método: el estándar define el reflujo como
     «320 CSS px, equivalente a 1280px al 400% de zoom», y el zoom real del
@@ -1098,7 +1144,7 @@ _STOP_META = r"""(i) => {
 }"""
 
 
-def audit_keyboard(url, max_pasos=60, lang='en', timeout=45, auth_state=None):
+def audit_keyboard(url, max_pasos=60, lang='en', timeout=45, auth_state=None, browser='auto'):
     """Detección de TRAMPAS DE TECLADO (2.1.2) con Tab real.
 
     Recorre hasta max_pasos tabulaciones reales en Chromium, registra la
@@ -1236,7 +1282,7 @@ def audit_keyboard(url, max_pasos=60, lang='en', timeout=45, auth_state=None):
     }
 
 
-def audit_dom_url(url, timeout=45, lang='en', auth_state=None):
+def audit_dom_url(url, timeout=45, lang='en', auth_state=None, browser='auto'):
     """Carga la URL en Chromium y devuelve el informe renderizado.
 
     Escanea también los iframes same-origin (hasta 4) y contrasta los estados

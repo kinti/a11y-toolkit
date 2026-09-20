@@ -126,7 +126,8 @@ TOOLS = [
             'lang': {'type': 'string', 'enum': ['es', 'en']},
             'timeout': {'type': 'number', 'description': 'page load timeout seconds (45 default)'},
             'auth_state': {'type': 'string', 'description': 'Path to a Playwright storage_state JSON (exported session) to audit behind login — local file, never uploaded'},
-        }, 'required': ['url']},
+        },             'browser': {'type': 'string', 'enum': ['auto', 'chromium', 'firefox', 'webkit', 'chrome', 'msedge'], 'description': 'Browser engine (auto = detect the first available)'},
+'required': ['url']},
     },
     {
         'name': 'a11y_contrast_pair',
@@ -267,7 +268,8 @@ TOOLS = [
             'lang': {'type': 'string', 'enum': ['es', 'en']},
             'timeout': {'type': 'number'},
             'auth_state': {'type': 'string', 'description': 'Path to a Playwright storage_state JSON (exported session) to test behind login'},
-        }, 'required': ['url']},
+        },             'browser': {'type': 'string', 'enum': ['auto', 'chromium', 'firefox', 'webkit', 'chrome', 'msedge'], 'description': 'Browser engine (auto = detect the first available)'},
+'required': ['url']},
     },
     {
         'name': 'a11y_keyboard',
@@ -282,7 +284,8 @@ TOOLS = [
             'lang': {'type': 'string', 'enum': ['es', 'en']},
             'max_pasos': {'type': 'integer', 'description': 'max real Tab presses (60 default)'},
             'auth_state': {'type': 'string', 'description': 'Path to a Playwright storage_state JSON (exported session) to Tab-walk behind login'},
-        }, 'required': ['url']},
+        },             'browser': {'type': 'string', 'enum': ['auto', 'chromium', 'firefox', 'webkit', 'chrome', 'msedge'], 'description': 'Browser engine (auto = detect the first available)'},
+'required': ['url']},
     },
     {
         'name': 'a11y_scroll',
@@ -301,7 +304,8 @@ TOOLS = [
             'lang': {'type': 'string', 'enum': ['es', 'en']},
             'max_tandas': {'type': 'integer', 'description': 'scroll batches (5 default)'},
             'auth_state': {'type': 'string', 'description': 'Path to a Playwright storage_state JSON (exported session) to audit an authenticated feed'},
-        }, 'required': ['url']},
+        },             'browser': {'type': 'string', 'enum': ['auto', 'chromium', 'firefox', 'webkit', 'chrome', 'msedge'], 'description': 'Browser engine (auto = detect the first available)'},
+'required': ['url']},
     },
     {
         'name': 'a11y_evidence',
@@ -338,7 +342,8 @@ TOOLS = [
             'lang': {'type': 'string', 'enum': ['es', 'en'], 'description': 'Output language (en default)'},
             'timeout': {'type': 'number', 'description': 'Page load timeout seconds (45 default)'},
             'auth_state': {'type': 'string', 'description': 'Path to a Playwright storage_state JSON to test forms behind login'},
-        }, 'required': ['url']},
+        },             'browser': {'type': 'string', 'enum': ['auto', 'chromium', 'firefox', 'webkit', 'chrome', 'msedge'], 'description': 'Browser engine (auto = detect the first available)'},
+'required': ['url']},
     },
     {
         'name': 'a11y_html_validate',
@@ -575,6 +580,13 @@ _PARAM_DOCS = {
  ('a11y_forms', 'url'): 'Page URL containing the form(s) to fill and submit with invalid data',
  ('a11y_hover', 'url'): 'Page URL to test tooltip dismissibility on',
  ('a11y_hover', 'timeout'): 'Page load timeout in seconds (default 45)',
+ ('a11y_hover', 'browser'): 'Browser engine (auto = detect the first available)',
+ ('a11y_sr_transcript', 'browser'): 'Browser engine (auto = detect the first available)',
+ ('a11y_audit_dom', 'browser'): 'Browser engine (auto = detect the first available)',
+ ('a11y_reflow', 'browser'): 'Browser engine (auto = detect the first available)',
+ ('a11y_keyboard', 'browser'): 'Browser engine (auto = detect the first available)',
+ ('a11y_scroll', 'browser'): 'Browser engine (auto = detect the first available)',
+ ('a11y_forms', 'browser'): 'Browser engine (auto = detect the first available)',
  ('a11y_sr_transcript', 'url'): 'Page URL to get the screen reader announcement transcript',
  ('a11y_sr_transcript', 'timeout'): 'Page load timeout in seconds (default 45)',
  ('a11y_disprove', 'url'): 'URL to re-verify findings against',
@@ -817,7 +829,8 @@ def llamar(nombre, args):
         try:
             return _texto(audit_forms(args['url'], timeout=args.get('timeout', 45),
                                       lang=args.get('lang', 'en'),
-                                      auth_state=args.get('auth_state')))
+                                      auth_state=args.get('auth_state'),
+                                      browser=args.get('browser', 'auto')))
         except ImportError:
             return {'content': [{'type': 'text',
                                  'text': 'Playwright not installed: pip install playwright && playwright install chromium'}],
@@ -865,7 +878,8 @@ def llamar(nombre, args):
     if nombre == 'a11y_sr_transcript':
         try:
             return _texto(sr_transcript(args['url'], timeout=args.get('timeout', 45),
-                                        lang=args.get('lang', 'en')))
+                                        lang=args.get('lang', 'en'),
+                                        browser=args.get('browser', 'auto')))
         except ImportError:
             return {'content': [{'type': 'text', 'text': 'Playwright not installed'}], 'isError': True}
         except Exception as e:
