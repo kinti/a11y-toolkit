@@ -1,13 +1,14 @@
 {
  "formato": "a11y-evidence-pack/1",
- "generado": "2026-09-19T15:36:35+00:00",
+ "generado": "2026-09-20T19:27:55+00:00",
  "herramienta": "a11y-toolkit (github.com/kinti/a11y-toolkit)",
  "resumen": {
-  "automated-fail": 1,
-  "automated-review": 0,
-  "not-flagged": 49,
-  "manual-only": 5,
-  "agent-verified": 0
+  "automated-fail": 3,
+  "automated-review": 1,
+  "not-flagged": 47,
+  "manual-only": 4,
+  "agent-verified": 0,
+  "not-run": 0
  },
  "criterios": [
   {
@@ -37,8 +38,8 @@
   },
   {
    "criterio": "1.3.2 Meaningful Sequence",
-   "estado": "not-flagged",
-   "nota": "not-flagged ≠ pass: no automated signal fired on this sample"
+   "estado": "automated-review",
+   "nota": null
   },
   {
    "criterio": "1.3.3 Sensory Characteristics",
@@ -71,14 +72,23 @@
    "nota": "not-flagged ≠ pass: no automated signal fired on this sample"
   },
   {
+   "criterio": "1.4.13 Content on Hover or Focus",
+   "estado": "not-flagged",
+   "nota": "not-flagged ≠ pass: no automated signal fired on this sample"
+  },
+  {
    "criterio": "1.4.2 Audio Control",
    "estado": "not-flagged",
    "nota": "not-flagged ≠ pass: no automated signal fired on this sample"
   },
   {
    "criterio": "1.4.3 Contrast (Minimum)",
-   "estado": "not-flagged",
-   "nota": "not-flagged ≠ pass: no automated signal fired on this sample"
+   "estado": "automated-fail",
+   "nota": null,
+   "valor": {
+    "medido": "3.91:1",
+    "ejemplo": "rgb(29,112,184) over rgb(210,226,241) → 3.91:1 (e.g. div > div > div > button)"
+   }
   },
   {
    "criterio": "1.4.4 Resize Text",
@@ -182,8 +192,11 @@
   },
   {
    "criterio": "2.5.8 Target Size (Minimum)",
-   "estado": "not-flagged",
-   "nota": "not-flagged ≠ pass: no automated signal fired on this sample"
+   "estado": "automated-fail",
+   "nota": null,
+   "valor": {
+    "ejemplo": "div#global-cookie-message > div > div > a (107×19px)"
+   }
   },
   {
    "criterio": "3.1.1 Language of Page",
@@ -271,11 +284,6 @@
    "nota": "no automated signal exists for this criterion in this toolkit"
   },
   {
-   "criterio": "1.4.13 Content on Hover or Focus",
-   "estado": "manual-only",
-   "nota": "no automated signal exists for this criterion in this toolkit"
-  },
-  {
    "criterio": "2.3.1 Three Flashes or Below Threshold",
    "estado": "manual-only",
    "nota": "no automated signal exists for this criterion in this toolkit"
@@ -289,7 +297,6 @@
  "manual_pendiente": [
   "1.2.1 Audio-only and Video-only (Prerecorded)",
   "1.2.4 Captions (Live)",
-  "1.4.13 Content on Hover or Focus",
   "2.3.1 Three Flashes or Below Threshold",
   "3.3.7 Redundant Entry"
  ],
@@ -321,6 +328,100 @@
     ],
     "limites": "Automation ≈ one third of WCAG: this is an express filter, not a substitute for manual review (keyboard, screen reader, real contrast, audit rhyme)."
    }
+  },
+  {
+   "tipo": "informe:rendered",
+   "url": "https://www.gov.uk",
+   "sha256": "1141b3f6565bebab6103cc3245ea4958d39ea903f60a7d4c30ee64331ce065c1",
+   "score": 74,
+   "cuerpo": {
+    "url": "https://www.gov.uk",
+    "modo": "rendered",
+    "iframes_anidados": 0,
+    "shadow_roots": 0,
+    "score": 74,
+    "score_nota": "Weighted score: high −12, medium −6, low −2 from 100. It measures only what is automatable (≈1/3 of WCAG): use it to track trends between releases, not as conformance.",
+    "elementos_interactivos": 133,
+    "resumen": {
+     "alta": 1,
+     "media": 2,
+     "baja": 1
+    },
+    "hallazgos": [
+     {
+      "severidad": "alta",
+      "criterio": "1.4.3 Contrast (Minimum)",
+      "senal": "contrast_fail",
+      "hallazgo": "1 text areas with insufficient contrast: rgb(29,112,184) vs rgb(210,226,241) = 3.91:1 ×1. (computed fg/background, with alpha compositing).",
+      "remediacion": "Raise contrast to ≥4.5:1 (≥3:1 for large text). The effective background already includes overlays and translucency; with a background image, check that area manually.",
+      "ejemplos": [
+       "rgb(29,112,184) over rgb(210,226,241) → 3.91:1 (e.g. div > div > div > button)"
+      ]
+     },
+     {
+      "severidad": "media",
+      "criterio": "2.5.8 Target Size (Minimum)",
+      "senal": "target_small",
+      "hallazgo": "5 controls with a touch area smaller than 24×24 px (WCAG 2.2 2.5.8): div#global-cookie-message > div > div > a (107×19), div > div > h3 > a (81×23), div > div > h3 > a (161×23), div > div > h3 > a (183×23).",
+      "remediacion": "Give controls at least 24×24 CSS px (44×44 is better) via padding or min-width/min-height. Exceptions: equivalent inline links and sufficient surrounding spacing.",
+      "ejemplos": [
+       "div#global-cookie-message > div > div > a (107×19px)",
+       "div > div > h3 > a (81×23px)",
+       "div > div > h3 > a (161×23px)",
+       "div > div > h3 > a (183×23px)",
+       "div > div > h3 > a (173×23px)"
+      ]
+     },
+     {
+      "severidad": "media",
+      "criterio": "1.4.12",
+      "senal": "text_spacing_clip",
+      "hallazgo": "6 texts clipped when the 1.4.12 spacing overrides apply (line-height 1.5, letter 0.12em): review.",
+      "remediacion": "Content must survive text-spacing overrides without clipping: replace fixed heights with min-height (1.4.12).",
+      "ejemplos": [
+       "a",
+       "h2#super-navigation-menu-heading",
+       "span",
+       "span",
+       "span",
+       "h2"
+      ]
+     },
+     {
+      "severidad": "baja",
+      "criterio": "1.3.2 Meaningful Sequence",
+      "senal": "dom_visual_order",
+      "hallazgo": "DOM order differs from visual order in 2 text blocks: review with keyboard (1.3.2).",
+      "remediacion": "Programmatic reading order must match visual order: check flex order, grid placement and position absolute (1.3.2)."
+     }
+    ],
+    "limites": "Rendered audit: honest heuristics, no substitute for a screen reader or manual review. Contrast computed over computed backgrounds; cases with background images are reported as \"review\". 2.5.8 allows exceptions (equivalent inline, spacing) approximated here."
+   }
+  },
+  {
+   "tipo": "informe:reflow",
+   "url": "https://www.gov.uk",
+   "sha256": "9faec825eab0a13690a776ae2bc926eac650a7564f20eea4928a9a60c7c67f9c",
+   "score": 100,
+   "cuerpo": {
+    "url": "https://www.gov.uk",
+    "modo": "reflow",
+    "score": 100,
+    "resumen": {
+     "alta": 0,
+     "media": 0,
+     "baja": 0
+    },
+    "mediciones": {
+     "reflow_320": {
+      "scroll": 320,
+      "viewport": 320,
+      "ok": true
+     }
+    },
+    "hallazgos": [],
+    "limites": "Rendered audit: honest heuristics, no substitute for a screen reader or manual review. Contrast computed over computed backgrounds; cases with background images are reported as \"review\". 2.5.8 allows exceptions (equivalent inline, spacing) approximated here."
+   }
   }
  ],
  "evaluador": {
@@ -332,5 +433,5 @@
  },
  "notas": null,
  "aviso": "This pack is evidence, not conformance: it says what machines found and what remains for a human. A conformance claim requires the firma block completed by a qualified person who reviewed the manual list.",
- "sha256": "77afea3e24297152345f7013abcb35c1a74b09afec60d1389a1d8bb4120b99e3"
+ "sha256": "dfa488a990d45bdb9a323da0b5f2d755363f3915a2da473d44a02575416e6e2b"
 }

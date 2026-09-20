@@ -41,7 +41,7 @@ MANUAL_AA = [
 ]
 
 _ESTADOS = ('automated-fail', 'automated-review', 'not-flagged', 'manual-only',
-            'agent-verified')
+            'agent-verified', 'not-run')
 
 
 def _canon(obj):
@@ -65,6 +65,7 @@ def empaquetar(informes, snapshot=None, evaluador=None, notas=None, verificados=
 
     # matriz de criterios: los que tocamos (estado según hallazgos) + manuales
     from a11yaudit import CRIT
+    modos_incluidos = {inf.get('modo', 'static') for inf in informes}
     tocados = {}
     for inf in informes:
         for h in inf.get('hallazgos', []):
@@ -100,21 +101,42 @@ def empaquetar(informes, snapshot=None, evaluador=None, notas=None, verificados=
                 if val:
                     valores[code] = val
 
+    # criterios que requieren modo rendered (si solo corrió static, su estado
+    # real es not-run, no not-flagged: la herramienta SÍ tiene señal pero el
+    # modo que la produce no se incluyó)
+    _RENDERED_ONLY = {'1.4.3', '1.4.12', '1.4.1', '1.3.2', '2.2.2', '2.5.8',
+                      '2.4.7', '2.4.11', '3.2.1', '3.2.2'}
+
+    verificados_set = {v.split(' ')[0] for v in (verificados or [])}
+
     matriz = []
     for code in sorted(CRIT['en']):
         estado = tocados.get(code, 'not-flagged')
-        if code in verificados and estado != 'automated-fail':
+
+        # not-run: el criterio requiere rendered y este pack no lo incluye
+        if estado == 'not-flagged' and code in _RENDERED_ONLY and 'rendered' not in modos_incluidos:
+            estado = 'not-run'
+
+        # verificados: promueve not-flagged/not-run/manual-only → agent-verified
+        # (pero automated-fail permanece: un fallo no se borra verificando)
+        if code in verificados_set and estado != 'automated-fail':
             estado = 'agent-verified'
+
         nota = None
         if estado == 'not-flagged':
             nota = 'not-flagged ≠ pass: no automated signal fired on this sample'
+        elif estado == 'not-run':
+            nota = ('requires rendered mode (a11y_audit_dom) — this pack only '
+                    'includes the static audit, so no signal was tried')
         elif estado == 'agent-verified':
             nota = 'verified against this sample per the manual checklist protocol'
+
         entrada = {'criterio': CRIT['en'][code], 'estado': estado, 'nota': nota}
         if code in valores:
             entrada['valor'] = valores[code]
         matriz.append(entrada)
     manuales_restantes = [m for m in MANUAL_AA if m.split(' ')[0] not in verificados]
+    # los not-run son adicionalmente "pendientes" (la máquina no miró)
     for nombre in manuales_restantes:
         matriz.append({'criterio': nombre, 'estado': 'manual-only',
                        'nota': 'no automated signal exists for this criterion in this toolkit'})

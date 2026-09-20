@@ -17,8 +17,8 @@ this document is the citable spec. A real sample from public audits:
 | `formato` | string, always `a11y-evidence-pack/1` | Format + major version. Pack/2 will be additive only (new optional fields); a validator must reject unknown majors. |
 | `generado` | ISO 8601 UTC | When the pack was built. |
 | `herramienta` | string | Producing tool and repo. |
-| `resumen` | object | Counts per status over the whole matrix: `automated-fail`, `automated-review`, `not-flagged`, `manual-only`, `agent-verified`. |
-| `criterios` | array | **The full matrix.** One entry per tracked WCAG 2.2 A/AA criterion: `{criterio: "1.4.3 Contrast (Minimum)", estado, nota?, valor?}`. `valor` carries the measured fact (e.g. `{medido: "3.91:1", ejemplo: "button"}`) when the finding contains one — the reviewer sees the number, not just the verdict. Statuses: `automated-fail` (a signal fired), `automated-review` (a low-severity/review signal fired), `not-flagged` (no signal fired on this sample — **explicitly NOT pass**), `manual-only` (no automated signal exists in the producing tool), `agent-verified` (an agent or human verified this criterion against this sample per the manual-checklist protocol — verification NEVER erases an `automated-fail`). |
+| `resumen` | object | Counts per status over the whole matrix: `automated-fail`, `automated-review`, `not-flagged`, `manual-only`, `agent-verified`, `not-run`. |
+| `criterios` | array | **The full matrix.** One entry per tracked WCAG 2.2 A/AA criterion: `{criterio: "1.4.3 Contrast (Minimum)", estado, nota?, valor?}`. `valor` carries the measured fact (e.g. `{medido: "3.91:1", ejemplo: "button"}`) when the finding contains one — the reviewer sees the number, not just the verdict. Statuses: `automated-fail` (a signal fired), `automated-review` (a low-severity/review signal fired), `not-flagged` (no signal fired on this sample — **explicitly NOT pass**), `not-run` (the tool HAS a signal for this criterion but the report type that carries it was not included), `manual-only` (no automated signal exists in the producing tool), `agent-verified` (an agent or human verified this criterion against this sample per the manual-checklist protocol — verification NEVER erases an `automated-fail`). |
 | `manual_pendiente` | array of strings | The criteria still needing human coverage (the `manual-only` subset NOT yet `agent-verified`). |
 | `verificacion` | object? | Present when criterion codes were passed as verified: `{fuente: "agent"|"human", protocolo}`. |
 | `artefactos` | array | The input reports. Each: `{tipo: "informe:static\|rendered\|reflow\|keyboard\|scroll" \| "snapshot:a11y", url?, score?, sha256, cuerpo}`. `sha256` = SHA-256 of the artifact's canonical JSON. `cuerpo` = the full report body, **embedded** — the pack is self-verifying: a verifier holding only the pack can recompute both `pack.sha256` and every `artefactos[].sha256` without needing the original reports. |
@@ -39,6 +39,10 @@ on them); any pack/2 keeps every existing key untouched.
 embedded in the pack. A verifier holding only the pack recomputes every hash
 in the chain without external files. Previous packs (manifest-only) are
 still valid pack/1 — they just need the reports alongside.
+
+**Not-run state**: when only the static audit runs, rendered-only criteria
+are marked `not-run` instead of `not-flagged`. This distinguishes "the
+machine looked and found nothing" from "the machine was not asked to look."
 
 ## The hash rule (normative)
 
