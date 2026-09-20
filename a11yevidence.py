@@ -52,7 +52,7 @@ def _sha256(obj):
     return hashlib.sha256(_canon(obj).encode('utf-8')).hexdigest()
 
 
-def empaquetar(informes, snapshot=None, evaluador=None, notas=None, verificados=None):
+def empaquetar(informes, snapshot=None, evaluador=None, notas=None, verificados=None, sr_transcript=None):
     """Informes (lista de dicts JSON) → paquete de evidencia contrafirmable.
 
     verificados: lista de códigos de criterio ("1.4.1", "3.3.1"…) que un
@@ -135,6 +135,10 @@ def empaquetar(informes, snapshot=None, evaluador=None, notas=None, verificados=
     if snapshot:
         artefactos.append({'tipo': 'snapshot:a11y', 'url': snapshot.get('url'),
                            'sha256': _sha256(snapshot), 'elementos': len(snapshot.get('elementos', []))})
+    if sr_transcript:
+        artefactos.append({'tipo': 'sr_transcript', 'url': sr_transcript.get('url'),
+                           'sha256': _sha256(sr_transcript), 'anuncios': sr_transcript.get('total', 0),
+                           'linealizado': sr_transcript.get('anuncios', [])[:50]})
 
     pack = {
         'formato': 'a11y-evidence-pack/1',

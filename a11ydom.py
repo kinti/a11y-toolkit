@@ -21,6 +21,27 @@ import sys
 
 from a11yaudit import CRIT, T, calcular_score
 
+# browser pool: Chromium reutilizable entre llamadas consecutivas
+_POOL = {'playwright': None, 'browser': None}
+
+
+def _get_browser(pw, headless=True):
+    """Devuelve un browser del pool (o crea uno si no existe)."""
+    if _POOL['browser'] is None or not _POOL['browser'].is_connected():
+        _POOL['browser'] = pw.chromium.launch(headless=headless)
+    return _POOL['browser']
+
+
+def _close_pool():
+    """Cierra el pool (llamar al terminar el proceso o bajo demanda)."""
+    if _POOL['browser']:
+        try:
+            _POOL['browser'].close()
+        except Exception:
+            pass
+    _POOL['browser'] = None
+    _POOL['playwright'] = None
+
 MAX_EJEMPLOS = 6
 
 _TD = {
@@ -787,23 +808,26 @@ def sr_transcript(url, timeout=45, lang='en', auth_state=None):
     understand from a blind user's perspective.
     """
     from playwright.sync_api import sync_playwright
-    with sync_playwright() as p:
-        nav = p.chromium.launch()
-        ctx = nav.new_context(storage_state=auth_state) if auth_state else nav
-        page = ctx.new_page() if auth_state else nav.new_page()
-        try:
-            page.goto(url, wait_until='load', timeout=timeout * 1000)
-            page.wait_for_timeout(400)
-        except Exception as e:
-            nav.close()
-            return {'error': str(e)[:100]}
+    pw = sync_playwright().start()
+    nav = _get_browser(pw)
+    ctx = nav.new_context(storage_state=auth_state) if auth_state else nav
+    page = ctx.new_page() if auth_state else nav.new_page()
+    try:
+        page.goto(url, wait_until='load', timeout=timeout * 1000)
+        page.wait_for_timeout(400)
+    except Exception as e:
+        ctx.close()
+        _close_pool()
+        return {'error': str(e)[:100]}
 
-        # aria snapshot: the accessibility tree in YAML-like format
-        try:
-            arbol = page.locator('body').aria_snapshot()
-        except Exception:
-            arbol = None
-        nav.close()
+    try:
+        arbol = page.locator('body').aria_snapshot()
+    except Exception:
+        arbol = None
+    try:
+        ctx.close()
+    except Exception:
+        pass
 
     if not arbol:
         return {'url': url, 'modo': 'sr-transcript',
@@ -1255,7 +1279,10 @@ def audit_dom_url(url, timeout=45, lang='en', auth_state=None):
                     continue
             datos['hover'] = hover
         finally:
-            nav.close()
+            try:
+                ctx.close()
+            except Exception:
+                pass
     _mezcla_iframes(datos)
     return audit_dom(datos, url, lang=lang)
 
