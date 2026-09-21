@@ -69,6 +69,41 @@ for _t in server.TOOLS:
     for _k in ('title', 'annotations'):
         assert _t.get(_k), f"{_t['name']} lacks {_k}"
 
+# ---------- 3c. conteos normativos WCAG 2.2 (fijados contra deriva) ----------
+from a11ycrit import _C as _CAT, _EFFORT, effort  # noqa: E402
+from a11yevidence import MANUAL_AA, empaquetar  # noqa: E402
+
+# el conjunto A/AA normativo (w3.org/TR/WCAG22; 4.1.1 retirado; 3.2.6 y 3.3.7 son A)
+_NORM_A = {'1.1.1', '1.2.1', '1.2.2', '1.2.3', '1.3.1', '1.3.2', '1.3.3', '1.4.1', '1.4.2',
+           '2.1.1', '2.1.2', '2.1.4', '2.2.1', '2.2.2', '2.3.1', '2.4.1', '2.4.2', '2.4.3',
+           '2.4.4', '2.5.1', '2.5.2', '2.5.3', '2.5.4', '3.1.1', '3.2.1', '3.2.2', '3.2.6',
+           '3.3.1', '3.3.2', '3.3.7', '4.1.2'}
+_NORM_AA = {'1.2.4', '1.2.5', '1.3.4', '1.3.5', '1.4.3', '1.4.4', '1.4.5', '1.4.10', '1.4.11',
+            '1.4.12', '1.4.13', '2.4.5', '2.4.6', '2.4.7', '2.4.11', '2.5.7', '2.5.8', '3.1.2',
+            '3.2.3', '3.2.4', '3.3.3', '3.3.4', '3.3.8', '4.1.3'}
+_NORM = _NORM_A | _NORM_AA
+assert len(_NORM) == 55 and len(_NORM_A) == 31 and len(_NORM_AA) == 24, 'fixture normativo corrupto'
+_aa = {k for k, v in _CAT.items() if v[0] in ('A', 'AA')}
+assert _aa == _NORM, f'catálogo A/AA ≠ normativo: {sorted(_aa ^ _NORM)}'
+_nivel_mal = {k: (_CAT[k][0], 'AA' if k in _NORM_AA else 'A') for k in _NORM
+              if _CAT[k][0] != ('AA' if k in _NORM_AA else 'A')}
+assert not _nivel_mal, f'niveles ≠ normativo: {_nivel_mal}'
+assert not ({m.split(' ')[0] for m in MANUAL_AA} - _NORM), 'MANUAL_AA fuera del conjunto A/AA'
+assert set(_EFFORT) == _NORM, 'la tabla de esfuerzo debe cubrir exactamente los 55 A/AA'
+assert effort('1.4.3')['clase'] == 'MAX' and effort('9.9.9') is None
+from collections import Counter  # noqa: E402
+_dist = Counter(c for c, _ in _EFFORT.values())
+assert _dist == Counter({'MIN': 23, 'MED': 19, 'MAX': 13}), f'distribución de esfuerzo derivó: {dict(_dist)}'
+assert '51 of 55 A/AA criteria carry automated signals (93%)' in readme, 'claim de cobertura en README'
+assert 'of 54' not in readme and '94%' not in readme, 'quedan restos del conteo antiguo en README'
+# pack de evidencia: exactamente 55 filas, todas con esfuerzo, totales del seed
+_pack = empaquetar([{'modo': 'static', 'url': 'https://t', 'score': 90, 'hallazgos': []}])
+assert len(_pack['criterios']) == 55, f'matriz del pack: {len(_pack["criterios"])} filas'
+assert all('esfuerzo' in m for m in _pack['criterios']), 'fila del pack sin esfuerzo'
+assert _pack['esfuerzo_pendiente']['total_minutos'] == [313, 649], \
+    f"totales derivados: {_pack['esfuerzo_pendiente']['total_minutos']}"
+
+
 # ---------- 4. fuzz determinista: HTML hostil no crashea ----------
 HOSTILES = [
     '<html><body><p' * 40 + 'x',                       # anidamiento roto

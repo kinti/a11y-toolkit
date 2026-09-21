@@ -1,5 +1,33 @@
 # Changelog
 
+## 3.21.0 — 2026-09-21 — "the priced pack"
+
+The evidence pack now prices the human half, and the count drifts are gone:
+
+- **Human-effort classes as data**: `_EFFORT` in `a11ycrit.py` classifies all
+  55 A/AA criteria by what the human still does after the machine's best
+  signal — MIN 23 (read and confirm, 1-3 min), MED 19 (verify in the
+  browser, 5-10 min), MAX 13 (real interaction and judgment, 15-30 min).
+  Canonical table: [docs/effort-class-table.md](docs/effort-class-table.md).
+- **`a11y_evidence` emits the priced scope**: every matrix row carries
+  `esfuerzo {clase, minutos, porque}` and the pack adds
+  `esfuerzo_pendiente` — remaining human minutes by class and in total
+  (313-649 min for a full page, before any `agent-verified` promotion).
+  The quote input for a review marketplace, computed, not estimated.
+- **Normative rules pinned**: a measured `automated-fail` earns its
+  criterion the MIN human class; `not-flagged` on a partially-covered
+  criterion never earns a lower class. `test_solido` pins the normative
+  A/AA set (55, w3.org/TR/WCAG22), the level of every criterion, the
+  effort distribution and the pack totals — the drift this release fixed
+  cannot silently return.
+- **Two real drifts found and fixed** by diffing the catalog against
+  w3.org/TR/WCAG22: the coverage claim said "51 of 54 (94%)" when the
+  normative A/AA set is 55 (→ "51 of 55, 93%"); the evidence matrix
+  carried AAA 3.2.5 (Change on Request) as if it were A/AA while AA 1.4.12
+  (Text Spacing) was missing from it. The catalog also mislabeled 2.4.4 as
+  AA — it has been Level A since WCAG 2.0 (2.4.9 is the AA variant).
+  The signal list in the README gained the real 1.4.4 and 1.4.13 signals.
+
 ## 3.13.1 — 2026-09-15 — "the review pass"
 
 The post-release from-zero review caught three drifts, one functional:

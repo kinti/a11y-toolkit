@@ -9,7 +9,7 @@
 [![Sponsor](https://img.shields.io/badge/Sponsor-%E2%9D%A4-pink)](https://github.com/sponsors/kinti)
 
 **23 MCP tools + 5 prompts + a skill** covering the full WCAG 2.2 loop: **audit → fix →
-document → watch → hand off**. **51 of 54 A/AA criteria carry automated signals (94%)**.
+document → watch → hand off**. **51 of 55 A/AA criteria carry automated signals (93%)**.
 Zero dependencies at the core; every finding ships with a concrete remediation your
 agent can apply. Works with Chromium, Firefox, WebKit, Chrome or Edge — whatever you
 have.
@@ -159,11 +159,11 @@ a11ytoolkit sarif --from-audit audit.json -o a11y.sarif # GitHub code scanning
 a11ytoolkit badge --score 92 --out badge.svg            # honest SVG
 ```
 
-## Coverage: 51 of 54 WCAG 2.2 A/AA criteria (94%)
+## Coverage: 51 of 55 WCAG 2.2 A/AA criteria (93%)
 
 | With automated signal | Manual-only (genuinely human) |
 |---|---|
-| 1.1.1, 1.2.2, 1.2.3, 1.2.5, 1.3.1–1.3.5, 1.4.1, 1.4.2, 1.4.3, 1.4.5, 1.4.10–1.4.12, 2.1.1, 2.1.2, 2.1.4, 2.2.1, 2.2.2, 2.4.1–2.4.7, 2.4.11, 2.5.1–2.5.4, 2.5.7, 2.5.8, 3.1.1, 3.1.2, 3.2.1–3.2.6, 3.3.1–3.3.4, 3.3.8, 4.1.2, 4.1.3 | 1.2.1 (audio transcripts), 1.2.4 (live captions), 2.3.1 (flash detection), 3.3.7 (redundant entry) |
+| 1.1.1, 1.2.2, 1.2.3, 1.2.5, 1.3.1–1.3.5, 1.4.1–1.4.5, 1.4.10–1.4.13, 2.1.1, 2.1.2, 2.1.4, 2.2.1, 2.2.2, 2.4.1–2.4.7, 2.4.11, 2.5.1–2.5.4, 2.5.7, 2.5.8, 3.1.1, 3.1.2, 3.2.1–3.2.4, 3.2.6, 3.3.1–3.3.4, 3.3.8, 4.1.2, 4.1.3 | 1.2.1 (audio transcripts), 1.2.4 (live captions), 2.3.1 (flash detection), 3.3.7 (redundant entry) |
 
 The 4 manual-only criteria each have a knowledge entry (`a11y_criterion`) telling the
 agent exactly how to verify them by hand. The boundary is printed on every report.
@@ -184,11 +184,13 @@ report (blue button at 3.91:1, manually verified). Drove out our own false posit
 
 ## Honesty, built in
 
-Every audit says: **automation covers 94% of A/AA criteria; the rest needs a human**.
+Every audit says: **automation covers 93% of A/AA criteria; the rest needs a human**.
 The `audit-page` prompt and the skill have the agent check what it can (keyboard,
 focus, zoom, announced errors) using [the manual
 checklist](skill/a11y-toolkit/references/wcag22-manual-checklist.md). A filter, not
-a verdict. The evidence pack is the handoff object for the human who signs — and now
+a verdict. The human half is **priced, not guessed**: every A/AA criterion carries
+an effort class — MIN 23 (read and confirm), MED 19 (verify in the browser),
+MAX 13 (real interaction and judgment) — [full table](docs/effort-class-table.md). The evidence pack is the handoff object for the human who signs — and now
 includes a screen reader transcript so the reviewer sees what a blind user hears.
 
 ## Security & scope
@@ -222,7 +224,7 @@ Releases: `make release V=X.Y.Z` — bumps, gates, tags and pushes atomically.
 - [x] Evidence pack with agent-verified status (spec published, self-verifying)
 - [x] Form deep-dive: placeholder-only, fieldset, label quality, financial confirmation
 - [x] Sitemap-driven crawling · behind-login auditing (auth_state)
-- [x] 51/54 A/AA criteria with automated signals (94%)
+- [x] 51/55 A/AA criteria with automated signals (93%)
 - [x] Browser auto-detection (Chromium, Firefox, WebKit, Chrome, Edge)
 - [x] Screen reader transcript · hover dismissibility · disprover · coverage ledger
 

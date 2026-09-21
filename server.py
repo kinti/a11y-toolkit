@@ -66,7 +66,7 @@ try:
 except ImportError:
     ARIALIVE_JS = None  # repo checkout: read the file
 
-VERSION = '3.20.0'
+VERSION = '3.21.0'
 
 INSTRUCTIONS = (
     'Accessibility toolkit (WCAG 2.2), multilanguage es/en. '
@@ -312,13 +312,15 @@ TOOLS = [
         'description': ('Builds the COUNTERSIGNATURE-READY evidence pack: the machine→human '
                         'handoff object for WCAG conformance work. Takes one or more audit '
                         'reports (any mode — static, rendered, reflow, keyboard, scroll) and '
-                        'returns: a full criteria matrix (automated-fail / automated-review / '
-                        'not-flagged — NOT pass / manual-only), the list of A/AA criteria with '
-                        'no automated signal anywhere (the human reviewer homework list), every '
-                        'artifact SHA-256-hashed with timestamps, an empty signature block '
-                        '(name, credential, date) whose statement must reference the pack\'s '
-                        'own sha256, and the tamper-evidence rule stated. Vendor-neutral: any '
-                        'qualified human can countersign it. Evidence, never conformance.'),
+                        'returns: the full 55-criterion A/AA matrix (automated-fail / '
+                        'automated-review / not-flagged — NOT pass / not-run / manual-only), '
+                        'each row priced with its human-effort class (MIN 1-3 / MED 5-10 / '
+                        'MAX 15-30 min of human review remaining) and total remaining minutes '
+                        '(the quote input for a review marketplace), every artifact SHA-256-'
+                        'hashed with timestamps, an empty signature block (name, credential, '
+                        'date) whose statement must reference the pack\'s own sha256, and the '
+                        'tamper-evidence rule stated. Vendor-neutral: any qualified human can '
+                        'countersign it. Evidence, never conformance.'),
         'inputSchema': {'type': 'object', 'properties': {
             'informes': {'type': 'array', 'items': {'type': 'object'},
                          'description': 'audit report objects (any mode)'},

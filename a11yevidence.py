@@ -64,7 +64,8 @@ def empaquetar(informes, snapshot=None, evaluador=None, notas=None, verificados=
     ahora = datetime.now(timezone.utc).isoformat(timespec='seconds')
 
     # matriz de criterios: los que tocamos (estado según hallazgos) + manuales
-    from a11yaudit import CRIT
+    from a11ycrit import _C as _CAT, effort
+    codes_aa = sorted(k for k, v in _CAT.items() if v[0] in ('A', 'AA'))
     modos_incluidos = {inf.get('modo', 'static') for inf in informes}
     tocados = {}
     for inf in informes:
@@ -110,7 +111,10 @@ def empaquetar(informes, snapshot=None, evaluador=None, notas=None, verificados=
     verificados_set = {v.split(' ')[0] for v in (verificados or [])}
 
     matriz = []
-    for code in sorted(CRIT['en']):
+    _manual_codes = {m.split(' ')[0] for m in MANUAL_AA}
+    for code in codes_aa:
+        if code in _manual_codes:
+            continue  # covered by the manual-only rows appended below
         estado = tocados.get(code, 'not-flagged')
 
         # not-run: el criterio requiere rendered y este pack no lo incluye
@@ -131,22 +135,64 @@ def empaquetar(informes, snapshot=None, evaluador=None, notas=None, verificados=
         elif estado == 'agent-verified':
             nota = 'verified against this sample per the manual checklist protocol'
 
-        entrada = {'criterio': CRIT['en'][code], 'estado': estado, 'nota': nota}
+        entrada = {'criterio': f"{code} {_CAT[code][1]['en'][0]}", 'estado': estado, 'nota': nota}
+        ef = effort(code)
+        if ef:
+            # human-effort class: what the HUMAN still does after the machine's
+            # best signal (pricing input for review marketplaces)
+            entrada['esfuerzo'] = {'clase': ef['clase'], 'minutos': ef['minutos'],
+                                   'porque': ef['porque']}
         if code in valores:
             entrada['valor'] = valores[code]
         matriz.append(entrada)
     manuales_restantes = [m for m in MANUAL_AA if m.split(' ')[0] not in verificados]
     # los not-run son adicionalmente "pendientes" (la máquina no miró)
     for nombre in manuales_restantes:
-        matriz.append({'criterio': nombre, 'estado': 'manual-only',
-                       'nota': 'no automated signal exists for this criterion in this toolkit'})
+        fila = {'criterio': nombre, 'estado': 'manual-only',
+                'nota': 'no automated signal exists for this criterion in this toolkit'}
+        ef = effort(nombre.split(' ')[0])
+        if ef:
+            fila['esfuerzo'] = {'clase': ef['clase'], 'minutos': ef['minutos'],
+                                'porque': ef['porque']}
+        matriz.append(fila)
     for code in sorted(verificados):
         if any(code in m for m in MANUAL_AA) and not any(m.startswith(code) for m in manuales_restantes):
-            matriz.append({'criterio': next(m for m in MANUAL_AA if m.startswith(code)),
-                           'estado': 'agent-verified',
-                           'nota': 'verified against this sample per the manual checklist protocol'})
+            nombre = next(m for m in MANUAL_AA if m.startswith(code))
+            fila = {'criterio': nombre, 'estado': 'agent-verified',
+                    'nota': 'verified against this sample per the manual checklist protocol'}
+            ef = effort(code)
+            if ef:
+                fila['esfuerzo'] = {'clase': ef['clase'], 'minutos': ef['minutos'],
+                                    'porque': ef['porque']}
+            matriz.append(fila)
 
     resumen = {e: sum(1 for m in matriz if m['estado'] == e) for e in _ESTADOS}
+
+    # remaining human review, in minutes: MIN/MED/MAX per class summed over
+    # every row a human still has to touch (everything except agent-verified).
+    # This is the quote input for a review marketplace: agent output in,
+    # priced human scope out.
+    _MIN = {'MIN': (1, 3), 'MED': (5, 10), 'MAX': (15, 30)}
+    pend = {}
+    for m in matriz:
+        if m['estado'] == 'agent-verified':
+            continue
+        ef = m.get('esfuerzo')
+        if ef:
+            lo, hi = _MIN[ef['clase']]
+            pend.setdefault(ef['clase'], [0, 0])
+            pend[ef['clase']][0] += lo
+            pend[ef['clase']][1] += hi
+    esfuerzo_pendiente = {
+        'por_clase': {k: {'criterios': sum(1 for m in matriz
+                                           if m['estado'] != 'agent-verified'
+                                           and m.get('esfuerzo', {}).get('clase') == k),
+                          'minutos': v}
+                      for k, v in sorted(pend.items())},
+        'total_minutos': [sum(v[0] for v in pend.values()), sum(v[1] for v in pend.values())],
+        'nota': ('human review remaining after the machine, per class '
+                 '(MIN 1-3, MED 5-10, MAX 15-30 min per criterion)'),
+    }
 
     artefactos = []
     for i, inf in enumerate(informes):
@@ -167,6 +213,7 @@ def empaquetar(informes, snapshot=None, evaluador=None, notas=None, verificados=
         'generado': ahora,
         'herramienta': 'a11y-toolkit (github.com/kinti/a11y-toolkit)',
         'resumen': resumen,
+        'esfuerzo_pendiente': esfuerzo_pendiente,
         'criterios': matriz,
         'manual_pendiente': [m['criterio'] for m in matriz if m['estado'] == 'manual-only'],
         'verificacion': ({'fuente': 'agent', 'protocolo': 'skill manual checklist'}

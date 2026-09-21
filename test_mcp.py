@@ -6,6 +6,8 @@ import subprocess
 import sys
 
 AQUI = os.path.dirname(os.path.abspath(__file__))
+sys.path.insert(0, AQUI)
+import server  # noqa: E402
 REQ = [
     {'jsonrpc': '2.0', 'id': 1, 'method': 'initialize',
      'params': {'protocolVersion': '2024-11-05', 'capabilities': {},
@@ -58,7 +60,8 @@ resp = [json.loads(l) for l in p.stdout.splitlines() if l.strip()]
 por_id = {r.get('id'): r for r in resp}
 
 init = por_id[1]['result']
-assert init['serverInfo']['name'] == 'a11y-toolkit' and init['serverInfo']['version'] == '3.20.0'
+assert init['serverInfo']['name'] == 'a11y-toolkit' and init['serverInfo']['version'] == server.VERSION, (
+    f"init responde {init['serverInfo']['version']}, server.VERSION={server.VERSION}")
 assert 'WCAG' in init['instructions'] and 'prompts' in init['capabilities']
 
 nombres = [t['name'] for t in por_id[2]['result']['tools']]

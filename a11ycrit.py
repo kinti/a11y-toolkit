@@ -173,7 +173,7 @@ _C = {
                'Positive tabindex, CSS-reordered DOM breaking the sequence.',
                'a11y_snapshot (REAL tab order) + a11y_diff between builds; tabindex in the static auditor.'),
     }),
-    '2.4.4': ('AA', {
+    '2.4.4': ('A', {
         'es': ('Propósito de los enlaces (en contexto)',
                'El destino de cada enlace es comprensible por su texto (o su contexto programático).',
                '«Más», «aquí», «leer más» repetidos; enlaces distintos con idéntico texto.',
@@ -527,6 +527,74 @@ _C = {
 
 _NIVEL = {'A': 'A', 'AA': 'AA', 'AAA': 'AAA'}
 
+# Human-effort class for every A/AA criterion — what the HUMAN still does after
+# the machine's best signal. Used for review pricing (Countersignatory interlock)
+# and emitted in the evidence pack matrix.
+#   MIN (1-3 min):  the agent verified with a measured signal; the human reads and confirms.
+#   MED (5-10 min): the agent prepares context; the human verifies in the browser.
+#   MAX (15-30 min): real interaction, real judgment, real tooling.
+# A not-flagged on a partially-covered criterion never earns a lower class:
+# "the machine looked and found nothing" is weaker than a confirmation.
+_EFFORT = {
+    '1.1.1': ('MIN', 'alt presence is measured; scan for the image the heuristic missed.'),
+    '1.2.2': ('MIN', 'caption track presence detected; confirm the captions are real.'),
+    '1.3.3': ('MIN', 'sensory-instruction phrases detected; read the instructions once.'),
+    '1.3.4': ('MIN', 'orientation-lock CSS/JS detected; confirm on a device.'),
+    '1.3.5': ('MIN', 'autocomplete token per input measured; confirm.'),
+    '1.4.2': ('MIN', 'autoplay-with-audio detected; confirm.'),
+    '1.4.4': ('MIN', 'viewport zoom block measured; confirm.'),
+    '2.2.1': ('MIN', 'meta refresh and timing scripts detected; confirm.'),
+    '2.4.1': ('MIN', 'missing main/skip detected; confirm.'),
+    '2.4.2': ('MIN', 'missing or empty title detected; confirm.'),
+    '2.4.3': ('MIN', 'positive tabindex detected; confirm.'),
+    '2.4.4': ('MIN', 'generic link text detected; read the links in context.'),
+    '2.5.2': ('MIN', 'down-event-only handlers detected; confirm.'),
+    '2.5.3': ('MIN', 'label-in-name mismatch computed; confirm.'),
+    '2.5.4': ('MIN', 'motion actuation without UI detected; confirm.'),
+    '3.1.1': ('MIN', 'page lang missing or invalid, measured; confirm.'),
+    '3.1.2': ('MIN', 'part lang invalid, measured; confirm.'),
+    '3.2.1': ('MIN', 'focus-triggered navigation detected; confirm.'),
+    '3.2.2': ('MIN', 'select-triggered navigation detected; confirm.'),
+    '3.2.6': ('MIN', 'help presence compared across crawled pages; confirm.'),
+    '3.3.2': ('MIN', 'placeholder-only and unlabeled required fields measured; read each label.'),
+    '3.3.8': ('MIN', 'captcha detected; confirm an alternative exists.'),
+    '4.1.2': ('MIN', 'invalid roles, broken refs and missing state measured; confirm.'),
+    '1.2.1': ('MED', 'media tags detected; play the media and judge the alternative.'),
+    '1.3.1': ('MED', 'semantic structure signals (fieldsets, heading skips, lists); navigate with a screen reader.'),
+    '1.3.2': ('MED', 'DOM vs visual order from snapshot and tab walk; spot-check layout exceptions.'),
+    '1.4.1': ('MED', 'link-vs-text color ratio computed; verify visually.'),
+    '1.4.5': ('MED', 'images-of-text candidates detected; judge logo and text exceptions.'),
+    '1.4.10': ('MED', '320px reflow measured with real overflow; navigate the reflowed content.'),
+    '1.4.11': ('MED', 'focus-indicator contrast computed; verify visually.'),
+    '1.4.12': ('MED', 'text-spacing overrides injected, clipping counted; verify.'),
+    '1.4.13': ('MED', 'hover + Escape dismissibility tested; verify.'),
+    '2.1.1': ('MED', 'click handlers on non-interactive elements detected; Tab the page.'),
+    '2.2.2': ('MED', 'looping animations computed; verify the pause control.'),
+    '2.4.5': ('MED', 'nav/sitemap/search presence from the crawl; confirm.'),
+    '2.4.6': ('MED', 'vague headings detected; read them in context.'),
+    '2.4.11': ('MED', 'sticky header vs scroll-padding measured; Tab the page.'),
+    '2.5.1': ('MED', 'gesture listeners without alternatives detected; try the gesture.'),
+    '2.5.7': ('MED', 'drag listeners detected; try the click path.'),
+    '2.5.8': ('MED', 'target rects measured; check the inline/equivalent exceptions.'),
+    '3.2.3': ('MED', 'nav consistency compared across crawled pages; confirm the order.'),
+    '3.2.4': ('MED', 'consistent identification compared across pages; confirm the icons.'),
+    '1.2.3': ('MAX', 'watch the media and judge whether an alternative covers essential visuals.'),
+    '1.2.4': ('MAX', 'live captions must be watched and judged; no honest signal.'),
+    '1.2.5': ('MAX', 'audio description requires watching and judging the video.'),
+    '1.4.3': ('MAX', 'computed ratios are evidence, not verdicts; gradients, images and hover states still need review.'),
+    '2.1.2': ('MAX', 'real Tab walk plus Escape test per modal and iframe.'),
+    '2.1.4': ('MAX', 'single-character shortcuts tested by typing in every field.'),
+    '2.3.1': ('MAX', 'flash threshold needs frame-by-frame analysis; no honest signal.'),
+    '2.4.7': ('MAX', 'focus visibility measured per stop; Tab the whole site.'),
+    '3.3.1': ('MAX', 'invalid submissions fired and the DOM judged; verify with a screen reader.'),
+    '3.3.3': ('MAX', 'read and judge each correction suggestion.'),
+    '3.3.4': ('MAX', 'reversible-transaction check requires walking the flow.'),
+    '3.3.7': ('MAX', 'redundant entry requires a remembered multi-step walk.'),
+    '4.1.3': ('MAX', 'fire each status message and listen for the announcement.'),
+}
+
+_EFFORT_MINUTES = {'MIN': (1, 3), 'MED': (5, 10), 'MAX': (15, 30)}
+
 
 def criterio(code, lang='en'):
     code = code.strip()
@@ -546,6 +614,14 @@ def criterio(code, lang='en'):
                  'This summarizes the criterion; the official text at '
                  'https://www.w3.org/TR/WCAG22/# governs.'),
     }
+
+
+def effort(code):
+    """Human-effort class for an A/AA criterion: {clase, porque, minutos} or None."""
+    if code not in _EFFORT:
+        return None
+    clase, why = _EFFORT[code]
+    return {'clase': clase, 'porque': why, 'minutos': list(_EFFORT_MINUTES[clase])}
 
 
 def main(argv):

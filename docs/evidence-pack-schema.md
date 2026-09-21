@@ -18,7 +18,8 @@ this document is the citable spec. A real sample from public audits:
 | `generado` | ISO 8601 UTC | When the pack was built. |
 | `herramienta` | string | Producing tool and repo. |
 | `resumen` | object | Counts per status over the whole matrix: `automated-fail`, `automated-review`, `not-flagged`, `manual-only`, `agent-verified`, `not-run`. |
-| `criterios` | array | **The full matrix.** One entry per tracked WCAG 2.2 A/AA criterion: `{criterio: "1.4.3 Contrast (Minimum)", estado, nota?, valor?}`. `valor` carries the measured fact (e.g. `{medido: "3.91:1", ejemplo: "button"}`) when the finding contains one — the reviewer sees the number, not just the verdict. Statuses: `automated-fail` (a signal fired), `automated-review` (a low-severity/review signal fired), `not-flagged` (no signal fired on this sample — **explicitly NOT pass**), `not-run` (the tool HAS a signal for this criterion but the report type that carries it was not included), `manual-only` (no automated signal exists in the producing tool), `agent-verified` (an agent or human verified this criterion against this sample per the manual-checklist protocol — verification NEVER erases an `automated-fail`). |
+| `criterios` | array | **The full matrix — exactly the 55 normative WCAG 2.2 A/AA criteria.** One entry per criterion: `{criterio: "1.4.3 Contrast (Minimum)", estado, nota?, valor?, esfuerzo?}`. `valor` carries the measured fact (e.g. `{medido: "3.91:1", ejemplo: "button"}`) when the finding contains one — the reviewer sees the number, not just the verdict. Statuses: `automated-fail` (a signal fired), `automated-review` (a low-severity/review signal fired), `not-flagged` (no signal fired on this sample — **explicitly NOT pass**), `not-run` (the tool HAS a signal for this criterion but the report type that carries it was not included), `manual-only` (no automated signal exists in the producing tool), `agent-verified` (an agent or human verified this criterion against this sample per the manual-checklist protocol — verification NEVER erases an `automated-fail`). Every row also carries `esfuerzo: {clase, minutos, porque}` — the human-effort class (below) and the minutes the human still owes after the machine's best signal. |
+| `esfuerzo_pendiente` | object | Remaining human review, priced by class: `{por_clase: {MIN: {criterios, minutos:[lo,hi]}, …}, total_minutos: [lo, hi], nota}` over every row not `agent-verified`. This is the quote input a review marketplace reads — agent output in, priced human scope out. |
 | `manual_pendiente` | array of strings | The criteria still needing human coverage (the `manual-only` subset NOT yet `agent-verified`). |
 | `verificacion` | object? | Present when criterion codes were passed as verified: `{fuente: "agent"|"human", protocolo}`. |
 | `artefactos` | array | The input reports. Each: `{tipo: "informe:static\|rendered\|reflow\|keyboard\|scroll" \| "snapshot:a11y", url?, score?, sha256, cuerpo}`. `sha256` = SHA-256 of the artifact's canonical JSON. `cuerpo` = the full report body, **embedded** — the pack is self-verifying: a verifier holding only the pack can recompute both `pack.sha256` and every `artefactos[].sha256` without needing the original reports. |
@@ -56,13 +57,23 @@ a bug — report it.
 
 ## Effort class table (for pricing)
 
-The exchange maps each criterion to an effort class from **its own published
-table** — the pack does NOT set the bill. This is the proposed seed:
+Every A/AA criterion carries one of three effort classes — **what the HUMAN
+still does after the machine's best signal** (canonical data: `_EFFORT` in
+[`a11ycrit.py`](../a11ycrit.py), full table in
+[`effort-class-table.md`](effort-class-table.md)):
 
-| Class | Criteria | Typical effort |
-|---|---|---|
-| Simple (3-5 min) | 1.1.1, 1.2.2, 1.2.3, 1.2.5, 1.3.1, 1.3.4, 1.3.5, 1.4.2, 1.4.4, 1.4.5, 2.2.1, 2.2.2, 2.4.1, 2.4.2, 2.4.3, 2.4.4, 2.5.2, 2.5.3, 2.5.4, 3.1.1, 3.1.2, 3.2.3, 3.2.4, 3.2.5, 3.2.6, 3.3.2, 3.3.8, 4.1.2 | 28 criteria — instant checks (alt, tokens, viewport, roles) |
-| Complex (10-15 min) | 1.3.2, 1.3.3, 1.4.1, 1.4.3, 1.4.10, 1.4.12, 2.1.1, 2.1.2, 2.2.2, 2.4.5, 2.4.6, 2.4.7, 2.5.7, 2.5.8, 3.3.1, 3.3.3, 3.3.4, 4.1.3 | 18 criteria — rendered, interaction, or review (contrast, Tab walk, forms, reflow) |
+| Class | Minutes | Criteria | What the human does |
+|---|---|---|---|
+| MIN | 1–3 | 23 | The agent verified with a measured signal; the human reads and confirms. |
+| MED | 5–10 | 19 | The agent prepares context; the human verifies in the browser. |
+| MAX | 15–30 | 13 | Real interaction, real judgment, real tooling. |
+
+Two normative rules: (1) a measured `automated-fail` earns its criterion the
+MIN human class — the evidence is there, the human confirms rather than
+recomputes; (2) `not-flagged` on a partially-covered criterion NEVER earns a
+lower class — "the machine looked and found nothing" is weaker than a
+confirmation. The marketplace maps classes to its own billing; the pack does
+not set the price, it prices the remaining scope honestly.
 
 ## The hash rule (normative)
 
