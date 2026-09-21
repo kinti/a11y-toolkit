@@ -19,7 +19,7 @@ import json
 import re
 import sys
 
-from a11yaudit import CRIT, T, calcular_score
+from .a11yaudit import CRIT, T, calcular_score
 
 # browser pool: Chromium reutilizable entre llamadas consecutivas
 _POOL = {'playwright': None, 'browser': None, 'tipo': None}
@@ -831,7 +831,7 @@ def audit_forms(url, timeout=45, lang='en', auth_state=None):
         if campos_err > 0 and campos_sug == 0:
             agrega('baja', '3.3.3', 'form_error_no_suggestion', n=campos_err)
 
-    from a11yaudit import calcular_score
+    from .a11yaudit import calcular_score
     return {
         'url': url, 'modo': 'forms',
         'campos_invalidados': len(tocados),
@@ -961,7 +961,7 @@ def audit_hover(url, timeout=45, lang='en', auth_state=None):
 
     hallazgos = []
     if no_dismissibles:
-        from a11yaudit import calcular_score
+        from .a11yaudit import calcular_score
         hallazgos.append({
             'severidad': 'baja', 'criterio': CRIT.get(lang, CRIT['es']).get('1.4.13', '1.4.13'),
             'senal': 'hover_not_dismissible',
@@ -1110,7 +1110,7 @@ def audit_reflow(url, timeout=45, lang='en', auth_state=None, browser='auto'):
                n=len(r320['malos']), w=r320['vw'],
                det=', '.join(f"{m['ej']} ({m['w']}px)" for m in r320['malos'][:3]))
 
-    from a11yaudit import calcular_score
+    from .a11yaudit import calcular_score
     return {
         'url': url,
         'modo': 'reflow',
@@ -1262,7 +1262,7 @@ def audit_keyboard(url, max_pasos=60, lang='en', timeout=45, auth_state=None, br
             'remediacion': _t(lang, 'kbd_trap_rem'),
             'ejemplos': elems,
         })
-    from a11yaudit import calcular_score
+    from .a11yaudit import calcular_score
     return {
         'url': url,
         'modo': 'keyboard',

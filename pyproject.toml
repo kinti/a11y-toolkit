@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "a11y-toolkit"
-version = "3.21.0"
+version = "4.0.0"
 description = "The accessibility layer for AI coding agents — MCP server + CLI for WCAG 2.2: express static audit, rendered audit (contrast, 2.5.8 target size, focus), contrast math (pairs, CSS names, hsl/rgba, text-over-image pixel sampling), EAA/RD 1112/2018 declarations, snapshot regression diffs, aria-live monitor. Zero dependencies at core; es/en."
 readme = "README.md"
 requires-python = ">=3.9"
@@ -29,8 +29,11 @@ Issues = "https://github.com/kinti/a11y-toolkit/issues"
 Changelog = "https://github.com/kinti/a11y-toolkit/blob/main/CHANGELOG.md"
 
 [project.scripts]
-a11y-toolkit-mcp = "server:main"
-a11ytoolkit = "a11y:main"
+a11y-toolkit-mcp = "a11y_toolkit.server:main"
+a11ytoolkit = "a11y_toolkit.a11y:main"
 
 [tool.setuptools]
-py-modules = ["a11y", "contrast", "declaracion", "a11yaudit", "a11ydom", "a11ydiff", "a11ycrit", "a11ysarif", "a11ybadge", "a11ybudget", "a11yfix", "a11yscroll", "a11yevidence", "a11yvalidate", "a11ydisprove", "a11yledger", "server", "arialive_js"]
+packages = ["a11y_toolkit"]
+
+[tool.setuptools.package-data]
+a11y_toolkit = ["arialive.js"]

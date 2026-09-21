@@ -5,12 +5,13 @@ import os
 import sys
 
 AQUI = os.path.dirname(os.path.abspath(__file__))
-sys.path.insert(0, AQUI)
+ROOT = os.path.dirname(AQUI)
+sys.path.insert(0, ROOT)
 
-from a11yaudit import audit_html, _enlaces_internos  # noqa: E402
-from a11ysarif import desde_informe  # noqa: E402
-from a11ybadge import badge  # noqa: E402
-from a11ybudget import init, comparar  # noqa: E402
+from a11y_toolkit.a11yaudit import audit_html, _enlaces_internos  # noqa: E402
+from a11y_toolkit.a11ysarif import desde_informe  # noqa: E402
+from a11y_toolkit.a11ybadge import badge  # noqa: E402
+from a11y_toolkit.a11ybudget import init, comparar  # noqa: E402
 
 # --- 1. señal estable en hallazgos ---
 r = audit_html('<html lang="es"><head><title>t</title></head><body><img src="x.png"></body></html>')

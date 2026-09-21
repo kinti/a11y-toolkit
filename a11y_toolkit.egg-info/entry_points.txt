@@ -1,3 +1,3 @@
 [console_scripts]
-a11y-toolkit-mcp = server:main
-a11ytoolkit = a11y:main
+a11y-toolkit-mcp = a11y_toolkit.server:main
+a11ytoolkit = a11y_toolkit.a11y:main

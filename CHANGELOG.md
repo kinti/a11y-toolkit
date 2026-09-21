@@ -1,5 +1,27 @@
 # Changelog
 
+## 4.0.0 — 2026-09-22 — "the package"
+
+The repository grew a proper layout — 37 tracked files sat in the repo root;
+now the root is 7 files and 8 directories:
+
+- **`a11y_toolkit/` package**: all 18 Python modules plus `arialive.js` moved
+  under one package; intra-package imports are relative. The supported
+  surfaces are unchanged: console scripts (`a11ytoolkit`, `a11y-toolkit-mcp`),
+  `python3 -m a11y_toolkit.<module>`, and the MCP stdio protocol.
+- **`tests/`**: the seven suites moved out of the root; every CLI end-to-end
+  test now drives the module (`-m`) path, not a file path.
+- **`.github/`**: SECURITY, CODE_OF_CONDUCT and CONTRIBUTING moved there
+  (GitHub still surfaces all three).
+- **BREAKING (hence the major)**: direct `import a11yaudit` from the
+  installed package no longer works — use `from a11y_toolkit.a11yaudit
+  import …`. Console scripts and the wire protocol are untouched, so every
+  documented client (uvx, pipx, smithery.yaml, server.json package
+  arguments) keeps working verbatim.
+- `scripts/versionar.py`, the Makefile, CI and the pre-push hook follow the
+  new paths; versionar's obsolete test_mcp version bump is gone (the
+  assertion derives from `server.VERSION` since 3.21.0).
+
 ## 3.21.0 — 2026-09-21 — "the priced pack"
 
 The evidence pack now prices the human half, and the count drifts are gone:

@@ -11,7 +11,8 @@ import subprocess
 import sys
 
 AQUI = os.path.dirname(os.path.abspath(__file__))
-sys.path.insert(0, AQUI)
+ROOT = os.path.dirname(AQUI)
+sys.path.insert(0, ROOT)
 
 try:
     import playwright  # noqa: F401
@@ -62,9 +63,9 @@ with open(os.path.join('/tmp', 'sticky_mal.html'), 'w', encoding='utf-8') as f:
 with open(os.path.join('/tmp', 'sticky_bien.html'), 'w', encoding='utf-8') as f:
     f.write(FIX_BIEN)
 
-r = subprocess.run([sys.executable, os.path.join(AQUI, 'a11ydom.py'),
+r = subprocess.run([sys.executable, '-m', 'a11y_toolkit.a11ydom',
                     'file://' + ruta, '--lang', 'en'],
-                   capture_output=True, text=True, timeout=120)
+                   cwd=ROOT, capture_output=True, text=True, timeout=120)
 d = json.loads(r.stdout)
 assert 'error' not in d, d
 
@@ -90,7 +91,7 @@ f258 = senales.get('target_small')
 assert f258 is None or not any(re.search(r'\(([0-2])×([0-2])px\)', str(e)) for e in f258.get('ejemplos', []))
 
 # 2.4.11: causa raíz header-fijo-vs-scroll-padding
-from a11ydom import audit_dom_url
+from a11y_toolkit.a11ydom import audit_dom_url
 mal = audit_dom_url('file:///tmp/sticky_mal.html', lang='en')
 bien = audit_dom_url('file:///tmp/sticky_bien.html', lang='en')
 assert any(h['senal'] == 'focus_obscured' for h in mal['hallazgos']), mal['resumen']

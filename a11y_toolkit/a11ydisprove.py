@@ -25,7 +25,7 @@ import argparse
 import json
 import sys
 
-from a11yaudit import audit_url, audit_html
+from .a11yaudit import audit_url, audit_html
 
 
 def _recheck_static(url, hallazgos, timeout=30, lang='en'):
@@ -50,7 +50,7 @@ def _recheck_static(url, hallazgos, timeout=30, lang='en'):
 def _recheck_rendered(url, hallazgos, timeout=45, lang='en'):
     """Re-run the rendered audit and check which findings still fire."""
     try:
-        from a11ydom import audit_dom_url
+        from .a11ydom import audit_dom_url
     except ImportError:
         return hallazgos, "Playwright not installed"
     informe_fresco = audit_dom_url(url, timeout=timeout, lang=lang)
@@ -106,7 +106,7 @@ def disprove(url, informe=None, timeout=30, lang='en'):
     }
 
     # recalcular score sobre los confirmed
-    from a11yaudit import calcular_score
+    from .a11yaudit import calcular_score
     solo_confirmed = [h for h in verificadas if h.get('estado') == 'confirmed']
     resultado['score_original'] = informe.get('score')
     resultado['score'] = calcular_score(solo_confirmed)

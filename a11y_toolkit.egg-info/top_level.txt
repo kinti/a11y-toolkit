@@ -1,12 +1,1 @@
-a11y
-a11yaudit
-a11ybadge
-a11ybudget
-a11ycrit
-a11ydiff
-a11ydom
-a11ysarif
-arialive_js
-contrast
-declaracion
-server
+a11y_toolkit

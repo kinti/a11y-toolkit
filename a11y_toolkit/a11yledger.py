@@ -82,7 +82,7 @@ def gaps(url, ledger=None, ruta='a11y-ledger.json'):
     """What has never been checked on this URL?"""
     if ledger is None:
         ledger = _cargar(ruta)
-    from a11yaudit import CRIT
+    from .a11yaudit import CRIT
     clave = _hash_url(url)
     entrada = ledger['entradas'].get(clave)
     if not entrada:

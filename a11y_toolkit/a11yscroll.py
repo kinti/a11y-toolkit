@@ -25,7 +25,7 @@ import argparse
 import json
 import sys
 
-from a11yaudit import CRIT, T, calcular_score
+from .a11yaudit import CRIT, T, calcular_score
 
 _TD = {
     'es': {

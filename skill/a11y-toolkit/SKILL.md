@@ -114,4 +114,4 @@ page. If a run hangs, look for orphan chromium processes and retry.
 - Images: Pillow if present, else macOS `sips`; PPM always — zero deps otherwise.
 - The math is identical to the public web version: https://jquin.net/lab/
 - Canonical source + MCP install: https://github.com/kinti/a11y-toolkit
-- Test suites: `test_audit.py`, `test_contrast.py`, `test_dom.py`, `test_mcp.py`.
+- Test suites: `tests/test_audit.py`, `tests/test_contrast.py`, `tests/test_dom.py`, `tests/test_mcp.py` (plus v32/cli/solido).

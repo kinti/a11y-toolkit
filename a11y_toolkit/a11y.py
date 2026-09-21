@@ -24,21 +24,21 @@
 
 import sys
 
-import a11yaudit
-import a11ybadge
-import a11yfix
-import a11ydom
-import a11yevidence
-import a11yvalidate
-import a11ydisprove
-import a11yledger
-import a11yscroll
-import a11ybudget
-import a11ycrit
-import a11ydiff
-import a11ysarif
-import contrast
-import declaracion
+from . import a11yaudit
+from . import a11ybadge
+from . import a11yfix
+from . import a11ydom
+from . import a11yevidence
+from . import a11yvalidate
+from . import a11ydisprove
+from . import a11yledger
+from . import a11yscroll
+from . import a11ybudget
+from . import a11ycrit
+from . import a11ydiff
+from . import a11ysarif
+from . import contrast
+from . import declaracion
 
 SUBCOMANDOS = {
     'pair': (contrast, 'pair'),

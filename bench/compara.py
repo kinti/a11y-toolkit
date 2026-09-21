@@ -20,8 +20,8 @@ AQUI = os.path.dirname(os.path.abspath(__file__))
 RAIZ = os.path.dirname(AQUI)
 sys.path.insert(0, RAIZ)
 
-from a11yaudit import audit_url
-from a11ydom import audit_dom_url
+from a11y_toolkit.a11yaudit import audit_url
+from a11y_toolkit.a11ydom import audit_dom_url
 
 AXE_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'axe.min.js')
 if not os.path.exists(AXE_PATH):

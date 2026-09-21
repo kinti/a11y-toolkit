@@ -64,7 +64,7 @@ def empaquetar(informes, snapshot=None, evaluador=None, notas=None, verificados=
     ahora = datetime.now(timezone.utc).isoformat(timespec='seconds')
 
     # matriz de criterios: los que tocamos (estado según hallazgos) + manuales
-    from a11ycrit import _C as _CAT, effort
+    from .a11ycrit import _C as _CAT, effort
     codes_aa = sorted(k for k, v in _CAT.items() if v[0] in ('A', 'AA'))
     modos_incluidos = {inf.get('modo', 'static') for inf in informes}
     tocados = {}

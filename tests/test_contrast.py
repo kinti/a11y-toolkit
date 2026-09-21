@@ -6,8 +6,8 @@ import subprocess
 import sys
 import tempfile
 
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from contrast import pair, parse_color, ratio, sugerir  # noqa: E402
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from a11y_toolkit.contrast import pair, parse_color, ratio, sugerir  # noqa: E402
 
 
 def cerca(a, b, tol=0.01):
@@ -43,7 +43,7 @@ with tempfile.NamedTemporaryFile(suffix='.ppm', delete=False) as f:
         v = int(255 * j / h)
         f.write(bytes([v, v, v]) * w)
     ruta = f.name
-from contrast import image_contrast  # noqa: E402
+from a11y_toolkit.contrast import image_contrast  # noqa: E402
 res = image_contrast(ruta, '#ffffff', sample=2)
 os.unlink(ruta)
 cerca(res['ratio_peor'], 1.05, 0.02)          # contra la fila más clara (v=252)
@@ -54,7 +54,7 @@ assert 'error' in image_contrast('/dev/null', '#fff', region='a,b,c')
 
 # 5. CLI end-to-end
 out = subprocess.run(
-    [sys.executable, os.path.join(os.path.dirname(os.path.abspath(__file__)), 'contrast.py'),
+    [sys.executable, '-m', 'a11y_toolkit.contrast',
      'pair', '#767676', '#ffffff'],
     capture_output=True, text=True)
 d = json.loads(out.stdout)

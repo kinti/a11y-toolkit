@@ -19,11 +19,12 @@ import subprocess
 import sys
 
 AQUI = os.path.dirname(os.path.abspath(__file__))
-sys.path.insert(0, AQUI)
+ROOT = os.path.dirname(AQUI)
+sys.path.insert(0, ROOT)
 
 # ---------- 1. catálogo ----------
-from a11yaudit import T, CRIT, audit_html  # noqa: E402
-from a11ydom import _TD  # noqa: E402
+from a11y_toolkit.a11yaudit import T, CRIT, audit_html  # noqa: E402
+from a11y_toolkit.a11ydom import _TD  # noqa: E402
 
 es, en = set(T['es']), set(T['en'])
 assert es == en, f"catálogo desparejo: solo es={sorted(es-en)[:3]} solo en={sorted(en-es)[:3]}"
@@ -41,19 +42,19 @@ for lang in ('es', 'en'):
 assert set(_TD['es']) == set(_TD['en']), 'catálogo DOM desparejo'
 
 # ---------- 2. versiones ----------
-import server  # noqa: E402
-pp = re.search(r'version = "([\d.]+)"', open(os.path.join(AQUI, "pyproject.toml"), encoding="utf-8").read()).group(1)
-sj = json.load(open(os.path.join(AQUI, 'server.json')))['version']
+from a11y_toolkit import server  # noqa: E402
+pp = re.search(r'version = "([\d.]+)"', open(os.path.join(ROOT, "pyproject.toml"), encoding="utf-8").read()).group(1)
+sj = json.load(open(os.path.join(ROOT, 'server.json')))['version']
 assert pp == server.VERSION == sj, f'versión derivada: pyproject={pp} server={server.VERSION} server.json={sj}'
 
 # ---------- 3. conteos en las superficies públicas ----------
-readme = open(os.path.join(AQUI, 'README.md'), encoding='utf-8').read()
+readme = open(os.path.join(ROOT, 'README.md'), encoding='utf-8').read()
 m_intro = re.search(r'\*\*(\d+) MCP tools \+ (\d+) prompts', readme)
 m_tabla = re.search(r'The tools \((\d+)\)', readme)
 assert m_intro and int(m_intro.group(1)) == len(server.TOOLS), f'README intro dice {m_intro and m_intro.group(1)}, hay {len(server.TOOLS)}'
 assert int(m_intro.group(2)) == len(server._PROMPTS), f'README prompts: {m_intro.group(2)} vs {len(server._PROMPTS)}'
 assert m_tabla and int(m_tabla.group(1)) == len(server.TOOLS), f'README tabla: {m_tabla and m_tabla.group(1)} vs {len(server.TOOLS)}'
-vis = open(os.path.join(AQUI, 'docs', 'gen-visuals.py'), encoding='utf-8').read()
+vis = open(os.path.join(ROOT, 'docs', 'gen-visuals.py'), encoding='utf-8').read()
 m_gif = re.search(r'\((\d+) tools · (\d+) prompts\)', vis)
 assert m_gif and int(m_gif.group(1)) == len(server.TOOLS) and int(m_gif.group(2)) == len(server._PROMPTS), \
     f'GIF dice {m_gif and m_gif.groups()}, hay {len(server.TOOLS)}+{len(server._PROMPTS)} — regenera docs/gen-visuals.py'
@@ -70,8 +71,8 @@ for _t in server.TOOLS:
         assert _t.get(_k), f"{_t['name']} lacks {_k}"
 
 # ---------- 3c. conteos normativos WCAG 2.2 (fijados contra deriva) ----------
-from a11ycrit import _C as _CAT, _EFFORT, effort  # noqa: E402
-from a11yevidence import MANUAL_AA, empaquetar  # noqa: E402
+from a11y_toolkit.a11ycrit import _C as _CAT, _EFFORT, effort  # noqa: E402
+from a11y_toolkit.a11yevidence import MANUAL_AA, empaquetar  # noqa: E402
 
 # el conjunto A/AA normativo (w3.org/TR/WCAG22; 4.1.1 retirado; 3.2.6 y 3.3.7 son A)
 _NORM_A = {'1.1.1', '1.2.1', '1.2.2', '1.2.3', '1.3.1', '1.3.2', '1.3.3', '1.4.1', '1.4.2',

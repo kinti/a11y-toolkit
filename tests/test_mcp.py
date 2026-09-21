@@ -6,8 +6,9 @@ import subprocess
 import sys
 
 AQUI = os.path.dirname(os.path.abspath(__file__))
-sys.path.insert(0, AQUI)
-import server  # noqa: E402
+ROOT = os.path.dirname(AQUI)
+sys.path.insert(0, ROOT)
+from a11y_toolkit import server  # noqa: E402
 REQ = [
     {'jsonrpc': '2.0', 'id': 1, 'method': 'initialize',
      'params': {'protocolVersion': '2024-11-05', 'capabilities': {},
@@ -53,7 +54,7 @@ REQ = [
                 'arguments': {'html': '<html><head><meta name="viewport" content="width=device-width, user-scalable=no"><title></title></head><body><input type="email" name="correo"></body></html>', 'lang': 'es', 'title': 'T'}}},
 ]
 
-p = subprocess.run([sys.executable, os.path.join(AQUI, 'server.py')],
+p = subprocess.run([sys.executable, '-m', 'a11y_toolkit.server'], cwd=ROOT,
                    input='\n'.join(json.dumps(r) for r in REQ),
                    capture_output=True, text=True, timeout=120)
 resp = [json.loads(l) for l in p.stdout.splitlines() if l.strip()]
@@ -110,7 +111,7 @@ REQ2 = [
     {'jsonrpc': '2.0', 'id': 12, 'method': 'tools/call', 'params': {'name': 'a11y_generate_declaration', 'arguments': {'entidad': 'Acme', 'url': 'https://acme.eu', 'estado': 'parcial', 'contenido_no_accesible': ['Old videos without captions'], 'marco': 'eaa', 'lang': 'en'}}},
     {'jsonrpc': '2.0', 'id': 13, 'method': 'prompts/call', 'params': {'name': 'declaration-eaa', 'arguments': {'entidad': 'Acme', 'url': 'https://acme.eu', 'language': 'es'}}},
 ]
-p2 = subprocess.run([sys.executable, os.path.join(AQUI, 'server.py')],
+p2 = subprocess.run([sys.executable, '-m', 'a11y_toolkit.server'], cwd=ROOT,
                     input='\n'.join(json.dumps(r) for r in REQ2),
                     capture_output=True, text=True, timeout=60)
 r2 = {json.loads(l).get('id'): json.loads(l) for l in p2.stdout.splitlines() if l.strip()}

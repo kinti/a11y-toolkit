@@ -28,7 +28,7 @@ import json
 import re
 import sys
 
-from a11yaudit import audit_html, _DATO_PERSONAL
+from .a11yaudit import audit_html, _DATO_PERSONAL
 
 # token autocomplete por type de input (determinista por especificación)
 _TOKEN_POR_TYPE = {'email': 'email', 'tel': 'tel', 'url': 'url'}

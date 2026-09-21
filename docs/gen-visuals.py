@@ -15,9 +15,9 @@ AQUI = os.path.dirname(os.path.abspath(__file__))
 RAIZ = os.path.dirname(AQUI)
 sys.path.insert(0, RAIZ)
 
-from a11yaudit import audit_html
+from a11y_toolkit.a11yaudit import audit_html
 from a11ybadge import badge
-from contrast import pair
+from a11y_toolkit.contrast import pair
 
 ANCHO, ALTO = 1024, 640
 GRIS, VERDE, ROJO, AMAR = '#8b949e', '#3fb950', '#f85149', '#d29922'

@@ -43,30 +43,28 @@ import os
 import sys
 
 AQUI = os.path.dirname(os.path.abspath(__file__))
-if AQUI not in sys.path:
-    sys.path.insert(0, AQUI)
 
-from contrast import pair as pair_fn, image_contrast, sugerir, parse_color  # noqa: E402
-from declaracion import generar as declaracion_fn  # noqa: E402
-from a11yaudit import audit_url as audit_url_fn, audit_html as audit_html_fn  # noqa: E402
-from a11ydom import audit_dom_url, audit_reflow, audit_keyboard, audit_forms, audit_hover, sr_transcript  # noqa: E402
-from a11yfix import autofix as autofix_fn  # noqa: E402
-from a11yscroll import audit_scroll  # noqa: E402
-from a11yvalidate import validar_url, validar_html  # noqa: E402
-from a11yevidence import empaquetar as empaquetar_fn  # noqa: E402
-from a11ydiff import snapshot as snapshot_fn, diff as diff_fn  # noqa: E402
-from a11ycrit import criterio as criterio_fn  # noqa: E402
-from a11ydisprove import disprove as disprove_fn  # noqa: E402
-from a11yledger import record as ledger_record, gaps as ledger_gaps, summary as ledger_summary  # noqa: E402
-from a11ybadge import badge as badge_fn  # noqa: E402
-from a11yaudit import audit_site as audit_site_fn  # noqa: E402
+from .contrast import pair as pair_fn, image_contrast, sugerir, parse_color  # noqa: E402
+from .declaracion import generar as declaracion_fn  # noqa: E402
+from .a11yaudit import audit_url as audit_url_fn, audit_html as audit_html_fn  # noqa: E402
+from .a11ydom import audit_dom_url, audit_reflow, audit_keyboard, audit_forms, audit_hover, sr_transcript  # noqa: E402
+from .a11yfix import autofix as autofix_fn  # noqa: E402
+from .a11yscroll import audit_scroll  # noqa: E402
+from .a11yvalidate import validar_url, validar_html  # noqa: E402
+from .a11yevidence import empaquetar as empaquetar_fn  # noqa: E402
+from .a11ydiff import snapshot as snapshot_fn, diff as diff_fn  # noqa: E402
+from .a11ycrit import criterio as criterio_fn  # noqa: E402
+from .a11ydisprove import disprove as disprove_fn  # noqa: E402
+from .a11yledger import record as ledger_record, gaps as ledger_gaps, summary as ledger_summary  # noqa: E402
+from .a11ybadge import badge as badge_fn  # noqa: E402
+from .a11yaudit import audit_site as audit_site_fn  # noqa: E402
 
 try:
-    from arialive_js import ARIALIVE_JS  # installed as a module (pip)
+    from .arialive_js import ARIALIVE_JS  # installed as a module (pip)
 except ImportError:
     ARIALIVE_JS = None  # repo checkout: read the file
 
-VERSION = '3.21.0'
+VERSION = '4.0.0'
 
 INSTRUCTIONS = (
     'Accessibility toolkit (WCAG 2.2), multilanguage es/en. '
@@ -900,15 +898,15 @@ def llamar(nombre, args):
             if accion == 'record':
                 if not args.get('url') or not args.get('informe'):
                     return _texto({'error': 'record requires url + informe'})
-                from a11yledger import record as _rec
+                from .a11yledger import record as _rec
                 return _texto(_rec(args['url'], args['informe'], ruta=ruta))
             if accion == 'gaps':
                 if not args.get('url'):
                     return _texto({'error': 'gaps requires url'})
-                from a11yledger import gaps as _gaps
+                from .a11yledger import gaps as _gaps
                 return _texto(_gaps(args['url'], ruta=ruta))
             if accion == 'summary':
-                from a11yledger import summary as _sum
+                from .a11yledger import summary as _sum
                 return _texto(_sum(ruta=ruta))
         except Exception as e:
             return {'content': [{'type': 'text', 'text': f'error: {e}'}], 'isError': True}

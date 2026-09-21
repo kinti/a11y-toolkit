@@ -204,12 +204,12 @@ MCP clients you trust.
 ## Development
 
 ```bash
-python3 test_contrast.py && python3 test_audit.py && python3 test_v32.py \
-  && python3 test_dom.py && python3 test_cli.py && python3 test_solido.py \
-  && python3 test_mcp.py
+python3 tests/test_contrast.py && python3 tests/test_audit.py && python3 tests/test_v32.py \
+  && python3 tests/test_dom.py && python3 tests/test_cli.py && python3 tests/test_solido.py \
+  && python3 tests/test_mcp.py
 ```
 
-`test_dom.py` self-skips without Playwright. `test_solido.py` enforces the design
+`tests/test_dom.py` self-skips without Playwright. `tests/test_solido.py` enforces the design
 invariants (catalog parity, version alignment, count coverage, hostile-HTML fuzz).
 Releases: `make release V=X.Y.Z` — bumps, gates, tags and pushes atomically.
 

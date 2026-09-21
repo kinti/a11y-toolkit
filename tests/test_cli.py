@@ -12,13 +12,14 @@ import subprocess
 import sys
 
 AQUI = os.path.dirname(os.path.abspath(__file__))
-CLI = os.path.join(AQUI, 'a11y.py')
+ROOT = os.path.dirname(AQUI)
+CLI = None  # CLI runs as a module: python3 -m a11y_toolkit.a11y
 FIX = os.path.join('/tmp', 'a11ycli_ok.html')
 FIX_MAL = os.path.join('/tmp', 'a11ycli_mal.html')
 
 
 def run(*args, stdin=None):
-    return subprocess.run([sys.executable, CLI, *args], capture_output=True,
+    return subprocess.run([sys.executable, '-m', 'a11y_toolkit.a11y', *args], cwd=ROOT, capture_output=True,
                           text=True, timeout=180, input=stdin)
 
 
@@ -50,7 +51,7 @@ assert sorted(a['senal'] for a in fx['aplicados']) == ['autocomplete', 'lang_mis
 r = run('sarif', '--file', FIX_MAL, '-o', os.path.join('/tmp', 'cli.sarif'))
 assert r.returncode == 0 and os.path.exists(os.path.join('/tmp', 'cli.sarif'))
 # budget: init desde audit por stdin + comparación
-aud = subprocess.run([sys.executable, os.path.join(AQUI, 'a11yaudit.py'), '--file', FIX_MAL],
+aud = subprocess.run([sys.executable, '-m', 'a11y_toolkit.a11yaudit', '--file', FIX_MAL], cwd=ROOT,
                      capture_output=True, text=True, timeout=60).stdout
 r = run('budget', '--init', stdin=aud)
 assert r.returncode == 0 and 'senales' in r.stdout, r.stderr[-300:]
@@ -85,9 +86,9 @@ pk = json.loads(r.stdout)
 assert pk['sha256'] and 4 <= pk['resumen']['manual-only'] <= 8  # genuinely human-only criteria  # shrank from 27 as signals landed
 
 # 3. seguridad: nada de lo que escribe este toolkit es vector de inyección
-sys.path.insert(0, AQUI)
-from a11yfix import autofix  # noqa: E402
-from a11ybadge import badge  # noqa: E402
+sys.path.insert(0, ROOT)
+from a11y_toolkit.a11yfix import autofix  # noqa: E402
+from a11y_toolkit.a11ybadge import badge  # noqa: E402
 mal = autofix('<html><head><title></title></head><body></body></html>',
               title='x</title><script>alert(1)</script>')
 assert '<script>' not in mal['fixed_html'], 'XSS vía title'
@@ -98,7 +99,7 @@ b = badge(90, fecha='2026"><script>x</script>')
 assert '<script>' not in b and '<' not in b[b.find('2026'):b.find('2026') + 20], 'inyección SVG vía fecha'
 
 # 4. la afirmación del README («26 criterios tocados») queda clavada
-from a11yaudit import CRIT  # noqa: E402
+from a11y_toolkit.a11yaudit import CRIT  # noqa: E402
 assert len(CRIT['es']) == 51, f'README claims 51 criteria, CRIT has {len(CRIT["es"])}'
 
 print('CLI SMOKE OK ✓ (todos los subcomandos, inyección bloqueada, 26 criterios verificados)')

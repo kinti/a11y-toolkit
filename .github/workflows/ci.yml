@@ -12,18 +12,18 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
       - run: pip install pillow
-      - run: python test_contrast.py
-      - run: python test_audit.py
-      - run: python test_dom.py          # self-skips if Playwright is absent
-      - run: python test_v32.py
-      - run: python test_solido.py
-      - run: python test_cli.py
-      - run: python test_mcp.py
+      - run: python tests/test_contrast.py
+      - run: python tests/test_audit.py
+      - run: python tests/test_dom.py     # self-skips if Playwright is absent
+      - run: python tests/test_v32.py
+      - run: python tests/test_solido.py
+      - run: python tests/test_cli.py
+      - run: python tests/test_mcp.py
       - name: Package smoke test (pip install .)
         run: |
           pip install .
           a11ytoolkit pair "#767676" "#ffffff"
-          python3 -c "import server, a11ydom; print('server imports OK,', len(server.TOOLS), 'tools,', len(server._PROMPTS), 'prompts')"
+          python3 -c "from a11y_toolkit import server, a11ydom; print('server imports OK,', len(server.TOOLS), 'tools,', len(server._PROMPTS), 'prompts')"
           pip uninstall -y a11y-toolkit
   build:
     runs-on: ubuntu-latest

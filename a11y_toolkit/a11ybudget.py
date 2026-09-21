@@ -109,7 +109,7 @@ def main(argv):
         with open(a.audit, encoding='utf-8') as f:
             informe = json.load(f)
     else:
-        from a11yaudit import audit_url
+        from .a11yaudit import audit_url
         informe = audit_url(a.url)
     veredicto = comparar(presupuesto, informe)
     print(json.dumps(veredicto, ensure_ascii=False, indent=1))

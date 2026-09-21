@@ -19,7 +19,7 @@ import sys
 import urllib.parse
 import urllib.request
 
-from a11yaudit import calcular_score
+from .a11yaudit import calcular_score
 
 BASE = 'https://validator.w3.org/nu/'
 UA = 'a11y-toolkit/3.16 (WCAG audit; github.com/kinti/a11y-toolkit)'

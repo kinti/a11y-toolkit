@@ -16,7 +16,7 @@ import subprocess
 import sys
 
 AQUI = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-RAPIDAS = ['test_contrast.py', 'test_audit.py', 'test_v32.py', 'test_solido.py']
+RAPIDAS = ['tests/test_contrast.py', 'tests/test_audit.py', 'tests/test_v32.py', 'tests/test_solido.py']
 
 
 def bump_fichero(ruta, ancla, nuevo_valor, etiqueta):
@@ -48,7 +48,7 @@ def main():
 
     print(f'versionando {actual} → {nueva}')
     bump_fichero('pyproject.toml', f'version = "{actual}"', f'version = "{nueva}"', 'versión')
-    bump_fichero('server.py', f"VERSION = '{actual}'", f"VERSION = '{nueva}'", 'VERSION')
+    bump_fichero('a11y_toolkit/server.py', f"VERSION = '{actual}'", f"VERSION = '{nueva}'", 'VERSION')
     sj = os.path.join(AQUI, 'server.json')
     d = json.load(open(sj))
     assert d['version'] == actual, f'server.json estaba en {d["version"]}, no en {actual} — revisa a mano'
@@ -57,8 +57,7 @@ def main():
     json.dump(d, open(sj, 'w'), indent=2, ensure_ascii=False)
     open(sj, 'a').write('\n')
     print('  ✓ server.json: versión y paquete')
-    bump_fichero('test_mcp.py', f"init['serverInfo']['version'] == '{actual}'",
-                 f"init['serverInfo']['version'] == '{nueva}'", 'aserción de versión')
+    # test_mcp derives its version assertion from server.VERSION: nothing to bump there.
 
     print('— suites rápidas:')
     for t in RAPIDAS:

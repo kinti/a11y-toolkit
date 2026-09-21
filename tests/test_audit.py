@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """Tests del auditor exprés con fixtures HTML (es/en, remediación incluida)."""
 import os, sys
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from a11yaudit import audit_html
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from a11y_toolkit.a11yaudit import audit_html
 
 # Página limpia: sin hallazgos (tiene <main> → 2.4.1 cubierto)
 limpia = '''<!doctype html><html lang="es"><head><meta charset="utf-8"><title>Ok</title></head>
@@ -145,7 +145,7 @@ for esperada in ('motion_moving', 'gesture_no_click', 'motion_actuation',
 limpio312 = audit_html('<html lang="es"><head><title>t</title></head><body><main><h1>Informe principal</h1><p>x</p></main></body></html>', lang='en')
 assert not (sv312 & {x['senal'] for x in limpio312['hallazgos']})
 # site-level: pure function separates consistent from drifting nav
-from a11yaudit import _Auditor, evaluar_sitio
+from a11y_toolkit.a11yaudit import _Auditor, evaluar_sitio
 paginas = ['<nav><a href="/">H</a><a href="/x">X</a></nav>' for _ in range(2)] + ['<nav><a href="/">H</a><a href="/y">Y</a></nav>']
 parsers = []
 for cuerpo in paginas:
@@ -169,7 +169,7 @@ for _h in kitchen['hallazgos']:
     for _e in _h.get('ejemplos', []):
         assert not _ES.search(str(_e)), f"fuga ES en ej de {_h['senal']}: {_e}"
 # v3.9.2: audit_url rechaza esquemas no http(s) (lectura local vía URL bloqueada)
-from a11yaudit import audit_url as _au
+from a11y_toolkit.a11yaudit import audit_url as _au
 _r = _au('file:///etc/passwd', lang='en')
 assert 'error' in _r and 'http/https' in _r['error'], _r
 _r2 = _au('ftp://x/y', lang='es')

@@ -18,7 +18,7 @@ import argparse
 import json
 import sys
 
-from a11yaudit import audit_url, audit_site, audit_html
+from .a11yaudit import audit_url, audit_site, audit_html
 
 NIVEL = {'alta': 'error', 'media': 'warning', 'baja': 'note'}
 

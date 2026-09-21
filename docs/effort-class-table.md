@@ -2,7 +2,7 @@
 
 Canonical pricing seed for the human half of a conformance review: what the
 **human** still does after this toolkit's best automated signal, per criterion.
-This table is data, not prose — `_EFFORT` in [`a11ycrit.py`](../a11ycrit.py) is
+This table is data, not prose — `_EFFORT` in [`a11ycrit.py`](../a11y_toolkit/a11ycrit.py) is
 the source of truth (this document is generated from it); the evidence pack
 emits the class per matrix row and the remaining totals in `esfuerzo_pendiente`.
 
