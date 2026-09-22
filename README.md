@@ -25,25 +25,16 @@ the human signs.
 
 | Capability | axe-core / Lighthouse / pa11y | a11y-toolkit |
 |---|---|---|
-| Text contrast over **images/gradients** (pixel sampling, hostile-zone grid) | ✗ | ✓ |
-| **Form error testing**: fills invalid data, submits, judges announcement (3.3.1/3.3.3) | ✗ | ✓ |
-| **Keyboard traps** with real Tab walking + Escape-release test (2.1.2) | ✗ | ✓ |
-| **Infinite-scroll audit**: focus survival, announcements, feed end (2.4.3, 4.1.3) | ✗ | ✓ |
-| **Reflow at 320px** (1.4.10) + **text spacing override** (1.4.12) | ✗ | ✓ |
-| **W3C Nu validator** integration (doctype, structural validity, mapped to criteria) | ✗ | ✓ |
-| **Focus/input-triggered navigation** detection (3.2.1/3.2.2) | ✗ | ✓ |
-| **Screen reader transcript**: what a blind user hears, linearized | ✗ | ✓ |
-| **Hover dismissibility**: tooltips that don't close on Escape (1.4.13) | ✗ | ✓ |
-| **Legal accessibility statements** (EAA / RD 1112/2018), es/en | ✗ | ✓ |
-| **Evidence pack** for human countersigning (SHA-256, criteria matrix) | ✗ | ✓ |
-| **Deterministic autofix** incl. accessible form-error layer (3.3.1/3.3.3) | ✗ | ✓ |
-| **Regression watch**: budget, SARIF→GitHub PRs, tab-order + tree diffs | ✗ | ✓ |
-| **Coverage ledger**: persistent audit knowledge accumulated across runs | ✗ | ✓ |
-| **Disprover**: re-verifies findings against the live page, rejects false positives | ✗ | ✓ |
-| **Open shadow DOM** traversal + same-origin iframes | partial | ✓ |
-| **Placeholder-only labels**, fieldset/legend, label quality, financial confirmation | ✗ | ✓ |
-| Runs with **zero dependencies** at core (Playwright optional, any browser) | heavy runtimes | ✓ |
-| Output optimized for **MCP/LLM consumption** (JSON, es/en, severity-ranked) | ✗ | ✓ |
+| Text contrast over images and gradients (pixel sampling of the real background) | ✗ | ✓ |
+| Form error testing: fills invalid data, really submits, judges what happens | ✗ | ✓ |
+| Keyboard traps: real Tab walk + Escape-release test, plus focus/input-triggered navigation | ✗ | ✓ |
+| Infinite-scroll audit: focus survival, announcements, feed end | ✗ | ✓ |
+| Reflow at 320px and the WCAG text-spacing override, measured | ✗ | ✓ |
+| Screen reader transcript: what a blind user hears, linearized | ✗ | ✓ |
+| Tooltips that ignore Escape caught by actually hovering (1.4.13) | ✗ | ✓ |
+| Legal statements for the EAA / RD 1112/2018, in Spanish and English | ✗ | ✓ |
+| An evidence pack a human can countersign — hashes, matrix, empty signature block | ✗ | ✓ |
+| Runs with zero dependencies at core, speaks es/en, any browser you have | heavy runtimes | ✓ |
 
 ## The tools (23)
 
@@ -232,18 +223,19 @@ Releases: `make release V=X.Y.Z` — bumps, gates, tags and pushes atomically.
 
 ## Roadmap
 
-- [x] Rendered audit (shadow DOM, state contrast, text spacing, color-only links)
-- [x] 0-100 score · ARIA validity · criterion knowledge (56 entries)
-- [x] Form error testing + autofix (find AND fix)
-- [x] Keyboard traps + focus/input navigation detection (2.1.2, 3.2.1, 3.2.2)
-- [x] Infinite scroll · reflow · W3C Nu validation
-- [x] SARIF export · error budget · scheduled surveillance recipe
-- [x] Evidence pack with agent-verified status (spec published, self-verifying)
-- [x] Form deep-dive: placeholder-only, fieldset, label quality, financial confirmation
-- [x] Sitemap-driven crawling · behind-login auditing (auth_state)
-- [x] 51/55 A/AA criteria with automated signals (93%)
-- [x] Browser auto-detection (Chromium, Firefox, WebKit, Chrome, Edge)
-- [x] Screen reader transcript · hover dismissibility · disprover · coverage ledger
+Done recently: rendered audit with shadow DOM and state contrast, form error
+testing plus autofix, keyboard traps, infinite scroll, reflow, the W3C Nu
+integration, SARIF and error budgets, the evidence pack (spec published,
+self-verifying), sitemap crawling, behind-login auditing, browser
+auto-detection, the screen reader transcript, and per-criterion effort
+pricing. The full history lives in the [changelog](CHANGELOG.md).
+
+Next, roughly in this order:
+
+- [ ] Attestation interlock: let an external auditor's countersignature reference the evidence pack by hash (their schema, my side adapts)
+- [ ] Publish the monthly axe-core benchmark results from CI, run over real pages
+- [ ] Screen-reader transcript cross-checks against NVDA and VoiceOver output
+- [ ] More verified client configs (JetBrains AI, Gemini CLI), same treatment as [docs/clients.md](docs/clients.md)
 
 ## Author
 
