@@ -8,14 +8,13 @@
 [![MCP](https://img.shields.io/badge/Model%20Context%20Protocol-server-purple)](https://modelcontextprotocol.io)
 [![Sponsor](https://img.shields.io/badge/Sponsor-%E2%9D%A4-pink)](https://github.com/sponsors/kinti)
 
-**23 MCP tools + 5 prompts + a skill** covering the full WCAG 2.2 loop: **audit → fix →
-document → watch → hand off**. **51 of 55 A/AA criteria carry automated signals (93%)**.
-Zero dependencies at the core; every finding ships with a concrete remediation your
-agent can apply. Works with Chromium, Firefox, WebKit, Chrome or Edge — whatever you
-have.
+23 MCP tools, 5 prompts and a skill covering the whole WCAG 2.2 loop: audit, fix,
+document, watch, hand off. 51 of 55 A/AA criteria carry automated signals (93%), every
+finding ships with a concrete remediation your agent can apply, and the rendered tools
+run on whichever browser you have — Chromium, Firefox, WebKit, Chrome or Edge.
 
-The **European Accessibility Act** is in force since June 2025, ADA suits keep landing,
-and AI agents now write most of the web. A scan is not a defence — the machine finds,
+The European Accessibility Act is in force since June 2025, ADA suits keep landing,
+and AI agents now write most of the web. A scan is not a defence: the machine finds,
 the human signs.
 
 <p align="center">
@@ -170,9 +169,9 @@ agent exactly how to verify them by hand. The boundary is printed on every repor
 
 ## Free online analyzer
 
-**[a11y.jquin.net](https://a11y.jquin.net)** — the machine half, free forever: full
-report, honest badge, evidence-pack download. SSRF-guarded, rate-limited. Every free
-report ends at the exact boundary where a qualified human begins.
+I also run **[a11y.jquin.net](https://a11y.jquin.net)**, a free online analyzer with
+the same engine — full report, badge, evidence-pack download. Every report ends at the
+exact boundary where a qualified human begins, which is the point.
 
 ## Validated against real pages
 
@@ -182,16 +181,34 @@ report (blue button at 3.91:1, manually verified). Drove out our own false posit
 (hidden skip links, honeypot fields, single-context generic links, image-alt accname
 — each with a regression fixture).
 
+## Why I built this
+
+I have been auditing websites for accessibility since 2003. In twenty years the
+tools got faster and the failures stayed the same: the same missing alt text, the
+same keyboard traps, the same forms that swallow your work. When AI agents started
+writing most of the web, the audit gap stopped being a staffing problem and became
+an infrastructure one.
+
+So I built the tool I always wanted next to me on an audit. Not another scanner —
+scanners exist. A toolkit that does half the work, says exactly where it stops, and
+packages the rest for the person who signs. The gov.uk failure you read about above
+is not a synthetic benchmark case: this engine found it, and I confirmed it with my
+own eyes before writing it down.
+
+If it saves you an afternoon, leave a star — it genuinely helps the next auditor
+find it. If it doesn't, open an issue and tell me what is missing.
+
 ## Honesty, built in
 
 Every audit says: **automation covers 93% of A/AA criteria; the rest needs a human**.
 The `audit-page` prompt and the skill have the agent check what it can (keyboard,
 focus, zoom, announced errors) using [the manual
 checklist](skill/a11y-toolkit/references/wcag22-manual-checklist.md). A filter, not
-a verdict. The human half is **priced, not guessed**: every A/AA criterion carries
-an effort class — MIN 23 (read and confirm), MED 19 (verify in the browser),
-MAX 13 (real interaction and judgment) — [full table](docs/effort-class-table.md). The evidence pack is the handoff object for the human who signs — and now
-includes a screen reader transcript so the reviewer sees what a blind user hears.
+a verdict. The remaining human work is priced per criterion — MIN 23 (read and
+confirm), MED 19 (verify in the browser), MAX 13 (real interaction and judgment);
+[full table](docs/effort-class-table.md). And the evidence pack is the handoff object
+for the person who signs, screen reader transcript included, so the reviewer sees
+what a blind user hears.
 
 ## Security & scope
 

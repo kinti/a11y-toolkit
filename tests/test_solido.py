@@ -49,7 +49,7 @@ assert pp == server.VERSION == sj, f'versión derivada: pyproject={pp} server={s
 
 # ---------- 3. conteos en las superficies públicas ----------
 readme = open(os.path.join(ROOT, 'README.md'), encoding='utf-8').read()
-m_intro = re.search(r'\*\*(\d+) MCP tools \+ (\d+) prompts', readme)
+m_intro = re.search(r'(\d+) MCP tools, (\d+) prompts and a skill', readme)
 m_tabla = re.search(r'The tools \((\d+)\)', readme)
 assert m_intro and int(m_intro.group(1)) == len(server.TOOLS), f'README intro dice {m_intro and m_intro.group(1)}, hay {len(server.TOOLS)}'
 assert int(m_intro.group(2)) == len(server._PROMPTS), f'README prompts: {m_intro.group(2)} vs {len(server._PROMPTS)}'
