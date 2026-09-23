@@ -1,5 +1,20 @@
 # Changelog
 
+## 4.0.1 — 2026-09-23 — "aligned with the market"
+
+Docs-only release: the canonical effort-class documents adopt the two rules the
+Countersignatory exchange formalized against the published table
+(cs-a11y-classes-2026-09-23):
+
+- Rule 1 is now two-sided: confirming a measured `automated-fail` is the MIN
+  human class; certifying a PASS always costs the criterion's full table class.
+  A MIN confirmation can never become a pass.
+- The NA settlement rule: a criterion quoted at its class settles at MIN when
+  the human verdict is `not_applicable` with a reason — the buyer does not pay
+  for examination that did not happen.
+
+No code changes; `_EFFORT` and the packs it emits are unchanged.
+
 ## 4.0.0 — 2026-09-22 — "the package"
 
 The repository grew a proper layout — 37 tracked files sat in the repo root;

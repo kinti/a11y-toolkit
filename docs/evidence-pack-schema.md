@@ -68,11 +68,14 @@ still does after the machine's best signal** (canonical data: `_EFFORT` in
 | MED | 5–10 | 19 | The agent prepares context; the human verifies in the browser. |
 | MAX | 15–30 | 13 | Real interaction, real judgment, real tooling. |
 
-Two normative rules: (1) a measured `automated-fail` earns its criterion the
-MIN human class — the evidence is there, the human confirms rather than
-recomputes; (2) `not-flagged` on a partially-covered criterion NEVER earns a
-lower class — "the machine looked and found nothing" is weaker than a
-confirmation. The marketplace maps classes to its own billing; the pack does
+Three normative rules: (1) a measured `automated-fail` splits in two —
+confirming the fail is the MIN human class, but certifying a PASS always costs
+the criterion's full table class (a MIN confirmation can never become a pass);
+(2) `not-flagged` on a partially-covered criterion NEVER earns a lower class —
+"the machine looked and found nothing" is weaker than a confirmation; (3) a
+criterion quoted at its class settles at MIN when the human verdict is
+not_applicable with a reason — the buyer does not pay for examination that did
+not happen. The marketplace maps classes to its own billing; the pack does
 not set the price, it prices the remaining scope honestly.
 
 ## The hash rule (normative)

@@ -20,8 +20,11 @@ counterparty's own published table supersedes it for their engagements.
 
 ## Normative rules
 
-1. A measured `automated-fail` earns its criterion the MIN human class: the
-   evidence is on the table, the human confirms rather than recomputes.
+1. A measured `automated-fail` splits in two. Confirming the measured fail is
+   the MIN human class: the evidence is on the table, the human confirms rather
+   than recomputes. Certifying a PASS always costs the criterion's full table
+   class — on 1.4.3 that means gradients, background images and hover states
+   examined. A MIN confirmation can never become a pass.
 2. `not-flagged` on a partially-covered criterion never earns a lower class:
    "the machine looked and found nothing" is weaker than a confirmation.
 3. The seconds trend down as the machine improves; the MAX rows stay until a
@@ -89,9 +92,10 @@ counterparty's own published table supersedes it for their engagements.
 
 ## Two rows the author would argue about, with his name on them
 
-- **1.4.3 Contrast stays MAX even with `valor`.** The toolkit computed the real
-  3.91:1 failure on gov.uk that axe misses — but gradients, background images and
-  hover states are outside any computation. The measured value is evidence, not a verdict.
+- **1.4.3 Contrast is both at once.** Confirming the measured failure (the real
+  3.91:1 on gov.uk that axe misses) is a MIN confirmation. Certifying a pass is
+  MAX: gradients, background images and hover states are outside any computation,
+  and the measured value is evidence, not a verdict.
 - **1.2.3 / 1.2.4 / 1.2.5 media criteria are MAX for anything that is not stock B-roll.**
   The human watches the video and judges whether essential visual information exists.
   No signal can do this honestly.
