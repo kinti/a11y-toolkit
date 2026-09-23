@@ -1,0 +1,8 @@
+- generic [active] [ref=f6e1]:
+  - generic [ref=f6e2]:
+    - heading "404" [level=1] [ref=f6e3]
+    - paragraph [ref=f6e4]: Page not found
+    - link "Back to home" [ref=f6e5] [cursor=pointer]:
+      - /url: /
+  - button "Contact support" [ref=f6e6]
+  - region "Notifications alt+T"

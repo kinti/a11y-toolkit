@@ -327,10 +327,10 @@ T = {
         'multi_label_rem': 'Un campo, una etiqueta: los lectores anuncian los labels concatenados. Agrupa el texto en uno.',
         'video_autoplay': '{n} medios con autoplay (audio >3s sin control para pararlo).',
         'video_autoplay_rem': 'Quita autoplay o añade muted + control visible de pausa/parada (1.4.2): el audio que arranca solo desordena a quien usa lector de pantalla.',
-        'score_nota': ('Puntuación ponderada: alta −12, media −6, baja −2 desde 100. Mide solo lo '
+        'score_note': ('Puntuación ponderada: alta −12, media −6, baja −2 desde 100. Mide solo lo '
                        'automatizable (≈1/3 de WCAG): sirve para seguir tendencias entre versiones, '
                        'no como conformidad.'),
-        'limites': ('Automatización ≈ un tercio de WCAG: esto es un filtro exprés, no sustituye '
+        'limits': ('Automatización ≈ un tercio de WCAG: esto es un filtro exprés, no sustituye '
                     'revisión manual (teclado, lector de pantalla, contraste real, refrán de '
                     'auditoría).'),
     },
@@ -462,10 +462,10 @@ T = {
         'multi_label_rem': 'One field, one label: screen readers announce concatenated labels. Merge the text into one.',
         'video_autoplay': '{n} media elements with autoplay (audio >3s with no way to stop it).',
         'video_autoplay_rem': 'Remove autoplay or add muted + a visible pause/stop control (1.4.2): audio that starts on its own disrupts screen-reader users.',
-        'score_nota': ('Weighted score: high −12, medium −6, low −2 from 100. It measures only '
+        'score_note': ('Weighted score: high −12, medium −6, low −2 from 100. It measures only '
                        'what is automatable (≈1/3 of WCAG): use it to track trends between '
                        'releases, not as conformance.'),
-        'limites': ('Automation ≈ one third of WCAG: this is an express filter, not a substitute '
+        'limits': ('Automation ≈ one third of WCAG: this is an express filter, not a substitute '
                     'for manual review (keyboard, screen reader, real contrast, audit rhyme).'),
     },
 }
@@ -801,17 +801,17 @@ class _Auditor(HTMLParser):
                 continue
             _val = (_val or '').strip().lower()
             if _ar in _ARIA_BOOL and _val not in ('true', 'false', 'undefined'):
-                self.aria_valores.append({'attr': _ar, 'val': _val, 'tipo': 'bool'})
+                self.aria_valores.append({'attr': _ar, 'val': _val, 'type': 'bool'})
             elif _ar in _ARIA_INT and not _val.isdigit():
-                self.aria_valores.append({'attr': _ar, 'val': _val, 'tipo': 'int'})
+                self.aria_valores.append({'attr': _ar, 'val': _val, 'type': 'int'})
             elif _ar in _ARIA_NUM:
                 try:
                     float(_val)
                 except ValueError:
-                    self.aria_valores.append({'attr': _ar, 'val': _val, 'tipo': 'num'})
+                    self.aria_valores.append({'attr': _ar, 'val': _val, 'type': 'num'})
             elif _ar in _ARIA_TOKENS and _val not in _ARIA_TOKENS[_ar]:
                 self.aria_valores.append({'attr': _ar, 'val': _val,
-                                          'tipo': 'tokens',
+                                          'type': 'tokens',
                                           'lista': '/'.join(sorted(v for v in _ARIA_TOKENS[_ar] if v))})
         if a.get('role'):
             rol = a['role'].strip().split()[0].lower()
@@ -941,8 +941,8 @@ class _Auditor(HTMLParser):
 
 def calcular_score(hallazgos):
     """Puntuación 0-100: penalización ponderada por hallazgo (alta 12, media 6, baja 2)."""
-    pesos = {'alta': 12, 'media': 6, 'baja': 2}
-    penal = sum(pesos[h['severidad']] for h in hallazgos)
+    pesos = {'high': 12, 'medium': 6, 'low': 2}
+    penal = sum(pesos[h['severity']] for h in hallazgos)
     return max(0, 100 - penal)
 
 
@@ -966,67 +966,67 @@ def audit_html(html_text, url='(html)', lang='en'):
     hallazgos = []
 
     def add(severidad, code, key_msg, **fmt):
-        h = {'severidad': severidad, 'criterio': _crit(lang, code), 'senal': key_msg,
-             'hallazgo': _t(lang, key_msg).format(**fmt)}
-        h['remediacion'] = _t(lang, key_msg + '_rem').format(**fmt)
+        h = {'severity': severidad, 'criterion': _crit(lang, code), 'signal': key_msg,
+             'issue': _t(lang, key_msg).format(**fmt)}
+        h['remediation'] = _t(lang, key_msg + '_rem').format(**fmt)
         hallazgos.append(h)
 
     def add_ej(severidad, code, key_msg, ejemplos, **fmt):
         add(severidad, code, key_msg, **fmt)
-        hallazgos[-1]['ejemplos'] = ejemplos[:5]
+        hallazgos[-1]['examples'] = ejemplos[:5]
 
     if p.imgs_sin_alt:
-        add_ej('alta', '1.1.1', 'imgs_alt', p.imgs_sin_alt, n=len(p.imgs_sin_alt))
+        add_ej('high', '1.1.1', 'imgs_alt', p.imgs_sin_alt, n=len(p.imgs_sin_alt))
     if p.input_img_sin_alt:
-        add('alta', '1.1.1', 'input_img_alt', n=p.input_img_sin_alt)
+        add('high', '1.1.1', 'input_img_alt', n=p.input_img_sin_alt)
     for tag, controles in p.sitios.items():
-        add('alta', '4.1.2', 'ctrl_name', n=len(controles), tag=tag)
+        add('high', '4.1.2', 'ctrl_name', n=len(controles), tag=tag)
     if p.aria_hidden_focusable:
-        add('alta', '4.1.2', 'aria_hidden_focusable',
+        add('high', '4.1.2', 'aria_hidden_focusable',
             n=len(p.aria_hidden_focusable), tag=p.aria_hidden_focusable[0])
     if p.campos_sin_label:
-        add_ej('alta', '3.3.2', 'field_label',
+        add_ej('high', '3.3.2', 'field_label',
                [f'{t} name={n or "(sin name)"}' for t, n, _i in p.campos_sin_label],
                n=len(p.campos_sin_label))
     if p.click_sueltos:
-        add('alta', '2.1.1', 'click_nonfocusable',
+        add('high', '2.1.1', 'click_nonfocusable',
             n=len(p.click_sueltos), tag=p.click_sueltos[0])
     if p.labels_huerfanos:
-        add('baja', '3.3.2', 'label_orphan', n=p.labels_huerfanos)
+        add('low', '3.3.2', 'label_orphan', n=p.labels_huerfanos)
     if p._lista_malos:
-        add('media', '1.3.1', 'list_structure', n=p._lista_malos)
+        add('medium', '1.3.1', 'list_structure', n=p._lista_malos)
     if not p.lang:
-        add('media', '3.1.1', 'lang_missing')
+        add('medium', '3.1.1', 'lang_missing')
     elif p.lang.lower().split('-')[0] not in _LANG_CODES:
-        add('media', '3.1.1', 'lang_invalid', lang=p.lang)
+        add('medium', '3.1.1', 'lang_invalid', lang=p.lang)
     if not p.title.strip():
-        add('media', '2.4.2', 'title_missing')
+        add('medium', '2.4.2', 'title_missing')
     if p.iframes_sin_title:
-        add_ej('media', '4.1.2', 'iframe_title', p.iframes_sin_title, n=len(p.iframes_sin_title))
+        add_ej('medium', '4.1.2', 'iframe_title', p.iframes_sin_title, n=len(p.iframes_sin_title))
     if p.videos and p.videos_con_subs < p.videos:
-        add('media', '1.2.2', 'video_captions', n=p.videos - p.videos_con_subs)
+        add('medium', '1.2.2', 'video_captions', n=p.videos - p.videos_con_subs)
     if p.viewport and re.search(r'user-scalable\s*=\s*(no|0)', p.viewport, re.I):
-        add('alta', '1.4.4', 'zoom_no')
+        add('high', '1.4.4', 'zoom_no')
     elif p.viewport and (m := re.search(r'maximum-scale\s*=\s*([\d.]+)', p.viewport, re.I)) \
             and float(m.group(1)) < 2:
-        add('media', '1.4.4', 'zoom_max', v=m.group(1))
+        add('medium', '1.4.4', 'zoom_max', v=m.group(1))
     if p.meta_refresh:
         m = re.match(r'\s*(\d+)', p.meta_refresh)
         segs = int(m.group(1)) if m else 0
-        add('media' if segs > 0 else 'baja', '2.2.1', 'meta_refresh', v=segs)
+        add('medium' if segs > 0 else 'low', '2.2.1', 'meta_refresh', v=segs)
     if p.tabindex_positivos:
-        add_ej('media', '2.4.3', 'tabindex_pos',
+        add_ej('medium', '2.4.3', 'tabindex_pos',
                [f'{t}[tabindex={i}]' for t, i in p.tabindex_positivos],
                n=len(p.tabindex_positivos))
     if not (p.hay_main or p.hay_skip):
-        add('media', '2.4.1', 'no_bypass')
+        add('medium', '2.4.1', 'no_bypass')
 
     niveles = [n for n, _ in p.headings]
     if niveles:
         if p.h1s == 0:
-            add('media', '1.3.1', 'no_h1')
+            add('medium', '1.3.1', 'no_h1')
         elif p.h1s > 1:
-            add('baja', '1.3.1', 'multi_h1', n=p.h1s)
+            add('low', '1.3.1', 'multi_h1', n=p.h1s)
         prev = 0
         saltos = []
         for n in niveles:
@@ -1034,132 +1034,132 @@ def audit_html(html_text, url='(html)', lang='en'):
                 saltos.append(f'h{prev}→h{n}')
             prev = n
         if saltos:
-            add('baja', '1.3.1', 'heading_skips', skips=', '.join(saltos[:5]))
+            add('low', '1.3.1', 'heading_skips', skips=', '.join(saltos[:5]))
     else:
-        add('media', '1.3.1', 'no_headings')
+        add('medium', '1.3.1', 'no_headings')
     if p.vacios_h:
-        add('baja', '1.3.1', 'empty_heading', n=p.vacios_h)
+        add('low', '1.3.1', 'empty_heading', n=p.vacios_h)
     if p.tablas and p.tablas_con_th < p.tablas:
-        add('media', '1.3.1', 'table_no_th', n=p.tablas - p.tablas_con_th)
+        add('medium', '1.3.1', 'table_no_th', n=p.tablas - p.tablas_con_th)
     if p.blank_sin_aviso:
-        add('baja', '3.2.5', 'blank_no_warning', n=p.blank_sin_aviso)
+        add('low', '3.2.5', 'blank_no_warning', n=p.blank_sin_aviso)
     dups = sum(1 for _c, k in p.ids.items() if k > 1)
     if dups:
-        add('baja', '4.1.2', 'dup_ids', n=dups)
+        add('low', '4.1.2', 'dup_ids', n=dups)
 
     # --- v3.1: validez ARIA, autocomplete, enlaces, landmarks, accesskey ---
     refs_rotas = [f'{attr}="#{ref}"' for attr, ref in p.aria_refs if ref not in p.ids]
     if refs_rotas:
-        add_ej('alta', '4.1.2', 'aria_ref_missing', refs_rotas, n=len(refs_rotas),
+        add_ej('high', '4.1.2', 'aria_ref_missing', refs_rotas, n=len(refs_rotas),
                ej=refs_rotas[0])
     if p.aria_valores:
         _eti = {'es': {'bool': 'true/false', 'int': 'entero', 'num': 'número', 'tokens': 'valores'},
                 'en': {'bool': 'true/false', 'int': 'integer', 'num': 'number', 'tokens': 'one of'}}
-        ejes = [f"{v['attr']}=\"{v['val']}\" ({v['lista'] if v['tipo'] == 'tokens' else _eti[lang][v['tipo']]})"
+        ejes = [f"{v['attr']}=\"{v['val']}\" ({v['lista'] if v['type'] == 'tokens' else _eti[lang][v['type']]})"
                 for v in p.aria_valores]
-        add_ej('media', '4.1.2', 'aria_value_invalid', ejes,
+        add_ej('medium', '4.1.2', 'aria_value_invalid', ejes,
                n=len(p.aria_valores), ej=', '.join(ejes[:4]))
     if p.roles_desconocidos:
-        add_ej('media', '4.1.2', 'role_unknown',
+        add_ej('medium', '4.1.2', 'role_unknown',
                sorted(set(p.roles_desconocidos)), n=len(p.roles_desconocidos),
                ej=', '.join(f'"{r}"' for r in sorted(set(p.roles_desconocidos))[:4]))
     if p.roles_sin_estado:
-        add_ej('media', '4.1.2', 'role_required_attr', p.roles_sin_estado,
+        add_ej('medium', '4.1.2', 'role_required_attr', p.roles_sin_estado,
                n=len(p.roles_sin_estado), ej=', '.join(p.roles_sin_estado[:4]))
     if p.autocomplete_faltan:
-        add_ej('media', '1.3.5', 'autocomplete', p.autocomplete_faltan,
+        add_ej('medium', '1.3.5', 'autocomplete', p.autocomplete_faltan,
                n=len(p.autocomplete_faltan), ej=', '.join(p.autocomplete_faltan[:4]))
     if p.medios_autoplay:
-        add('media', '1.4.2', 'video_autoplay', n=p.medios_autoplay)
+        add('medium', '1.4.2', 'video_autoplay', n=p.medios_autoplay)
     if p.label_no_name:
         _ln = p.label_no_name[0]
-        add_ej('media', '2.5.3', 'label_in_name',
+        add_ej('medium', '2.5.3', 'label_in_name',
                [f'«{t}» vs aria-label «{al}»' for t, al in p.label_no_name],
                n=len(p.label_no_name), ej=f'{_ln[0]} ≠ {_ln[1]}')
     if p.langs_partes:
-        add_ej('media', '3.1.2', 'lang_partes', p.langs_partes,
+        add_ej('medium', '3.1.2', 'lang_partes', p.langs_partes,
                n=len(p.langs_partes), ej=', '.join(p.langs_partes[:4]))
     if p.down_events:
-        add_ej('media', '2.5.2', 'down_event', p.down_events,
+        add_ej('medium', '2.5.2', 'down_event', p.down_events,
                n=len(p.down_events), ej=', '.join(p.down_events[:4]))
     # forms deep-dive
     if p.placeholder_only:
-        add_ej('alta', '3.3.2', 'placeholder_only', p.placeholder_only,
+        add_ej('high', '3.3.2', 'placeholder_only', p.placeholder_only,
                n=len(p.placeholder_only), ej=', '.join(p.placeholder_only[:3]))
     if p.required_sin_indicio:
-        add_ej('baja', '3.3.2', 'required_no_indication', p.required_sin_indicio,
+        add_ej('low', '3.3.2', 'required_no_indication', p.required_sin_indicio,
                n=len(p.required_sin_indicio), ej=', '.join(p.required_sin_indicio[:3]))
     if p.fieldsets_faltan:
-        add('media', '1.3.1', 'fieldset_missing', n=p.fieldsets_faltan)
+        add('medium', '1.3.1', 'fieldset_missing', n=p.fieldsets_faltan)
     if p.labels_vagos:
-        add_ej('baja', '2.4.6', 'label_vague', p.labels_vagos,
+        add_ej('low', '2.4.6', 'label_vague', p.labels_vagos,
                n=len(p.labels_vagos), ej=', '.join(p.labels_vagos[:3]))
     if p.financieros_sin_conf:
-        add('media', '3.3.4', 'financial_no_confirm', n=p.financieros_sin_conf)
+        add('medium', '3.3.4', 'financial_no_confirm', n=p.financieros_sin_conf)
     if p.headings_vagos:
-        add_ej('baja', '2.4.6', 'heading_quality', p.headings_vagos,
+        add_ej('low', '2.4.6', 'heading_quality', p.headings_vagos,
                n=len(p.headings_vagos), ej=', '.join(p.headings_vagos[:3]))
     if p.char_shortcuts:
-        add_ej('baja', '2.1.4', 'char_shortcut', p.char_shortcuts,
+        add_ej('low', '2.1.4', 'char_shortcut', p.char_shortcuts,
                n=len(p.char_shortcuts), ej=', '.join(p.char_shortcuts[:3]))
     if p.drag_handlers:
-        add_ej('baja', '2.5.7', 'drag_no_alt', p.drag_handlers,
+        add_ej('low', '2.5.7', 'drag_no_alt', p.drag_handlers,
                n=len(p.drag_handlers), ej=', '.join(p.drag_handlers[:3]))
     # 4.1.3: solo si hay evidencia de dinamismo (scripts con eventos, forms, fetch/XHR)
     dinamico = bool(p.click_sueltos or p._en_script or p.char_shortcuts or p.drag_handlers or p.campos_sin_label)
     if dinamico and p.status_regions == 0:
-        add('media', '4.1.3', 'no_status_regions')
+        add('medium', '4.1.3', 'no_status_regions')
     if p.imagenes_texto:
-        add_ej('baja', '1.4.5', 'images_of_text', p.imagenes_texto,
+        add_ej('low', '1.4.5', 'images_of_text', p.imagenes_texto,
                n=len(p.imagenes_texto), ej2='')
     if p.captchas:
-        add_ej('media', '3.3.8', 'captcha', p.captchas,
+        add_ej('medium', '3.3.8', 'captcha', p.captchas,
                n=len(p.captchas), ej=', '.join(p.captchas[:2]))
     # v3.12: partial signals on previously manual-only criteria
     if p.moviles:
-        add_ej('baja', '2.2.2', 'motion_moving', p.moviles,
+        add_ej('low', '2.2.2', 'motion_moving', p.moviles,
                n=len(p.moviles), ej=', '.join(p.moviles[:3]))
     if p.gestos:
-        add_ej('baja', '2.5.1', 'gesture_no_click', p.gestos,
+        add_ej('low', '2.5.1', 'gesture_no_click', p.gestos,
                n=len(p.gestos), ej=', '.join(p.gestos[:3]))
     if p.motions:
-        add_ej('baja', '2.5.4', 'motion_actuation', p.motions,
+        add_ej('low', '2.5.4', 'motion_actuation', p.motions,
                n=len(p.motions), ej=', '.join(p.motions[:3]))
     if p.orientation_locks:
-        add_ej('baja', '1.3.4', 'orientation_lock', p.orientation_locks,
+        add_ej('low', '1.3.4', 'orientation_lock', p.orientation_locks,
                n=len(p.orientation_locks), ej=', '.join(p.orientation_locks[:2]))
     if p.videos and p.videos_descriptions < p.videos:
-        add('baja', '1.2.3', 'audio_desc_missing', n=p.videos - p.videos_descriptions)
+        add('low', '1.2.3', 'audio_desc_missing', n=p.videos - p.videos_descriptions)
     if p.sensory:
-        add('baja', '1.3.3', 'sensory_text', ej='; '.join(p.sensory[:2])[:70])
+        add('low', '1.3.3', 'sensory_text', ej='; '.join(p.sensory[:2])[:70])
     lm_dups = [f'{lm} ×{t[1]}' for lm, t in p.landmarks.items()
                if t[1] > 1 and t[0] == t[1]]
     if lm_dups:
-        add('baja', '1.3.1', 'landmark_dup', n=len(lm_dups), ej=', '.join(lm_dups[:4]))
+        add('low', '1.3.1', 'landmark_dup', n=len(lm_dups), ej=', '.join(lm_dups[:4]))
     if p.genericos >= 2:   # un enlace genérico único suele desambiguarse por contexto
         gen = [f'«{k}»' for k in p.enlaces if k in _TEXTO_GENERICO][:4]
-        add('baja', '2.4.4', 'generic_link', n=p.genericos, ej=', '.join(gen))
+        add('low', '2.4.4', 'generic_link', n=p.genericos, ej=', '.join(gen))
     mismos = sum(1 for _k, hrefs in p.enlaces.items() if len(hrefs) > 1)
     if mismos:
-        add('baja', '2.4.4', 'same_name_links', n=mismos)
+        add('low', '2.4.4', 'same_name_links', n=mismos)
     ak_dups = [f'"{k}" ×{v}' for k, v in p.accesos.items() if v > 1]
     if ak_dups:
-        add('baja', '2.1.1', 'accesskey_dup', n=len(ak_dups), ej=', '.join(ak_dups[:4]))
+        add('low', '2.1.1', 'accesskey_dup', n=len(ak_dups), ej=', '.join(ak_dups[:4]))
     if p.labels_for_dups:
-        add('baja', '3.3.2', 'multi_label', n=len(p.labels_for_dups))
+        add('low', '3.3.2', 'multi_label', n=len(p.labels_for_dups))
 
-    severidad_orden = {'alta': 0, 'media': 1, 'baja': 2}
-    hallazgos.sort(key=lambda h: severidad_orden[h['severidad']])
-    resumen = {s: sum(1 for h in hallazgos if h['severidad'] == s)
-               for s in ('alta', 'media', 'baja')}
+    severidad_orden = {'high': 0, 'medium': 1, 'low': 2}
+    hallazgos.sort(key=lambda h: severidad_orden[h['severity']])
+    resumen = {s: sum(1 for h in hallazgos if h['severity'] == s)
+               for s in ('high', 'medium', 'low')}
     return {
         'url': url,
         'score': calcular_score(hallazgos),
-        'score_nota': _t(lang, 'score_nota'),
-        'elementos_analizados': p.elementos,
-        'resumen': resumen,
-        'hallazgos': hallazgos,
-        'limites': _t(lang, 'limites'),
+        'score_note': _t(lang, 'score_note'),
+        'elements_scanned': p.elementos,
+        'summary': resumen,
+        'findings': hallazgos,
+        'limits': _t(lang, 'limits'),
     }
 
 
@@ -1274,24 +1274,24 @@ def evaluar_sitio(parsers, lang='en'):
     if len(parsers) >= 3:
         firmas = [frozenset(p.nav_hrefs) for p in parsers if p.nav_hrefs]
         if len(firmas) >= 3 and len(set(firmas)) > 1:
-            out.append({'severidad': 'media', 'criterio': _crit(lang, '3.2.3'),
-                        'senal': 'nav_inconsistent',
-                        'hallazgo': _t(lang, 'nav_inconsistent').format(
+            out.append({'severity': 'medium', 'criterion': _crit(lang, '3.2.3'),
+                        'signal': 'nav_inconsistent',
+                        'issue': _t(lang, 'nav_inconsistent').format(
                             ej=f'{len(set(firmas))} distintas en {len(firmas)} páginas'),
-                        'remediacion': _t(lang, 'nav_inconsistent_rem')})
+                        'remediation': _t(lang, 'nav_inconsistent_rem')})
     # 3.2.6 Consistent Help (A, new in 2.2): help links stable across pages
     firmas_help = [frozenset(p.help_hrefs) for p in parsers if p.help_hrefs]
     if len(firmas_help) >= 2 and len(parsers) >= 3 and len(set(firmas_help)) > 1:
-        out.append({'severidad': 'media', 'criterio': _crit(lang, '3.2.6'),
-                    'senal': 'help_inconsistent',
-                    'hallazgo': _t(lang, 'help_inconsistent').format(
+        out.append({'severity': 'medium', 'criterion': _crit(lang, '3.2.6'),
+                    'signal': 'help_inconsistent',
+                    'issue': _t(lang, 'help_inconsistent').format(
                         ej=f'{len(set(firmas_help))} variantes en {len(firmas_help)} páginas'),
-                    'remediacion': _t(lang, 'help_inconsistent_rem')})
+                    'remediation': _t(lang, 'help_inconsistent_rem')})
     if parsers and not any(p.tiene_busqueda or p.tiene_sitemap for p in parsers):
-        out.append({'severidad': 'media', 'criterio': _crit(lang, '2.4.5'),
-                    'senal': 'no_multiple_ways',
-                    'hallazgo': _t(lang, 'no_multiple_ways'),
-                    'remediacion': _t(lang, 'no_multiple_ways_rem')})
+        out.append({'severity': 'medium', 'criterion': _crit(lang, '2.4.5'),
+                    'signal': 'no_multiple_ways',
+                    'issue': _t(lang, 'no_multiple_ways'),
+                    'remediation': _t(lang, 'no_multiple_ways_rem')})
     return out
 
 
@@ -1333,23 +1333,23 @@ def audit_site(url, max_pages=5, timeout=30, lang='en', desde_sitemap=True):
     hallazgos_sitio = evaluar_sitio(parsers, lang=lang)
     for h in hallazgos_sitio:
         for inf in informes[:1]:
-            inf.setdefault('hallazgos', []).append(h)
-            inf['score'] = calcular_score(inf['hallazgos'])
+            inf.setdefault('findings', []).append(h)
+            inf['score'] = calcular_score(inf['findings'])
     scores = [pg['score'] for pg in informes if 'score' in pg]
     hallazgos_por_senal = {}
     for pg in informes:
-        for h in pg.get('hallazgos', []):
-            hallazgos_por_senal[h['senal']] = hallazgos_por_senal.get(h['senal'], 0) + 1
+        for h in pg.get('findings', []):
+            hallazgos_por_senal[h['signal']] = hallazgos_por_senal.get(h['signal'], 0) + 1
     return {
         'url': url,
-        'modo': 'site',
+        'mode': 'site',
         'descubrimiento': 'sitemap' if urls_sm else 'links',
         'paginas': len(informes),
-        'score_medio': round(sum(scores) / len(scores)) if scores else None,
+        'mean_score': round(sum(scores) / len(scores)) if scores else None,
         'score_peor': min(scores) if scores else None,
         'senales_recurrentes': sorted(hallazgos_por_senal, key=hallazgos_por_senal.get, reverse=True)[:8],
-        'informes': informes,
-        'limites': _t(lang, 'limites'),
+        'reports': informes,
+        'limits': _t(lang, 'limits'),
     }
 
 

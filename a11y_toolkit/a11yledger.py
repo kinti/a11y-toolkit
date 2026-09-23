@@ -31,7 +31,7 @@ def _cargar(ruta='a11y-ledger.json'):
     if os.path.exists(ruta):
         with open(ruta, encoding='utf-8') as f:
             return json.load(f)
-    return {'version': 1, 'entradas': {}, 'historial': []}
+    return {'version': 1, 'entries': {}, 'history': []}
 
 
 def _guardar(ledger, ruta='a11y-ledger.json'):
@@ -51,28 +51,28 @@ def record(url, informe, ledger=None, ruta='a11y-ledger.json'):
     clave = _hash_url(url)
 
     # señales activas y score
-    senales = sorted({h['senal'] for h in informe.get('hallazgos', [])})
+    senales = sorted({h['signal'] for h in informe.get('findings', [])})
     score = informe.get('score')
 
     entrada = {
         'url': url,
         'ultimo_audit': ahora,
         'score': score,
-        'score_anterior': ledger['entradas'].get(clave, {}).get('score'),
-        'senales_activas': senales,
-        'senales_resueltas': sorted(
-            set(ledger['entradas'].get(clave, {}).get('senales_activas', [])) - set(senales)
+        'previous_score': ledger['entries'].get(clave, {}).get('score'),
+        'active_signals': senales,
+        'resolved_signals': sorted(
+            set(ledger['entries'].get(clave, {}).get('active_signals', [])) - set(senales)
         ),
-        'modo': informe.get('modo', 'static'),
+        'mode': informe.get('mode', 'static'),
         'disprover': informe.get('disprover'),
     }
 
-    ledger['entradas'][clave] = entrada
-    ledger['historial'].append({
+    ledger['entries'][clave] = entrada
+    ledger['history'].append({
         'ts': ahora, 'url': url, 'score': score,
-        'cambio': 'nuevo' if entrada['score_anterior'] is None else
-                  f"{entrada['score_anterior']}→{score}",
-        'resueltas': len(entrada['senales_resueltas']),
+        'change': 'nuevo' if entrada['previous_score'] is None else
+                  f"{entrada['previous_score']}→{score}",
+        'resolved': len(entrada['resolved_signals']),
     })
     _guardar(ledger, ruta)
     return entrada
@@ -84,18 +84,18 @@ def gaps(url, ledger=None, ruta='a11y-ledger.json'):
         ledger = _cargar(ruta)
     from .a11yaudit import CRIT
     clave = _hash_url(url)
-    entrada = ledger['entradas'].get(clave)
+    entrada = ledger['entries'].get(clave)
     if not entrada:
-        return {'url': url, 'estado': 'nunca_auditado',
-                'criterios_sin_senal': len(CRIT['en'])}
-    auditadas = set(entrada.get('senales_activas', []))
+        return {'url': url, 'status': 'nunca_auditado',
+                'criteria_without_signal': len(CRIT['en'])}
+    auditadas = set(entrada.get('active_signals', []))
     return {
         'url': url,
-        'estado': 'auditado',
+        'status': 'auditado',
         'ultimo': entrada['ultimo_audit'],
         'score': entrada['score'],
-        'senales_resueltas': entrada['senales_resueltas'],
-        'nota': ('re-audit this URL if its content changed since '
+        'resolved_signals': entrada['resolved_signals'],
+        'note': ('re-audit this URL if its content changed since '
                  + entrada['ultimo_audit']),
     }
 
@@ -104,17 +104,17 @@ def summary(ledger=None, ruta='a11y-ledger.json'):
     """Summary of the ledger."""
     if ledger is None:
         ledger = _cargar(ruta)
-    entradas = ledger['entradas']
+    entradas = ledger['entries']
     if not entradas:
-        return {'total_urls': 0, 'nota': 'ledger empty — run your first audit'}
+        return {'total_urls': 0, 'note': 'ledger empty — run your first audit'}
     scores = [e.get('score', 0) for e in entradas.values() if e.get('score') is not None]
     return {
         'total_urls': len(entradas),
-        'score_medio': round(sum(scores) / len(scores)) if scores else None,
+        'mean_score': round(sum(scores) / len(scores)) if scores else None,
         'score_peor': min(scores) if scores else None,
         'score_mejor': max(scores) if scores else None,
-        'total_resueltas': sum(len(e.get('senales_resueltas', [])) for e in entradas.values()),
-        'recientes': ledger['historial'][-5:],
+        'total_resueltas': sum(len(e.get('resolved_signals', [])) for e in entradas.values()),
+        'recent': ledger['history'][-5:],
     }
 
 

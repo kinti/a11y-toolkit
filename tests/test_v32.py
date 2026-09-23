@@ -15,8 +15,8 @@ from a11y_toolkit.a11ybudget import init, comparar  # noqa: E402
 
 # --- 1. señal estable en hallazgos ---
 r = audit_html('<html lang="es"><head><title>t</title></head><body><img src="x.png"></body></html>')
-assert all('senal' in h for h in r['hallazgos']), r['hallazgos']
-assert any(h['senal'] == 'imgs_alt' for h in r['hallazgos'])
+assert all('signal' in h for h in r['findings']), r['findings']
+assert any(h['signal'] == 'imgs_alt' for h in r['findings'])
 
 # --- 2. SARIF: estructura y niveles ---
 mal = audit_html('<html lang="es"><head><title>t</title></head><body><main>'
@@ -33,7 +33,7 @@ for x in res:
     assert x['locations'][0]['physicalLocation']['artifactLocation']['uri'] == mal['url']
     assert 'Fix:' in x['message']['text']
 # formato site: pagina agregada
-site = dict(mal, informes=[mal], resumen=mal['resumen'])
+site = dict(mal, informes=[mal], resumen=mal['summary'])
 s2 = desde_informe(site)
 assert len(s2['runs'][0]['results']) >= len(res)
 
@@ -50,27 +50,27 @@ assert 'cribado automático' in svg_es and '#d29922' in svg_es
 base_html = '<html lang="es"><head><title>t</title></head><body><main><h1>a</h1><img src="x.png"></main></body></html>'
 base_audit = audit_html(base_html, 'https://t.example')
 budget = init(base_audit)
-assert 'imgs_alt' in budget['senales'] and budget['max_nuevos'] == 0
+assert 'imgs_alt' in budget['signals'] and budget['max_new'] == 0
 
 mismo = comparar(budget, audit_html(base_html, 'https://t.example'))
-assert mismo['ok'] and mismo['nuevos'] == [] and mismo['resueltos'] == []
+assert mismo['ok'] and mismo['new'] == [] and mismo['resolved'] == []
 
 peor = audit_html('<html lang="es"><head><title>t</title></head><body><main><h1>a</h1>'
                   '<img src="x.png"><button></button><select name="s"></select></main></body></html>',
                   'https://t.example')
 v = comparar(budget, peor)
-assert not v['ok'] and 'ctrl_name' in v['nuevos_bloqueantes'], v
-assert 'imgs_alt' not in v['nuevos']           # la base se acepta
+assert not v['ok'] and 'ctrl_name' in v['new_blocking'], v
+assert 'imgs_alt' not in v['new']           # la base se acepta
 
 mejor = audit_html('<html lang="es"><head><title>t</title></head><body><main><h1>a</h1></main></body></html>',
                    'https://t.example')
 m = comparar(budget, mejor)
-assert m['ok'] and 'imgs_alt' in m['resueltos']  # arreglo → baja de la lista de pendientes
+assert m['ok'] and 'imgs_alt' in m['resolved']  # arreglo → baja de la lista de pendientes
 
 # base caducada bloquea aunque no haya novedades
-budget['fecha_revision'] = '2020-01-01'
+budget['review_date'] = '2020-01-01'
 assert comparar(budget, base_audit)['ok'] is False
-budget['fecha_revision'] = '2099-01-01'
+budget['review_date'] = '2099-01-01'
 assert comparar(budget, base_audit)['ok'] is True
 
 # --- 5. descubrimiento de enlaces internos (crawl) ---

@@ -28,7 +28,7 @@ Tools:
   - a11y_disprove(url, informe?, …)                re-verify findings → confirmed/rejected
   - a11y_ledger(action, url?, informe?, …)          persistent coverage ledger
   - a11y_html_validate(url|html, …)                W3C Nu parser view
-  - a11y_evidence(informes, …)                   countersignature-ready evidence pack
+  - a11y_evidence(reports, …)                   countersignature-ready evidence pack
 
 Prompts: audit-page, fix-contrast, pre-deploy-check, declaration-eaa.
 
@@ -64,7 +64,7 @@ try:
 except ImportError:
     ARIALIVE_JS = None  # repo checkout: read the file
 
-VERSION = '4.0.1'
+VERSION = '5.0.0'
 
 INSTRUCTIONS = (
     'Accessibility toolkit (WCAG 2.2), multilanguage es/en. '
@@ -77,7 +77,7 @@ INSTRUCTIONS = (
     'Site sampling reads /sitemap.xml first (WCAG-EM enumeration, links as fallback); '
     'rendered tools accept auth_state (Playwright storage_state) to audit behind login; '
     'a11y_forms submits invalid data and judges error announcement (3.3.1/3.3.3). '
-         'a11y_evidence records verificados codes as agent-verified (automated-fail stays fail). '
+         'a11y_evidence records verified codes as agent-verified (automated-fail stays fail). '
     'a11y_criterion explains what any criterion means. Every tool returns es/en '
     'findings with concrete remediation. '
     'Automation covers about one third of WCAG: pair audits with the manual checklist '
@@ -169,19 +169,19 @@ TOOLS = [
                         'uses Directive (EU) 2016/2102 / EAA wording). The generated document '
                         'is itself accessible. Saves to output_path when given.'),
         'inputSchema': {'type': 'object', 'properties': {
-            'entidad': {'type': 'string'}, 'url': {'type': 'string'},
-            'estado': {'type': 'string', 'enum': ['plena', 'parcial', 'no_conforme']},
-            'contenido_no_accesible': {'type': 'array', 'items': {'type': 'string'}},
+            'entity': {'type': 'string'}, 'url': {'type': 'string'},
+            'status': {'type': 'string', 'enum': ['plena', 'parcial', 'no_conforme']},
+            'inaccessible_content': {'type': 'array', 'items': {'type': 'string'}},
             'metodo': {'type': 'string'},
             'fecha_evaluacion': {'type': 'string'},
-            'fecha_revision': {'type': 'string'},
+            'review_date': {'type': 'string'},
             'feedback': {'type': 'string'},
             'reclamacion': {'type': 'string'},
-            'marco': {'type': 'string', 'enum': ['rd1112', 'eaa']},
+            'framework': {'type': 'string', 'enum': ['rd1112', 'eaa']},
             'disponibilidad_alternativa': {'type': 'string'},
             'output_path': {'type': 'string', 'description': 'save the HTML here (optional)'},
             'lang': {'type': 'string', 'enum': ['es', 'en']},
-        }, 'required': ['entidad', 'url', 'estado']},
+        }, 'required': ['entity', 'url', 'status']},
     },
     {
         'name': 'a11y_snapshot',
@@ -320,12 +320,12 @@ TOOLS = [
                         'tamper-evidence rule stated. Vendor-neutral: any qualified human can '
                         'countersign it. Evidence, never conformance.'),
         'inputSchema': {'type': 'object', 'properties': {
-            'informes': {'type': 'array', 'items': {'type': 'object'},
+            'reports': {'type': 'array', 'items': {'type': 'object'},
                          'description': 'audit report objects (any mode)'},
             'snapshot': {'type': 'object', 'description': 'a11y_snapshot output (optional)'},
-            'evaluador': {'type': 'object', 'description': '{"nombre":…, "credencial":…, "fecha_revision":…} to prefill the signature block'},
-            'verificados': {'type': 'array', 'items': {'type': 'string'}, 'description': 'Criterion codes an agent/human verified against this sample (manual checklist protocol) — they become agent-verified in the matrix; automated-fail stays fail'},
-        }, 'required': ['informes']},
+            'reviewer': {'type': 'object', 'description': '{"name":…, "credential":…, "review_date":…} to prefill the signature block'},
+            'verified': {'type': 'array', 'items': {'type': 'string'}, 'description': 'Criterion codes an agent/human verified against this sample (manual checklist protocol) — they become agent-verified in the matrix; automated-fail stays fail'},
+        }, 'required': ['reports']},
     },
     {
         'name': 'a11y_forms',
@@ -464,9 +464,9 @@ _PROMPTS = [
         'name': 'declaration-eaa',
         'description': 'Generate a European Accessibility Act / RD 1112/2018 accessibility statement, collecting any missing legal fields from the user.',
         'arguments': [
-            {'name': 'entidad', 'description': 'organization name', 'required': True},
+            {'name': 'entity', 'description': 'organization name', 'required': True},
             {'name': 'url', 'description': 'website URL', 'required': True},
-            {'name': 'estado', 'description': 'plena | parcial | no_conforme', 'required': False},
+            {'name': 'status', 'description': 'plena | parcial | no_conforme', 'required': False},
         ],
     },
     {
@@ -543,16 +543,16 @@ def _prompt(nombre, args):
                   "Escala un nivel cada vez; nunca presentes el nivel 1 o 2 como conformidad.",
         },
         'declaration-eaa': {
-            'en': f"Generate an accessibility statement for {args.get('entidad','the entity')} ({args.get('url','URL')}):\n"
+            'en': f"Generate an accessibility statement for {args.get('entity','the entity')} ({args.get('url','URL')}):\n"
                   "1. Establish the compliance state with a11y_audit_url (parcial is the honest default when findings exist).\n"
-                  f"2. Current estado argument: {args.get('estado','(missing)')}. If missing, infer from the audit and confirm with the user.\n"
+                  f"2. Current estado argument: {args.get('status','(missing)')}. If missing, infer from the audit and confirm with the user.\n"
                   "3. Collect what is missing: feedback contact, claim procedure (reclamación), evaluation method and dates. Ask the user only for what you cannot infer.\n"
                   "4. List contenido_no_accesible from the audit findings with reasons and alternatives.\n"
                   "5. Call a11y_generate_declaration (marco='eaa' for private sector / EAA; 'rd1112' for Spanish public sector), lang matching the site, and save with output_path.\n"
                   "6. Remind: the statement must be linked from every page (typically the footer) and reviewed after significant changes.",
-            'es': f"Genera la declaración de accesibilidad de {args.get('entidad','la entidad')} ({args.get('url','URL')}):\n"
+            'es': f"Genera la declaración de accesibilidad de {args.get('entity','la entidad')} ({args.get('url','URL')}):\n"
                   "1. Establece el estado de conformidad con a11y_audit_url (parcial es lo honesto por defecto si hay hallazgos).\n"
-                  f"2. Argumento estado actual: {args.get('estado','(falta)')}. Si falta, infiérelo de la auditoría y confírmalo con la persona usuaria.\n"
+                  f"2. Argumento estado actual: {args.get('status','(falta)')}. Si falta, infiérelo de la auditoría y confírmalo con la persona usuaria.\n"
                   "3. Recoge lo que falte: contacto de feedback, procedimiento de reclamación, método y fechas de evaluación. Pregunta solo lo que no puedas inferir.\n"
                   "4. Enumera contenido_no_accesible a partir de los hallazgos, con razón y alternativa.\n"
                   "5. Llama a a11y_generate_declaration (marco='eaa' para sector privado / EAA; 'rd1112' para sector público español), lang del sitio, y guarda con output_path.\n"
@@ -623,16 +623,16 @@ _PARAM_DOCS = {
  ('a11y_suggest_color', 'fg'): 'The failing foreground color to fix',
  ('a11y_suggest_color', 'bg'): 'The background it must pass against',
  ('a11y_suggest_color', 'target'): 'Ratio to reach: 4.5 normal text, 3.0 large text/UI, 7.0 AAA (default 4.5)',
- ('a11y_generate_declaration', 'entidad'): 'Legal entity name as it should appear in the statement (company, body…)',
+ ('a11y_generate_declaration', 'entity'): 'Legal entity name as it should appear in the statement (company, body…)',
  ('a11y_generate_declaration', 'url'): 'Website URL the statement covers',
- ('a11y_generate_declaration', 'estado'): 'Compliance state: plena | parcial | no_conforme (parcial is the honest default when findings exist)',
- ('a11y_generate_declaration', 'contenido_no_accesible'): 'Non-accessible content list: one string per item, ideally criterion + reason + alternative',
+ ('a11y_generate_declaration', 'status'): 'Compliance state: plena | parcial | no_conforme (parcial is the honest default when findings exist)',
+ ('a11y_generate_declaration', 'inaccessible_content'): 'Non-accessible content list: one string per item, ideally criterion + reason + alternative',
  ('a11y_generate_declaration', 'metodo'): 'How conformance was evaluated (e.g. "self-evaluation: a11y-toolkit screening + manual review")',
  ('a11y_generate_declaration', 'fecha_evaluacion'): 'ISO date of the last evaluation (YYYY-MM-DD)',
- ('a11y_generate_declaration', 'fecha_revision'): 'ISO date of the next scheduled review',
+ ('a11y_generate_declaration', 'review_date'): 'ISO date of the next scheduled review',
  ('a11y_generate_declaration', 'feedback'): 'Contact channel for accessibility feedback (email or URL)',
  ('a11y_generate_declaration', 'reclamacion'): 'Claim/complaint procedure URL or address (legally required in several jurisdictions)',
- ('a11y_generate_declaration', 'marco'): 'Legal framework: rd1112 (Spanish public sector, art. 10) or eaa (European Accessibility Act / private sector)',
+ ('a11y_generate_declaration', 'framework'): 'Legal framework: rd1112 (Spanish public sector, art. 10) or eaa (European Accessibility Act / private sector)',
  ('a11y_generate_declaration', 'disponibilidad_alternativa'): 'Where to get the content in an alternative accessible format',
  ('a11y_generate_declaration', 'output_path'): 'Local path to save the statement HTML (omit to receive it inline)',
  ('a11y_generate_declaration', 'lang'): 'Statement language (default en; es uses the Spanish legal wording)',
@@ -649,9 +649,9 @@ _PARAM_DOCS = {
  ('a11y_badge', 'lang'): 'Badge language (default en)',
  ('a11y_criterion', 'code'): 'WCAG criterion number, e.g. "1.4.3", "2.5.8"',
  ('a11y_criterion', 'lang'): 'Explanation language (default en)',
- ('a11y_evidence', 'informes'): 'Audit report objects to bundle (any mode: static, rendered, reflow, keyboard, scroll)',
+ ('a11y_evidence', 'reports'): 'Audit report objects to bundle (any mode: static, rendered, reflow, keyboard, scroll)',
  ('a11y_evidence', 'snapshot'): 'Optional a11y_snapshot output to include as an artifact',
- ('a11y_evidence', 'evaluador'): 'Optional prefill for the signature block: {"nombre":…, "credencial":…, "fecha_revision":…}',
+ ('a11y_evidence', 'reviewer'): 'Optional prefill for the signature block: {"name":…, "credential":…, "review_date":…}',
  ('a11y_aria_live_snippet', 'lang'): 'Monitor panel language (default en)',
 }
 
@@ -738,11 +738,11 @@ def llamar(nombre, args):
         return _texto(sugerir(fg, bg, float(args.get('target', 4.5)), args.get('lang', 'en')) or {'resultado': None})
     if nombre == 'a11y_generate_declaration':
         res = declaracion_fn(
-            args['entidad'], args['url'], args['estado'],
-            contenido_no_accesible=args.get('contenido_no_accesible'),
+            args['entity'], args['url'], args['status'],
+            contenido_no_accesible=args.get('inaccessible_content'),
             metodo=args.get('metodo'), fecha_evaluacion=args.get('fecha_evaluacion'),
-            fecha_revision=args.get('fecha_revision'), feedback=args.get('feedback'),
-            reclamacion=args.get('reclamacion'), marco=args.get('marco', 'rd1112'),
+            fecha_revision=args.get('review_date'), feedback=args.get('feedback'),
+            reclamacion=args.get('reclamacion'), marco=args.get('framework', 'rd1112'),
             disponibilidad_alternativa=args.get('disponibilidad_alternativa'),
             lang=args.get('lang', 'en'))
         if 'error' in res:
@@ -751,7 +751,7 @@ def llamar(nombre, args):
         if salida:
             with open(salida, 'w', encoding='utf-8') as f:
                 f.write(res['html'])
-            return _texto({'guardado_en': salida, 'resumen': res['resumen']})
+            return _texto({'guardado_en': salida, 'summary': res['summary']})
         return {'content': [{'type': 'text', 'text': res['html']}]}
     if nombre == 'a11y_audit_url':
         try:
@@ -839,9 +839,9 @@ def llamar(nombre, args):
             return {'content': [{'type': 'text', 'text': f'error: {e}'}], 'isError': True}
     if nombre == 'a11y_evidence':
         try:
-            return _texto(empaquetar_fn(args['informes'], snapshot=args.get('snapshot'),
-                                        evaluador=args.get('evaluador'),
-                                        verificados=args.get('verificados')))
+            return _texto(empaquetar_fn(args['reports'], snapshot=args.get('snapshot'),
+                                        evaluador=args.get('reviewer'),
+                                        verificados=args.get('verified')))
         except Exception as e:  # noqa: BLE001
             return {'content': [{'type': 'text', 'text': f'error: {e}'}], 'isError': True}
     if nombre == 'a11y_autofix':

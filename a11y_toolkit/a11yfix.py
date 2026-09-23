@@ -135,7 +135,7 @@ def autofix(html_text, lang=None, title=None, url='(html)', form_errors=True):
             fixed = fixed[:m.start()] + m.group(1) + limpio + m.group(3) + fixed[m.end():]
         else:
             fixed = fixed[:m.start()] + fixed[m.end():]
-        aplicados.append({'senal': 'zoom_no',
+        aplicados.append({'signal': 'zoom_no',
                           'hecho': f'viewport sin {", ".join(fuera)} (1.4.4: el zoom no se bloquea)'})
 
     # 2. autocomplete determinista (1.3.5)
@@ -163,7 +163,7 @@ def autofix(html_text, lang=None, title=None, url='(html)', form_errors=True):
         return tag[:-1].rstrip() + f' autocomplete="{token}">'
     fixed = _RE_INPUT.sub(_input_fix, fixed)
     if n_ac:
-        aplicados.append({'senal': 'autocomplete',
+        aplicados.append({'signal': 'autocomplete',
                           'hecho': f'{n_ac} inputs con su token autocomplete (1.3.5)'})
 
     # 3. lang de <html> (solo si falta y lo dan); BCP-47 validado y escapado:
@@ -172,13 +172,13 @@ def autofix(html_text, lang=None, title=None, url='(html)', form_errors=True):
         m = _RE_HTML_TAG.search(fixed)
         if m and 'lang=' not in m.group(1).lower():
             fixed = fixed[:m.start()] + f'<html lang="{_html.escape(lang.strip())}"' + m.group(1) + '>' + fixed[m.end():]
-            aplicados.append({'senal': 'lang_missing',
+            aplicados.append({'signal': 'lang_missing',
                               'hecho': f'<html lang="{lang.strip()}"> (3.1.1)'})
 
     # 4. title (solo si vacío y lo dan); escapado por la misma razón
     if title and _RE_TITLE.search(fixed):
         fixed = _RE_TITLE.sub(lambda _m: f'<title>{_html.escape(title)}</title>', fixed, count=1)
-        aplicados.append({'senal': 'title_missing', 'hecho': '<title> añadido (2.4.2)'})
+        aplicados.append({'signal': 'title_missing', 'hecho': '<title> añadido (2.4.2)'})
 
     # 4b. form errors: accessible error layer (3.3.1 + 3.3.3 from attributes)
     if form_errors and 'a11yfx' not in fixed:
@@ -235,7 +235,7 @@ def autofix(html_text, lang=None, title=None, url='(html)', form_errors=True):
                 fr = _FRASES.get(lang, _FRASES['en'])
                 js = _JS_FORMAS % {k: _json.dumps(v) for k, v in fr.items()}
                 fixed = fixed.replace('</body>', js + '\n</body>', 1)
-                aplicados.append({'senal': 'form_error_missing',
+                aplicados.append({'signal': 'form_error_missing',
                                   'hecho': f"accessible error layer on {estado['forms']} form(s), "
                                            f"{estado['campos']} field(s) — 3.3.1 identification + "
                                            f"3.3.3 attribute-derived suggestions"})
@@ -250,16 +250,16 @@ def autofix(html_text, lang=None, title=None, url='(html)', form_errors=True):
         'target_small': 'rediseño de layout',
         'list_structure': 'rehacer el marcado exige entender la estructura',
     }
-    ya = {a['senal'] for a in aplicados}
+    ya = {a['signal'] for a in aplicados}
     no_aplicados = []
     vistos = set()
-    for h in informe.get('hallazgos', []):
-        senal = h['senal']
+    for h in informe.get('findings', []):
+        senal = h['signal']
         if senal in no_toca and senal not in vistos and senal not in ya:
             vistos.add(senal)
-            no_aplicados.append({'senal': senal, 'criterio': h['criterio'],
+            no_aplicados.append({'signal': senal, 'criterion': h['criterion'],
                                  'por_que_no': no_toca[senal],
-                                 'remediacion': h['remediacion']})
+                                 'remediation': h['remediation']})
 
     return {'fixed_html': fixed, 'aplicados': aplicados, 'no_aplicados': no_aplicados}
 
@@ -277,7 +277,7 @@ def main(argv):
     if a.out:
         with open(a.out, 'w', encoding='utf-8') as f:
             f.write(res['fixed_html'])
-        print(json.dumps({'fichero': a.out, 'aplicados': res['aplicados'],
+        print(json.dumps({'file': a.out, 'aplicados': res['aplicados'],
                           'no_aplicados': res['no_aplicados']}, ensure_ascii=False, indent=1))
     else:
         print(res['fixed_html'])

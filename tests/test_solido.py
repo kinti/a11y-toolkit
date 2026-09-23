@@ -30,7 +30,7 @@ es, en = set(T['es']), set(T['en'])
 assert es == en, f"catálogo desparejo: solo es={sorted(es-en)[:3]} solo en={sorted(en-es)[:3]}"
 _hallazgo = {k for k in es
              if not k.endswith(('_rem', '_nota')) and k not in
-             ('limites', 'interp', 'criterios', 'score_nota', 'aclarar', 'oscurecer',
+             ('limits', 'interp', 'criteria', 'score_note', 'aclarar', 'oscurecer',
               'sin_copia', 'color_invalido', 'region_invalida', 'region_fuera',
               'sin_pixeles', 'carga_error', 'texto_opaco', 'descarga_error')}
 sin_rem = sorted(k for k in _hallazgo if f'{k}_rem' not in es)
@@ -91,18 +91,18 @@ _nivel_mal = {k: (_CAT[k][0], 'AA' if k in _NORM_AA else 'A') for k in _NORM
 assert not _nivel_mal, f'niveles ≠ normativo: {_nivel_mal}'
 assert not ({m.split(' ')[0] for m in MANUAL_AA} - _NORM), 'MANUAL_AA fuera del conjunto A/AA'
 assert set(_EFFORT) == _NORM, 'la tabla de esfuerzo debe cubrir exactamente los 55 A/AA'
-assert effort('1.4.3')['clase'] == 'MAX' and effort('9.9.9') is None
+assert effort('1.4.3')['class'] == 'MAX' and effort('9.9.9') is None
 from collections import Counter  # noqa: E402
 _dist = Counter(c for c, _ in _EFFORT.values())
 assert _dist == Counter({'MIN': 23, 'MED': 19, 'MAX': 13}), f'distribución de esfuerzo derivó: {dict(_dist)}'
 assert '51 of 55 A/AA criteria carry automated signals (93%)' in readme, 'claim de cobertura en README'
 assert 'of 54' not in readme and '94%' not in readme, 'quedan restos del conteo antiguo en README'
 # pack de evidencia: exactamente 55 filas, todas con esfuerzo, totales del seed
-_pack = empaquetar([{'modo': 'static', 'url': 'https://t', 'score': 90, 'hallazgos': []}])
-assert len(_pack['criterios']) == 55, f'matriz del pack: {len(_pack["criterios"])} filas'
-assert all('esfuerzo' in m for m in _pack['criterios']), 'fila del pack sin esfuerzo'
-assert _pack['esfuerzo_pendiente']['total_minutos'] == [313, 649], \
-    f"totales derivados: {_pack['esfuerzo_pendiente']['total_minutos']}"
+_pack = empaquetar([{'mode': 'static', 'url': 'https://t', 'score': 90, 'findings': []}])
+assert len(_pack['criteria']) == 55, f'matriz del pack: {len(_pack["criteria"])} filas'
+assert all('effort' in m for m in _pack['criteria']), 'fila del pack sin esfuerzo'
+assert _pack['effort_pending']['total_minutes'] == [313, 649], \
+    f"totales derivados: {_pack['effort_pending']['total_minutes']}"
 
 
 # ---------- 4. fuzz determinista: HTML hostil no crashea ----------
@@ -112,7 +112,7 @@ HOSTILES = [
     '<div aria-labelledby="a b c d e">',               # refs vacías
     '<ul><li><ul><li><div>' * 30,                      # listas profundas sin cerrar
     '<img src=x alt=',                                 # atributo cortado
-    '<table><tr><td>' + 'celda' * 2000,                # tabla enorme sin cerrar
+    '<table><tr><td>' + 'cell' * 2000,                # tabla enorme sin cerrar
     '\x00\x01<html><body>binario',                     # bytes de control
     '<h1><h2><h3><h4><h5><h6><h7>skip',                # h7 inexistente
     '<label for="a"><label for="a"><input id="a">',    # labels anidados
@@ -122,7 +122,7 @@ HOSTILES = [
 ]
 for h in HOSTILES:
     r = audit_html(h, lang='en')
-    assert isinstance(r, dict) and ('hallazgos' in r or 'error' in r), f'crasheó con: {h[:40]!r}'
+    assert isinstance(r, dict) and ('findings' in r or 'error' in r), f'crasheó con: {h[:40]!r}'
 
 # el diff de snapshots con JSON malformado no traza (vía CLI sí; vía API lanza
 # ValueError controlado por el servidor — aquí solo la garantía del auditor)

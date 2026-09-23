@@ -1,0 +1,224 @@
+- generic [active] [ref=f3e1]:
+  - generic [ref=f3e2]:
+    - banner [ref=f3e3]:
+      - generic [ref=f3e4]:
+        - link "MCP.so MCP.so" [ref=f3e5] [cursor=pointer]:
+          - /url: /
+          - img "MCP.so" [ref=f3e6]
+          - generic [ref=f3e7]: MCP.so
+        - button "Search" [ref=f3e9]:
+          - generic [ref=f3e13]: Search MCP servers, tools, integrations…
+          - generic [ref=f3e14]:
+            - generic [ref=f3e15]: ⌘
+            - text: K
+        - generic [ref=f3e16]:
+          - link "Advertise" [ref=f3e17] [cursor=pointer]:
+            - /url: /advertise
+          - link "Submit" [ref=f3e18] [cursor=pointer]:
+            - /url: /submit
+          - button "Switch language" [ref=f3e20]
+          - button "Toggle theme" [ref=f3e26]
+          - link "Sign In" [ref=f3e28] [cursor=pointer]:
+            - /url: /sign-in
+      - navigation [ref=f3e30]:
+        - link "Discover" [ref=f3e31] [cursor=pointer]:
+          - /url: /
+        - link "Servers" [ref=f3e32] [cursor=pointer]:
+          - /url: /servers
+        - link "Remote Servers" [ref=f3e33] [cursor=pointer]:
+          - /url: /remote-servers
+        - link "Clients" [ref=f3e34] [cursor=pointer]:
+          - /url: /clients
+        - link "CLI" [ref=f3e35] [cursor=pointer]:
+          - /url: /cli
+        - link "Loops" [ref=f3e36] [cursor=pointer]:
+          - /url: /loops
+        - link "Skills" [ref=f3e37] [cursor=pointer]:
+          - /url: /skills
+        - link "Agents" [ref=f3e38] [cursor=pointer]:
+          - /url: /agents
+        - link "Feed" [ref=f3e39] [cursor=pointer]:
+          - /url: /feed
+    - main [ref=f3e40]:
+      - heading "Submit your project" [level=1] [ref=f3e42]
+      - navigation [ref=f3e43]:
+        - link "MCP Server" [ref=f3e44] [cursor=pointer]:
+          - /url: /submit?type=server
+        - link "Remote Server" [ref=f3e49] [cursor=pointer]:
+          - /url: /submit?type=remote-server
+        - link "MCP Client" [ref=f3e55] [cursor=pointer]:
+          - /url: /submit?type=client
+        - link "AI Agent" [ref=f3e59] [cursor=pointer]:
+          - /url: /submit?type=agent
+      - generic [ref=f3e63]:
+        - generic [ref=f3e65]:
+          - generic [ref=f3e66]:
+            - generic [ref=f3e67]:
+              - text: Repository URL
+              - generic [ref=f3e68]: "*"
+            - textbox "https://github.com/owner/repository" [ref=f3e69]
+          - generic [ref=f3e70]:
+            - generic [ref=f3e71]: Name
+            - textbox "Project name" [ref=f3e72]
+        - region "Choose publishing speed" [ref=f3e73]:
+          - generic [ref=f3e79]:
+            - generic [ref=f3e80]:
+              - generic [ref=f3e81]: Paid submission
+              - generic [ref=f3e82]: $39
+              - generic [ref=f3e83]: one-time publishing fee
+            - generic [ref=f3e84]:
+              - generic [ref=f3e85]: Publish immediately without review
+              - generic [ref=f3e87]: Verified badge
+              - generic [ref=f3e89]: Featured and priority placement
+              - generic [ref=f3e91]: Dofollow project link
+          - generic [ref=f3e93]:
+            - paragraph [ref=f3e94]:
+              - text: Questions about your submission? You can
+              - button "submit a ticket" [ref=f3e95]
+            - button "Pay and submit automatically" [ref=f3e96]
+      - generic [ref=f3e97]:
+        - heading "Where your listing will be seen" [level=2] [ref=f3e98]
+        - paragraph [ref=f3e99]: A listing on a DR 72 domain with millions of developer visits a year — premium submissions get a dofollow link, faster review, and featured placement.
+        - generic [ref=f3e100]:
+          - generic [ref=f3e101]:
+            - generic [ref=f3e102]:
+              - paragraph [ref=f3e103]: Domain Rating
+              - generic [ref=f3e104]: "72"
+            - generic [ref=f3e109]:
+              - paragraph [ref=f3e110]: Backlinks
+              - paragraph [ref=f3e111]: 57.16K
+              - paragraph [ref=f3e114]: 46% dofollow
+            - generic [ref=f3e115]:
+              - paragraph [ref=f3e116]: Ref. Domains
+              - paragraph [ref=f3e117]: 2.58K
+              - paragraph [ref=f3e120]: 77% dofollow
+          - generic [ref=f3e122]:
+            - generic [ref=f3e123]:
+              - paragraph [ref=f3e124]: Unique visitors (12 mo)
+              - paragraph [ref=f3e125]: 2.2M
+            - generic [ref=f3e126]:
+              - paragraph [ref=f3e127]: Pageviews (12 mo)
+              - paragraph [ref=f3e128]: 6M
+            - generic [ref=f3e129]:
+              - paragraph [ref=f3e130]: Monthly active users
+              - generic [ref=f3e131]:
+                - generic [ref=f3e132]: 266K
+                - generic [ref=f3e133]: ↑ 11.2%
+            - paragraph [ref=f3e134]: Monthly visitors, last 12 months
+    - contentinfo [ref=f3e138]:
+      - generic [ref=f3e139]:
+        - paragraph [ref=f3e140]: The MCP marketplace — connect to everything in one click.
+        - generic [ref=f3e141]:
+          - generic [ref=f3e142]:
+            - paragraph [ref=f3e143]: Directory
+            - list [ref=f3e144]:
+              - listitem [ref=f3e145]:
+                - link "MCP clients" [ref=f3e146] [cursor=pointer]:
+                  - /url: /clients
+              - listitem [ref=f3e147]:
+                - link "MCP servers" [ref=f3e148] [cursor=pointer]:
+                  - /url: /servers
+              - listitem [ref=f3e149]:
+                - link "Remote MCP servers" [ref=f3e150] [cursor=pointer]:
+                  - /url: /remote-servers
+              - listitem [ref=f3e151]:
+                - link "CLI" [ref=f3e152] [cursor=pointer]:
+                  - /url: /cli
+              - listitem [ref=f3e153]:
+                - link "Loops" [ref=f3e154] [cursor=pointer]:
+                  - /url: /loops
+              - listitem [ref=f3e155]:
+                - link "Skills" [ref=f3e156] [cursor=pointer]:
+                  - /url: /skills
+              - listitem [ref=f3e157]:
+                - link "Agents" [ref=f3e158] [cursor=pointer]:
+                  - /url: /agents
+              - listitem [ref=f3e159]:
+                - link "Codex Themes" [ref=f3e160] [cursor=pointer]:
+                  - /url: /codex-themes
+          - generic [ref=f3e161]:
+            - paragraph [ref=f3e162]: Resources
+            - list [ref=f3e163]:
+              - listitem [ref=f3e164]:
+                - link "DXT" [ref=f3e165] [cursor=pointer]:
+                  - /url: /dxt
+              - listitem [ref=f3e166]:
+                - link "Grok Bot" [ref=f3e167] [cursor=pointer]:
+                  - /url: /grok-bot
+              - listitem [ref=f3e168]:
+                - link "Blog" [ref=f3e169] [cursor=pointer]:
+                  - /url: /blog
+              - listitem [ref=f3e170]:
+                - link "Usecases" [ref=f3e171] [cursor=pointer]:
+                  - /url: /usercases
+              - listitem [ref=f3e172]:
+                - link "Partners" [ref=f3e173] [cursor=pointer]:
+                  - /url: /partners
+              - listitem [ref=f3e174]:
+                - link "Advertise" [ref=f3e175] [cursor=pointer]:
+                  - /url: /advertise
+              - listitem [ref=f3e176]:
+                - link "Protocol docs" [ref=f3e177] [cursor=pointer]:
+                  - /url: https://modelcontextprotocol.io/docs
+          - generic [ref=f3e178]:
+            - paragraph [ref=f3e179]: Discover
+            - list [ref=f3e180]:
+              - listitem [ref=f3e181]:
+                - link "Rankings" [ref=f3e182] [cursor=pointer]:
+                  - /url: /rankings
+              - listitem [ref=f3e183]:
+                - link "Categories" [ref=f3e184] [cursor=pointer]:
+                  - /url: /categories
+              - listitem [ref=f3e185]:
+                - link "Tags" [ref=f3e186] [cursor=pointer]:
+                  - /url: /tags
+              - listitem [ref=f3e187]:
+                - link "Feed" [ref=f3e188] [cursor=pointer]:
+                  - /url: /feed
+          - generic [ref=f3e189]:
+            - paragraph [ref=f3e190]: Products
+            - list [ref=f3e191]:
+              - listitem [ref=f3e192]:
+                - link "ShipAny" [ref=f3e193] [cursor=pointer]:
+                  - /url: https://shipany.ai?utm_source=mcp.so&utm_medium=referral&utm_campaign=footer
+              - listitem [ref=f3e194]:
+                - link "ThinkAny" [ref=f3e195] [cursor=pointer]:
+                  - /url: https://thinkany.ai?utm_source=mcp.so&utm_medium=referral&utm_campaign=footer
+              - listitem [ref=f3e196]:
+                - link "WorkAny" [ref=f3e197] [cursor=pointer]:
+                  - /url: https://workany.ai?utm_source=mcp.so&utm_medium=referral&utm_campaign=footer
+              - listitem [ref=f3e198]:
+                - link "Termany" [ref=f3e199] [cursor=pointer]:
+                  - /url: https://termany.sh?utm_source=mcp.so&utm_medium=referral&utm_campaign=footer
+              - listitem [ref=f3e200]:
+                - link "CCOnline" [ref=f3e201] [cursor=pointer]:
+                  - /url: https://cconline.sh?utm_source=mcp.so&utm_medium=referral&utm_campaign=footer
+          - generic [ref=f3e202]:
+            - paragraph [ref=f3e203]: Legal
+            - list [ref=f3e204]:
+              - listitem [ref=f3e205]:
+                - link "Privacy" [ref=f3e206] [cursor=pointer]:
+                  - /url: /privacy-policy
+              - listitem [ref=f3e207]:
+                - link "Terms" [ref=f3e208] [cursor=pointer]:
+                  - /url: /terms-of-service
+      - generic [ref=f3e210]:
+        - generic [ref=f3e211]:
+          - text: © 2026 MCP.so All rights reserved. Built with
+          - link "ShipAny" [ref=f3e212] [cursor=pointer]:
+            - /url: https://shipany.ai?utm_source=mcp.so
+          - text: .
+        - generic [ref=f3e213]:
+          - link "X" [ref=f3e214] [cursor=pointer]:
+            - /url: https://x.com/chatmcp
+          - link "GitHub" [ref=f3e217] [cursor=pointer]:
+            - /url: https://github.com/chatmcp/mcp-directory
+          - link "Discord" [ref=f3e221] [cursor=pointer]:
+            - /url: https://discord.gg/RsYPRrnyqg
+          - link "Telegram" [ref=f3e224] [cursor=pointer]:
+            - /url: https://t.me/+N0gv4O9SXio2YWU1
+          - link "Email" [ref=f3e227] [cursor=pointer]:
+            - /url: mailto:support@mcp.so
+          - button "Toggle theme" [ref=f3e232]
+  - button "Contact support" [ref=f3e234]
+  - region "Notifications alt+T"

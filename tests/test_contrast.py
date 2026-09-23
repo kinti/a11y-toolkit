@@ -20,8 +20,8 @@ cerca(ratio(parse_color('#000000'), parse_color('#ffffff')), 21.0)  # simetría
 cerca(ratio(parse_color('#767676'), parse_color('#ffffff')), 4.54, 0.02)  # frontera AA
 r = pair('#999999', '#ffffff')
 cerca(r['ratio'], 2.85, 0.02)
-assert r['veredictos'][0]['cumple'] is False  # texto normal AA falla
-assert r['veredictos'][4]['cumple'] is False  # 1.4.11 (3:1) también falla
+assert r['verdicts'][0]['passes'] is False  # texto normal AA falla
+assert r['verdicts'][4]['passes'] is False  # 1.4.11 (3:1) también falla
 r2 = pair('#1f2328', '#fbfaf7')
 cerca(r2['ratio'], 15.13, 0.02)
 
@@ -46,9 +46,9 @@ with tempfile.NamedTemporaryFile(suffix='.ppm', delete=False) as f:
 from a11y_toolkit.contrast import image_contrast  # noqa: E402
 res = image_contrast(ruta, '#ffffff', sample=2)
 os.unlink(ruta)
-cerca(res['ratio_peor'], 1.05, 0.02)          # contra la fila más clara (v=252)
-assert res['ratio_mediana'] >= 3             # mitad de la rampa ya es oscura
-assert res['area_pasa_aa_texto_normal_4_5'] > 40
+cerca(res['worst_ratio'], 1.05, 0.02)          # contra la fila más clara (v=252)
+assert res['median_ratio'] >= 3             # mitad de la rampa ya es oscura
+assert res['area_passes_aa_normal_text_4_5'] > 40
 # región inválida → error amigable, no traceback
 assert 'error' in image_contrast('/dev/null', '#fff', region='a,b,c')
 
@@ -64,10 +64,10 @@ print('TODOS LOS TESTS DE CONTRASTE PASAN ✓')
 
 # 6. Multilenguaje
 r_en = pair('#999999', '#ffffff', lang='en')
-assert r_en['veredictos'][0]['criterio'].startswith('1.4.3 Contrast'), r_en['veredictos'][0]
-assert r_en['sugerencia_aa']['accion'] == 'darkening'
+assert r_en['verdicts'][0]['criterion'].startswith('1.4.3 Contrast'), r_en['verdicts'][0]
+assert r_en['aa_suggestion']['accion'] == 'darkening'
 r_es = pair('#999999', '#ffffff', lang='es')
-assert r_es['veredictos'][0]['criterio'].startswith('1.4.3 Contraste')
+assert r_es['verdicts'][0]['criterion'].startswith('1.4.3 Contraste')
 print('MULTILINGUE PAR OK ✓')
 
 # 7. Grid de zona hostil (región ≥99×99)
@@ -82,6 +82,6 @@ with _tf.NamedTemporaryFile(suffix='.ppm', delete=False) as _f:
     _ruta = _f.name
 _g = image_contrast(_ruta, '#ffffff', sample=3)
 os.unlink(_ruta)
-assert _g['zona_peor']['celda'] == 'superior-derecha', _g['zona_peor']
-assert _g['zona_peor']['pct_pasa_aa'] < 10
+assert _g['worst_zone']['cell'] == 'superior-derecha', _g['worst_zone']
+assert _g['worst_zone']['pct_passes_aa'] < 10
 print('GRID ZONA HOSTIL OK ✓')

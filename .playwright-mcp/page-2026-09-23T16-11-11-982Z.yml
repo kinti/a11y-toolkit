@@ -1,0 +1,163 @@
+- generic [active] [ref=f7e1]:
+  - generic [ref=f7e2]:
+    - banner [ref=f7e3]:
+      - generic [ref=f7e4]:
+        - link "MCP.so MCP.so" [ref=f7e5] [cursor=pointer]:
+          - /url: /
+          - img "MCP.so" [ref=f7e6]
+          - generic [ref=f7e7]: MCP.so
+        - button "Search" [ref=f7e9]:
+          - generic [ref=f7e13]: Search MCP servers, tools, integrations…
+          - generic [ref=f7e14]:
+            - generic [ref=f7e15]: ⌘
+            - text: K
+        - generic [ref=f7e16]:
+          - link "Advertise" [ref=f7e17] [cursor=pointer]:
+            - /url: /advertise
+          - link "Submit" [ref=f7e18] [cursor=pointer]:
+            - /url: /submit
+          - button "Switch language" [ref=f7e20]
+          - button "Toggle theme" [ref=f7e26]
+          - link "Sign In" [ref=f7e28] [cursor=pointer]:
+            - /url: /sign-in
+      - navigation [ref=f7e30]:
+        - link "Discover" [ref=f7e31] [cursor=pointer]:
+          - /url: /
+        - link "Servers" [ref=f7e32] [cursor=pointer]:
+          - /url: /servers
+        - link "Remote Servers" [ref=f7e33] [cursor=pointer]:
+          - /url: /remote-servers
+        - link "Clients" [ref=f7e34] [cursor=pointer]:
+          - /url: /clients
+        - link "CLI" [ref=f7e35] [cursor=pointer]:
+          - /url: /cli
+        - link "Loops" [ref=f7e36] [cursor=pointer]:
+          - /url: /loops
+        - link "Skills" [ref=f7e37] [cursor=pointer]:
+          - /url: /skills
+        - link "Agents" [ref=f7e38] [cursor=pointer]:
+          - /url: /agents
+        - link "Feed" [ref=f7e39] [cursor=pointer]:
+          - /url: /feed
+    - main [ref=f7e40]:
+      - generic [ref=f7e41]:
+        - heading "Search results for \"a11y-toolkit\"" [level=1] [ref=f7e42]
+        - paragraph [ref=f7e43]: 0 results
+      - generic [ref=f7e44]: No servers match "a11y-toolkit"
+    - contentinfo [ref=f7e45]:
+      - generic [ref=f7e46]:
+        - paragraph [ref=f7e47]: The MCP marketplace — connect to everything in one click.
+        - generic [ref=f7e48]:
+          - generic [ref=f7e49]:
+            - paragraph [ref=f7e50]: Directory
+            - list [ref=f7e51]:
+              - listitem [ref=f7e52]:
+                - link "MCP clients" [ref=f7e53] [cursor=pointer]:
+                  - /url: /clients
+              - listitem [ref=f7e54]:
+                - link "MCP servers" [ref=f7e55] [cursor=pointer]:
+                  - /url: /servers
+              - listitem [ref=f7e56]:
+                - link "Remote MCP servers" [ref=f7e57] [cursor=pointer]:
+                  - /url: /remote-servers
+              - listitem [ref=f7e58]:
+                - link "CLI" [ref=f7e59] [cursor=pointer]:
+                  - /url: /cli
+              - listitem [ref=f7e60]:
+                - link "Loops" [ref=f7e61] [cursor=pointer]:
+                  - /url: /loops
+              - listitem [ref=f7e62]:
+                - link "Skills" [ref=f7e63] [cursor=pointer]:
+                  - /url: /skills
+              - listitem [ref=f7e64]:
+                - link "Agents" [ref=f7e65] [cursor=pointer]:
+                  - /url: /agents
+              - listitem [ref=f7e66]:
+                - link "Codex Themes" [ref=f7e67] [cursor=pointer]:
+                  - /url: /codex-themes
+          - generic [ref=f7e68]:
+            - paragraph [ref=f7e69]: Resources
+            - list [ref=f7e70]:
+              - listitem [ref=f7e71]:
+                - link "DXT" [ref=f7e72] [cursor=pointer]:
+                  - /url: /dxt
+              - listitem [ref=f7e73]:
+                - link "Grok Bot" [ref=f7e74] [cursor=pointer]:
+                  - /url: /grok-bot
+              - listitem [ref=f7e75]:
+                - link "Blog" [ref=f7e76] [cursor=pointer]:
+                  - /url: /blog
+              - listitem [ref=f7e77]:
+                - link "Usecases" [ref=f7e78] [cursor=pointer]:
+                  - /url: /usercases
+              - listitem [ref=f7e79]:
+                - link "Partners" [ref=f7e80] [cursor=pointer]:
+                  - /url: /partners
+              - listitem [ref=f7e81]:
+                - link "Advertise" [ref=f7e82] [cursor=pointer]:
+                  - /url: /advertise
+              - listitem [ref=f7e83]:
+                - link "Protocol docs" [ref=f7e84] [cursor=pointer]:
+                  - /url: https://modelcontextprotocol.io/docs
+          - generic [ref=f7e85]:
+            - paragraph [ref=f7e86]: Discover
+            - list [ref=f7e87]:
+              - listitem [ref=f7e88]:
+                - link "Rankings" [ref=f7e89] [cursor=pointer]:
+                  - /url: /rankings
+              - listitem [ref=f7e90]:
+                - link "Categories" [ref=f7e91] [cursor=pointer]:
+                  - /url: /categories
+              - listitem [ref=f7e92]:
+                - link "Tags" [ref=f7e93] [cursor=pointer]:
+                  - /url: /tags
+              - listitem [ref=f7e94]:
+                - link "Feed" [ref=f7e95] [cursor=pointer]:
+                  - /url: /feed
+          - generic [ref=f7e96]:
+            - paragraph [ref=f7e97]: Products
+            - list [ref=f7e98]:
+              - listitem [ref=f7e99]:
+                - link "ShipAny" [ref=f7e100] [cursor=pointer]:
+                  - /url: https://shipany.ai?utm_source=mcp.so&utm_medium=referral&utm_campaign=footer
+              - listitem [ref=f7e101]:
+                - link "ThinkAny" [ref=f7e102] [cursor=pointer]:
+                  - /url: https://thinkany.ai?utm_source=mcp.so&utm_medium=referral&utm_campaign=footer
+              - listitem [ref=f7e103]:
+                - link "WorkAny" [ref=f7e104] [cursor=pointer]:
+                  - /url: https://workany.ai?utm_source=mcp.so&utm_medium=referral&utm_campaign=footer
+              - listitem [ref=f7e105]:
+                - link "Termany" [ref=f7e106] [cursor=pointer]:
+                  - /url: https://termany.sh?utm_source=mcp.so&utm_medium=referral&utm_campaign=footer
+              - listitem [ref=f7e107]:
+                - link "CCOnline" [ref=f7e108] [cursor=pointer]:
+                  - /url: https://cconline.sh?utm_source=mcp.so&utm_medium=referral&utm_campaign=footer
+          - generic [ref=f7e109]:
+            - paragraph [ref=f7e110]: Legal
+            - list [ref=f7e111]:
+              - listitem [ref=f7e112]:
+                - link "Privacy" [ref=f7e113] [cursor=pointer]:
+                  - /url: /privacy-policy
+              - listitem [ref=f7e114]:
+                - link "Terms" [ref=f7e115] [cursor=pointer]:
+                  - /url: /terms-of-service
+      - generic [ref=f7e117]:
+        - generic [ref=f7e118]:
+          - text: © 2026 MCP.so All rights reserved. Built with
+          - link "ShipAny" [ref=f7e119] [cursor=pointer]:
+            - /url: https://shipany.ai?utm_source=mcp.so
+          - text: .
+        - generic [ref=f7e120]:
+          - link "X" [ref=f7e121] [cursor=pointer]:
+            - /url: https://x.com/chatmcp
+          - link "GitHub" [ref=f7e124] [cursor=pointer]:
+            - /url: https://github.com/chatmcp/mcp-directory
+          - link "Discord" [ref=f7e128] [cursor=pointer]:
+            - /url: https://discord.gg/RsYPRrnyqg
+          - link "Telegram" [ref=f7e131] [cursor=pointer]:
+            - /url: https://t.me/+N0gv4O9SXio2YWU1
+          - link "Email" [ref=f7e134] [cursor=pointer]:
+            - /url: mailto:support@mcp.so
+          - button "Toggle theme" [ref=f7e139]
+  - button "Contact support" [ref=f7e141]
+  - region "Notifications alt+T"

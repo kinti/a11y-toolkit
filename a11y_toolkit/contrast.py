@@ -201,7 +201,7 @@ def ratio(fg, bg):
 
 def veredictos(r, lang='en'):
     return [
-        {'criterio': n, 'nivel': lvl, 'umbral': u, 'cumple': r >= u}
+        {'criterion': n, 'level': lvl, 'threshold': u, 'passes': r >= u}
         for n, lvl, u in _t(lang)['criterios']
     ]
 
@@ -228,7 +228,7 @@ def sugerir(fg, bg, objetivo=4.5, lang='en'):
                 if mejor is None or d < mejor['_d']:
                     mejor = {'color': hexs(c), 'ratio': round(ratio(c, bg), 2),
                              'accion': t9['aclarar'] if blanco else t9['oscurecer'],
-                             'paso': tt, '_d': d}
+                             'step': tt, '_d': d}
                 break
     if mejor:
         del mejor['_d']
@@ -248,16 +248,16 @@ def pair(fg_s, bg_s, con_sugerencia=True, lang='en'):
         nota_alfa = hexs(fg)
     r = ratio(fg, bg)
     out = {
-        'texto': hexs(fg), 'fondo': hexs(bg),
+        'text': hexs(fg), 'background': hexs(bg),
         'ratio': round(r, 2),
-        'veredictos': veredictos(r, lang),
+        'verdicts': veredictos(r, lang),
     }
     if nota_alfa:
-        out['color_efectivo'] = nota_alfa
+        out['effective_color'] = nota_alfa
     if con_sugerencia and r < 4.5:
         s = sugerir(fg, bg, 4.5, lang)
         if s:
-            out['sugerencia_aa'] = s
+            out['aa_suggestion'] = s
     return out
 
 # ---------------------------------------------------------------- imagen ----
@@ -369,25 +369,25 @@ def image_contrast(ruta, texto_color, region=None, sample=4, lang='en'):
     pasa45 = sum(1 for v in ratios if v >= 4.5)
     pasa30 = sum(1 for v in ratios if v >= 3.0)
     out = {
-        'imagen': os.path.basename(ruta),
-        'color_texto': hexs(c),
-        'region': {'x': x, 'y': y, 'ancho': rw, 'alto': rh,
-                   'pixeles_muestreados': len(ratios), 'paso': sample},
-        'ratio_peor': round(min(ratios), 2),
-        'ratio_mediana': round(_percentil(ratios, 50), 2),
-        'ratio_p95': round(_percentil(ratios, 95), 2),
-        'area_pasa_aa_texto_normal_4_5': round(100.0 * pasa45 / len(ratios), 1),
-        'area_pasa_aa_minimo_3_0': round(100.0 * pasa30 / len(ratios), 1),
-        'interpretacion': t9['interp'],
+        'image': os.path.basename(ruta),
+        'text_color': hexs(c),
+        'region': {'x': x, 'y': y, 'width': rw, 'height': rh,
+                   'sampled_pixels': len(ratios), 'step': sample},
+        'worst_ratio': round(min(ratios), 2),
+        'median_ratio': round(_percentil(ratios, 50), 2),
+        'p95_ratio': round(_percentil(ratios, 95), 2),
+        'area_passes_aa_normal_text_4_5': round(100.0 * pasa45 / len(ratios), 1),
+        'area_passes_aa_min_3_0': round(100.0 * pasa30 / len(ratios), 1),
+        'interpretation': t9['interp'],
     }
     if usar_grid:
         peor = min(range(9), key=lambda k: (celdas[k][0] / celdas[k][1]) if celdas[k][1] else 1)
         py_, px_ = peor // 3, peor % 3
-        out['zona_peor'] = {
-            'celda': f'{["superior","central","inferior"][py_]}-{["izquierda","centro","derecha"][px_]}',
+        out['worst_zone'] = {
+            'cell': f'{["superior","central","inferior"][py_]}-{["izquierda","centro","derecha"][px_]}',
             'x': x + (rw * px_) // 3, 'y': y + (rh * py_) // 3,
-            'ancho': rw // 3, 'alto': rh // 3,
-            'pct_pasa_aa': round(100.0 * celdas[peor][0] / celdas[peor][1], 1) if celdas[peor][1] else None,
+            'width': rw // 3, 'height': rh // 3,
+            'pct_passes_aa': round(100.0 * celdas[peor][0] / celdas[peor][1], 1) if celdas[peor][1] else None,
         }
     return out
 

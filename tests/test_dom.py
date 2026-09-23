@@ -69,37 +69,37 @@ r = subprocess.run([sys.executable, '-m', 'a11y_toolkit.a11ydom',
 d = json.loads(r.stdout)
 assert 'error' not in d, d
 
-crit = {h['criterio'] for h in d['hallazgos']}
+crit = {h['criterion'] for h in d['findings']}
 assert any(c.startswith('1.4.3') for c in crit), sorted(crit)          # contraste real
 assert any(c.startswith('2.5.8') for c in crit), sorted(crit)          # target size (nuevo WCAG 2.2)
 assert any(c.startswith('3.3.2') for c in crit), sorted(crit)          # campo sin label
 assert any(c.startswith('1.1.1') for c in crit), sorted(crit)          # img sin alt
-assert d['modo'] == 'rendered'
+assert d['mode'] == 'rendered'
 assert d.get('shadow_roots', 0) >= 1, d.get('shadow_roots')
-assert any('mi-tarjeta' in str(e) for h in d['hallazgos'] for e in h.get('ejemplos', [])), \
+assert any('mi-tarjeta' in str(e) for h in d['findings'] for e in h.get('examples', [])), \
     'los fallos del shadow root no aparecen'
 assert d.get('iframes_anidados', 0) == 1, d.get('iframes_anidados')   # iframe same-origin
-assert any('iframe: y.png' in str(e) for h in d['hallazgos'] for e in h.get('ejemplos', []))
+assert any('iframe: y.png' in str(e) for h in d['findings'] for e in h.get('examples', []))
 # FPs corregidos tras el bench: honeypot aria-hidden, tabindex=-1 y skip oculto no se reportan
-senales = {h['senal']: h for h in d['hallazgos']}
+senales = {h['signal']: h for h in d['findings']}
 # v3.16.1: a link wrapping an image WITH alt has a name (accname) — never flagged
 if 'ctrl_name' in senales:
     assert not any('badge.png' in str(e) or "src=\"b.png\"" in str(e)
-                   for e in senales['ctrl_name'].get('ejemplos', []))
+                   for e in senales['ctrl_name'].get('examples', []))
 assert 'aria_hidden_focusable' not in senales, senales.get('aria_hidden_focusable')
 f258 = senales.get('target_small')
-assert f258 is None or not any(re.search(r'\(([0-2])×([0-2])px\)', str(e)) for e in f258.get('ejemplos', []))
+assert f258 is None or not any(re.search(r'\(([0-2])×([0-2])px\)', str(e)) for e in f258.get('examples', []))
 
 # 2.4.11: causa raíz header-fijo-vs-scroll-padding
 from a11y_toolkit.a11ydom import audit_dom_url
 mal = audit_dom_url('file:///tmp/sticky_mal.html', lang='en')
 bien = audit_dom_url('file:///tmp/sticky_bien.html', lang='en')
-assert any(h['senal'] == 'focus_obscured' for h in mal['hallazgos']), mal['resumen']
-assert not any(h['senal'] == 'focus_obscured' for h in bien['hallazgos'])
+assert any(h['signal'] == 'focus_obscured' for h in mal['findings']), mal['summary']
+assert not any(h['signal'] == 'focus_obscured' for h in bien['findings'])
 # el párrafo con buen contraste NO provoca hallazgo: solo 2 zonas malas agrupadas
-f14 = next(h for h in d['hallazgos'] if h['criterio'].startswith('1.4.3'))
-assert '2.85:1' in f14['hallazgo'] and 'remediacion' in f14
+f14 = next(h for h in d['findings'] if h['criterion'].startswith('1.4.3'))
+assert '2.85:1' in f14['issue'] and 'remediation' in f14
 # el botón mini aparece en los ejemplos de 2.5.8
-f25 = next(h for h in d['hallazgos'] if h['criterio'].startswith('2.5.8'))
-assert any('14×14' in e for e in f25.get('ejemplos', [])), f25
+f25 = next(h for h in d['findings'] if h['criterion'].startswith('2.5.8'))
+assert any('14×14' in e for e in f25.get('examples', [])), f25
 print('TESTS DOM RENDERIZADO PASAN ✓ (1.4.3 computado, 2.5.8, 3.3.2, 1.1.1, modo rendered)')

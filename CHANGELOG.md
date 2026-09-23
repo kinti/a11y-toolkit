@@ -1,5 +1,38 @@
 # Changelog
 
+## 5.0.0 — 2026-09-23 — "english on the wire"
+
+Every JSON key the toolkit emits is now English. The toolkit was born as a
+personal Spanish tool and, when the project went English-first, the prose was
+translated but the wire keys froze — `criterios`, `estado`, `esfuerzo`,
+`hallazgos`, `minutos`, `severidad`, `senal`… That split is gone.
+
+- **Evidence pack → `a11y-evidence-pack/2`**: every key renamed
+  (`criterios`→`criteria`, `estado`→`status`, `esfuerzo`→`effort`,
+  `esfuerzo_pendiente`→`effort_pending`, `artefactos`→`artifacts`,
+  `evaluador`→`reviewer`, `manual_pendiente`→`manual_pending`,
+  `formato`→`format`, `generado`→`generated`, …).
+- **MCP arguments**: `informes`→`reports`, `verificados`→`verified`,
+  `evaluador`→`reviewer`, `entidad`→`entity`, `marco`→`framework`.
+- **Audit reports**: `hallazgos`→`findings`, `severidad`→`severity` with
+  values `high`/`medium`/`low`, `senal`→`signal`, `remediacion`→`remediation`,
+  `resumen`→`summary`, `score_nota`→`score_note`, `modo`→`mode`.
+- **Contrast tools**: `veredictos`→`verdicts`, `ratio_peor`→`worst_ratio`,
+  `area_pasa_aa_texto_normal_4_5`→`area_passes_aa_normal_text_4_5`,
+  `zona_peor`→`worst_zone`, `sugerencia_aa`→`aa_suggestion`, …
+- **Snapshot/diff**: `elementos`→`elements`, `orden_foco`→`focus_order`,
+  `aniadidos`→`added`, `eliminados`→`removed`, `renombrados`→`renamed`, …
+- **Budget/ledger/criterion tool**: `senales`→`signals`,
+  `bloqueantes`→`blocking`, `historial`→`history`, `exige`→`requires`,
+  `fallos_habituales`→`typical_failures`, `como_comprobar`→`how_to_check`, …
+
+Coordinated with the Countersignatory exchange before their resolver hardens:
+their draft-2 schema referenced the Spanish keys and updates to English in the
+same window (their namespace, their rename).
+
+Signal identifiers (stable codes like `img_sin_alt`) are unchanged — they are
+IDs, not prose, and renaming them would invalidate existing error budgets.
+
 ## 4.0.1 — 2026-09-23 — "aligned with the market"
 
 Docs-only release: the canonical effort-class documents adopt the two rules the

@@ -10,17 +10,17 @@ Budget file (budget.json):
 
   {
     "url": "https://mysite",
-    "senales": ["imgs_alt", "field_label"],       // accepted baseline
-    "bloqueantes": ["alta", "media"],              // severities that block
-    "max_nuevos": 0,                               // how many new ones tolerated
-    "fecha_revision": "2026-12-07"                 // baseline expiry (optional)
+    "signals": ["imgs_alt", "field_label"],       // accepted baseline
+    "blocking": ["high", "medium"],              // severities that block
+    "max_new": 0,                               // how many new ones tolerated
+    "review_date": "2026-12-07"                 // baseline expiry (optional)
   }
 
 Generate the baseline:  a11ytoolkit audit --url https://mysite | a11ytoolkit budget --init
 Compare with:           a11ytoolkit budget --budget budget.json --audit audit.json
 Exit code: 0 ok / 2 blocked.
 
-Only stable keys ('senal') and severities are compared, never prose.
+Only stable keys ('signal') and severities are compared, never prose.
 """
 
 import argparse
@@ -31,50 +31,50 @@ import sys
 
 def init(auditoria):
     """Informe (o site) → fichero de presupuesto inicial."""
-    paginas = auditoria.get('informes') if 'informes' in auditoria else [auditoria]
-    senales = sorted({h['senal'] for pg in paginas for h in pg.get('hallazgos', [])})
+    paginas = auditoria.get('reports') if 'reports' in auditoria else [auditoria]
+    senales = sorted({h['signal'] for pg in paginas for h in pg.get('findings', [])})
     return {
         'url': auditoria.get('url', ''),
-        'senales': senales,
-        'bloqueantes': ['alta', 'media'],
-        'max_nuevos': 0,
-        'fecha_revision': (datetime.date.today() + datetime.timedelta(days=90)).isoformat(),
+        'signals': senales,
+        'blocking': ['high', 'medium'],
+        'max_new': 0,
+        'review_date': (datetime.date.today() + datetime.timedelta(days=90)).isoformat(),
     }
 
 
 def comparar(presupuesto, auditoria, hoy=None):
     """Presupuesto vs informe actual → veredicto ok/bloqueado con el detalle."""
-    paginas = auditoria.get('informes') if 'informes' in auditoria else [auditoria]
-    base = set(presupuesto.get('senales', []))
-    bloqueantes = set(presupuesto.get('bloqueantes', ['alta', 'media']))
+    paginas = auditoria.get('reports') if 'reports' in auditoria else [auditoria]
+    base = set(presupuesto.get('signals', []))
+    bloqueantes = set(presupuesto.get('blocking', ['high', 'medium']))
     actuales = {}
     for pg in paginas:
-        for h in pg.get('hallazgos', []):
-            actuales.setdefault(h['senal'], []).append(h['severidad'])
+        for h in pg.get('findings', []):
+            actuales.setdefault(h['signal'], []).append(h['severity'])
     nuevos = sorted(s for s in actuales if s not in base)
     resueltos = sorted(base - set(actuales))
     nuevos_bloqueantes = [s for s in nuevos
                           if any(sev in bloqueantes for sev in actuales[s])]
-    max_nuevos = int(presupuesto.get('max_nuevos', 0))
+    max_nuevos = int(presupuesto.get('max_new', 0))
     ok = len(nuevos_bloqueantes) <= max_nuevos
     caducada = False
-    fecha = presupuesto.get('fecha_revision')
+    fecha = presupuesto.get('review_date')
     if fecha:
         caducada = (hoy or datetime.date.today().isoformat()) > fecha
     return {
         'ok': ok and not caducada,
         'url': auditoria.get('url', presupuesto.get('url', '')),
-        'nuevos': nuevos,
-        'nuevos_bloqueantes': nuevos_bloqueantes,
-        'resueltos': resueltos,
-        'resumen': {
-            'base': len(base),
-            'actuales': len(actuales),
-            'nuevos': len(nuevos),
-            'resueltos': len(resueltos),
+        'new': nuevos,
+        'new_blocking': nuevos_bloqueantes,
+        'resolved': resueltos,
+        'summary': {
+            'baseline': len(base),
+            'current': len(actuales),
+            'new': len(nuevos),
+            'resolved': len(resueltos),
         },
-        'base_caducada': caducada,
-        'nota': ('ok=false: there are new blocking findings (or the baseline expired). '
+        'baseline_expired': caducada,
+        'note': ('ok=false: there are new blocking findings (or the baseline expired). '
                  'ok=true: nothing new vs the accepted baseline — fix baseline items '
                  'and re-run --init to lower it.'),
     }

@@ -33,15 +33,15 @@ def _recheck_static(url, hallazgos, timeout=30, lang='en'):
     informe_fresco = audit_url(url, timeout=timeout, lang=lang)
     if 'error' in informe_fresco:
         return hallazgos, informe_fresco['error']
-    senales_frescas = {h['senal'] for h in informe_fresco.get('hallazgos', [])}
+    senales_frescas = {h['signal'] for h in informe_fresco.get('findings', [])}
     verificadas = []
     for h in hallazgos:
-        if h.get('senal') in senales_frescas:
-            h['estado'] = 'confirmed'
+        if h.get('signal') in senales_frescas:
+            h['status'] = 'confirmed'
         else:
-            h['estado'] = 'rejected'
+            h['status'] = 'rejected'
             h['razon_rechazo'] = (
-                f"signal '{h.get('senal', '?')}' no longer fires on re-audit — "
+                f"signal '{h.get('signal', '?')}' no longer fires on re-audit — "
                 "the page may have changed, or the finding was a false positive")
         verificadas.append(h)
     return verificadas, None
@@ -56,15 +56,15 @@ def _recheck_rendered(url, hallazgos, timeout=45, lang='en'):
     informe_fresco = audit_dom_url(url, timeout=timeout, lang=lang)
     if 'error' in informe_fresco:
         return hallazgos, informe_fresco['error']
-    senales_frescas = {h['senal'] for h in informe_fresco.get('hallazgos', [])}
+    senales_frescas = {h['signal'] for h in informe_fresco.get('findings', [])}
     verificadas = []
     for h in hallazgos:
-        if h.get('senal') in senales_frescas:
-            h['estado'] = 'confirmed'
+        if h.get('signal') in senales_frescas:
+            h['status'] = 'confirmed'
         else:
-            h['estado'] = 'rejected'
+            h['status'] = 'rejected'
             h['razon_rechazo'] = (
-                f"signal '{h.get('senal', '?')}' no longer fires in the rendered "
+                f"signal '{h.get('signal', '?')}' no longer fires in the rendered "
                 "re-audit — the element may have changed, been fixed, or the "
                 "first finding was a false positive")
         verificadas.append(h)
@@ -80,8 +80,8 @@ def disprove(url, informe=None, timeout=30, lang='en'):
         if 'error' in informe:
             return informe
 
-    modo = informe.get('modo', 'static')
-    hallazgos = informe.get('hallazgos', [])
+    modo = informe.get('mode', 'static')
+    hallazgos = informe.get('findings', [])
 
     if modo in ('static', 'site'):
         verificadas, err = _recheck_static(url, hallazgos, timeout=timeout, lang=lang)
@@ -95,25 +95,25 @@ def disprove(url, informe=None, timeout=30, lang='en'):
         return {'error': f'disprove re-audit failed: {err}'}
 
     resultado = dict(informe)
-    resultado['hallazgos'] = verificadas
+    resultado['findings'] = verificadas
     resultado['disprover'] = {
-        'ejecutado': True,
-        'confirmados': sum(1 for h in verificadas if h.get('estado') == 'confirmed'),
-        'rechazados': sum(1 for h in verificadas if h.get('estado') == 'rejected'),
-        'nota': ('Each finding was re-checked against the live page. '
+        'executed': True,
+        'confirmed': sum(1 for h in verificadas if h.get('status') == 'confirmed'),
+        'rejected': sum(1 for h in verificadas if h.get('status') == 'rejected'),
+        'note': ('Each finding was re-checked against the live page. '
                  'Rejected findings include the reason they did not reproduce. '
                  'Confirmed findings survived a fresh verification pass.'),
     }
 
     # recalcular score sobre los confirmed
     from .a11yaudit import calcular_score
-    solo_confirmed = [h for h in verificadas if h.get('estado') == 'confirmed']
+    solo_confirmed = [h for h in verificadas if h.get('status') == 'confirmed']
     resultado['score_original'] = informe.get('score')
     resultado['score'] = calcular_score(solo_confirmed)
-    resultado['resumen'] = {
-        'alta': sum(1 for h in solo_confirmed if h['severidad'] == 'alta'),
-        'media': sum(1 for h in solo_confirmed if h['severidad'] == 'media'),
-        'baja': sum(1 for h in solo_confirmed if h['severidad'] == 'baja'),
+    resultado['summary'] = {
+        'high': sum(1 for h in solo_confirmed if h['severity'] == 'high'),
+        'medium': sum(1 for h in solo_confirmed if h['severity'] == 'medium'),
+        'low': sum(1 for h in solo_confirmed if h['severity'] == 'low'),
     }
     return resultado
 
@@ -138,7 +138,7 @@ def main(argv):
     if a.out:
         with open(a.out, 'w', encoding='utf-8') as f:
             f.write(salida)
-        print(json.dumps({'fichero': a.out, **res['disprover']}))
+        print(json.dumps({'file': a.out, **res['disprover']}))
     else:
         print(salida)
     return 0

@@ -38,7 +38,7 @@ assert abs(json.loads(r.stdout)['ratio'] - 4.54) < 0.02
 r = run('audit', '--file', FIX)
 assert r.returncode == 0 and json.loads(r.stdout)['score'] == 100, r.stderr[-300:]
 r = run('audit', '--file', FIX_MAL, '--lang', 'en')
-senales = {h['senal'] for h in json.loads(r.stdout)['hallazgos']}
+senales = {h['signal'] for h in json.loads(r.stdout)['findings']}
 assert {'imgs_alt', 'zoom_no', 'autocomplete', 'title_missing'} <= senales, senales
 r = run('criterion', '2.5.8', '--lang', 'en')
 assert r.returncode == 0 and 'Target Size' in r.stdout
@@ -47,14 +47,14 @@ assert r.returncode == 0 and r.stdout.startswith('<svg') and '90/100' in r.stdou
 r = run('fix', '--file', FIX_MAL, '--lang', 'es', '--title', 'T', '-o', os.path.join('/tmp', 'cli_fixed.html'))
 assert r.returncode == 0, r.stderr[-300:]
 fx = json.loads(r.stdout)
-assert sorted(a['senal'] for a in fx['aplicados']) == ['autocomplete', 'lang_missing', 'title_missing', 'zoom_no']
+assert sorted(a['signal'] for a in fx['aplicados']) == ['autocomplete', 'lang_missing', 'title_missing', 'zoom_no']
 r = run('sarif', '--file', FIX_MAL, '-o', os.path.join('/tmp', 'cli.sarif'))
 assert r.returncode == 0 and os.path.exists(os.path.join('/tmp', 'cli.sarif'))
 # budget: init desde audit por stdin + comparación
 aud = subprocess.run([sys.executable, '-m', 'a11y_toolkit.a11yaudit', '--file', FIX_MAL], cwd=ROOT,
                      capture_output=True, text=True, timeout=60).stdout
 r = run('budget', '--init', stdin=aud)
-assert r.returncode == 0 and 'senales' in r.stdout, r.stderr[-300:]
+assert r.returncode == 0 and 'signals' in r.stdout, r.stderr[-300:]
 with open(os.path.join('/tmp', 'cli_budget.json'), 'w') as f:
     f.write(r.stdout)
 with open(os.path.join('/tmp', 'cli_audit.json'), 'w') as f:
@@ -72,18 +72,18 @@ except ImportError:
 
 if TIENE_PW:
     r = run('reflow', 'file://' + FIX)
-    assert r.returncode == 0 and json.loads(r.stdout)['modo'] == 'reflow', r.stderr[-300:]
+    assert r.returncode == 0 and json.loads(r.stdout)['mode'] == 'reflow', r.stderr[-300:]
     r = run('kbd', 'file://' + FIX)
-    assert r.returncode == 0 and json.loads(r.stdout)['modo'] == 'keyboard', r.stderr[-300:]
+    assert r.returncode == 0 and json.loads(r.stdout)['mode'] == 'keyboard', r.stderr[-300:]
     r = run('scroll', 'file://' + FIX)
-    assert r.returncode == 0 and 'modo' in json.loads(r.stdout), r.stderr[-300:]
+    assert r.returncode == 0 and 'mode' in json.loads(r.stdout), r.stderr[-300:]
 else:
     print('SKIP reflow/kbd/scroll: Playwright no instalado')
 
 r = run('evidence', '/tmp/cli_audit.json', '-o', os.path.join('/tmp', 'cli_pack.json'))
 assert r.returncode == 0, r.stderr[-300:]
 pk = json.loads(r.stdout)
-assert pk['sha256'] and 4 <= pk['resumen']['manual-only'] <= 8  # genuinely human-only criteria  # shrank from 27 as signals landed
+assert pk['sha256'] and 4 <= pk['summary']['manual-only'] <= 8  # genuinely human-only criteria  # shrank from 27 as signals landed
 
 # 3. seguridad: nada de lo que escribe este toolkit es vector de inyección
 sys.path.insert(0, ROOT)

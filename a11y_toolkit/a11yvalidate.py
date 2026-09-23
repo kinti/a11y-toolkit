@@ -68,24 +68,24 @@ def _procesar(resp, origen, lang='en'):
             continue
         crit = _criterio_de(m.get('message', ''))
         hallazgos.append({
-            'severidad': 'media' if tipo == 'error' else 'baja',
-            'criterio': crit or 'HTML validity (W3C Nu)',
-            'senal': 'html_invalid',
-            'hallazgo': (m.get('message', '') or '')[:220],
-            'remediacion': 'Fix the HTML error reported by the W3C validator'
+            'severity': 'medium' if tipo == 'error' else 'low',
+            'criterion': crit or 'HTML validity (W3C Nu)',
+            'signal': 'html_invalid',
+            'issue': (m.get('message', '') or '')[:220],
+            'remediation': 'Fix the HTML error reported by the W3C validator'
                            if lang == 'en' else 'Corrige el error HTML reportado por el validador W3C',
             'linea': m.get('lastLine'),
         })
-    orden = {'alta': 0, 'media': 1, 'baja': 2}
-    hallazgos.sort(key=lambda h: orden[h['severidad']])
+    orden = {'high': 0, 'medium': 1, 'low': 2}
+    hallazgos.sort(key=lambda h: orden[h['severity']])
     return {
         'url': origen,
-        'modo': 'w3c-nu',
+        'mode': 'w3c-nu',
         'score': calcular_score(hallazgos),
-        'resumen': {s_: sum(1 for h in hallazgos if h['severidad'] == s_)
-                    for s_ in ('alta', 'media', 'baja')},
-        'hallazgos': hallazgos,
-        'aviso': ('Report from the W3C Nu validator (validator.w3.org/nu). Complements the '
+        'summary': {s_: sum(1 for h in hallazgos if h['severity'] == s_)
+                    for s_ in ('high', 'medium', 'low')},
+        'findings': hallazgos,
+        'notice': ('Report from the W3C Nu validator (validator.w3.org/nu). Complements the '
                   'toolkit audits with the W3C parser view: doctype, encoding, structural '
                   'validity. HTML validity is not WCAG by itself; mapped criteria where they '
                   'overlap are labeled.'),

@@ -20,11 +20,11 @@ from xml.sax.saxutils import escape as _xesc
 
 _TEXTOS = {
     'es': {
-        'nombre': 'a11y-toolkit', 'alcance': 'cribado automático',
+        'name': 'a11y-toolkit', 'scope': 'cribado automático',
         'titulo': 'Accesibilidad: {score}/100 — {fecha} — {alcance} (≈1/3 de WCAG); no es conformidad.',
     },
     'en': {
-        'nombre': 'a11y-toolkit', 'alcance': 'automated screening',
+        'name': 'a11y-toolkit', 'scope': 'automated screening',
         'titulo': 'Accessibility: {score}/100 — {fecha} — {alcance} (≈1/3 of WCAG); not conformance.',
     },
 }
@@ -44,12 +44,12 @@ def badge(score, fecha=None, alcance=None, lang='en'):
     score = max(0, min(100, int(round(score))))
     t = _TEXTOS.get(lang, _TEXTOS['en'])
     fecha = fecha or datetime.date.today().isoformat()
-    alcance = alcance or t['alcance']
+    alcance = alcance or t['scope']
     fecha = _xesc(fecha)[:30]
     alcance = _xesc(alcance)[:60]
     titulo = _xesc(t['titulo'].format(score=score, fecha=fecha, alcance=alcance))
     color = _color(score)
-    izq = len(t['nombre']) * 6.5 + 14
+    izq = len(t['name']) * 6.5 + 14
     der = len(f'{score}/100 · {fecha}') * 6.5 + 14
     ancho = izq + der
     return f'''<svg xmlns="http://www.w3.org/2000/svg" width="{ancho:.0f}" height="20" role="img" aria-label="{titulo}">
@@ -62,8 +62,8 @@ def badge(score, fecha=None, alcance=None, lang='en'):
     <rect width="{ancho:.0f}" height="20" fill="url(#s)"/>
   </g>
   <g fill="#fff" text-anchor="middle" font-family="Verdana,Geneva,DejaVu Sans,sans-serif" font-size="11">
-    <text x="{izq / 2:.0f}" y="14" fill="#010409" fill-opacity=".3">{t['nombre']}</text>
-    <text x="{izq / 2:.0f}" y="13">{t['nombre']}</text>
+    <text x="{izq / 2:.0f}" y="14" fill="#010409" fill-opacity=".3">{t['name']}</text>
+    <text x="{izq / 2:.0f}" y="13">{t['name']}</text>
     <text x="{izq + der / 2:.0f}" y="14" fill="#010409" fill-opacity=".3">{score}/100 · {fecha}</text>
     <text x="{izq + der / 2:.0f}" y="13">{score}/100 · {fecha}</text>
   </g>

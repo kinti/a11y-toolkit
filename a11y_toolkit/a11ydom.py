@@ -22,7 +22,7 @@ import sys
 from .a11yaudit import CRIT, T, calcular_score
 
 # browser pool: Chromium reutilizable entre llamadas consecutivas
-_POOL = {'playwright': None, 'browser': None, 'tipo': None}
+_POOL = {'playwright': None, 'browser': None, 'type': None}
 
 # cadena de detección: el primer navegador disponible gana.
 # El usuario puede forzar con el parámetro 'browser' (chromium, firefox,
@@ -69,12 +69,12 @@ def _detectar_browser(pw, preferido=None):
 def _get_browser(pw, headless=True, preferido=None):
     """Devuelve un browser del pool (o crea uno si no existe)."""
     if _POOL['browser'] is not None and _POOL['browser'].is_connected() and \
-            _POOL['tipo'] == (preferido or 'auto'):
+            _POOL['type'] == (preferido or 'auto'):
         return _POOL['browser']
     _close_pool()
     br, tipo = _detectar_browser(pw, preferido)
     _POOL['browser'] = br
-    _POOL['tipo'] = tipo
+    _POOL['type'] = tipo
     return br
 
 
@@ -149,7 +149,7 @@ _TD = {
         'reflow_fail_rem': ('Usa layouts fluidos (flex/grid, max-width en vez de width fija) y '
                             'media queries: el contenido debe reflujo a 320px sin scroll '
                             'horizontal. Los excepciones: tablas de datos, mapas, gráficos.'),
-        'limites': ('Auditoría renderizada: heurística honesta, no sustituye lector de pantalla '
+        'limits': ('Auditoría renderizada: heurística honesta, no sustituye lector de pantalla '
                     'ni revisión manual. Contraste calculado sobre fondos computados; los casos '
                     'con imagen de fondo se reportan como «revisar». 2.5.8 admite excepciones '
                     '(inline equivalente, espaciado) que aquí se aproximan.'),
@@ -211,7 +211,7 @@ _TD = {
                                 'border/shadow (2.4.7).'),
         'focus_not_focusable': '{n} controls that never receive focus via .focus(): {det}.',
         'focus_not_focusable_rem': 'If it must be interactive, make it focusable (tabindex="0"); otherwise remove it from the tab path.',
-        'limites': ('Rendered audit: honest heuristics, no substitute for a screen reader or '
+        'limits': ('Rendered audit: honest heuristics, no substitute for a screen reader or '
                     'manual review. Contrast computed over computed backgrounds; cases with '
                     'background images are reported as "review". 2.5.8 allows exceptions '
                     '(equivalent inline, spacing) approximated here.'),
@@ -558,11 +558,11 @@ _JS = r'''(maxEj) => {
 
 
 def _agrega(hallazgos, lang, severidad, code, key, ejemplos=None, **fmt):
-    h = {'severidad': severidad, 'criterio': CRIT.get(lang, CRIT['es']).get(code, code),
-         'senal': key,
-         'hallazgo': _t(lang, key).format(**fmt), 'remediacion': _t(lang, key + '_rem').format(**fmt)}
+    h = {'severity': severidad, 'criterion': CRIT.get(lang, CRIT['es']).get(code, code),
+         'signal': key,
+         'issue': _t(lang, key).format(**fmt), 'remediation': _t(lang, key + '_rem').format(**fmt)}
     if ejemplos:
-        h['ejemplos'] = ejemplos[:MAX_EJEMPLOS]
+        h['examples'] = ejemplos[:MAX_EJEMPLOS]
     hallazgos.append(h)
 
 
@@ -578,10 +578,10 @@ def audit_dom(datos, url='(rendered)', lang='en'):
                         for f in fallos[:4])
         _sobre, _pej = ('sobre', 'p. ej.') if lang == 'es' else ('over', 'e.g.')
         ejemplos = [f"{f['fg']} {_sobre} {f['bg']} → {f['ratio']}:1 ({_pej} {f['ej']})" for f in fallos]
-        _agrega(hallazgos, lang, 'alta', '1.4.3', 'contrast_fail',
+        _agrega(hallazgos, lang, 'high', '1.4.3', 'contrast_fail',
                 ejemplos=ejemplos, n=len(fallos), det=det)
     if datos.get('contrastReview'):
-        _agrega(hallazgos, lang, 'baja', '1.4.3', 'contrast_review',
+        _agrega(hallazgos, lang, 'low', '1.4.3', 'contrast_review',
                 n=datos['contrastReview'])
 
     # 2. Target size 2.5.8 (enlaces inline → baja: la excepción de espaciado
@@ -590,7 +590,7 @@ def audit_dom(datos, url='(rendered)', lang='en'):
     if targets:
         todos_inline = all(t.get('inline') for t in targets)
         det = ', '.join(f"{t['ej']} ({t['w']}×{t['h']})" for t in targets[:4])
-        _agrega(hallazgos, lang, 'baja' if todos_inline else 'media', '2.5.8',
+        _agrega(hallazgos, lang, 'low' if todos_inline else 'medium', '2.5.8',
                 'target_small',
                 ejemplos=[f"{t['ej']} ({t['w']}×{t['h']}px)" for t in targets],
                 n=len(targets), det=det)
@@ -599,123 +599,123 @@ def audit_dom(datos, url='(rendered)', lang='en'):
     estados = list(datos.get('focusContrast') or []) + list(datos.get('hover') or [])
     if estados:
         det = ', '.join(f"{e['ej']} = {e['ratio']}:1" for e in estados[:4])
-        _agrega(hallazgos, lang, 'media', '1.4.3', 'state_contrast',
+        _agrega(hallazgos, lang, 'medium', '1.4.3', 'state_contrast',
                 ejemplos=[f"{e['ej']} = {e['ratio']}:1" for e in estados],
                 n=len(estados), det=det)
 
     # 2.ter 2.4.11 foco ocultado por fijos
     if datos.get('focusObscured'):
-        _agrega(hallazgos, lang, 'media', '2.4.11', 'focus_obscured',
+        _agrega(hallazgos, lang, 'medium', '2.4.11', 'focus_obscured',
                 ejemplos=datos['focusObscured'], n=len(datos['focusObscured']),
                 det=', '.join(datos['focusObscured'][:3]))
 
     # v3.12 rendered-only partial signals (review-severity honesty)
     if datos.get('colorOnly'):
-        _agrega(hallazgos, lang, 'baja', '1.4.1', 'color_only_link',
+        _agrega(hallazgos, lang, 'low', '1.4.1', 'color_only_link',
                 ejemplos=datos['colorOnly'], n=len(datos['colorOnly']))
     if datos.get('orderInversions'):
-        _agrega(hallazgos, lang, 'baja', '1.3.2', 'dom_visual_order',
+        _agrega(hallazgos, lang, 'low', '1.3.2', 'dom_visual_order',
                 n=datos['orderInversions'])
     if datos.get('loopingAnims'):
-        _agrega(hallazgos, lang, 'baja', '2.2.2', 'motion_moving',
+        _agrega(hallazgos, lang, 'low', '2.2.2', 'motion_moving',
                 ejemplos=[], n=datos['loopingAnims'],
                 ej=f"{datos['loopingAnims']} looping CSS animations")
     if datos.get('spacingClipped'):
-        _agrega(hallazgos, lang, 'media', '1.4.12', 'text_spacing_clip',
+        _agrega(hallazgos, lang, 'medium', '1.4.12', 'text_spacing_clip',
                 ejemplos=datos['spacingClipped'], n=len(datos['spacingClipped']))
 
     # 3. Foco
     if datos.get('focus'):
-        _agrega(hallazgos, lang, 'media', '2.4.7', 'focus_invisible',
+        _agrega(hallazgos, lang, 'medium', '2.4.7', 'focus_invisible',
                 ejemplos=datos['focus'], n=len(datos['focus']),
                 det=', '.join(datos['focus'][:4]))
     if datos.get('focusFail'):
-        _agrega(hallazgos, lang, 'baja', '2.4.7', 'focus_not_focusable',
+        _agrega(hallazgos, lang, 'low', '2.4.7', 'focus_not_focusable',
                 ejemplos=[f['ej'] for f in datos['focusFail']],
                 n=len(datos['focusFail']), det=', '.join(f['ej'] for f in datos['focusFail'][:4]))
 
     # 4. Resto de señales (renderizadas)
     if datos.get('unnamed'):
-        _agrega(hallazgos, lang, 'alta', '4.1.2', 'ctrl_name',
+        _agrega(hallazgos, lang, 'high', '4.1.2', 'ctrl_name',
                 ejemplos=datos['unnamed'], n=len(datos['unnamed']), tag='control')
     if datos.get('fields'):
-        _agrega(hallazgos, lang, 'alta', '3.3.2', 'field_label',
+        _agrega(hallazgos, lang, 'high', '3.3.2', 'field_label',
                 ejemplos=datos['fields'], n=len(datos['fields']))
     if datos.get('imgs'):
-        _agrega(hallazgos, lang, 'alta', '1.1.1', 'imgs_alt',
+        _agrega(hallazgos, lang, 'high', '1.1.1', 'imgs_alt',
                 ejemplos=datos['imgs'], n=len(datos['imgs']))
     if datos.get('ariaHidden'):
-        _agrega(hallazgos, lang, 'alta', '4.1.2', 'aria_hidden_focusable',
+        _agrega(hallazgos, lang, 'high', '4.1.2', 'aria_hidden_focusable',
                 n=len(datos['ariaHidden']), tag='control')
     if not (datos.get('lang') or '').strip():
-        _agrega(hallazgos, lang, 'media', '3.1.1', 'lang_missing')
+        _agrega(hallazgos, lang, 'medium', '3.1.1', 'lang_missing')
     if not (datos.get('title') or '').strip():
-        _agrega(hallazgos, lang, 'media', '2.4.2', 'title_missing')
+        _agrega(hallazgos, lang, 'medium', '2.4.2', 'title_missing')
     if datos.get('iframes'):
-        _agrega(hallazgos, lang, 'media', '4.1.2', 'iframe_title',
+        _agrega(hallazgos, lang, 'medium', '4.1.2', 'iframe_title',
                 ejemplos=datos['iframes'], n=len(datos['iframes']))
     videos, subs = datos.get('videos', 0), datos.get('videoSubs', 0)
     if videos and subs < videos:
-        _agrega(hallazgos, lang, 'media', '1.2.2', 'video_captions', n=videos - subs)
+        _agrega(hallazgos, lang, 'medium', '1.2.2', 'video_captions', n=videos - subs)
     vp = datos.get('viewport') or ''
     if re.search(r'user-scalable\s*=\s*(no|0)', vp, re.I):
-        _agrega(hallazgos, lang, 'alta', '1.4.4', 'zoom_no')
+        _agrega(hallazgos, lang, 'high', '1.4.4', 'zoom_no')
     elif (m := re.search(r'maximum-scale\s*=\s*([\d.]+)', vp, re.I)) and float(m.group(1)) < 2:
-        _agrega(hallazgos, lang, 'media', '1.4.4', 'zoom_max', v=m.group(1))
+        _agrega(hallazgos, lang, 'medium', '1.4.4', 'zoom_max', v=m.group(1))
     if datos.get('refresh'):
         m = re.match(r'\s*(\d+)', str(datos['refresh']))
         segs = int(m.group(1)) if m else 0
-        _agrega(hallazgos, lang, 'media' if segs > 0 else 'baja', '2.2.1', 'meta_refresh', v=segs)
+        _agrega(hallazgos, lang, 'medium' if segs > 0 else 'low', '2.2.1', 'meta_refresh', v=segs)
     if datos.get('tabindex'):
-        _agrega(hallazgos, lang, 'media', '2.4.3', 'tabindex_pos',
+        _agrega(hallazgos, lang, 'medium', '2.4.3', 'tabindex_pos',
                 ejemplos=datos['tabindex'], n=len(datos['tabindex']))
     if not (datos.get('main') or datos.get('skip')):
-        _agrega(hallazgos, lang, 'media', '2.4.1', 'no_bypass')
+        _agrega(hallazgos, lang, 'medium', '2.4.1', 'no_bypass')
 
     niveles = [h['lvl'] for h in (datos.get('headings') or []) if h['text']]
     h1s = sum(1 for h in datos.get('headings') or [] if h['lvl'] == 1 and h['text'])
     vacios = sum(1 for h in datos.get('headings') or [] if not h['text'])
     if niveles:
         if h1s == 0:
-            _agrega(hallazgos, lang, 'media', '1.3.1', 'no_h1')
+            _agrega(hallazgos, lang, 'medium', '1.3.1', 'no_h1')
         elif h1s > 1:
-            _agrega(hallazgos, lang, 'baja', '1.3.1', 'multi_h1', n=h1s)
+            _agrega(hallazgos, lang, 'low', '1.3.1', 'multi_h1', n=h1s)
         prev, saltos = 0, []
         for n in niveles:
             if prev and n > prev + 1:
                 saltos.append(f'h{prev}→h{n}')
             prev = n
         if saltos:
-            _agrega(hallazgos, lang, 'baja', '1.3.1', 'heading_skips',
+            _agrega(hallazgos, lang, 'low', '1.3.1', 'heading_skips',
                     skips=', '.join(saltos[:5]))
     else:
-        _agrega(hallazgos, lang, 'media', '1.3.1', 'no_headings')
+        _agrega(hallazgos, lang, 'medium', '1.3.1', 'no_headings')
     if vacios:
-        _agrega(hallazgos, lang, 'baja', '1.3.1', 'empty_heading', n=vacios)
+        _agrega(hallazgos, lang, 'low', '1.3.1', 'empty_heading', n=vacios)
     tablas, con_th = datos.get('tables', 0), datos.get('tableTh', 0)
     if tablas and con_th < tablas:
-        _agrega(hallazgos, lang, 'media', '1.3.1', 'table_no_th', n=tablas - con_th)
+        _agrega(hallazgos, lang, 'medium', '1.3.1', 'table_no_th', n=tablas - con_th)
     if datos.get('blank'):
-        _agrega(hallazgos, lang, 'baja', '3.2.5', 'blank_no_warning', n=datos['blank'])
+        _agrega(hallazgos, lang, 'low', '3.2.5', 'blank_no_warning', n=datos['blank'])
     dups = sum(1 for k in (datos.get('ids') or {}).values() if k > 1)
     if dups:
-        _agrega(hallazgos, lang, 'baja', '4.1.2', 'dup_ids', n=dups)
+        _agrega(hallazgos, lang, 'low', '4.1.2', 'dup_ids', n=dups)
 
-    orden = {'alta': 0, 'media': 1, 'baja': 2}
-    hallazgos.sort(key=lambda h: orden[h['severidad']])
-    resumen = {s: sum(1 for h in hallazgos if h['severidad'] == s)
-               for s in ('alta', 'media', 'baja')}
+    orden = {'high': 0, 'medium': 1, 'low': 2}
+    hallazgos.sort(key=lambda h: orden[h['severity']])
+    resumen = {s: sum(1 for h in hallazgos if h['severity'] == s)
+               for s in ('high', 'medium', 'low')}
     return {
         'url': url,
-        'modo': 'rendered',
+        'mode': 'rendered',
         'iframes_anidados': datos.get('iframes_anidados', 0),
         'shadow_roots': datos.get('shadow_roots', 0),
         'score': calcular_score(hallazgos),
-        'score_nota': _t(lang, 'score_nota'),
+        'score_note': _t(lang, 'score_note'),
         'elementos_interactivos': datos.get('elements', 0),
-        'resumen': resumen,
-        'hallazgos': hallazgos,
-        'limites': _t(lang, 'limites'),
+        'summary': resumen,
+        'findings': hallazgos,
+        'limits': _t(lang, 'limits'),
     }
 
 
@@ -814,33 +814,33 @@ def audit_forms(url, timeout=45, lang='en', auth_state=None):
     hallazgos = []
 
     def agrega(sev, code, key, **fmt):
-        hallazgos.append({'severidad': sev, 'criterio': CRIT.get(lang, CRIT['es']).get(code, code),
-                          'senal': key, 'hallazgo': _t(lang, key).format(**fmt),
-                          'remediacion': _t(lang, key + '_rem').format(**fmt)})
+        hallazgos.append({'severity': sev, 'criterion': CRIT.get(lang, CRIT['es']).get(code, code),
+                          'signal': key, 'issue': _t(lang, key).format(**fmt),
+                          'remediation': _t(lang, key + '_rem').format(**fmt)})
 
     if navegado:
-        agrega('baja', '3.3.1', 'form_navigated', ej=page.url if False else 'submit')
+        agrega('low', '3.3.1', 'form_navigated', ej=page.url if False else 'submit')
     elif tocados and estado is not None:
         sin_identificar = [f['form'] for f in estado['forms']
                            if f['campos'] and f['identificados'] == 0 and f['nativos'] == 0
                            and estado['alerts'] == 0]
         if sin_identificar:
-            agrega('alta', '3.3.1', 'form_error_missing', n=len(sin_identificar))
+            agrega('high', '3.3.1', 'form_error_missing', n=len(sin_identificar))
         campos_err = sum(f['identificados'] for f in estado['forms'])
         campos_sug = sum(f['sugeridos'] for f in estado['forms'])
         if campos_err > 0 and campos_sug == 0:
-            agrega('baja', '3.3.3', 'form_error_no_suggestion', n=campos_err)
+            agrega('low', '3.3.3', 'form_error_no_suggestion', n=campos_err)
 
     from .a11yaudit import calcular_score
     return {
-        'url': url, 'modo': 'forms',
+        'url': url, 'mode': 'forms',
         'campos_invalidados': len(tocados),
         'detalle': tocados[:10],
         'score': calcular_score(hallazgos),
-        'resumen': {s_: sum(1 for h in hallazgos if h['severidad'] == s_)
-                    for s_ in ('alta', 'media', 'baja')},
-        'hallazgos': hallazgos,
-        'limites': _t(lang, 'limites'),
+        'summary': {s_: sum(1 for h in hallazgos if h['severity'] == s_)
+                    for s_ in ('high', 'medium', 'low')},
+        'findings': hallazgos,
+        'limits': _t(lang, 'limits'),
     }
 
 
@@ -876,7 +876,7 @@ def sr_transcript(url, timeout=45, lang='en', auth_state=None, browser='auto'):
         pass
 
     if not arbol:
-        return {'url': url, 'modo': 'sr-transcript',
+        return {'url': url, 'mode': 'sr-transcript',
                 'error': 'accessibility tree not available (Playwright >= 1.49 required)'}
 
     # parse the YAML-like snapshot into linearized announcements
@@ -893,11 +893,11 @@ def sr_transcript(url, timeout=45, lang='en', auth_state=None, browser='auto'):
 
     return {
         'url': url,
-        'modo': 'sr-transcript',
-        'anuncios': anuncios[:200],  # cap
+        'mode': 'sr-transcript',
+        'announcements': anuncios[:200],  # cap
         'total': len(anuncios),
         'arbol_raw': arbol[:5000] if len(arbol) > 5000 else arbol,
-        'nota': ('Linearized announcement order — what a screen reader user hears. '
+        'note': ('Linearized announcement order — what a screen reader user hears. '
                  'Roles and names as computed by the browser. Use this to understand '
                  'the page from a blind user\'s perspective.'),
     }
@@ -963,16 +963,16 @@ def audit_hover(url, timeout=45, lang='en', auth_state=None):
     if no_dismissibles:
         from .a11yaudit import calcular_score
         hallazgos.append({
-            'severidad': 'baja', 'criterio': CRIT.get(lang, CRIT['es']).get('1.4.13', '1.4.13'),
-            'senal': 'hover_not_dismissible',
-            'hallazgo': _t(lang, 'hover_not_dismissible').format(n=len(no_dismissibles)),
-            'remediacion': _t(lang, 'hover_not_dismissible_rem'),
-            'ejemplos': no_dismissibles[:4]})
-        return {'url': url, 'modo': 'hover', 'score': calcular_score(hallazgos),
-                'resumen': {'alta': 0, 'media': 0, 'baja': len(hallazgos)},
-                'hallazgos': hallazgos}
-    return {'url': url, 'modo': 'hover', 'score': 100,
-            'resumen': {'alta': 0, 'media': 0, 'baja': 0}, 'hallazgos': []}
+            'severity': 'low', 'criterion': CRIT.get(lang, CRIT['es']).get('1.4.13', '1.4.13'),
+            'signal': 'hover_not_dismissible',
+            'issue': _t(lang, 'hover_not_dismissible').format(n=len(no_dismissibles)),
+            'remediation': _t(lang, 'hover_not_dismissible_rem'),
+            'examples': no_dismissibles[:4]})
+        return {'url': url, 'mode': 'hover', 'score': calcular_score(hallazgos),
+                'summary': {'high': 0, 'medium': 0, 'low': len(hallazgos)},
+                'findings': hallazgos}
+    return {'url': url, 'mode': 'hover', 'score': 100,
+            'summary': {'high': 0, 'medium': 0, 'low': 0}, 'findings': []}
 
 
 _JS_SPACING = r'''() => {
@@ -1098,14 +1098,14 @@ def audit_reflow(url, timeout=45, lang='en', auth_state=None, browser='auto'):
     hallazgos = []
 
     def agrega(sev, code, key, ejemplos, **fmt):
-        hallazgos.append({'severidad': sev, 'criterio': CRIT.get(lang, CRIT['es']).get(code, code),
-                          'senal': key, 'hallazgo': _t(lang, key).format(**fmt),
-                          'remediacion': _t(lang, key + '_rem').format(**fmt),
-                          'ejemplos': ejemplos[:6]})
+        hallazgos.append({'severity': sev, 'criterion': CRIT.get(lang, CRIT['es']).get(code, code),
+                          'signal': key, 'issue': _t(lang, key).format(**fmt),
+                          'remediation': _t(lang, key + '_rem').format(**fmt),
+                          'examples': ejemplos[:6]})
 
     ok320 = r320['scroll'] <= r320['vw'] + 1
     if not ok320:
-        agrega('alta', '1.4.10', 'reflow_fail',
+        agrega('high', '1.4.10', 'reflow_fail',
                [f"{m['ej']} ({m['w']}px)" for m in r320['malos']],
                n=len(r320['malos']), w=r320['vw'],
                det=', '.join(f"{m['ej']} ({m['w']}px)" for m in r320['malos'][:3]))
@@ -1113,14 +1113,14 @@ def audit_reflow(url, timeout=45, lang='en', auth_state=None, browser='auto'):
     from .a11yaudit import calcular_score
     return {
         'url': url,
-        'modo': 'reflow',
+        'mode': 'reflow',
         'score': calcular_score(hallazgos),
-        'resumen': {s_: sum(1 for h in hallazgos if h['severidad'] == s_)
-                    for s_ in ('alta', 'media', 'baja')},
+        'summary': {s_: sum(1 for h in hallazgos if h['severity'] == s_)
+                    for s_ in ('high', 'medium', 'low')},
         'mediciones': {'reflow_320': {'scroll': r320['scroll'], 'viewport': r320['vw'],
                                       'ok': ok320}},
-        'hallazgos': hallazgos,
-        'limites': _t(lang, 'limites'),
+        'findings': hallazgos,
+        'limits': _t(lang, 'limits'),
     }
 
 
@@ -1150,7 +1150,7 @@ def audit_keyboard(url, max_pasos=60, lang='en', timeout=45, auth_state=None, br
     Recorre hasta max_pasos tabulaciones reales en Chromium, registra la
     secuencia de paradas, detecta ciclos (el patrón de un modal) y comprueba si
     ESCAPE libera el ciclo. Un modal que cicla y suelta con Escape es correcto;
-    uno que no suelta es trampa — hallazgo 'alta'.
+    uno que no suelta es trampa — hallazgo 'high'.
     """
     from playwright.sync_api import sync_playwright
     with sync_playwright() as p:
@@ -1243,39 +1243,39 @@ def audit_keyboard(url, max_pasos=60, lang='en', timeout=45, auth_state=None, br
     hallazgos = []
     if foco_navego:
         hallazgos.append({
-            'severidad': 'alta', 'criterio': CRIT.get(lang, CRIT['es']).get('3.2.1', '3.2.1'),
-            'senal': 'focus_navigates',
-            'hallazgo': _t(lang, 'focus_navigates').format(ej='un elemento', url=foco_navego[:60]),
-            'remediacion': _t(lang, 'focus_navigates_rem')})
+            'severity': 'high', 'criterion': CRIT.get(lang, CRIT['es']).get('3.2.1', '3.2.1'),
+            'signal': 'focus_navigates',
+            'issue': _t(lang, 'focus_navigates').format(ej='un elemento', url=foco_navego[:60]),
+            'remediation': _t(lang, 'focus_navigates_rem')})
     if input_navego:
         hallazgos.append({
-            'severidad': 'alta', 'criterio': CRIT.get(lang, CRIT['es']).get('3.2.2', '3.2.2'),
-            'senal': 'input_navigates',
-            'hallazgo': _t(lang, 'input_navigates').format(ej=input_elem, url=input_navego[:60]),
-            'remediacion': _t(lang, 'input_navigates_rem')})
+            'severity': 'high', 'criterion': CRIT.get(lang, CRIT['es']).get('3.2.2', '3.2.2'),
+            'signal': 'input_navigates',
+            'issue': _t(lang, 'input_navigates').format(ej=input_elem, url=input_navego[:60]),
+            'remediation': _t(lang, 'input_navigates_rem')})
     if ciclo and esc_libera is False:
         elems = [rutas.get(i, f'parada {i}') for i in ciclo]
         hallazgos.append({
-            'severidad': 'alta', 'criterio': CRIT.get(lang, CRIT['es']).get('2.1.2', '2.1.2'),
-            'senal': 'kbd_trap', 'hallazgo': _t(lang, 'kbd_trap').format(
+            'severity': 'high', 'criterion': CRIT.get(lang, CRIT['es']).get('2.1.2', '2.1.2'),
+            'signal': 'kbd_trap', 'issue': _t(lang, 'kbd_trap').format(
                 n=len(ciclo), ciclo=' ↔ '.join(elems)),
-            'remediacion': _t(lang, 'kbd_trap_rem'),
-            'ejemplos': elems,
+            'remediation': _t(lang, 'kbd_trap_rem'),
+            'examples': elems,
         })
     from .a11yaudit import calcular_score
     return {
         'url': url,
-        'modo': 'keyboard',
+        'mode': 'keyboard',
         'score': calcular_score(hallazgos),
-        'resumen': {s_: sum(1 for h in hallazgos if h['severidad'] == s_)
-                    for s_ in ('alta', 'media', 'baja')},
+        'summary': {s_: sum(1 for h in hallazgos if h['severity'] == s_)
+                    for s_ in ('high', 'medium', 'low')},
         'pasos': len(seq),
         'paradas': [rutas.get(i, f'parada {i}') for i in seq],
         'ciclo': {'detectado': bool(ciclo),
-                  'elementos': [rutas.get(i, f'parada {i}') for i in ciclo] if ciclo else [],
+                  'elements': [rutas.get(i, f'parada {i}') for i in ciclo] if ciclo else [],
                   'escape_libera': esc_libera},
-        'hallazgos': hallazgos,
-        'limites': ('Recorrido con Tab real en Chromium (tope {n} pasos). El foco dentro de '
+        'findings': hallazgos,
+        'limits': ('Recorrido con Tab real en Chromium (tope {n} pasos). El foco dentro de '
                     'iframes entre dominios no es rastreable y se marca como tal. Un ciclo '
                     'con Escape operativo (modal correcto) NO se reporta como hallazgo.'
                     ).format(n=max_pasos),

@@ -600,16 +600,16 @@ def criterio(code, lang='en'):
     code = code.strip()
     if code not in _C:
         return {'error': f'criterio desconocido: {code}',
-                'disponibles': sorted(_C)}
+                'available': sorted(_C)}
     nivel, idiomas = _C[code]
     nombre, exige, fallos, prueba = idiomas.get(lang) or idiomas['es']
     return {
-        'criterio': f'{code} {nombre}',
-        'nivel': _NIVEL[nivel],
-        'exige': exige,
-        'fallos_habituales': fallos,
-        'como_comprobar': prueba,
-        'nota': ('Esto resume el criterio, no sustituye su texto oficial en '
+        'criterion': f'{code} {nombre}',
+        'level': _NIVEL[nivel],
+        'requires': exige,
+        'typical_failures': fallos,
+        'how_to_check': prueba,
+        'note': ('Esto resume el criterio, no sustituye su texto oficial en '
                  'https://www.w3.org/TR/WCAG22/#' if lang == 'es' else
                  'This summarizes the criterion; the official text at '
                  'https://www.w3.org/TR/WCAG22/# governs.'),
@@ -621,7 +621,7 @@ def effort(code):
     if code not in _EFFORT:
         return None
     clase, why = _EFFORT[code]
-    return {'clase': clase, 'porque': why, 'minutos': list(_EFFORT_MINUTES[clase])}
+    return {'class': clase, 'why': why, 'minutes': list(_EFFORT_MINUTES[clase])}
 
 
 def main(argv):

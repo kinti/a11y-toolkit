@@ -37,7 +37,7 @@ _TD = {
         'scroll_no_end_rem': 'Ofrece un botón «Cargar más» (mejor opción accesible: carga explícita y foco predecible), o un fin real del feed, o un control para pausar la carga automática.',
         'scroll_no_feed': 'El contenedor del feed no usa role="feed" con hijos role="article" (patrón Feed de ARIA APG): los lectores de pantalla no pueden saltar de artículo en artículo.',
         'scroll_no_feed_rem': 'Marca el contenedor como role="feed", cada elemento como role="article" con aria-labelledby, y usa aria-busy durante la carga.',
-        'limites': ('Auditor de scroll infinito: heurística con foco real y observador de '
+        'limits': ('Auditor de scroll infinito: heurística con foco real y observador de '
                     'regiones vivas en {n} tandas. No sustituye la prueba con lector de '
                     'screen reader en el feed real.'),
     },
@@ -50,7 +50,7 @@ _TD = {
         'scroll_no_end_rem': 'Offer a "Load more" button (the most accessible option: explicit loading, predictable focus), a real feed end, or a control to pause auto-loading.',
         'scroll_no_feed': 'The feed container does not use role="feed" with role="article" children (ARIA APG Feed pattern): screen readers cannot jump article by article.',
         'scroll_no_feed_rem': 'Mark the container role="feed", each item role="article" with aria-labelledby, and use aria-busy during loading.',
-        'limites': ('Infinite-scroll auditor: heuristics with real focus and a live-region '
+        'limits': ('Infinite-scroll auditor: heuristics with real focus and a live-region '
                     'observer over {n} batches. Not a substitute for screen-reader testing '
                     'on the real feed.'),
     },
@@ -88,9 +88,9 @@ _ESTADO = r"""() => {
   const mas = [...document.querySelectorAll('button, a')]
     .some(b => /más|more|cargar|load/i.test((b.innerText || '').trim()) && b.offsetParent);
   return { items, hayFeed: !!feed, hayFooter: !!document.querySelector('footer, [role="contentinfo"]'),
-           foco: activo && activo !== document.body
+           focus: activo && activo !== document.body
              ? (activo.tagName.toLowerCase() + (activo.id ? '#' + activo.id : '')) : null,
-           focoFuera: !!fuera, hayMas: mas,
+           focus_offscreen: !!fuera, hayMas: mas,
            scroll: document.documentElement.scrollHeight,
            eventos: window.__a11yscroll ? window.__a11yscroll.eventos : [] };
 }"""
@@ -98,9 +98,9 @@ _ESTADO = r"""() => {
 
 def _agrega(hallazgos, lang, sev, code, key, **fmt):
     hallazgos.append({
-        'severidad': sev, 'criterio': CRIT.get(lang, CRIT['es']).get(code, code),
-        'senal': key, 'hallazgo': _TD.get(lang, _TD['es'])[key].format(**fmt),
-        'remediacion': _TD.get(lang, _TD['es'])[key + '_rem'].format(**fmt),
+        'severity': sev, 'criterion': CRIT.get(lang, CRIT['es']).get(code, code),
+        'signal': key, 'issue': _TD.get(lang, _TD['es'])[key].format(**fmt),
+        'remediation': _TD.get(lang, _TD['es'])[key + '_rem'].format(**fmt),
     })
 
 
@@ -122,7 +122,7 @@ def audit_scroll(url, max_tandas=5, lang='en', timeout=45, auth_state=None):
                       "  'article a[href], [role=article] a[href], main li a[href]');"
                       " if (c) c.focus(); })()")
         antes = page.evaluate(_ESTADO)
-        foco_inicial = antes['foco']
+        foco_inicial = antes['focus']
 
         tandas = []
         fin_alcanzado = False
@@ -166,11 +166,11 @@ def audit_scroll(url, max_tandas=5, lang='en', timeout=45, auth_state=None):
 
     # 1. foco (2.4.3): desaparecido o fuera de pantalla tras las tandas
     if foco_inicial:
-        if ultimo['foco'] is None:
-            _agrega(hallazgos, lang, 'alta', '2.4.3', 'scroll_focus',
+        if ultimo['focus'] is None:
+            _agrega(hallazgos, lang, 'high', '2.4.3', 'scroll_focus',
                     destino='desapareció', detalle=f'estaba en {foco_inicial}')
-        elif ultimo['focoFuera']:
-            _agrega(hallazgos, lang, 'media', '2.4.3', 'scroll_focus',
+        elif ultimo['focus_offscreen']:
+            _agrega(hallazgos, lang, 'medium', '2.4.3', 'scroll_focus',
                     destino='quedó fuera de pantalla', detalle=foco_inicial)
 
     # Guardián de honestidad: sin ítems detectados no hay feed que auditar
@@ -183,35 +183,35 @@ def audit_scroll(url, max_tandas=5, lang='en', timeout=45, auth_state=None):
 
     # 2. anuncios (4.1.3) — solo si hubo feed real
     if hay_feed_real and tandas and not ultimo['hayFeed'] and not ultimo['eventos']:
-        _agrega(hallazgos, lang, 'media', '4.1.3', 'scroll_no_announce',
+        _agrega(hallazgos, lang, 'medium', '4.1.3', 'scroll_no_announce',
                 n=len(tandas))
 
     # 3. fin/alternativa — solo si hubo feed real
     if hay_feed_real and not fin_alcanzado and not ultimo['hayMas']:
-        _agrega(hallazgos, lang, 'media', '2.2.2', 'scroll_no_end', n=len(tandas))
+        _agrega(hallazgos, lang, 'medium', '2.2.2', 'scroll_no_end', n=len(tandas))
 
     # 4. patrón APG
     if not ultimo['hayFeed']:
-        _agrega(hallazgos, lang, 'baja', '1.3.1', 'scroll_no_feed')
+        _agrega(hallazgos, lang, 'low', '1.3.1', 'scroll_no_feed')
 
-    orden = {'alta': 0, 'media': 1, 'baja': 2}
-    hallazgos.sort(key=lambda h: orden[h['severidad']])
+    orden = {'high': 0, 'medium': 1, 'low': 2}
+    hallazgos.sort(key=lambda h: orden[h['severity']])
     return {
         'url': url,
-        'modo': 'scroll',
+        'mode': 'scroll',
         'score': calcular_score(hallazgos),
-        'resumen': {s_: sum(1 for h in hallazgos if h['severidad'] == s_)
-                    for s_ in ('alta', 'media', 'baja')},
-        'items': {'antes': antes['items'], 'despues': ultimo['items']},
+        'summary': {s_: sum(1 for h in hallazgos if h['severity'] == s_)
+                    for s_ in ('high', 'medium', 'low')},
+        'items': {'before': antes['items'], 'after': ultimo['items']},
         'tandas': len(tandas),
         'fin_alcanzado': fin_alcanzado,
         'anuncios_vivos': [e['texto'] for e in ultimo['eventos'][:5]],
-        'foco': {'inicial': foco_inicial, 'final': ultimo['foco'],
-                 'fuera_de_pantalla': ultimo['focoFuera']},
+        'focus': {'inicial': foco_inicial, 'final': ultimo['focus'],
+                 'fuera_de_pantalla': ultimo['focus_offscreen']},
         'alternativa_cargar_mas': ultimo['hayMas'],
-        'nota': nota,
-        'hallazgos': hallazgos,
-        'limites': _TD.get(lang, _TD['es'])['limites'].format(n=len(tandas)),
+        'note': nota,
+        'findings': hallazgos,
+        'limits': _TD.get(lang, _TD['es'])['limits'].format(n=len(tandas)),
     }
 
 

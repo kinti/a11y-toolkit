@@ -20,7 +20,7 @@ import sys
 
 from .a11yaudit import audit_url, audit_site, audit_html
 
-NIVEL = {'alta': 'error', 'media': 'warning', 'baja': 'note'}
+NIVEL = {'high': 'error', 'medium': 'warning', 'low': 'note'}
 
 # Criterio → Understanding URL oficial de WCAG 2.2
 _UNDERSTANDING = {
@@ -57,27 +57,27 @@ def desde_informe(informe, driver_version='3.2.0'):
     """Informe(s) del auditor → dict SARIF 2.1.0.
 
     Acepta un informe individual (audit_html/audit_url) o uno 'site'
-    (con la lista 'informes')."""
-    paginas = informe.get('informes') if 'informes' in informe else [informe]
+    (con la lista 'reports')."""
+    paginas = informe.get('reports') if 'reports' in informe else [informe]
     reglas = {}
     resultados = []
     for pg in paginas:
         url = pg.get('url', '(html)')
-        for h in pg.get('hallazgos', []):
-            code = h['criterio'].split(' ')[0]
-            rule_id = f'WCAG-{code}-{h["senal"]}'
+        for h in pg.get('findings', []):
+            code = h['criterion'].split(' ')[0]
+            rule_id = f'WCAG-{code}-{h["signal"]}'
             if rule_id not in reglas:
                 reglas[rule_id] = {
                     'id': rule_id,
-                    'shortDescription': {'text': h['criterio']},
-                    'helpUri': _help_uri(h['criterio']),
+                    'shortDescription': {'text': h['criterion']},
+                    'helpUri': _help_uri(h['criterion']),
                 }
-            mensaje = h['hallazgo']
-            if h.get('remediacion'):
-                mensaje += ' — Fix: ' + h['remediacion']
+            mensaje = h['issue']
+            if h.get('remediation'):
+                mensaje += ' — Fix: ' + h['remediation']
             resultados.append({
                 'ruleId': rule_id,
-                'level': NIVEL.get(h['severidad'], 'note'),
+                'level': NIVEL.get(h['severity'], 'note'),
                 'message': {'text': mensaje},
                 'locations': [{
                     'physicalLocation': {
@@ -125,11 +125,11 @@ def main(argv):
     sarif = desde_informe(informe)
     with open(a.out, 'w', encoding='utf-8') as f:
         json.dump(sarif, f, ensure_ascii=False, indent=1)
-    resumen = informe.get('resumen', {'alta': 0, 'media': 0, 'baja': 0})
+    resumen = informe.get('summary', {'high': 0, 'medium': 0, 'low': 0})
     print(json.dumps({'sarif': a.out,
                       'resultados': len(sarif['runs'][0]['results']),
                       'score': informe.get('score'),
-                      'resumen': resumen}))
+                      'summary': resumen}))
     return 0
 
 

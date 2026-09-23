@@ -1,4 +1,4 @@
-# The a11y evidence pack — schema `a11y-evidence-pack/1`
+# The a11y evidence pack — schema `a11y-evidence-pack/2`
 
 The machine→human handoff object for WCAG conformance work: what machines
 found, what remains for a human, tamper-evident by construction. Any
@@ -14,27 +14,26 @@ this document is the citable spec. A real sample from public audits:
 
 | Field | Type | Meaning |
 |---|---|---|
-| `formato` | string, always `a11y-evidence-pack/1` | Format + major version. Pack/2 will be additive only (new optional fields); a validator must reject unknown majors. |
-| `generado` | ISO 8601 UTC | When the pack was built. |
-| `herramienta` | string | Producing tool and repo. |
-| `resumen` | object | Counts per status over the whole matrix: `automated-fail`, `automated-review`, `not-flagged`, `manual-only`, `agent-verified`, `not-run`. |
-| `criterios` | array | **The full matrix — exactly the 55 normative WCAG 2.2 A/AA criteria.** One entry per criterion: `{criterio: "1.4.3 Contrast (Minimum)", estado, nota?, valor?, esfuerzo?}`. `valor` carries the measured fact (e.g. `{medido: "3.91:1", ejemplo: "button"}`) when the finding contains one — the reviewer sees the number, not just the verdict. Statuses: `automated-fail` (a signal fired), `automated-review` (a low-severity/review signal fired), `not-flagged` (no signal fired on this sample — **explicitly NOT pass**), `not-run` (the tool HAS a signal for this criterion but the report type that carries it was not included), `manual-only` (no automated signal exists in the producing tool), `agent-verified` (an agent or human verified this criterion against this sample per the manual-checklist protocol — verification NEVER erases an `automated-fail`). Every row also carries `esfuerzo: {clase, minutos, porque}` — the human-effort class (below) and the minutes the human still owes after the machine's best signal. |
-| `esfuerzo_pendiente` | object | Remaining human review, priced by class: `{por_clase: {MIN: {criterios, minutos:[lo,hi]}, …}, total_minutos: [lo, hi], nota}` over every row not `agent-verified`. This is the quote input a review marketplace reads — agent output in, priced human scope out. |
-| `manual_pendiente` | array of strings | The criteria still needing human coverage (the `manual-only` subset NOT yet `agent-verified`). |
-| `verificacion` | object? | Present when criterion codes were passed as verified: `{fuente: "agent"|"human", protocolo}`. |
-| `artefactos` | array | The input reports. Each: `{tipo: "informe:static\|rendered\|reflow\|keyboard\|scroll" \| "snapshot:a11y", url?, score?, sha256, cuerpo}`. `sha256` = SHA-256 of the artifact's canonical JSON. `cuerpo` = the full report body, **embedded** — the pack is self-verifying: a verifier holding only the pack can recompute both `pack.sha256` and every `artefactos[].sha256` without needing the original reports. |
-| `evaluador` | object | The signature block, empty by design: `{nombre, credencial, fecha_revision, declaracion, nota}`. `declaracion` is what the human asserts; `nota` states the signing rule (below). |
-| `notas` | string? | Free text from the producer. |
-| `aviso` | string | The standing honesty statement: evidence, not conformance. |
+| `format` | string, always `a11y-evidence-pack/2` | Format + major version. Pack/2 renamed every key to English (below); a validator must reject unknown majors. |
+| `generated` | ISO 8601 UTC | When the pack was built. |
+| `tool` | string | Producing tool and repo. |
+| `summary` | object | Counts per status over the whole matrix: `automated-fail`, `automated-review`, `not-flagged`, `manual-only`, `agent-verified`, `not-run`. |
+| `criteria` | array | **The full matrix — exactly the 55 normative WCAG 2.2 A/AA criteria.** One entry per criterion: `{criterion: "1.4.3 Contrast (Minimum)", status, note?, value?, effort?}`. `value` carries the measured fact (e.g. `{measured: "3.91:1", example: "button"}`) when the finding contains one — the reviewer sees the number, not just the verdict. Statuses: `automated-fail` (a signal fired), `automated-review` (a low-severity/review signal fired), `not-flagged` (no signal fired on this sample — **explicitly NOT pass**), `not-run` (the tool HAS a signal for this criterion but the report type that carries it was not included), `manual-only` (no automated signal exists in the producing tool), `agent-verified` (an agent or human verified this criterion against this sample per the manual-checklist protocol — verification NEVER erases an `automated-fail`). Every row also carries `effort: {class, minutes, why}` — the human-effort class (below) and the minutes the human still owes after the machine's best signal. |
+| `effort_pending` | object | Remaining human review, priced by class: `{by_class: {MIN: {criteria, minutes:[lo,hi]}, …}, total_minutes: [lo, hi], note}` over every row not `agent-verified`. This is the quote input a review marketplace reads — agent output in, priced human scope out. |
+| `manual_pending` | array of strings | The criteria still needing human coverage (the `manual-only` subset NOT yet `agent-verified`). |
+| `verification` | object? | Present when criterion codes were passed as verified: `{source: "agent"|"human", protocol}`. |
+| `artifacts` | array | The input reports. Each: `{type: "report:static\|report:rendered\|report:reflow\|report:keyboard\|report:scroll" \| "snapshot:a11y", url?, score?, sha256, body}`. `sha256` = SHA-256 of the artifact's canonical JSON. `body` = the full report body, **embedded** — the pack is self-verifying: a verifier holding only the pack can recompute both `pack.sha256` and every `artifacts[].sha256` without needing the original reports. |
+| `reviewer` | object | The signature block, empty by design: `{name, credential, review_date, statement, note}`. `statement` is what the human asserts; `note` states the signing rule (below). |
+| `notes` | string? | Free text from the producer. |
+| `notice` | string | The standing honesty statement: evidence, not conformance. |
 | `sha256` | string | **Pack hash**: SHA-256 of the pack's canonical JSON **with the `sha256` field removed**. Any mutation of any field breaks it. |
+
+**Pack/2 rename (2026-09-23)**: every wire key is now English — `criterios`→`criteria`, `estado`→`status`, `esfuerzo`→`effort`, `artefactos`→`artifacts`, `evaluador`→`reviewer`, `informes`→`reports` (tool argument), `verificados`→`verified` (tool argument), `formato`→`format`, and the rest per the pack itself. Pack/1 packs remain valid historical documents; builders MUST emit pack/2.
+
 
 **Pack/1 compatibility note**: `agent-verified` and `verificacion` were added
 as an additive extension within pack/1 (2026-09-15) — new optional status
 value and field, no renames or removals, per the versioning promise below.
-
-**On field names**: keys like `informes`, `evaluador`, `senal` are historical
-Spanish from the format's origin, frozen for pack/1 stability (builders depend
-on them); any pack/2 keeps every existing key untouched.
 
 **Self-verifying (pack/1.1 change, 2026-09-19)**: artifact bodies are now
 embedded in the pack. A verifier holding only the pack recomputes every hash
@@ -92,10 +91,10 @@ An external attestation must **reference, never restate**:
 ```json
 {
   "evidence": {
-    "formato": "a11y-evidence-pack/1",
+    "format": "a11y-evidence-pack/2",
     "sha256": "<pack.sha256>",
     "generado": "<pack.generado>",
-    "artefactos_verificados": ["<sha256>", "<sha256>"]
+    "artifacts_verified": ["<sha256>", "<sha256>"]
   },
   "criterios_firmados": ["the manual-only list, or a subset actually reviewed"],
   "nombre": "…", "credencial": "…", "fecha": "…"

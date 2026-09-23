@@ -211,12 +211,12 @@ def generar(entidad, url, estado, contenido_no_accesible=None, metodo=None,
 '''
     return {
         'html': doc,
-        'resumen': {
-            'entidad': entidad, 'url': url, 'marco': marco, 'lang': lang,
-            'estado': titulo_estado,
-            'items_no_accesibles': len(contenido_no_accesible),
-            'fechas': {'evaluacion': fecha_evaluacion, 'declaracion': HOY,
-                       'revision': fecha_revision},
+        'summary': {
+            'entity': entidad, 'url': url, 'framework': marco, 'lang': lang,
+            'status': titulo_estado,
+            'inaccessible_items': len(contenido_no_accesible),
+            'dates': {'evaluation': fecha_evaluacion, 'declaracion': HOY,
+                       'review': fecha_revision},
         },
     }
 
@@ -246,7 +246,7 @@ def main(argv):
     if a.output:
         with open(a.output, 'w', encoding='utf-8') as f:
             f.write(res['html'])
-        print(json.dumps(res['resumen'], ensure_ascii=False, indent=1))
+        print(json.dumps(res['summary'], ensure_ascii=False, indent=1))
     else:
         print(res['html'])
     return 0

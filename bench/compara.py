@@ -95,8 +95,8 @@ def compara(url, lang='en'):
         axe_bruto = axe_en_pagina(page)
         nav.close()
 
-    tk_est = {h['criterio'].split(' ')[0] for h in informe_estatico.get('hallazgos', [])}
-    tk_dom = {h['criterio'].split(' ')[0] for h in informe_dom.get('hallazgos', [])}
+    tk_est = {h['criterion'].split(' ')[0] for h in informe_estatico.get('findings', [])}
+    tk_dom = {h['criterion'].split(' ')[0] for h in informe_dom.get('findings', [])}
     tk = tk_est | tk_dom
     ax = set(axe_a_criterios(axe_bruto))
 
@@ -105,7 +105,7 @@ def compara(url, lang='en'):
         'toolkit': {'score_estatico': informe_estatico.get('score'),
                     'score_dom': informe_dom.get('score'),
                     'criterios': sorted(tk),
-                    'hallazgos_dom': len(informe_dom.get('hallazgos', []))},
+                    'findings_dom': len(informe_dom.get('findings', []))},
         'axe': {'violaciones': [(v['id'], v['nodos'], v['impacto']) for v in axe_bruto['violations']],
                 'criterios': sorted(ax)},
         'coinciden': sorted(tk & ax),
@@ -113,9 +113,9 @@ def compara(url, lang='en'):
         'solo_toolkit': sorted(tk - ax),  # candidatos a falso positivo o señal extra
         'divergencias_detalle': {
             'solo_axe': {c: axe_a_criterios(axe_bruto)[c] for c in sorted(ax - tk)},
-            'solo_toolkit': {c: [h for h in (informe_estatico.get('hallazgos', []) +
-                                             informe_dom.get('hallazgos', []))
-                                 if h['criterio'].startswith(c)]
+            'solo_toolkit': {c: [h for h in (informe_estatico.get('findings', []) +
+                                             informe_dom.get('findings', []))
+                                 if h['criterion'].startswith(c)]
                              for c in sorted(tk - ax)},
         },
     }

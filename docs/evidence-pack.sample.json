@@ -1,910 +1,846 @@
 {
- "formato": "a11y-evidence-pack/1",
- "generado": "2026-09-21T22:58:40+00:00",
- "herramienta": "a11y-toolkit (github.com/kinti/a11y-toolkit)",
- "resumen": {
-  "automated-fail": 4,
-  "automated-review": 1,
-  "not-flagged": 46,
+ "format": "a11y-evidence-pack/2",
+ "generated": "2026-09-23T16:46:17+00:00",
+ "tool": "a11y-toolkit (github.com/kinti/a11y-toolkit)",
+ "summary": {
+  "automated-fail": 5,
+  "automated-review": 0,
+  "not-flagged": 36,
   "manual-only": 4,
   "agent-verified": 0,
-  "not-run": 0
+  "not-run": 10
  },
- "esfuerzo_pendiente": {
-  "por_clase": {
+ "effort_pending": {
+  "by_class": {
    "MAX": {
-    "criterios": 13,
-    "minutos": [
+    "criteria": 13,
+    "minutes": [
      195,
      390
     ]
    },
    "MED": {
-    "criterios": 19,
-    "minutos": [
+    "criteria": 19,
+    "minutes": [
      95,
      190
     ]
    },
    "MIN": {
-    "criterios": 23,
-    "minutos": [
+    "criteria": 23,
+    "minutes": [
      23,
      69
     ]
    }
   },
-  "total_minutos": [
+  "total_minutes": [
    313,
    649
   ],
-  "nota": "human review remaining after the machine, per class (MIN 1-3, MED 5-10, MAX 15-30 min per criterion)"
+  "note": "human review remaining after the machine, per class (MIN 1-3, MED 5-10, MAX 15-30 min per criterion)"
  },
- "criterios": [
+ "criteria": [
   {
-   "criterio": "1.1.1 Non-text Content",
-   "estado": "not-flagged",
-   "nota": "not-flagged ≠ pass: no automated signal fired on this sample",
-   "esfuerzo": {
-    "clase": "MIN",
-    "minutos": [
+   "criterion": "1.1.1 Non-text Content",
+   "status": "automated-fail",
+   "note": null,
+   "effort": {
+    "class": "MIN",
+    "minutes": [
      1,
      3
     ],
-    "porque": "alt presence is measured; scan for the image the heuristic missed."
-   }
-  },
-  {
-   "criterio": "1.2.2 Captions (Prerecorded)",
-   "estado": "not-flagged",
-   "nota": "not-flagged ≠ pass: no automated signal fired on this sample",
-   "esfuerzo": {
-    "clase": "MIN",
-    "minutos": [
-     1,
-     3
-    ],
-    "porque": "caption track presence detected; confirm the captions are real."
-   }
-  },
-  {
-   "criterio": "1.2.3 Audio Description or Media Alternative",
-   "estado": "not-flagged",
-   "nota": "not-flagged ≠ pass: no automated signal fired on this sample",
-   "esfuerzo": {
-    "clase": "MAX",
-    "minutos": [
-     15,
-     30
-    ],
-    "porque": "watch the media and judge whether an alternative covers essential visuals."
-   }
-  },
-  {
-   "criterio": "1.2.5 Audio Description (Prerecorded)",
-   "estado": "not-flagged",
-   "nota": "not-flagged ≠ pass: no automated signal fired on this sample",
-   "esfuerzo": {
-    "clase": "MAX",
-    "minutos": [
-     15,
-     30
-    ],
-    "porque": "audio description requires watching and judging the video."
-   }
-  },
-  {
-   "criterio": "1.3.1 Info and Relationships",
-   "estado": "automated-fail",
-   "nota": null,
-   "esfuerzo": {
-    "clase": "MED",
-    "minutos": [
-     5,
-     10
-    ],
-    "porque": "semantic structure signals (fieldsets, heading skips, lists); navigate with a screen reader."
-   }
-  },
-  {
-   "criterio": "1.3.2 Meaningful Sequence",
-   "estado": "automated-review",
-   "nota": null,
-   "esfuerzo": {
-    "clase": "MED",
-    "minutos": [
-     5,
-     10
-    ],
-    "porque": "DOM vs visual order from snapshot and tab walk; spot-check layout exceptions."
-   }
-  },
-  {
-   "criterio": "1.3.3 Sensory Characteristics",
-   "estado": "not-flagged",
-   "nota": "not-flagged ≠ pass: no automated signal fired on this sample",
-   "esfuerzo": {
-    "clase": "MIN",
-    "minutos": [
-     1,
-     3
-    ],
-    "porque": "sensory-instruction phrases detected; read the instructions once."
-   }
-  },
-  {
-   "criterio": "1.3.4 Orientation",
-   "estado": "not-flagged",
-   "nota": "not-flagged ≠ pass: no automated signal fired on this sample",
-   "esfuerzo": {
-    "clase": "MIN",
-    "minutos": [
-     1,
-     3
-    ],
-    "porque": "orientation-lock CSS/JS detected; confirm on a device."
-   }
-  },
-  {
-   "criterio": "1.3.5 Identify Input Purpose",
-   "estado": "not-flagged",
-   "nota": "not-flagged ≠ pass: no automated signal fired on this sample",
-   "esfuerzo": {
-    "clase": "MIN",
-    "minutos": [
-     1,
-     3
-    ],
-    "porque": "autocomplete token per input measured; confirm."
-   }
-  },
-  {
-   "criterio": "1.4.1 Use of Color",
-   "estado": "not-flagged",
-   "nota": "not-flagged ≠ pass: no automated signal fired on this sample",
-   "esfuerzo": {
-    "clase": "MED",
-    "minutos": [
-     5,
-     10
-    ],
-    "porque": "link-vs-text color ratio computed; verify visually."
-   }
-  },
-  {
-   "criterio": "1.4.10 Reflow",
-   "estado": "not-flagged",
-   "nota": "not-flagged ≠ pass: no automated signal fired on this sample",
-   "esfuerzo": {
-    "clase": "MED",
-    "minutos": [
-     5,
-     10
-    ],
-    "porque": "320px reflow measured with real overflow; navigate the reflowed content."
-   }
-  },
-  {
-   "criterio": "1.4.11 Non-text Contrast",
-   "estado": "not-flagged",
-   "nota": "not-flagged ≠ pass: no automated signal fired on this sample",
-   "esfuerzo": {
-    "clase": "MED",
-    "minutos": [
-     5,
-     10
-    ],
-    "porque": "focus-indicator contrast computed; verify visually."
-   }
-  },
-  {
-   "criterio": "1.4.12 Text Spacing",
-   "estado": "automated-fail",
-   "nota": null,
-   "esfuerzo": {
-    "clase": "MED",
-    "minutos": [
-     5,
-     10
-    ],
-    "porque": "text-spacing overrides injected, clipping counted; verify."
+    "why": "alt presence is measured; scan for the image the heuristic missed."
    },
-   "valor": {
-    "ejemplo": "a"
+   "value": {
+    "example": "hero.jpg"
    }
   },
   {
-   "criterio": "1.4.13 Content on Hover or Focus",
-   "estado": "not-flagged",
-   "nota": "not-flagged ≠ pass: no automated signal fired on this sample",
-   "esfuerzo": {
-    "clase": "MED",
-    "minutos": [
-     5,
-     10
-    ],
-    "porque": "hover + Escape dismissibility tested; verify."
-   }
-  },
-  {
-   "criterio": "1.4.2 Audio Control",
-   "estado": "not-flagged",
-   "nota": "not-flagged ≠ pass: no automated signal fired on this sample",
-   "esfuerzo": {
-    "clase": "MIN",
-    "minutos": [
+   "criterion": "1.2.2 Captions (Prerecorded)",
+   "status": "not-flagged",
+   "note": "not-flagged ≠ pass: no automated signal fired on this sample",
+   "effort": {
+    "class": "MIN",
+    "minutes": [
      1,
      3
     ],
-    "porque": "autoplay-with-audio detected; confirm."
+    "why": "caption track presence detected; confirm the captions are real."
    }
   },
   {
-   "criterio": "1.4.3 Contrast (Minimum)",
-   "estado": "automated-fail",
-   "nota": null,
-   "esfuerzo": {
-    "clase": "MAX",
-    "minutos": [
+   "criterion": "1.2.3 Audio Description or Media Alternative",
+   "status": "not-flagged",
+   "note": "not-flagged ≠ pass: no automated signal fired on this sample",
+   "effort": {
+    "class": "MAX",
+    "minutes": [
      15,
      30
     ],
-    "porque": "computed ratios are evidence, not verdicts; gradients, images and hover states still need review."
+    "why": "watch the media and judge whether an alternative covers essential visuals."
+   }
+  },
+  {
+   "criterion": "1.2.5 Audio Description (Prerecorded)",
+   "status": "not-flagged",
+   "note": "not-flagged ≠ pass: no automated signal fired on this sample",
+   "effort": {
+    "class": "MAX",
+    "minutes": [
+     15,
+     30
+    ],
+    "why": "audio description requires watching and judging the video."
+   }
+  },
+  {
+   "criterion": "1.3.1 Info and Relationships",
+   "status": "not-flagged",
+   "note": "not-flagged ≠ pass: no automated signal fired on this sample",
+   "effort": {
+    "class": "MED",
+    "minutes": [
+     5,
+     10
+    ],
+    "why": "semantic structure signals (fieldsets, heading skips, lists); navigate with a screen reader."
+   }
+  },
+  {
+   "criterion": "1.3.2 Meaningful Sequence",
+   "status": "not-run",
+   "note": "requires rendered mode (a11y_audit_dom) — this pack only includes the static audit, so no signal was tried",
+   "effort": {
+    "class": "MED",
+    "minutes": [
+     5,
+     10
+    ],
+    "why": "DOM vs visual order from snapshot and tab walk; spot-check layout exceptions."
+   }
+  },
+  {
+   "criterion": "1.3.3 Sensory Characteristics",
+   "status": "not-flagged",
+   "note": "not-flagged ≠ pass: no automated signal fired on this sample",
+   "effort": {
+    "class": "MIN",
+    "minutes": [
+     1,
+     3
+    ],
+    "why": "sensory-instruction phrases detected; read the instructions once."
+   }
+  },
+  {
+   "criterion": "1.3.4 Orientation",
+   "status": "not-flagged",
+   "note": "not-flagged ≠ pass: no automated signal fired on this sample",
+   "effort": {
+    "class": "MIN",
+    "minutes": [
+     1,
+     3
+    ],
+    "why": "orientation-lock CSS/JS detected; confirm on a device."
+   }
+  },
+  {
+   "criterion": "1.3.5 Identify Input Purpose",
+   "status": "not-flagged",
+   "note": "not-flagged ≠ pass: no automated signal fired on this sample",
+   "effort": {
+    "class": "MIN",
+    "minutes": [
+     1,
+     3
+    ],
+    "why": "autocomplete token per input measured; confirm."
+   }
+  },
+  {
+   "criterion": "1.4.1 Use of Color",
+   "status": "not-run",
+   "note": "requires rendered mode (a11y_audit_dom) — this pack only includes the static audit, so no signal was tried",
+   "effort": {
+    "class": "MED",
+    "minutes": [
+     5,
+     10
+    ],
+    "why": "link-vs-text color ratio computed; verify visually."
+   }
+  },
+  {
+   "criterion": "1.4.10 Reflow",
+   "status": "not-flagged",
+   "note": "not-flagged ≠ pass: no automated signal fired on this sample",
+   "effort": {
+    "class": "MED",
+    "minutes": [
+     5,
+     10
+    ],
+    "why": "320px reflow measured with real overflow; navigate the reflowed content."
+   }
+  },
+  {
+   "criterion": "1.4.11 Non-text Contrast",
+   "status": "not-flagged",
+   "note": "not-flagged ≠ pass: no automated signal fired on this sample",
+   "effort": {
+    "class": "MED",
+    "minutes": [
+     5,
+     10
+    ],
+    "why": "focus-indicator contrast computed; verify visually."
+   }
+  },
+  {
+   "criterion": "1.4.12 Text Spacing",
+   "status": "not-run",
+   "note": "requires rendered mode (a11y_audit_dom) — this pack only includes the static audit, so no signal was tried",
+   "effort": {
+    "class": "MED",
+    "minutes": [
+     5,
+     10
+    ],
+    "why": "text-spacing overrides injected, clipping counted; verify."
+   }
+  },
+  {
+   "criterion": "1.4.13 Content on Hover or Focus",
+   "status": "not-flagged",
+   "note": "not-flagged ≠ pass: no automated signal fired on this sample",
+   "effort": {
+    "class": "MED",
+    "minutes": [
+     5,
+     10
+    ],
+    "why": "hover + Escape dismissibility tested; verify."
+   }
+  },
+  {
+   "criterion": "1.4.2 Audio Control",
+   "status": "not-flagged",
+   "note": "not-flagged ≠ pass: no automated signal fired on this sample",
+   "effort": {
+    "class": "MIN",
+    "minutes": [
+     1,
+     3
+    ],
+    "why": "autoplay-with-audio detected; confirm."
+   }
+  },
+  {
+   "criterion": "1.4.3 Contrast (Minimum)",
+   "status": "not-run",
+   "note": "requires rendered mode (a11y_audit_dom) — this pack only includes the static audit, so no signal was tried",
+   "effort": {
+    "class": "MAX",
+    "minutes": [
+     15,
+     30
+    ],
+    "why": "computed ratios are evidence, not verdicts; gradients, images and hover states still need review."
+   }
+  },
+  {
+   "criterion": "1.4.4 Resize Text",
+   "status": "not-flagged",
+   "note": "not-flagged ≠ pass: no automated signal fired on this sample",
+   "effort": {
+    "class": "MIN",
+    "minutes": [
+     1,
+     3
+    ],
+    "why": "viewport zoom block measured; confirm."
+   }
+  },
+  {
+   "criterion": "1.4.5 Images of Text",
+   "status": "not-flagged",
+   "note": "not-flagged ≠ pass: no automated signal fired on this sample",
+   "effort": {
+    "class": "MED",
+    "minutes": [
+     5,
+     10
+    ],
+    "why": "images-of-text candidates detected; judge logo and text exceptions."
+   }
+  },
+  {
+   "criterion": "2.1.1 Keyboard",
+   "status": "not-flagged",
+   "note": "not-flagged ≠ pass: no automated signal fired on this sample",
+   "effort": {
+    "class": "MED",
+    "minutes": [
+     5,
+     10
+    ],
+    "why": "click handlers on non-interactive elements detected; Tab the page."
+   }
+  },
+  {
+   "criterion": "2.1.2 No Keyboard Trap",
+   "status": "not-flagged",
+   "note": "not-flagged ≠ pass: no automated signal fired on this sample",
+   "effort": {
+    "class": "MAX",
+    "minutes": [
+     15,
+     30
+    ],
+    "why": "real Tab walk plus Escape test per modal and iframe."
+   }
+  },
+  {
+   "criterion": "2.1.4 Character Key Shortcuts",
+   "status": "not-flagged",
+   "note": "not-flagged ≠ pass: no automated signal fired on this sample",
+   "effort": {
+    "class": "MAX",
+    "minutes": [
+     15,
+     30
+    ],
+    "why": "single-character shortcuts tested by typing in every field."
+   }
+  },
+  {
+   "criterion": "2.2.1 Timing Adjustable",
+   "status": "not-flagged",
+   "note": "not-flagged ≠ pass: no automated signal fired on this sample",
+   "effort": {
+    "class": "MIN",
+    "minutes": [
+     1,
+     3
+    ],
+    "why": "meta refresh and timing scripts detected; confirm."
+   }
+  },
+  {
+   "criterion": "2.2.2 Pause, Stop, Hide",
+   "status": "not-run",
+   "note": "requires rendered mode (a11y_audit_dom) — this pack only includes the static audit, so no signal was tried",
+   "effort": {
+    "class": "MED",
+    "minutes": [
+     5,
+     10
+    ],
+    "why": "looping animations computed; verify the pause control."
+   }
+  },
+  {
+   "criterion": "2.4.1 Bypass Blocks",
+   "status": "automated-fail",
+   "note": null,
+   "effort": {
+    "class": "MIN",
+    "minutes": [
+     1,
+     3
+    ],
+    "why": "missing main/skip detected; confirm."
+   }
+  },
+  {
+   "criterion": "2.4.11 Focus Not Obscured (Minimum) — NEW in WCAG 2.2",
+   "status": "not-run",
+   "note": "requires rendered mode (a11y_audit_dom) — this pack only includes the static audit, so no signal was tried",
+   "effort": {
+    "class": "MED",
+    "minutes": [
+     5,
+     10
+    ],
+    "why": "sticky header vs scroll-padding measured; Tab the page."
+   }
+  },
+  {
+   "criterion": "2.4.2 Page Titled",
+   "status": "not-flagged",
+   "note": "not-flagged ≠ pass: no automated signal fired on this sample",
+   "effort": {
+    "class": "MIN",
+    "minutes": [
+     1,
+     3
+    ],
+    "why": "missing or empty title detected; confirm."
+   }
+  },
+  {
+   "criterion": "2.4.3 Focus Order",
+   "status": "not-flagged",
+   "note": "not-flagged ≠ pass: no automated signal fired on this sample",
+   "effort": {
+    "class": "MIN",
+    "minutes": [
+     1,
+     3
+    ],
+    "why": "positive tabindex detected; confirm."
+   }
+  },
+  {
+   "criterion": "2.4.4 Link Purpose (In Context)",
+   "status": "not-flagged",
+   "note": "not-flagged ≠ pass: no automated signal fired on this sample",
+   "effort": {
+    "class": "MIN",
+    "minutes": [
+     1,
+     3
+    ],
+    "why": "generic link text detected; read the links in context."
+   }
+  },
+  {
+   "criterion": "2.4.5 Multiple Ways",
+   "status": "not-flagged",
+   "note": "not-flagged ≠ pass: no automated signal fired on this sample",
+   "effort": {
+    "class": "MED",
+    "minutes": [
+     5,
+     10
+    ],
+    "why": "nav/sitemap/search presence from the crawl; confirm."
+   }
+  },
+  {
+   "criterion": "2.4.6 Headings and Labels",
+   "status": "not-flagged",
+   "note": "not-flagged ≠ pass: no automated signal fired on this sample",
+   "effort": {
+    "class": "MED",
+    "minutes": [
+     5,
+     10
+    ],
+    "why": "vague headings detected; read them in context."
+   }
+  },
+  {
+   "criterion": "2.4.7 Focus Visible",
+   "status": "not-run",
+   "note": "requires rendered mode (a11y_audit_dom) — this pack only includes the static audit, so no signal was tried",
+   "effort": {
+    "class": "MAX",
+    "minutes": [
+     15,
+     30
+    ],
+    "why": "focus visibility measured per stop; Tab the whole site."
+   }
+  },
+  {
+   "criterion": "2.5.1 Pointer Gestures",
+   "status": "not-flagged",
+   "note": "not-flagged ≠ pass: no automated signal fired on this sample",
+   "effort": {
+    "class": "MED",
+    "minutes": [
+     5,
+     10
+    ],
+    "why": "gesture listeners without alternatives detected; try the gesture."
+   }
+  },
+  {
+   "criterion": "2.5.2 Pointer Cancellation",
+   "status": "not-flagged",
+   "note": "not-flagged ≠ pass: no automated signal fired on this sample",
+   "effort": {
+    "class": "MIN",
+    "minutes": [
+     1,
+     3
+    ],
+    "why": "down-event-only handlers detected; confirm."
+   }
+  },
+  {
+   "criterion": "2.5.3 Label in Name",
+   "status": "not-flagged",
+   "note": "not-flagged ≠ pass: no automated signal fired on this sample",
+   "effort": {
+    "class": "MIN",
+    "minutes": [
+     1,
+     3
+    ],
+    "why": "label-in-name mismatch computed; confirm."
+   }
+  },
+  {
+   "criterion": "2.5.4 Motion Actuation",
+   "status": "not-flagged",
+   "note": "not-flagged ≠ pass: no automated signal fired on this sample",
+   "effort": {
+    "class": "MIN",
+    "minutes": [
+     1,
+     3
+    ],
+    "why": "motion actuation without UI detected; confirm."
+   }
+  },
+  {
+   "criterion": "2.5.7 Dragging Movements",
+   "status": "not-flagged",
+   "note": "not-flagged ≠ pass: no automated signal fired on this sample",
+   "effort": {
+    "class": "MED",
+    "minutes": [
+     5,
+     10
+    ],
+    "why": "drag listeners detected; try the click path."
+   }
+  },
+  {
+   "criterion": "2.5.8 Target Size (Minimum) — NEW in WCAG 2.2",
+   "status": "not-run",
+   "note": "requires rendered mode (a11y_audit_dom) — this pack only includes the static audit, so no signal was tried",
+   "effort": {
+    "class": "MED",
+    "minutes": [
+     5,
+     10
+    ],
+    "why": "target rects measured; check the inline/equivalent exceptions."
+   }
+  },
+  {
+   "criterion": "3.1.1 Language of Page",
+   "status": "not-flagged",
+   "note": "not-flagged ≠ pass: no automated signal fired on this sample",
+   "effort": {
+    "class": "MIN",
+    "minutes": [
+     1,
+     3
+    ],
+    "why": "page lang missing or invalid, measured; confirm."
+   }
+  },
+  {
+   "criterion": "3.1.2 Language of Parts",
+   "status": "not-flagged",
+   "note": "not-flagged ≠ pass: no automated signal fired on this sample",
+   "effort": {
+    "class": "MIN",
+    "minutes": [
+     1,
+     3
+    ],
+    "why": "part lang invalid, measured; confirm."
+   }
+  },
+  {
+   "criterion": "3.2.1 On Focus",
+   "status": "not-run",
+   "note": "requires rendered mode (a11y_audit_dom) — this pack only includes the static audit, so no signal was tried",
+   "effort": {
+    "class": "MIN",
+    "minutes": [
+     1,
+     3
+    ],
+    "why": "focus-triggered navigation detected; confirm."
+   }
+  },
+  {
+   "criterion": "3.2.2 On Input",
+   "status": "not-run",
+   "note": "requires rendered mode (a11y_audit_dom) — this pack only includes the static audit, so no signal was tried",
+   "effort": {
+    "class": "MIN",
+    "minutes": [
+     1,
+     3
+    ],
+    "why": "select-triggered navigation detected; confirm."
+   }
+  },
+  {
+   "criterion": "3.2.3 Consistent Navigation",
+   "status": "not-flagged",
+   "note": "not-flagged ≠ pass: no automated signal fired on this sample",
+   "effort": {
+    "class": "MED",
+    "minutes": [
+     5,
+     10
+    ],
+    "why": "nav consistency compared across crawled pages; confirm the order."
+   }
+  },
+  {
+   "criterion": "3.2.4 Consistent Identification",
+   "status": "not-flagged",
+   "note": "not-flagged ≠ pass: no automated signal fired on this sample",
+   "effort": {
+    "class": "MED",
+    "minutes": [
+     5,
+     10
+    ],
+    "why": "consistent identification compared across pages; confirm the icons."
+   }
+  },
+  {
+   "criterion": "3.2.6 Consistent Help — NEW in WCAG 2.2",
+   "status": "not-flagged",
+   "note": "not-flagged ≠ pass: no automated signal fired on this sample",
+   "effort": {
+    "class": "MIN",
+    "minutes": [
+     1,
+     3
+    ],
+    "why": "help presence compared across crawled pages; confirm."
+   }
+  },
+  {
+   "criterion": "3.3.1 Error Identification",
+   "status": "not-flagged",
+   "note": "not-flagged ≠ pass: no automated signal fired on this sample",
+   "effort": {
+    "class": "MAX",
+    "minutes": [
+     15,
+     30
+    ],
+    "why": "invalid submissions fired and the DOM judged; verify with a screen reader."
+   }
+  },
+  {
+   "criterion": "3.3.2 Labels or Instructions",
+   "status": "automated-fail",
+   "note": null,
+   "effort": {
+    "class": "MIN",
+    "minutes": [
+     1,
+     3
+    ],
+    "why": "placeholder-only and unlabeled required fields measured; read each label."
    },
-   "valor": {
-    "medido": "3.91:1",
-    "ejemplo": "rgb(29,112,184) over rgb(210,226,241) → 3.91:1 (e.g. div > div > div > button)"
+   "value": {
+    "example": "text name=(sin name)"
    }
   },
   {
-   "criterio": "1.4.4 Resize Text",
-   "estado": "not-flagged",
-   "nota": "not-flagged ≠ pass: no automated signal fired on this sample",
-   "esfuerzo": {
-    "clase": "MIN",
-    "minutos": [
-     1,
-     3
-    ],
-    "porque": "viewport zoom block measured; confirm."
-   }
-  },
-  {
-   "criterio": "1.4.5 Images of Text",
-   "estado": "not-flagged",
-   "nota": "not-flagged ≠ pass: no automated signal fired on this sample",
-   "esfuerzo": {
-    "clase": "MED",
-    "minutos": [
-     5,
-     10
-    ],
-    "porque": "images-of-text candidates detected; judge logo and text exceptions."
-   }
-  },
-  {
-   "criterio": "2.1.1 Keyboard",
-   "estado": "not-flagged",
-   "nota": "not-flagged ≠ pass: no automated signal fired on this sample",
-   "esfuerzo": {
-    "clase": "MED",
-    "minutos": [
-     5,
-     10
-    ],
-    "porque": "click handlers on non-interactive elements detected; Tab the page."
-   }
-  },
-  {
-   "criterio": "2.1.2 No Keyboard Trap",
-   "estado": "not-flagged",
-   "nota": "not-flagged ≠ pass: no automated signal fired on this sample",
-   "esfuerzo": {
-    "clase": "MAX",
-    "minutos": [
+   "criterion": "3.3.3 Error Suggestion",
+   "status": "not-flagged",
+   "note": "not-flagged ≠ pass: no automated signal fired on this sample",
+   "effort": {
+    "class": "MAX",
+    "minutes": [
      15,
      30
     ],
-    "porque": "real Tab walk plus Escape test per modal and iframe."
+    "why": "read and judge each correction suggestion."
    }
   },
   {
-   "criterio": "2.1.4 Character Key Shortcuts",
-   "estado": "not-flagged",
-   "nota": "not-flagged ≠ pass: no automated signal fired on this sample",
-   "esfuerzo": {
-    "clase": "MAX",
-    "minutos": [
+   "criterion": "3.3.4 Error Prevention (Legal, Financial, Data)",
+   "status": "not-flagged",
+   "note": "not-flagged ≠ pass: no automated signal fired on this sample",
+   "effort": {
+    "class": "MAX",
+    "minutes": [
      15,
      30
     ],
-    "porque": "single-character shortcuts tested by typing in every field."
+    "why": "reversible-transaction check requires walking the flow."
    }
   },
   {
-   "criterio": "2.2.1 Timing Adjustable",
-   "estado": "not-flagged",
-   "nota": "not-flagged ≠ pass: no automated signal fired on this sample",
-   "esfuerzo": {
-    "clase": "MIN",
-    "minutos": [
+   "criterion": "3.3.8 Accessible Authentication — NEW in WCAG 2.2",
+   "status": "not-flagged",
+   "note": "not-flagged ≠ pass: no automated signal fired on this sample",
+   "effort": {
+    "class": "MIN",
+    "minutes": [
      1,
      3
     ],
-    "porque": "meta refresh and timing scripts detected; confirm."
+    "why": "captcha detected; confirm an alternative exists."
    }
   },
   {
-   "criterio": "2.2.2 Pause, Stop, Hide",
-   "estado": "not-flagged",
-   "nota": "not-flagged ≠ pass: no automated signal fired on this sample",
-   "esfuerzo": {
-    "clase": "MED",
-    "minutos": [
-     5,
-     10
-    ],
-    "porque": "looping animations computed; verify the pause control."
-   }
-  },
-  {
-   "criterio": "2.4.1 Bypass Blocks",
-   "estado": "not-flagged",
-   "nota": "not-flagged ≠ pass: no automated signal fired on this sample",
-   "esfuerzo": {
-    "clase": "MIN",
-    "minutos": [
+   "criterion": "4.1.2 Name, Role, Value",
+   "status": "automated-fail",
+   "note": null,
+   "effort": {
+    "class": "MIN",
+    "minutes": [
      1,
      3
     ],
-    "porque": "missing main/skip detected; confirm."
+    "why": "invalid roles, broken refs and missing state measured; confirm."
    }
   },
   {
-   "criterio": "2.4.11 Focus Not Obscured (Minimum) — NEW in WCAG 2.2",
-   "estado": "not-flagged",
-   "nota": "not-flagged ≠ pass: no automated signal fired on this sample",
-   "esfuerzo": {
-    "clase": "MED",
-    "minutos": [
-     5,
-     10
-    ],
-    "porque": "sticky header vs scroll-padding measured; Tab the page."
-   }
-  },
-  {
-   "criterio": "2.4.2 Page Titled",
-   "estado": "not-flagged",
-   "nota": "not-flagged ≠ pass: no automated signal fired on this sample",
-   "esfuerzo": {
-    "clase": "MIN",
-    "minutos": [
-     1,
-     3
-    ],
-    "porque": "missing or empty title detected; confirm."
-   }
-  },
-  {
-   "criterio": "2.4.3 Focus Order",
-   "estado": "not-flagged",
-   "nota": "not-flagged ≠ pass: no automated signal fired on this sample",
-   "esfuerzo": {
-    "clase": "MIN",
-    "minutos": [
-     1,
-     3
-    ],
-    "porque": "positive tabindex detected; confirm."
-   }
-  },
-  {
-   "criterio": "2.4.4 Link Purpose (In Context)",
-   "estado": "not-flagged",
-   "nota": "not-flagged ≠ pass: no automated signal fired on this sample",
-   "esfuerzo": {
-    "clase": "MIN",
-    "minutos": [
-     1,
-     3
-    ],
-    "porque": "generic link text detected; read the links in context."
-   }
-  },
-  {
-   "criterio": "2.4.5 Multiple Ways",
-   "estado": "not-flagged",
-   "nota": "not-flagged ≠ pass: no automated signal fired on this sample",
-   "esfuerzo": {
-    "clase": "MED",
-    "minutos": [
-     5,
-     10
-    ],
-    "porque": "nav/sitemap/search presence from the crawl; confirm."
-   }
-  },
-  {
-   "criterio": "2.4.6 Headings and Labels",
-   "estado": "not-flagged",
-   "nota": "not-flagged ≠ pass: no automated signal fired on this sample",
-   "esfuerzo": {
-    "clase": "MED",
-    "minutos": [
-     5,
-     10
-    ],
-    "porque": "vague headings detected; read them in context."
-   }
-  },
-  {
-   "criterio": "2.4.7 Focus Visible",
-   "estado": "not-flagged",
-   "nota": "not-flagged ≠ pass: no automated signal fired on this sample",
-   "esfuerzo": {
-    "clase": "MAX",
-    "minutos": [
+   "criterion": "4.1.3 Status Messages",
+   "status": "automated-fail",
+   "note": null,
+   "effort": {
+    "class": "MAX",
+    "minutes": [
      15,
      30
     ],
-    "porque": "focus visibility measured per stop; Tab the whole site."
+    "why": "fire each status message and listen for the announcement."
    }
   },
   {
-   "criterio": "2.5.1 Pointer Gestures",
-   "estado": "not-flagged",
-   "nota": "not-flagged ≠ pass: no automated signal fired on this sample",
-   "esfuerzo": {
-    "clase": "MED",
-    "minutos": [
+   "criterion": "1.2.1 Audio-only and Video-only (Prerecorded)",
+   "status": "manual-only",
+   "note": "no automated signal exists for this criterion in this toolkit",
+   "effort": {
+    "class": "MED",
+    "minutes": [
      5,
      10
     ],
-    "porque": "gesture listeners without alternatives detected; try the gesture."
+    "why": "media tags detected; play the media and judge the alternative."
    }
   },
   {
-   "criterio": "2.5.2 Pointer Cancellation",
-   "estado": "not-flagged",
-   "nota": "not-flagged ≠ pass: no automated signal fired on this sample",
-   "esfuerzo": {
-    "clase": "MIN",
-    "minutos": [
-     1,
-     3
-    ],
-    "porque": "down-event-only handlers detected; confirm."
-   }
-  },
-  {
-   "criterio": "2.5.3 Label in Name",
-   "estado": "not-flagged",
-   "nota": "not-flagged ≠ pass: no automated signal fired on this sample",
-   "esfuerzo": {
-    "clase": "MIN",
-    "minutos": [
-     1,
-     3
-    ],
-    "porque": "label-in-name mismatch computed; confirm."
-   }
-  },
-  {
-   "criterio": "2.5.4 Motion Actuation",
-   "estado": "not-flagged",
-   "nota": "not-flagged ≠ pass: no automated signal fired on this sample",
-   "esfuerzo": {
-    "clase": "MIN",
-    "minutos": [
-     1,
-     3
-    ],
-    "porque": "motion actuation without UI detected; confirm."
-   }
-  },
-  {
-   "criterio": "2.5.7 Dragging Movements",
-   "estado": "not-flagged",
-   "nota": "not-flagged ≠ pass: no automated signal fired on this sample",
-   "esfuerzo": {
-    "clase": "MED",
-    "minutos": [
-     5,
-     10
-    ],
-    "porque": "drag listeners detected; try the click path."
-   }
-  },
-  {
-   "criterio": "2.5.8 Target Size (Minimum) — NEW in WCAG 2.2",
-   "estado": "automated-fail",
-   "nota": null,
-   "esfuerzo": {
-    "clase": "MED",
-    "minutos": [
-     5,
-     10
-    ],
-    "porque": "target rects measured; check the inline/equivalent exceptions."
-   },
-   "valor": {
-    "ejemplo": "div#global-cookie-message > div > div > a (107×19px)"
-   }
-  },
-  {
-   "criterio": "3.1.1 Language of Page",
-   "estado": "not-flagged",
-   "nota": "not-flagged ≠ pass: no automated signal fired on this sample",
-   "esfuerzo": {
-    "clase": "MIN",
-    "minutos": [
-     1,
-     3
-    ],
-    "porque": "page lang missing or invalid, measured; confirm."
-   }
-  },
-  {
-   "criterio": "3.1.2 Language of Parts",
-   "estado": "not-flagged",
-   "nota": "not-flagged ≠ pass: no automated signal fired on this sample",
-   "esfuerzo": {
-    "clase": "MIN",
-    "minutos": [
-     1,
-     3
-    ],
-    "porque": "part lang invalid, measured; confirm."
-   }
-  },
-  {
-   "criterio": "3.2.1 On Focus",
-   "estado": "not-flagged",
-   "nota": "not-flagged ≠ pass: no automated signal fired on this sample",
-   "esfuerzo": {
-    "clase": "MIN",
-    "minutos": [
-     1,
-     3
-    ],
-    "porque": "focus-triggered navigation detected; confirm."
-   }
-  },
-  {
-   "criterio": "3.2.2 On Input",
-   "estado": "not-flagged",
-   "nota": "not-flagged ≠ pass: no automated signal fired on this sample",
-   "esfuerzo": {
-    "clase": "MIN",
-    "minutos": [
-     1,
-     3
-    ],
-    "porque": "select-triggered navigation detected; confirm."
-   }
-  },
-  {
-   "criterio": "3.2.3 Consistent Navigation",
-   "estado": "not-flagged",
-   "nota": "not-flagged ≠ pass: no automated signal fired on this sample",
-   "esfuerzo": {
-    "clase": "MED",
-    "minutos": [
-     5,
-     10
-    ],
-    "porque": "nav consistency compared across crawled pages; confirm the order."
-   }
-  },
-  {
-   "criterio": "3.2.4 Consistent Identification",
-   "estado": "not-flagged",
-   "nota": "not-flagged ≠ pass: no automated signal fired on this sample",
-   "esfuerzo": {
-    "clase": "MED",
-    "minutos": [
-     5,
-     10
-    ],
-    "porque": "consistent identification compared across pages; confirm the icons."
-   }
-  },
-  {
-   "criterio": "3.2.6 Consistent Help — NEW in WCAG 2.2",
-   "estado": "not-flagged",
-   "nota": "not-flagged ≠ pass: no automated signal fired on this sample",
-   "esfuerzo": {
-    "clase": "MIN",
-    "minutos": [
-     1,
-     3
-    ],
-    "porque": "help presence compared across crawled pages; confirm."
-   }
-  },
-  {
-   "criterio": "3.3.1 Error Identification",
-   "estado": "not-flagged",
-   "nota": "not-flagged ≠ pass: no automated signal fired on this sample",
-   "esfuerzo": {
-    "clase": "MAX",
-    "minutos": [
+   "criterion": "1.2.4 Captions (Live)",
+   "status": "manual-only",
+   "note": "no automated signal exists for this criterion in this toolkit",
+   "effort": {
+    "class": "MAX",
+    "minutes": [
      15,
      30
     ],
-    "porque": "invalid submissions fired and the DOM judged; verify with a screen reader."
+    "why": "live captions must be watched and judged; no honest signal."
    }
   },
   {
-   "criterio": "3.3.2 Labels or Instructions",
-   "estado": "not-flagged",
-   "nota": "not-flagged ≠ pass: no automated signal fired on this sample",
-   "esfuerzo": {
-    "clase": "MIN",
-    "minutos": [
-     1,
-     3
-    ],
-    "porque": "placeholder-only and unlabeled required fields measured; read each label."
-   }
-  },
-  {
-   "criterio": "3.3.3 Error Suggestion",
-   "estado": "not-flagged",
-   "nota": "not-flagged ≠ pass: no automated signal fired on this sample",
-   "esfuerzo": {
-    "clase": "MAX",
-    "minutos": [
+   "criterion": "2.3.1 Three Flashes or Below Threshold",
+   "status": "manual-only",
+   "note": "no automated signal exists for this criterion in this toolkit",
+   "effort": {
+    "class": "MAX",
+    "minutes": [
      15,
      30
     ],
-    "porque": "read and judge each correction suggestion."
+    "why": "flash threshold needs frame-by-frame analysis; no honest signal."
    }
   },
   {
-   "criterio": "3.3.4 Error Prevention (Legal, Financial, Data)",
-   "estado": "not-flagged",
-   "nota": "not-flagged ≠ pass: no automated signal fired on this sample",
-   "esfuerzo": {
-    "clase": "MAX",
-    "minutos": [
+   "criterion": "3.3.7 Redundant Entry",
+   "status": "manual-only",
+   "note": "no automated signal exists for this criterion in this toolkit",
+   "effort": {
+    "class": "MAX",
+    "minutes": [
      15,
      30
     ],
-    "porque": "reversible-transaction check requires walking the flow."
-   }
-  },
-  {
-   "criterio": "3.3.8 Accessible Authentication — NEW in WCAG 2.2",
-   "estado": "not-flagged",
-   "nota": "not-flagged ≠ pass: no automated signal fired on this sample",
-   "esfuerzo": {
-    "clase": "MIN",
-    "minutos": [
-     1,
-     3
-    ],
-    "porque": "captcha detected; confirm an alternative exists."
-   }
-  },
-  {
-   "criterio": "4.1.2 Name, Role, Value",
-   "estado": "not-flagged",
-   "nota": "not-flagged ≠ pass: no automated signal fired on this sample",
-   "esfuerzo": {
-    "clase": "MIN",
-    "minutos": [
-     1,
-     3
-    ],
-    "porque": "invalid roles, broken refs and missing state measured; confirm."
-   }
-  },
-  {
-   "criterio": "4.1.3 Status Messages",
-   "estado": "not-flagged",
-   "nota": "not-flagged ≠ pass: no automated signal fired on this sample",
-   "esfuerzo": {
-    "clase": "MAX",
-    "minutos": [
-     15,
-     30
-    ],
-    "porque": "fire each status message and listen for the announcement."
-   }
-  },
-  {
-   "criterio": "1.2.1 Audio-only and Video-only (Prerecorded)",
-   "estado": "manual-only",
-   "nota": "no automated signal exists for this criterion in this toolkit",
-   "esfuerzo": {
-    "clase": "MED",
-    "minutos": [
-     5,
-     10
-    ],
-    "porque": "media tags detected; play the media and judge the alternative."
-   }
-  },
-  {
-   "criterio": "1.2.4 Captions (Live)",
-   "estado": "manual-only",
-   "nota": "no automated signal exists for this criterion in this toolkit",
-   "esfuerzo": {
-    "clase": "MAX",
-    "minutos": [
-     15,
-     30
-    ],
-    "porque": "live captions must be watched and judged; no honest signal."
-   }
-  },
-  {
-   "criterio": "2.3.1 Three Flashes or Below Threshold",
-   "estado": "manual-only",
-   "nota": "no automated signal exists for this criterion in this toolkit",
-   "esfuerzo": {
-    "clase": "MAX",
-    "minutos": [
-     15,
-     30
-    ],
-    "porque": "flash threshold needs frame-by-frame analysis; no honest signal."
-   }
-  },
-  {
-   "criterio": "3.3.7 Redundant Entry",
-   "estado": "manual-only",
-   "nota": "no automated signal exists for this criterion in this toolkit",
-   "esfuerzo": {
-    "clase": "MAX",
-    "minutos": [
-     15,
-     30
-    ],
-    "porque": "redundant entry requires a remembered multi-step walk."
+    "why": "redundant entry requires a remembered multi-step walk."
    }
   }
  ],
- "manual_pendiente": [
+ "manual_pending": [
   "1.2.1 Audio-only and Video-only (Prerecorded)",
   "1.2.4 Captions (Live)",
   "2.3.1 Three Flashes or Below Threshold",
   "3.3.7 Redundant Entry"
  ],
- "verificacion": null,
- "artefactos": [
+ "verification": null,
+ "artifacts": [
   {
-   "tipo": "informe:static",
-   "url": "https://www.gov.uk",
-   "sha256": "0f109e6f673753a92536ec5aad262f6102f6dc17aa666ac92ee35c9654f69aa3",
-   "score": 98,
-   "cuerpo": {
-    "url": "https://www.gov.uk",
-    "score": 98,
-    "score_nota": "Weighted score: high −12, medium −6, low −2 from 100. It measures only what is automatable (≈1/3 of WCAG): use it to track trends between releases, not as conformance.",
-    "elementos_analizados": 602,
-    "resumen": {
-     "alta": 0,
-     "media": 0,
-     "baja": 1
+   "type": "report:static",
+   "url": "https://sample.example",
+   "sha256": "4c2ce9abd8c1ae779928dfbedddf070dd17768a5897420d18f2268af8ac09708",
+   "score": 52,
+   "body": {
+    "url": "https://sample.example",
+    "score": 52,
+    "score_note": "Weighted score: high −12, medium −6, low −2 from 100. It measures only what is automatable (≈1/3 of WCAG): use it to track trends between releases, not as conformance.",
+    "elements_scanned": 9,
+    "summary": {
+     "high": 3,
+     "medium": 2,
+     "low": 0
     },
-    "hallazgos": [
+    "findings": [
      {
-      "severidad": "baja",
-      "criterio": "1.3.1 Info and Relationships",
-      "senal": "landmark_dup",
-      "hallazgo": "1 groups of duplicated landmarks (<nav>, <header>…) without a distinguishing aria-label: header ×2.",
-      "remediacion": "Name each repeated landmark (aria-label=\"Main menu\", aria-label=\"Footer menu\"): otherwise landmark navigation is a lottery."
+      "severity": "high",
+      "criterion": "1.1.1 Non-text Content",
+      "signal": "imgs_alt",
+      "issue": "1 <img> without an alt attribute (not even alt=\"\").",
+      "remediation": "Add alt to every <img>: descriptive text when it conveys information, alt=\"\" when decorative. Same requirement for <input type=\"image\"> and <area>.",
+      "examples": [
+       "hero.jpg"
+      ]
+     },
+     {
+      "severity": "high",
+      "criterion": "4.1.2 Name, Role, Value",
+      "signal": "ctrl_name",
+      "issue": "1 <button> with no accessible name (no text, aria-label or title).",
+      "remediation": "The accessible name comes from inner text, aria-label, title, or an inner image with alt. An empty control is invisible to screen readers."
+     },
+     {
+      "severity": "high",
+      "criterion": "3.3.2 Labels or Instructions",
+      "signal": "field_label",
+      "issue": "1 form fields with no associated <label> and no accessible name.",
+      "remediation": "Associate <label for=\"id\"> (or wrap the field), or use aria-label. Applies to input, select and textarea.",
+      "examples": [
+       "text name=(sin name)"
+      ]
+     },
+     {
+      "severity": "medium",
+      "criterion": "2.4.1 Bypass Blocks",
+      "signal": "no_bypass",
+      "issue": "Neither <main>/role=\"main\" nor a skip link: no way to bypass repeated blocks.",
+      "remediation": "Add <main> (or role=\"main\") and a \"Skip to content\" link as the first focus stop."
+     },
+     {
+      "severity": "medium",
+      "criterion": "4.1.3 Status Messages",
+      "signal": "no_status_regions",
+      "issue": "No status regions (aria-live/status/alert) detected on the page: dynamic messages will not be announced (4.1.3).",
+      "remediation": "Add role=\"status\" or aria-live=\"polite\" for toasts, save confirmations, search results (4.1.3)."
      }
     ],
-    "limites": "Automation ≈ one third of WCAG: this is an express filter, not a substitute for manual review (keyboard, screen reader, real contrast, audit rhyme)."
-   }
-  },
-  {
-   "tipo": "informe:rendered",
-   "url": "https://www.gov.uk",
-   "sha256": "1141b3f6565bebab6103cc3245ea4958d39ea903f60a7d4c30ee64331ce065c1",
-   "score": 74,
-   "cuerpo": {
-    "url": "https://www.gov.uk",
-    "modo": "rendered",
-    "iframes_anidados": 0,
-    "shadow_roots": 0,
-    "score": 74,
-    "score_nota": "Weighted score: high −12, medium −6, low −2 from 100. It measures only what is automatable (≈1/3 of WCAG): use it to track trends between releases, not as conformance.",
-    "elementos_interactivos": 133,
-    "resumen": {
-     "alta": 1,
-     "media": 2,
-     "baja": 1
-    },
-    "hallazgos": [
-     {
-      "severidad": "alta",
-      "criterio": "1.4.3 Contrast (Minimum)",
-      "senal": "contrast_fail",
-      "hallazgo": "1 text areas with insufficient contrast: rgb(29,112,184) vs rgb(210,226,241) = 3.91:1 ×1. (computed fg/background, with alpha compositing).",
-      "remediacion": "Raise contrast to ≥4.5:1 (≥3:1 for large text). The effective background already includes overlays and translucency; with a background image, check that area manually.",
-      "ejemplos": [
-       "rgb(29,112,184) over rgb(210,226,241) → 3.91:1 (e.g. div > div > div > button)"
-      ]
-     },
-     {
-      "severidad": "media",
-      "criterio": "2.5.8 Target Size (Minimum)",
-      "senal": "target_small",
-      "hallazgo": "5 controls with a touch area smaller than 24×24 px (WCAG 2.2 2.5.8): div#global-cookie-message > div > div > a (107×19), div > div > h3 > a (81×23), div > div > h3 > a (161×23), div > div > h3 > a (183×23).",
-      "remediacion": "Give controls at least 24×24 CSS px (44×44 is better) via padding or min-width/min-height. Exceptions: equivalent inline links and sufficient surrounding spacing.",
-      "ejemplos": [
-       "div#global-cookie-message > div > div > a (107×19px)",
-       "div > div > h3 > a (81×23px)",
-       "div > div > h3 > a (161×23px)",
-       "div > div > h3 > a (183×23px)",
-       "div > div > h3 > a (173×23px)"
-      ]
-     },
-     {
-      "severidad": "media",
-      "criterio": "1.4.12",
-      "senal": "text_spacing_clip",
-      "hallazgo": "6 texts clipped when the 1.4.12 spacing overrides apply (line-height 1.5, letter 0.12em): review.",
-      "remediacion": "Content must survive text-spacing overrides without clipping: replace fixed heights with min-height (1.4.12).",
-      "ejemplos": [
-       "a",
-       "h2#super-navigation-menu-heading",
-       "span",
-       "span",
-       "span",
-       "h2"
-      ]
-     },
-     {
-      "severidad": "baja",
-      "criterio": "1.3.2 Meaningful Sequence",
-      "senal": "dom_visual_order",
-      "hallazgo": "DOM order differs from visual order in 2 text blocks: review with keyboard (1.3.2).",
-      "remediacion": "Programmatic reading order must match visual order: check flex order, grid placement and position absolute (1.3.2)."
-     }
-    ],
-    "limites": "Rendered audit: honest heuristics, no substitute for a screen reader or manual review. Contrast computed over computed backgrounds; cases with background images are reported as \"review\". 2.5.8 allows exceptions (equivalent inline, spacing) approximated here."
-   }
-  },
-  {
-   "tipo": "informe:reflow",
-   "url": "https://www.gov.uk",
-   "sha256": "9faec825eab0a13690a776ae2bc926eac650a7564f20eea4928a9a60c7c67f9c",
-   "score": 100,
-   "cuerpo": {
-    "url": "https://www.gov.uk",
-    "modo": "reflow",
-    "score": 100,
-    "resumen": {
-     "alta": 0,
-     "media": 0,
-     "baja": 0
-    },
-    "mediciones": {
-     "reflow_320": {
-      "scroll": 320,
-      "viewport": 320,
-      "ok": true
-     }
-    },
-    "hallazgos": [],
-    "limites": "Rendered audit: honest heuristics, no substitute for a screen reader or manual review. Contrast computed over computed backgrounds; cases with background images are reported as \"review\". 2.5.8 allows exceptions (equivalent inline, spacing) approximated here."
+    "limits": "Automation ≈ one third of WCAG: this is an express filter, not a substitute for manual review (keyboard, screen reader, real contrast, audit rhyme)."
    }
   }
  ],
- "evaluador": {
-  "nombre": null,
-  "credencial": null,
-  "fecha_revision": null,
-  "declaracion": null,
-  "nota": "any countersignature must reference pack.sha256 and state which criteria the human reviewed beyond the automated matrix"
+ "reviewer": {
+  "name": null,
+  "credential": null,
+  "review_date": null,
+  "statement": null,
+  "note": "any countersignature must reference pack.sha256 and state which criteria the human reviewed beyond the automated matrix"
  },
- "notas": null,
- "aviso": "This pack is evidence, not conformance: it says what machines found and what remains for a human. A conformance claim requires the firma block completed by a qualified person who reviewed the manual list.",
- "sha256": "99f5bac8f134524eefd4e50e7ffe819188bf8886426a36355133c4c1a7c9a6f5"
+ "notes": "Synthetic sample generated from a fixture page (no live URL audited).",
+ "notice": "This pack is evidence, not conformance: it says what machines found and what remains for a human. A conformance claim requires the firma block completed by a qualified person who reviewed the manual list.",
+ "sha256": "7023d07035e87543996b49888e203b9815f241a7db15fe83cbba996ff554b9d0"
 }

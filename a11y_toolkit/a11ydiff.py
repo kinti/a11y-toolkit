@@ -95,7 +95,7 @@ def snapshot(url, salida=None, auth_state=None):
         nav.close()
 
     datos = {'url': url, 'ts': datetime.now(timezone.utc).isoformat(),
-             'elementos': elementos, 'orden_foco': orden}
+             'elements': elementos, 'focus_order': orden}
     if arbol is not None:
         datos['arbol_accesible'] = arbol
     if salida:
@@ -105,16 +105,16 @@ def snapshot(url, salida=None, auth_state=None):
 
 
 def diff(a, b):
-    ea = {x['key']: x for x in a['elementos']}
-    eb = {x['key']: x for x in b['elementos']}
+    ea = {x['key']: x for x in a['elements']}
+    eb = {x['key']: x for x in b['elements']}
     aniadidos = sorted(set(eb) - set(ea))
     eliminados = sorted(set(ea) - set(eb))
     renombrados = []
     for k in set(ea) & set(eb):
         if ea[k]['name'] != eb[k]['name']:
-            renombrados.append({'key': k, 'antes': ea[k]['name'], 'despues': eb[k]['name']})
+            renombrados.append({'key': k, 'before': ea[k]['name'], 'after': eb[k]['name']})
 
-    oa, ob = a['orden_foco'], b['orden_foco']
+    oa, ob = a['focus_order'], b['focus_order']
     comun_a = [x for x in oa if x in set(ob)]
     comun_b = [x for x in ob if x in set(oa)]
     foco_cambia = comun_a != comun_b
@@ -137,16 +137,16 @@ def diff(a, b):
               or arbol_cambia)
     return {
         'ok': ok,
-        'resumen': {
-            'elementos': {'antes': len(ea), 'despues': len(eb)},
-            'aniadidos': len(aniadidos), 'eliminados': len(eliminados),
-            'renombrados': len(renombrados),
-            'orden_foco_cambia': foco_cambia,
+        'summary': {
+            'elements': {'before': len(ea), 'after': len(eb)},
+            'added': len(aniadidos), 'removed': len(eliminados),
+            'renamed': len(renombrados),
+            'focus_order_changed': foco_cambia,
         },
-        'aniadidos': aniadidos, 'eliminados': eliminados, 'renombrados': renombrados,
-        'foco': {'antes': oa, 'despues': ob, 'primera_divergencia': primera_divergencia},
-        'arbol': {'cambia': arbol_cambia, 'primeras_diferencias': arbol_diff},
-        'nota': ('Elementos sin id se casan por tag+nombre+href: renombrar produce '
+        'added': aniadidos, 'removed': eliminados, 'renamed': renombrados,
+        'focus': {'before': oa, 'after': ob, 'first_divergence': primera_divergencia},
+        'tree': {'changed': arbol_cambia, 'first_differences': arbol_diff},
+        'note': ('Elementos sin id se casan por tag+nombre+href: renombrar produce '
                  'eliminado+añadido, no un diff fino. Usa ids estables para trazabilidad.'),
     }
 
@@ -168,8 +168,8 @@ def main(argv):
         except ImportError:
             print(json.dumps({'error': 'Playwright no instalado: pip install playwright && playwright install chromium'}))
             return 1
-        print(json.dumps({'url': d['url'], 'elementos': len(d['elementos']),
-                          'pasos_foco': len(d['orden_foco']), 'salida': a.out},
+        print(json.dumps({'url': d['url'], 'elements': len(d['elements']),
+                          'focus_steps': len(d['focus_order']), 'out': a.out},
                          ensure_ascii=False, indent=1))
         return 0
     with open(a.a, encoding='utf-8') as f:

@@ -37,7 +37,7 @@ All output is English by default; pass `--lang es` (or the `lang: "es"` MCP argu
 | "the staging site is behind a login" | rendered tools accept `auth_state`: path to a Playwright storage_state JSON exported from a logged-in session — file stays local |
 | "what does the W3C validator say?" | `a11y_html_validate` (Nu parser: doctype, structure, authoritative alt/lang/role; self-hosted vnu for sensitive pages) |
 | "does the form explain what went wrong?" (3.3.1/3.3.3) | `a11y_forms`: fills invalid data, really submits, judges error identification/announcement in the post-submit DOM |
-| "record what I verified by hand/agent" | pass `verificados` (criterion codes) to `a11y_evidence`: they become agent-verified in the matrix; automated-fail never erases |
+| "record what I verified by hand/agent" | pass `verified` (criterion codes) to `a11y_evidence`: they become agent-verified in the matrix; automated-fail never erases |
 | "full evaluation / conformance / WCAG-EM" | the `conformance-wcagem` prompt — three tiers, escalate one at a time; protocol in `references/wcagem-guide.md` |
 | "produce something a human auditor can sign" | `a11y_evidence`: the countersignature-ready pack (criteria matrix + hashed artifacts + empty signature block). Vendor-neutral — any qualified human, any marketplace, or the consultant herself |
 | "FIX it for me" (zoom blocked, missing autocomplete, missing lang/title) | `a11y_autofix`: deterministic safe fixes + the accessible form-error layer (3.3.1/3.3.3, skips forms with their own handling); judgment fixes come back as `no_aplicados` + remediation. Never promise overlay-style full fixes |
@@ -77,8 +77,8 @@ the background. The pair tool returns per-criterion verdicts (1.4.3 AA, 1.4.6
 AAA, 1.4.11 non-text) and the nearest passing color. Apply the suggestion to the
 source, then re-verify the pair. For text over an image, NEVER trust a pair
 check against a guessed color: screenshot the region and use `a11y_contrast_image`
-— if `area_pasa_aa_texto_normal_4_5` < 100%, you need a scrim, a crop, or to move
-the text (`zona_peor` tells you where).
+— if `area_passes_aa_normal_text_4_5` < 100%, you need a scrim, a crop, or to move
+the text (`worst_zone` tells you where).
 
 ## 3. Document (EU law)
 

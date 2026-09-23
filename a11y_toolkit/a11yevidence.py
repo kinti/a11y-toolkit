@@ -66,17 +66,17 @@ def empaquetar(informes, snapshot=None, evaluador=None, notas=None, verificados=
     # matriz de criterios: los que tocamos (estado según hallazgos) + manuales
     from .a11ycrit import _C as _CAT, effort
     codes_aa = sorted(k for k, v in _CAT.items() if v[0] in ('A', 'AA'))
-    modos_incluidos = {inf.get('modo', 'static') for inf in informes}
+    modos_incluidos = {inf.get('mode', 'static') for inf in informes}
     tocados = {}
     for inf in informes:
-        for h in inf.get('hallazgos', []):
-            crit = h.get('criterio')
+        for h in inf.get('findings', []):
+            crit = h.get('criterion')
             if not crit or not isinstance(crit, str):   # informe malformado: saltar
                 continue
             code = crit.split(' ')[0]
-            texto = h.get('hallazgo', '') or ''
+            texto = h.get('issue', '') or ''
             texto = texto.lower() if isinstance(texto, str) else ''
-            estado = 'automated-review' if (h.get('severidad') == 'baja'
+            estado = 'automated-review' if (h.get('severity') == 'low'
                                             and ('review' in texto or 'revisar' in texto)) \
                 else 'automated-fail'
             # el peor estado gana: fail > review
@@ -87,18 +87,18 @@ def empaquetar(informes, snapshot=None, evaluador=None, notas=None, verificados=
     # extraer valores medidos clave de los hallazgos (ratio, ejemplos)
     valores = {}
     for inf in informes:
-        for h in inf.get('hallazgos', []):
-            code = (h.get('criterio') or '').split(' ')[0]
+        for h in inf.get('findings', []):
+            code = (h.get('criterion') or '').split(' ')[0]
             if code not in valores:
                 val = {}
-                if 'ratio' in h.get('hallazgo', '').lower() or ':' in h.get('hallazgo', ''):
+                if 'ratio' in h.get('issue', '').lower() or ':' in h.get('issue', ''):
                     import re as _re
-                    m = _re.search(r'([\d.]+):1', h.get('hallazgo', ''))
+                    m = _re.search(r'([\d.]+):1', h.get('issue', ''))
                     if m:
-                        val['medido'] = f'{m.group(1)}:1'
-                ej = h.get('ejemplos', [])
+                        val['measured'] = f'{m.group(1)}:1'
+                ej = h.get('examples', [])
                 if ej:
-                    val['ejemplo'] = str(ej[0])[:80]
+                    val['example'] = str(ej[0])[:80]
                 if val:
                     valores[code] = val
 
@@ -135,38 +135,38 @@ def empaquetar(informes, snapshot=None, evaluador=None, notas=None, verificados=
         elif estado == 'agent-verified':
             nota = 'verified against this sample per the manual checklist protocol'
 
-        entrada = {'criterio': f"{code} {_CAT[code][1]['en'][0]}", 'estado': estado, 'nota': nota}
+        entrada = {'criterion': f"{code} {_CAT[code][1]['en'][0]}", 'status': estado, 'note': nota}
         ef = effort(code)
         if ef:
             # human-effort class: what the HUMAN still does after the machine's
             # best signal (pricing input for review marketplaces)
-            entrada['esfuerzo'] = {'clase': ef['clase'], 'minutos': ef['minutos'],
-                                   'porque': ef['porque']}
+            entrada['effort'] = {'class': ef['class'], 'minutes': ef['minutes'],
+                                   'why': ef['why']}
         if code in valores:
-            entrada['valor'] = valores[code]
+            entrada['value'] = valores[code]
         matriz.append(entrada)
     manuales_restantes = [m for m in MANUAL_AA if m.split(' ')[0] not in verificados]
     # los not-run son adicionalmente "pendientes" (la máquina no miró)
     for nombre in manuales_restantes:
-        fila = {'criterio': nombre, 'estado': 'manual-only',
-                'nota': 'no automated signal exists for this criterion in this toolkit'}
+        fila = {'criterion': nombre, 'status': 'manual-only',
+                'note': 'no automated signal exists for this criterion in this toolkit'}
         ef = effort(nombre.split(' ')[0])
         if ef:
-            fila['esfuerzo'] = {'clase': ef['clase'], 'minutos': ef['minutos'],
-                                'porque': ef['porque']}
+            fila['effort'] = {'class': ef['class'], 'minutes': ef['minutes'],
+                                'why': ef['why']}
         matriz.append(fila)
     for code in sorted(verificados):
         if any(code in m for m in MANUAL_AA) and not any(m.startswith(code) for m in manuales_restantes):
             nombre = next(m for m in MANUAL_AA if m.startswith(code))
-            fila = {'criterio': nombre, 'estado': 'agent-verified',
-                    'nota': 'verified against this sample per the manual checklist protocol'}
+            fila = {'criterion': nombre, 'status': 'agent-verified',
+                    'note': 'verified against this sample per the manual checklist protocol'}
             ef = effort(code)
             if ef:
-                fila['esfuerzo'] = {'clase': ef['clase'], 'minutos': ef['minutos'],
-                                    'porque': ef['porque']}
+                fila['effort'] = {'class': ef['class'], 'minutes': ef['minutes'],
+                                    'why': ef['why']}
             matriz.append(fila)
 
-    resumen = {e: sum(1 for m in matriz if m['estado'] == e) for e in _ESTADOS}
+    resumen = {e: sum(1 for m in matriz if m['status'] == e) for e in _ESTADOS}
 
     # remaining human review, in minutes: MIN/MED/MAX per class summed over
     # every row a human still has to touch (everything except agent-verified).
@@ -175,60 +175,60 @@ def empaquetar(informes, snapshot=None, evaluador=None, notas=None, verificados=
     _MIN = {'MIN': (1, 3), 'MED': (5, 10), 'MAX': (15, 30)}
     pend = {}
     for m in matriz:
-        if m['estado'] == 'agent-verified':
+        if m['status'] == 'agent-verified':
             continue
-        ef = m.get('esfuerzo')
+        ef = m.get('effort')
         if ef:
-            lo, hi = _MIN[ef['clase']]
-            pend.setdefault(ef['clase'], [0, 0])
-            pend[ef['clase']][0] += lo
-            pend[ef['clase']][1] += hi
+            lo, hi = _MIN[ef['class']]
+            pend.setdefault(ef['class'], [0, 0])
+            pend[ef['class']][0] += lo
+            pend[ef['class']][1] += hi
     esfuerzo_pendiente = {
-        'por_clase': {k: {'criterios': sum(1 for m in matriz
-                                           if m['estado'] != 'agent-verified'
-                                           and m.get('esfuerzo', {}).get('clase') == k),
-                          'minutos': v}
+        'by_class': {k: {'criteria': sum(1 for m in matriz
+                                           if m['status'] != 'agent-verified'
+                                           and m.get('effort', {}).get('class') == k),
+                          'minutes': v}
                       for k, v in sorted(pend.items())},
-        'total_minutos': [sum(v[0] for v in pend.values()), sum(v[1] for v in pend.values())],
-        'nota': ('human review remaining after the machine, per class '
+        'total_minutes': [sum(v[0] for v in pend.values()), sum(v[1] for v in pend.values())],
+        'note': ('human review remaining after the machine, per class '
                  '(MIN 1-3, MED 5-10, MAX 15-30 min per criterion)'),
     }
 
     artefactos = []
     for i, inf in enumerate(informes):
-        artefactos.append({'tipo': f"informe:{inf.get('modo', 'static')}",
+        artefactos.append({'type': f"report:{inf.get('mode', 'static')}",
                            'url': inf.get('url'), 'sha256': _sha256(inf),
                            'score': inf.get('score'),
-                           'cuerpo': inf})  # embedded: pack self-verifying
+                           'body': inf})  # embedded: pack self-verifying
     if snapshot:
-        artefactos.append({'tipo': 'snapshot:a11y', 'url': snapshot.get('url'),
-                           'sha256': _sha256(snapshot), 'elementos': len(snapshot.get('elementos', []))})
+        artefactos.append({'type': 'snapshot:a11y', 'url': snapshot.get('url'),
+                           'sha256': _sha256(snapshot), 'elements': len(snapshot.get('elements', []))})
     if sr_transcript:
-        artefactos.append({'tipo': 'sr_transcript', 'url': sr_transcript.get('url'),
-                           'sha256': _sha256(sr_transcript), 'anuncios': sr_transcript.get('total', 0),
-                           'linealizado': sr_transcript.get('anuncios', [])[:50]})
+        artefactos.append({'type': 'sr_transcript', 'url': sr_transcript.get('url'),
+                           'sha256': _sha256(sr_transcript), 'announcements': sr_transcript.get('total', 0),
+                           'linearized': sr_transcript.get('announcements', [])[:50]})
 
     pack = {
-        'formato': 'a11y-evidence-pack/1',
-        'generado': ahora,
-        'herramienta': 'a11y-toolkit (github.com/kinti/a11y-toolkit)',
-        'resumen': resumen,
-        'esfuerzo_pendiente': esfuerzo_pendiente,
-        'criterios': matriz,
-        'manual_pendiente': [m['criterio'] for m in matriz if m['estado'] == 'manual-only'],
-        'verificacion': ({'fuente': 'agent', 'protocolo': 'skill manual checklist'}
+        'format': 'a11y-evidence-pack/2',
+        'generated': ahora,
+        'tool': 'a11y-toolkit (github.com/kinti/a11y-toolkit)',
+        'summary': resumen,
+        'effort_pending': esfuerzo_pendiente,
+        'criteria': matriz,
+        'manual_pending': [m['criterion'] for m in matriz if m['status'] == 'manual-only'],
+        'verification': ({'source': 'agent', 'protocol': 'skill manual checklist'}
                          if verificados else None),
-        'artefactos': artefactos,
-        'evaluador': {  # bloque a completar por la persona que firma
-            'nombre': (evaluador or {}).get('nombre'),
-            'credencial': (evaluador or {}).get('credencial'),
-            'fecha_revision': (evaluador or {}).get('fecha_revision'),
-            'declaracion': None,
-            'nota': ('any countersignature must reference pack.sha256 and state which '
+        'artifacts': artefactos,
+        'reviewer': {  # bloque a completar por la persona que firma
+            'name': (evaluador or {}).get('name'),
+            'credential': (evaluador or {}).get('credential'),
+            'review_date': (evaluador or {}).get('review_date'),
+            'statement': None,
+            'note': ('any countersignature must reference pack.sha256 and state which '
                      'criteria the human reviewed beyond the automated matrix'),
         },
-        'notas': notas,
-        'aviso': ('This pack is evidence, not conformance: it says what machines found '
+        'notes': notas,
+        'notice': ('This pack is evidence, not conformance: it says what machines found '
                   'and what remains for a human. A conformance claim requires the firma '
                   'block completed by a qualified person who reviewed the manual list.'),
     }
@@ -238,19 +238,19 @@ def empaquetar(informes, snapshot=None, evaluador=None, notas=None, verificados=
 
 def main(argv):
     ap = argparse.ArgumentParser(description='Evidence pack (countersignature-ready)')
-    ap.add_argument('informes', nargs='+', help='audit report JSON files (any mode)')
+    ap.add_argument('reports', nargs='+', help='audit report JSON files (any mode)')
     ap.add_argument('--snapshot', help='a11y snapshot JSON (optional)')
-    ap.add_argument('--evaluador', help='JSON: {"nombre":…, "credencial":…, "fecha_revision":…}')
+    ap.add_argument('--evaluador', help='JSON: {"name":…, "credential":…, "review_date":…}')
     ap.add_argument('-o', '--out', default='evidence-pack.json')
     a = ap.parse_args(argv)
-    informes = [json.load(open(f, encoding='utf-8')) for f in a.informes]
+    informes = [json.load(open(f, encoding='utf-8')) for f in a.reports]
     snapshot = json.load(open(a.snapshot, encoding='utf-8')) if a.snapshot else None
     evaluador = json.loads(a.evaluador) if a.evaluador else None
     pack = empaquetar(informes, snapshot=snapshot, evaluador=evaluador)
     with open(a.out, 'w', encoding='utf-8') as f:
         json.dump(pack, f, ensure_ascii=False, indent=1)
     print(json.dumps({'pack': a.out, 'sha256': pack['sha256'],
-                      'resumen': pack['resumen']}, ensure_ascii=False))
+                      'summary': pack['summary']}, ensure_ascii=False))
     return 0
 
 
