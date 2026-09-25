@@ -105,6 +105,15 @@ assert _pack['effort_pending']['total_minutes'] == [313, 649], \
     f"totales derivados: {_pack['effort_pending']['total_minutes']}"
 
 
+# ---------- 3d. ARCHITECTURE.md: el mapa no puede derivar ----------
+_mapa = open(os.path.join(ROOT, 'docs', 'ARCHITECTURE.md'), encoding='utf-8').read()
+_mods = [f[:-3] for f in os.listdir(os.path.join(ROOT, 'a11y_toolkit'))
+         if f.endswith('.py') and f != '__init__.py']
+_sin_mapa = [m for m in _mods if f'`{m}.py`' not in _mapa]
+assert not _sin_mapa, f'módulos ausentes del mapa (docs/ARCHITECTURE.md): {_sin_mapa}'
+assert 'D12' in _mapa and 'T12' in _mapa, 'el mapa perdió secciones (decisiones/trampas)'
+assert '23 tools' in _mapa or '23 MCP' in _mapa, 'el mapa no refleja el conteo de tools'
+
 # ---------- 4. fuzz determinista: HTML hostil no crashea ----------
 HOSTILES = [
     '<html><body><p' * 40 + 'x',                       # anidamiento roto

@@ -1,5 +1,9 @@
 # Contributing to a11y-toolkit
 
+Start from [docs/ARCHITECTURE.md](../docs/ARCHITECTURE.md) — the one-file map
+(module table, decision log D1-D12, trap catalogue T1-T12, release ritual),
+pinned by `tests/test_solido.py` so it cannot drift silently.
+
 Thanks for helping make agents accessibility-aware. Three golden rules govern
 every contribution — they are what makes this toolkit different:
 
