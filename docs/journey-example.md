@@ -65,3 +65,51 @@ exact input a review marketplace prices.
    honest end of an impossible task is a first-class outcome.
 4. Friction → criterion → remediation → evidence pack works end-to-end with
    zero manual mapping.
+
+
+---
+
+# Against the real world (2026-10-05)
+
+Two live journeys, same protocol, production sites, named. This is what the
+method is for.
+
+## Journey A — GOV.UK · "find out how to renew a passport" → **pass, 100**
+
+Landmarks in textbook order (banner → breadcrumb → **main** → contentinfo),
+two skip links, a cookie dialog whose buttons are named, headings in a clean
+h1→h2 cascade, answer in the first screen (£102 online, £115.50 paper), and
+on the Renew page a button literally named "Renew online". Zero friction.
+One non-finding observation, logged as such: the guide template renders two
+h1s per page — no criterion violated, heading navigation works, nothing
+invented. **The most audited site in the world passes the blindfold at 100,
+and the tool says so when it should.**
+
+## Journey B — IKEA Spain · "find a floor lamp under €50 and open its product page" → **blocked, 0**
+
+Three page types, three attempts, one consistent result:
+
+- **Home**: the cookie dialog is rendered LAST in the accessibility tree
+  (after ~2,000 nodes) and focus is not moved into it — keyboard input lands
+  on the page behind the modal (2.4.3). After "Reject all", focus drops to
+  the page root, returned to nothing. Five-plus product carousels: listitems
+  containing bare generics — no product names, no prices in the tree — and
+  carousel prev/next controls that are `aria-hidden` yet clickable (2.1.1).
+- **Search**: the live region announces "52 products" — announced well! —
+  and then the 20+ result cards are bare generics: no product names, no
+  prices, in the tree. Only category links carry names.
+- **Category page**: status announces "47 items"; the product grid list is
+  empty in the tree. The SEO copy, banners and footer are fully exposed.
+
+**Not one product name or price is exposed to the accessibility tree on any
+of the three page types.** The scaffolding around the products is genuinely
+good — live regions, skip links, named navigation, clean headings — but the
+commerce layer itself does not reach assistive technology. A blindfold user
+is told there are 52 floor lamps and shown none of them. Verdict: blocked,
+0/100, findings across 1.3.1, 2.1.1 and 2.4.3.
+
+This is the finding class only a task-based method catches: every element
+exists, every widget is reachable in isolation, and rule-scanners see a
+working page — while the content the task needs is simply not there for a
+blind user. The evidence is reproducible: load the pages with an
+accessibility-tree inspector and look for a product name or a price.

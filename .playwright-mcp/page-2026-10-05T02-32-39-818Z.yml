@@ -1,0 +1,1212 @@
+- generic [active] [ref=f6e1]:
+  - generic [ref=f6e2]:
+    - link "Skip to main content":
+      - /url: "#hnf-content"
+    - banner [ref=f6e3]:
+      - generic [ref=f6e5]:
+        - button "Change language or country/region, current language is English" [ref=f6e7] [cursor=pointer]:
+          - generic: ESEnglish
+        - link "Collect your order for FREE* with Click & Collect, just for being an IKEA Family member" [ref=f6e10] [cursor=pointer]:
+          - /url: https://www.ikea.com/es/en/customer-service/services/click-collect/
+        - generic [ref=f6e14]:
+          - button "Enter the ZIP" [ref=f6e16] [cursor=pointer]
+          - button "Select store" [ref=f6e17] [cursor=pointer]
+      - generic [ref=f6e19]:
+        - link "IKEA Home" [ref=f6e21] [cursor=pointer]:
+          - /url: https://www.ikea.com/es/en/
+        - navigation "Open the navigation menu" [ref=f6e24]:
+          - button "Products" [ref=f6e25] [cursor=pointer]
+          - button "Rooms" [ref=f6e26] [cursor=pointer]
+          - button "Special Prices" [ref=f6e27] [cursor=pointer]
+          - button "Design & ideas" [ref=f6e28] [cursor=pointer]
+          - button "Services" [ref=f6e29] [cursor=pointer]
+        - search [ref=f6e35]:
+          - combobox "Search for products, inspiration or new arrivals" [ref=f6e37]
+        - navigation "Shopping links" [ref=f6e38]:
+          - list [ref=f6e39]:
+            - listitem [ref=f6e40]:
+              - link "Hej! Log in" [ref=f6e42] [cursor=pointer]:
+                - /url: https://www.ikea.com/es/en/profile/
+            - listitem [ref=f6e43]:
+              - link "Wish list" [ref=f6e45] [cursor=pointer]:
+                - /url: https://www.ikea.com/es/en/favourites/
+            - listitem [ref=f6e46]:
+              - link "Shopping bag" [ref=f6e48] [cursor=pointer]:
+                - /url: https://www.ikea.com/es/en/shoppingcart/
+    - generic:
+      - complementary "Floating action buttons"
+  - main [ref=f6e49]:
+    - link "Skip to product list" [ref=f6e50] [cursor=pointer]:
+      - /url: "#product-list-skip"
+    - generic [ref=f6e53]:
+      - heading "Floor lamps" [level=1] [ref=f6e54]
+      - navigation "Breadcrumbs" [ref=f6e57]:
+        - list [ref=f6e58]:
+          - listitem [ref=f6e59]:
+            - link "Products" [ref=f6e60] [cursor=pointer]:
+              - /url: https://www.ikea.com/es/en/cat/products-products/
+            - text: ›
+          - listitem [ref=f6e61]:
+            - link "Lighting" [ref=f6e62] [cursor=pointer]:
+              - /url: https://www.ikea.com/es/en/cat/lighting-li001/
+            - text: ›
+          - listitem [ref=f6e63]:
+            - link "Lamps" [ref=f6e64] [cursor=pointer]:
+              - /url: https://www.ikea.com/es/en/cat/lamps-li002/
+            - text: ›
+          - listitem [ref=f6e65]:
+            - generic [ref=f6e66]: Floor lamps
+      - link "Receive your small order for €2.90* because you are an IKEA Family member. Shop online, in-store, or by calling 900 400 922.00 922" [ref=f6e73] [cursor=pointer]:
+        - /url: https://www.ikea.com/es/en/customer-service/services/delivery/
+    - generic [ref=f6e74]:
+      - generic [ref=f6e75]:
+        - paragraph [ref=f6e76]:
+          - text: Good news! Your house has a floor, which means you have space to support your floor lamps. Just find a style you love and a base that fits your space.
+          - strong [ref=f6e77]: We've got modern floor lamps ideal for your living room
+          - text: ", as they can be stored under the sofa, and traditional standard lamps with shades to express your style."
+        - paragraph [ref=f6e78]:
+          - link "How to choose the right bulb" [ref=f6e79] [cursor=pointer]:
+            - /url: https://www.ikea.com/es/en/customer-service/product-support/smart-lighting/choose-light-pub9f36062a/
+      - button "Read more" [ref=f6e80] [cursor=pointer]
+    - generic [ref=f6e81]:
+      - generic [ref=f6e82]:
+        - status [ref=f6e83]: 47 items
+        - heading "Sort and Filter" [level=2] [ref=f6e84]
+        - status [ref=f6e87]: 47 items
+        - generic [ref=f6e88]:
+          - generic [ref=f6e89]:
+            - link "Skip to results" [ref=f6e90] [cursor=pointer]:
+              - /url: "#product-list"
+            - list [ref=f6e92]:
+              - listitem [ref=f6e93]:
+                - heading [level=3] [ref=f6e94]:
+                  - button "Sort" [ref=f6e95] [cursor=pointer]
+              - listitem [ref=f6e100]:
+                - heading [level=3] [ref=f6e101]:
+                  - button "Colour" [ref=f6e102] [cursor=pointer]
+              - listitem [ref=f6e107]:
+                - heading [level=3] [ref=f6e108]:
+                  - button "Size" [ref=f6e109] [cursor=pointer]
+              - listitem [ref=f6e114]:
+                - heading [level=3] [ref=f6e115]:
+                  - button "Price" [ref=f6e116] [cursor=pointer]
+              - listitem [ref=f6e121]:
+                - heading [level=3] [ref=f6e122]:
+                  - button "Type" [ref=f6e123] [cursor=pointer]
+              - listitem [ref=f6e128]:
+                - heading [level=3] [ref=f6e129]:
+                  - button "Material" [ref=f6e130] [cursor=pointer]
+              - listitem [ref=f6e135]:
+                - heading [level=3] [ref=f6e136]:
+                  - button "Features" [ref=f6e137] [cursor=pointer]
+              - listitem [ref=f6e142]:
+                - generic [ref=f6e143] [cursor=pointer]:
+                  - generic [ref=f6e144]:
+                    - generic [ref=f6e145]: Smart home
+                    - generic [ref=f6e147]:
+                      - generic [ref=f6e148]: 1 products
+                      - text: "1"
+                  - generic [ref=f6e149]:
+                    - checkbox "Smart home 1 products"
+              - listitem [ref=f6e151]:
+                - heading [level=3] [ref=f6e152]:
+                  - button "Availability" [ref=f6e153] [cursor=pointer]
+              - listitem [ref=f6e158]:
+                - heading [level=3] [ref=f6e159]:
+                  - button "Series" [ref=f6e160] [cursor=pointer]
+              - listitem [ref=f6e165]:
+                - generic [ref=f6e166] [cursor=pointer]:
+                  - generic [ref=f6e167]:
+                    - generic [ref=f6e168]: Top seller
+                    - generic [ref=f6e170]:
+                      - generic [ref=f6e171]: 1 products
+                      - text: "1"
+                  - generic [ref=f6e172]:
+                    - checkbox "Top seller 1 products"
+              - listitem [ref=f6e174]:
+                - heading [level=3] [ref=f6e175]:
+                  - button "Customer rating" [ref=f6e176] [cursor=pointer]
+              - listitem [ref=f6e181]:
+                - generic [ref=f6e182] [cursor=pointer]:
+                  - generic [ref=f6e183]:
+                    - generic [ref=f6e184]: New products
+                    - generic [ref=f6e186]:
+                      - generic [ref=f6e187]: 7 products
+                      - text: "7"
+                  - generic [ref=f6e188]:
+                    - checkbox "New products 7 products"
+              - listitem [ref=f6e190]:
+                - heading [level=3] [ref=f6e191]:
+                  - button "Energy Label" [ref=f6e192] [cursor=pointer]
+              - listitem [ref=f6e197]:
+                - heading [level=3] [ref=f6e198]:
+                  - button "Base" [ref=f6e199] [cursor=pointer]
+              - listitem [ref=f6e204]:
+                - heading [level=3] [ref=f6e205]:
+                  - button "Collection" [ref=f6e206] [cursor=pointer]
+              - listitem [ref=f6e211]:
+                - heading [level=3] [ref=f6e212]:
+                  - button "Offers" [ref=f6e213] [cursor=pointer]
+          - generic [ref=f6e219]:
+            - heading "Results list" [level=2] [ref=f6e220]
+            - generic [ref=f6e222]:
+              - generic [ref=f6e223]:
+                - generic [ref=f6e225]:
+                  - checkbox "Compare - Select for product comparison, Floor uplighter, 182 cm" [ref=f6e226] [cursor=pointer]
+                  - generic [ref=f6e228]: Compare
+                - generic [ref=f6e230]:
+                  - link [ref=f6e232] [cursor=pointer]:
+                    - /url: https://www.ikea.com/es/en/p/ikea-ps-2026-floor-uplighter-dark-red-40608505/
+                    - img "IKEA PS 2026 Floor uplighter, dark red, 182 cm" [ref=f6e233]
+                    - img "IKEA PS 2026 Floor uplighter, dark red, 182 cm" [ref=f6e234]
+                  - button "Save \"IKEA PS 2026 Floor uplighter\" to shopping list" [ref=f6e236] [cursor=pointer]
+                - generic [ref=f6e237]:
+                  - generic [ref=f6e240]:
+                    - generic [ref=f6e241]:
+                      - generic [ref=f6e242]: New
+                      - heading "IKEA PS 2026, Floor uplighter, dark red, 182 cm Floor uplighter, dark red, 182 cm" [level=3] [ref=f6e243]:
+                        - link "IKEA PS 2026, Floor uplighter, dark red, 182 cm" [ref=f6e245] [cursor=pointer]:
+                          - /url: https://www.ikea.com/es/en/p/ikea-ps-2026-floor-uplighter-dark-red-40608505/
+                          - text: IKEA PS 2026
+                        - generic [ref=f6e246]: Floor uplighter, dark red, 182 cm
+                    - generic [ref=f6e250]:
+                      - generic [aria-hidden] [ref=f6e251]:
+                        - generic [ref=f6e252]: "39"
+                        - generic [ref=f6e253]: ",99"
+                        - text: €
+                      - generic [ref=f6e254]: Price 39,99€
+                  - button "Add \"IKEA PS 2026 Floor uplighter\" to cart" [ref=f6e256] [cursor=pointer]
+                - 'button "Review: 4.6 out of 5 stars. Total reviews: (203)" [ref=f6e257] [cursor=pointer]':
+                  - generic [ref=f6e258]: "Review: 4.6 out of 5 stars. Total reviews:"
+                  - generic [ref=f6e259]: (203)
+                - group "More options IKEA PS 2026" [ref=f6e261]:
+                  - generic [ref=f6e262]:
+                    - text: More options
+                    - generic [ref=f6e263]: IKEA PS 2026
+                  - generic [ref=f6e264] [cursor=pointer]:
+                    - 'radio "Option: IKEA PS 2026, Floor uplighter, dark red, 182 cm" [checked] [ref=f6e265]'
+                    - 'link "Option: IKEA PS 2026, Floor uplighter, dark red, 182 cm IKEA PS 2026 Floor uplighter, dark red, 182 cm" [ref=f6e266]':
+                      - /url: https://www.ikea.com/es/en/p/ikea-ps-2026-floor-uplighter-dark-red-40608505/
+                      - generic [ref=f6e267]: "Option: IKEA PS 2026, Floor uplighter, dark red, 182 cm"
+                      - img "IKEA PS 2026 Floor uplighter, dark red, 182 cm" [ref=f6e268]
+                  - generic [ref=f6e269] [cursor=pointer]:
+                    - 'radio "Option: IKEA PS 2026, Floor uplighter, blue, 182 cm" [ref=f6e270]'
+                    - 'link "Option: IKEA PS 2026, Floor uplighter, blue, 182 cm IKEA PS 2026 Floor uplighter, blue, 182 cm" [ref=f6e271]':
+                      - /url: https://www.ikea.com/es/en/p/ikea-ps-2026-floor-uplighter-blue-50608519/
+                      - generic [ref=f6e272]: "Option: IKEA PS 2026, Floor uplighter, blue, 182 cm"
+                      - img "IKEA PS 2026 Floor uplighter, blue, 182 cm" [ref=f6e273]
+                  - generic [ref=f6e274] [cursor=pointer]:
+                    - 'radio "Option: IKEA PS 2026, Floor uplighter, yellow, 182 cm" [ref=f6e275]'
+                    - 'link "Option: IKEA PS 2026, Floor uplighter, yellow, 182 cm IKEA PS 2026 Floor uplighter, yellow, 182 cm" [ref=f6e276]':
+                      - /url: https://www.ikea.com/es/en/p/ikea-ps-2026-floor-uplighter-yellow-80608532/
+                      - generic [ref=f6e277]: "Option: IKEA PS 2026, Floor uplighter, yellow, 182 cm"
+                      - img "IKEA PS 2026 Floor uplighter, yellow, 182 cm" [ref=f6e278]
+              - generic [ref=f6e279]:
+                - generic [ref=f6e281]:
+                  - checkbox "Compare - Select for product comparison, Floor uplighter" [ref=f6e282] [cursor=pointer]
+                  - generic [ref=f6e284]: Compare
+                - generic [ref=f6e286]:
+                  - link [ref=f6e288] [cursor=pointer]:
+                    - /url: https://www.ikea.com/es/en/p/tagarp-floor-uplighter-black-white-20404095/
+                    - img "Black TÅGARP floor lamp; slim, tall; white shade; concrete base." [ref=f6e289]
+                    - img "A living room with a light gray sofa, black floor lamp taller than other items, coffee table, and wall art." [ref=f6e290]
+                  - button "Save \"TÅGARP Floor uplighter\" to shopping list" [ref=f6e292] [cursor=pointer]
+                - generic [ref=f6e293]:
+                  - generic [ref=f6e296]:
+                    - heading "TÅGARP, Floor uplighter, black/white Floor uplighter, black/white" [level=3] [ref=f6e298]:
+                      - link "TÅGARP, Floor uplighter, black/white" [ref=f6e300] [cursor=pointer]:
+                        - /url: https://www.ikea.com/es/en/p/tagarp-floor-uplighter-black-white-20404095/
+                        - text: TÅGARP
+                      - generic [ref=f6e301]: Floor uplighter, black/white
+                    - emphasis [ref=f6e305]:
+                      - generic [aria-hidden] [ref=f6e306]:
+                        - generic [ref=f6e307]: "9"
+                        - generic [ref=f6e308]: ",99"
+                        - text: €
+                      - generic [ref=f6e309]: Price 9,99€
+                  - button "Add \"TÅGARP Floor uplighter\" to cart" [ref=f6e311] [cursor=pointer]
+                - 'button "Review: 4.5 out of 5 stars. Total reviews: (1364)" [ref=f6e312] [cursor=pointer]':
+                  - generic [ref=f6e313]: "Review: 4.5 out of 5 stars. Total reviews:"
+                  - generic [ref=f6e314]: (1364)
+              - generic [ref=f6e316]:
+                - generic [ref=f6e318]:
+                  - checkbox "Compare - Select for product comparison, Floor lamp" [ref=f6e319] [cursor=pointer]
+                  - generic [ref=f6e321]: Compare
+                - generic [ref=f6e323]:
+                  - generic [ref=f6e324]:
+                    - paragraph [ref=f6e326]: Top seller
+                    - link [ref=f6e327] [cursor=pointer]:
+                      - /url: https://www.ikea.com/es/en/p/lauters-floor-lamp-ash-white-30405042/
+                      - img "A wooden tripod floor lamp called LAUTERS with a white recycled shade." [ref=f6e328]
+                      - img "Modern living room with LAUTERS floor lamp, recycled shade, beside grey sofa, warm light, geometric wall art." [ref=f6e329]
+                  - button "Save \"LAUTERS Floor lamp\" to shopping list" [ref=f6e331] [cursor=pointer]
+                - generic [ref=f6e332]:
+                  - generic [ref=f6e335]:
+                    - heading "LAUTERS, Floor lamp, ash/white Floor lamp, ash/white" [level=3] [ref=f6e337]:
+                      - link "LAUTERS, Floor lamp, ash/white" [ref=f6e339] [cursor=pointer]:
+                        - /url: https://www.ikea.com/es/en/p/lauters-floor-lamp-ash-white-30405042/
+                        - text: LAUTERS
+                      - generic [ref=f6e340]: Floor lamp, ash/white
+                    - generic [ref=f6e344]:
+                      - generic [aria-hidden] [ref=f6e345]:
+                        - generic [ref=f6e346]: "59"
+                        - generic [ref=f6e347]: ",99"
+                        - text: €
+                      - generic [ref=f6e348]: Price 59,99€
+                  - button "Add \"LAUTERS Floor lamp\" to cart" [ref=f6e350] [cursor=pointer]
+                - 'button "Review: 4.7 out of 5 stars. Total reviews: (1475)" [ref=f6e351] [cursor=pointer]':
+                  - generic [ref=f6e352]: "Review: 4.7 out of 5 stars. Total reviews:"
+                  - generic [ref=f6e353]: (1475)
+                - group "More options LAUTERS" [ref=f6e355]:
+                  - generic [ref=f6e356]:
+                    - text: More options
+                    - generic [ref=f6e357]: LAUTERS
+                  - generic [ref=f6e358] [cursor=pointer]:
+                    - 'radio "Option: LAUTERS, Floor lamp, ash/white" [checked] [ref=f6e359]'
+                    - 'link "Option: LAUTERS, Floor lamp, ash/white A wooden tripod floor lamp called LAUTERS with a white recycled shade." [ref=f6e360]':
+                      - /url: https://www.ikea.com/es/en/p/lauters-floor-lamp-ash-white-30405042/
+                      - generic [ref=f6e361]: "Option: LAUTERS, Floor lamp, ash/white"
+                      - img "A wooden tripod floor lamp called LAUTERS with a white recycled shade." [ref=f6e362]
+                  - generic [ref=f6e363] [cursor=pointer]:
+                    - 'radio "Option: LAUTERS, Floor lamp, brown ash/white" [ref=f6e364]'
+                    - 'link "Option: LAUTERS, Floor lamp, brown ash/white LAUTERS floor lamp, black with white shade, tripod base, adjustable height." [ref=f6e365]':
+                      - /url: https://www.ikea.com/es/en/p/lauters-floor-lamp-brown-ash-white-80405073/
+                      - generic [ref=f6e366]: "Option: LAUTERS, Floor lamp, brown ash/white"
+                      - img "LAUTERS floor lamp, black with white shade, tripod base, adjustable height." [ref=f6e367]
+              - generic [ref=f6e368]:
+                - generic [ref=f6e370]:
+                  - checkbox "Compare - Select for product comparison, Floor/reading lamp" [ref=f6e371] [cursor=pointer]
+                  - generic [ref=f6e373]: Compare
+                - generic [ref=f6e375]:
+                  - link [ref=f6e377] [cursor=pointer]:
+                    - /url: https://www.ikea.com/es/en/p/rodflik-floor-reading-lamp-grey-green-90563571/
+                    - img "Single green reading lamp with arched arm, shiny finish, brass details." [ref=f6e378]
+                    - img "Cosy living room with RÖDFLIK lamp lighting a beige sofa, coffee table, and leaf art." [ref=f6e379]
+                  - button "Save \"RÖDFLIK Floor/reading lamp\" to shopping list" [ref=f6e381] [cursor=pointer]
+                - generic [ref=f6e382]:
+                  - generic [ref=f6e385]:
+                    - heading "RÖDFLIK, Floor/reading lamp, grey-green Floor/reading lamp, grey-green" [level=3] [ref=f6e387]:
+                      - link "RÖDFLIK, Floor/reading lamp, grey-green" [ref=f6e389] [cursor=pointer]:
+                        - /url: https://www.ikea.com/es/en/p/rodflik-floor-reading-lamp-grey-green-90563571/
+                        - text: RÖDFLIK
+                      - generic [ref=f6e390]: Floor/reading lamp, grey-green
+                    - generic [ref=f6e394]:
+                      - generic [aria-hidden] [ref=f6e395]:
+                        - generic [ref=f6e396]: "29"
+                        - generic [ref=f6e397]: ",99"
+                        - text: €
+                      - generic [ref=f6e398]: Price 29,99€
+                  - button "Add \"RÖDFLIK Floor/reading lamp\" to cart" [ref=f6e400] [cursor=pointer]
+                - 'button "Review: 4.8 out of 5 stars. Total reviews: (507)" [ref=f6e401] [cursor=pointer]':
+                  - generic [ref=f6e402]: "Review: 4.8 out of 5 stars. Total reviews:"
+                  - generic [ref=f6e403]: (507)
+                - group "More options RÖDFLIK" [ref=f6e405]:
+                  - generic [ref=f6e406]:
+                    - text: More options
+                    - generic [ref=f6e407]: RÖDFLIK
+                  - generic [ref=f6e408] [cursor=pointer]:
+                    - 'radio "Option: RÖDFLIK, Floor/reading lamp, grey-green" [checked] [ref=f6e409]'
+                    - 'link "Option: RÖDFLIK, Floor/reading lamp, grey-green Single green reading lamp with arched arm, shiny finish, brass details." [ref=f6e410]':
+                      - /url: https://www.ikea.com/es/en/p/rodflik-floor-reading-lamp-grey-green-90563571/
+                      - generic [ref=f6e411]: "Option: RÖDFLIK, Floor/reading lamp, grey-green"
+                      - img "Single green reading lamp with arched arm, shiny finish, brass details." [ref=f6e412]
+                  - generic [ref=f6e413] [cursor=pointer]:
+                    - 'radio "Option: RÖDFLIK, Floor/reading lamp, light beige" [ref=f6e414]'
+                    - 'link "Option: RÖDFLIK, Floor/reading lamp, light beige RÖDFLIK cream floor lamp, tall with adjustable white shade, industrial style." [ref=f6e415]':
+                      - /url: https://www.ikea.com/es/en/p/rodflik-floor-reading-lamp-light-beige-60561936/
+                      - generic [ref=f6e416]: "Option: RÖDFLIK, Floor/reading lamp, light beige"
+                      - img "RÖDFLIK cream floor lamp, tall with adjustable white shade, industrial style." [ref=f6e417]
+              - generic [ref=f6e418]:
+                - generic [ref=f6e420]:
+                  - checkbox "Compare - Select for product comparison, Floor lamp, 118 cm" [ref=f6e421] [cursor=pointer]
+                  - generic [ref=f6e423]: Compare
+                - generic [ref=f6e425]:
+                  - link [ref=f6e427] [cursor=pointer]:
+                    - /url: https://www.ikea.com/es/en/p/varptross-floor-lamp-bamboo-40595131/
+                    - img "VARPTROSS Floor lamp, bamboo, 118 cm" [ref=f6e428]
+                    - img "VARPTROSS Floor lamp, bamboo, 118 cm" [ref=f6e429]
+                  - button "Save \"VARPTROSS Floor lamp\" to shopping list" [ref=f6e431] [cursor=pointer]
+                - generic [ref=f6e432]:
+                  - generic [ref=f6e435]:
+                    - generic [ref=f6e436]:
+                      - generic [ref=f6e437]: New
+                      - heading "VARPTROSS, Floor lamp, bamboo, 118 cm Floor lamp, bamboo, 118 cm" [level=3] [ref=f6e438]:
+                        - link "VARPTROSS, Floor lamp, bamboo, 118 cm" [ref=f6e440] [cursor=pointer]:
+                          - /url: https://www.ikea.com/es/en/p/varptross-floor-lamp-bamboo-40595131/
+                          - text: VARPTROSS
+                        - generic [ref=f6e441]: Floor lamp, bamboo, 118 cm
+                    - generic [ref=f6e445]:
+                      - generic [aria-hidden] [ref=f6e446]:
+                        - generic [ref=f6e447]: "79"
+                        - generic [ref=f6e448]: ",99"
+                        - text: €
+                      - generic [ref=f6e449]: Price 79,99€
+                  - button "Add \"VARPTROSS Floor lamp\" to cart" [ref=f6e451] [cursor=pointer]
+                - 'button "Review: 4.6 out of 5 stars. Total reviews: (24)" [ref=f6e452] [cursor=pointer]':
+                  - generic [ref=f6e453]: "Review: 4.6 out of 5 stars. Total reviews:"
+                  - generic [ref=f6e454]: (24)
+              - generic [ref=f6e456]:
+                - generic [ref=f6e458]:
+                  - checkbox "Compare - Select for product comparison, Floor lamp" [ref=f6e459] [cursor=pointer]
+                  - generic [ref=f6e461]: Compare
+                - generic [ref=f6e463]:
+                  - link [ref=f6e465] [cursor=pointer]:
+                    - /url: https://www.ikea.com/es/en/p/okensand-floor-lamp-beech-white-00541526/
+                    - 'img "ÖKENSAND floor lamp: tall, white pleated shade, slim wooden legs, modern design." [ref=f6e466]'
+                    - img "Living room with beige floor lamp, illuminating a cozy space. Gray sofa with green pillows, side table, plant, and curtains complete the modern decor." [ref=f6e467]
+                  - button "Save \"ÖKENSAND Floor lamp\" to shopping list" [ref=f6e469] [cursor=pointer]
+                - generic [ref=f6e470]:
+                  - generic [ref=f6e473]:
+                    - heading "ÖKENSAND, Floor lamp, beech/white Floor lamp, beech/white" [level=3] [ref=f6e475]:
+                      - link "ÖKENSAND, Floor lamp, beech/white" [ref=f6e477] [cursor=pointer]:
+                        - /url: https://www.ikea.com/es/en/p/okensand-floor-lamp-beech-white-00541526/
+                        - text: ÖKENSAND
+                      - generic [ref=f6e478]: Floor lamp, beech/white
+                    - generic [ref=f6e482]:
+                      - generic [aria-hidden] [ref=f6e483]:
+                        - generic [ref=f6e484]: "29"
+                        - generic [ref=f6e485]: ",99"
+                        - text: €
+                      - generic [ref=f6e486]: Price 29,99€
+                  - button "Add \"ÖKENSAND Floor lamp\" to cart" [ref=f6e488] [cursor=pointer]
+                - 'button "Review: 4.7 out of 5 stars. Total reviews: (318)" [ref=f6e489] [cursor=pointer]':
+                  - generic [ref=f6e490]: "Review: 4.7 out of 5 stars. Total reviews:"
+                  - generic [ref=f6e491]: (318)
+              - generic [ref=f6e493]:
+                - generic [ref=f6e495]:
+                  - checkbox "Compare - Select for product comparison, Floor lamp, 150 cm" [ref=f6e496] [cursor=pointer]
+                  - generic [ref=f6e498]: Compare
+                - generic [ref=f6e500]:
+                  - link [ref=f6e502] [cursor=pointer]:
+                    - /url: https://www.ikea.com/es/en/p/barlast-floor-lamp-black-white-10430368/
+                    - img "A BARLAST floor lamp in black, featuring a cylindrical white shade and a metallic base. It has a sleek, modern design." [ref=f6e503]
+                    - img "BARLAST lamp beside gray sofa, minimalist living room with plant." [ref=f6e504]
+                  - button "Save \"BARLAST Floor lamp\" to shopping list" [ref=f6e506] [cursor=pointer]
+                - generic [ref=f6e507]:
+                  - generic [ref=f6e510]:
+                    - heading "BARLAST, Floor lamp, black/white, 150 cm Floor lamp, black/white, 150 cm" [level=3] [ref=f6e512]:
+                      - link "BARLAST, Floor lamp, black/white, 150 cm" [ref=f6e514] [cursor=pointer]:
+                        - /url: https://www.ikea.com/es/en/p/barlast-floor-lamp-black-white-10430368/
+                        - text: BARLAST
+                      - generic [ref=f6e515]: Floor lamp, black/white, 150 cm
+                    - emphasis [ref=f6e519]:
+                      - generic [aria-hidden] [ref=f6e520]:
+                        - generic [ref=f6e521]: "9"
+                        - generic [ref=f6e522]: ",99"
+                        - text: €
+                      - generic [ref=f6e523]: Price 9,99€
+                  - button "Add \"BARLAST Floor lamp\" to cart" [ref=f6e525] [cursor=pointer]
+                - 'button "Review: 3.8 out of 5 stars. Total reviews: (1126)" [ref=f6e526] [cursor=pointer]':
+                  - generic [ref=f6e527]: "Review: 3.8 out of 5 stars. Total reviews:"
+                  - generic [ref=f6e528]: (1126)
+              - generic [ref=f6e530]:
+                - generic [ref=f6e532]:
+                  - checkbox "Compare - Select for product comparison, Floor lamp, arched" [ref=f6e533] [cursor=pointer]
+                  - generic [ref=f6e535]: Compare
+                - generic [ref=f6e537]:
+                  - link [ref=f6e539] [cursor=pointer]:
+                    - /url: https://www.ikea.com/es/en/p/skottorp-skaftet-floor-lamp-arched-light-grey-s49385987/
+                    - img "SKOTTORP lamp, black, arched steel base, off-white linen shade, modern design." [ref=f6e540]
+                    - img "Modern living room with SKOTTORP floor lamp, geometric pillows, and diffused lighting." [ref=f6e541]
+                  - button "Save \"SKOTTORP / SKAFTET Floor lamp, arched\" to shopping list" [ref=f6e543] [cursor=pointer]
+                - generic [ref=f6e544]:
+                  - generic [ref=f6e547]:
+                    - heading "SKOTTORP / SKAFTET, Floor lamp, arched, light grey Floor lamp, arched, light grey" [level=3] [ref=f6e549]:
+                      - link "SKOTTORP / SKAFTET, Floor lamp, arched, light grey" [ref=f6e551] [cursor=pointer]:
+                        - /url: https://www.ikea.com/es/en/p/skottorp-skaftet-floor-lamp-arched-light-grey-s49385987/
+                        - text: SKOTTORP / SKAFTET
+                      - generic [ref=f6e552]: Floor lamp, arched, light grey
+                    - generic [ref=f6e556]:
+                      - generic [aria-hidden] [ref=f6e557]:
+                        - generic [ref=f6e558]: "86"
+                        - generic [ref=f6e559]: ",98"
+                        - text: €
+                      - generic [ref=f6e560]: Price 86,98€
+                  - button "Add \"SKOTTORP / SKAFTET Floor lamp, arched\" to cart" [ref=f6e562] [cursor=pointer]
+                - 'button "Review: 3.5 out of 5 stars. Total reviews: (95)" [ref=f6e563] [cursor=pointer]':
+                  - generic [ref=f6e564]: "Review: 3.5 out of 5 stars. Total reviews:"
+                  - generic [ref=f6e565]: (95)
+              - link "IKEA Kreativ Find floor lamps that fit your style perfectly" [ref=f6e567] [cursor=pointer]:
+                - /url: https://www.ikea.com/es/en/home-design/#value-prop
+                - generic [ref=f6e569]:
+                  - paragraph [ref=f6e570]: IKEA Kreativ
+                  - paragraph [ref=f6e571]: Find floor lamps that fit your style perfectly
+              - generic [ref=f6e576]:
+                - generic [ref=f6e578]:
+                  - checkbox "Compare - Select for product comparison, Floor lamp" [ref=f6e579] [cursor=pointer]
+                  - generic [ref=f6e581]: Compare
+                - generic [ref=f6e583]:
+                  - link [ref=f6e585] [cursor=pointer]:
+                    - /url: https://www.ikea.com/es/en/p/strandad-floor-lamp-white-black-30566737/
+                    - 'img "STRANDAD lamp: tall, white, cylindrical rice paper shade, round black metal base." [ref=f6e586]'
+                    - img "Bright living room with STRANDAD lamp, green chair, and white shelf holding books and plant." [ref=f6e587]
+                  - button "Save \"STRANDAD Floor lamp\" to shopping list" [ref=f6e589] [cursor=pointer]
+                - generic [ref=f6e590]:
+                  - generic [ref=f6e593]:
+                    - heading "STRANDAD, Floor lamp, white/black Floor lamp, white/black" [level=3] [ref=f6e595]:
+                      - link "STRANDAD, Floor lamp, white/black" [ref=f6e597] [cursor=pointer]:
+                        - /url: https://www.ikea.com/es/en/p/strandad-floor-lamp-white-black-30566737/
+                        - text: STRANDAD
+                      - generic [ref=f6e598]: Floor lamp, white/black
+                    - generic [ref=f6e602]:
+                      - generic [aria-hidden] [ref=f6e603]:
+                        - generic [ref=f6e604]: "9"
+                        - generic [ref=f6e605]: ",99"
+                        - text: €
+                      - generic [ref=f6e606]: Price 9,99€
+                  - button "Add \"STRANDAD Floor lamp\" to cart" [ref=f6e608] [cursor=pointer]
+                - 'button "Review: 3.1 out of 5 stars. Total reviews: (267)" [ref=f6e609] [cursor=pointer]':
+                  - generic [ref=f6e610]: "Review: 3.1 out of 5 stars. Total reviews:"
+                  - generic [ref=f6e611]: (267)
+              - generic [ref=f6e613]:
+                - generic [ref=f6e615]:
+                  - checkbox "Compare - Select for product comparison, Floor lamp" [ref=f6e616] [cursor=pointer]
+                  - generic [ref=f6e618]: Compare
+                - generic [ref=f6e620]:
+                  - link [ref=f6e622] [cursor=pointer]:
+                    - /url: https://www.ikea.com/es/en/p/ringsta-skaftet-floor-lamp-white-brass-s59385958/
+                    - 'img "RINGSTA floor lamp: sleek brass base, white shade, minimalist design." [ref=f6e623]'
+                    - img "Cosy living room with grey sofa, beige pillow, lit floor lamp in brass & white, near wall with framed art." [ref=f6e624]
+                  - button "Save \"RINGSTA / SKAFTET Floor lamp\" to shopping list" [ref=f6e626] [cursor=pointer]
+                - generic [ref=f6e627]:
+                  - generic [ref=f6e630]:
+                    - heading "RINGSTA / SKAFTET, Floor lamp, white/brass Floor lamp, white/brass" [level=3] [ref=f6e632]:
+                      - link "RINGSTA / SKAFTET, Floor lamp, white/brass" [ref=f6e634] [cursor=pointer]:
+                        - /url: https://www.ikea.com/es/en/p/ringsta-skaftet-floor-lamp-white-brass-s59385958/
+                        - text: RINGSTA / SKAFTET
+                      - generic [ref=f6e635]: Floor lamp, white/brass
+                    - generic [ref=f6e639]:
+                      - generic [aria-hidden] [ref=f6e640]:
+                        - generic [ref=f6e641]: "49"
+                        - generic [ref=f6e642]: ",98"
+                        - text: €
+                      - generic [ref=f6e643]: Price 49,98€
+                  - button "Add \"RINGSTA / SKAFTET Floor lamp\" to cart" [ref=f6e645] [cursor=pointer]
+                - 'button "Review: 4.5 out of 5 stars. Total reviews: (169)" [ref=f6e646] [cursor=pointer]':
+                  - generic [ref=f6e647]: "Review: 4.5 out of 5 stars. Total reviews:"
+                  - generic [ref=f6e648]: (169)
+              - generic [ref=f6e650]:
+                - generic [ref=f6e652]:
+                  - checkbox "Compare - Select for product comparison, Floor lamp" [ref=f6e653] [cursor=pointer]
+                  - generic [ref=f6e655]: Compare
+                - generic [ref=f6e657]:
+                  - link [ref=f6e659] [cursor=pointer]:
+                    - /url: https://www.ikea.com/es/en/p/flyghojd-floor-lamp-brass-green-grey-30543835/
+                    - img "Green-finished metal floor lamp with brass accents and conical shade." [ref=f6e660]
+                    - img "Living room with beige sofa, brass lamp, dried flowers, and artwork." [ref=f6e661]
+                  - button "Save \"FLYGHÖJD Floor lamp\" to shopping list" [ref=f6e663] [cursor=pointer]
+                - generic [ref=f6e664]:
+                  - generic [ref=f6e667]:
+                    - heading "FLYGHÖJD, Floor lamp, brass/green-grey Floor lamp, brass/green-grey" [level=3] [ref=f6e669]:
+                      - link "FLYGHÖJD, Floor lamp, brass/green-grey" [ref=f6e671] [cursor=pointer]:
+                        - /url: https://www.ikea.com/es/en/p/flyghojd-floor-lamp-brass-green-grey-30543835/
+                        - text: FLYGHÖJD
+                      - generic [ref=f6e672]: Floor lamp, brass/green-grey
+                    - generic [ref=f6e676]:
+                      - generic [aria-hidden] [ref=f6e677]:
+                        - generic [ref=f6e678]: "39"
+                        - generic [ref=f6e679]: ",99"
+                        - text: €
+                      - generic [ref=f6e680]: Price 39,99€
+                  - button "Add \"FLYGHÖJD Floor lamp\" to cart" [ref=f6e682] [cursor=pointer]
+                - 'button "Review: 3.8 out of 5 stars. Total reviews: (177)" [ref=f6e683] [cursor=pointer]':
+                  - generic [ref=f6e684]: "Review: 3.8 out of 5 stars. Total reviews:"
+                  - generic [ref=f6e685]: (177)
+                - group "More options FLYGHÖJD" [ref=f6e687]:
+                  - generic [ref=f6e688]:
+                    - text: More options
+                    - generic [ref=f6e689]: FLYGHÖJD
+                  - generic [ref=f6e690] [cursor=pointer]:
+                    - 'radio "Option: FLYGHÖJD, Floor lamp, brass/green-grey" [checked] [ref=f6e691]'
+                    - 'link "Option: FLYGHÖJD, Floor lamp, brass/green-grey Green-finished metal floor lamp with brass accents and conical shade." [ref=f6e692]':
+                      - /url: https://www.ikea.com/es/en/p/flyghojd-floor-lamp-brass-green-grey-30543835/
+                      - generic [ref=f6e693]: "Option: FLYGHÖJD, Floor lamp, brass/green-grey"
+                      - img "Green-finished metal floor lamp with brass accents and conical shade." [ref=f6e694]
+                  - generic [ref=f6e695] [cursor=pointer]:
+                    - 'radio "Option: FLYGHÖJD, Floor lamp, brass/beige" [ref=f6e696]'
+                    - 'link "Option: FLYGHÖJD, Floor lamp, brass/beige FLYGHÖJD brass floor lamp, beige shade. Classic design, elegant, warm light." [ref=f6e697]':
+                      - /url: https://www.ikea.com/es/en/p/flyghojd-floor-lamp-brass-beige-50574473/
+                      - generic [ref=f6e698]: "Option: FLYGHÖJD, Floor lamp, brass/beige"
+                      - img "FLYGHÖJD brass floor lamp, beige shade. Classic design, elegant, warm light." [ref=f6e699]
+              - generic [ref=f6e700]:
+                - generic [ref=f6e702]:
+                  - checkbox "Compare - Select for product comparison, LED floor uplighter/reading lamp, 180 cm" [ref=f6e703] [cursor=pointer]
+                  - generic [ref=f6e705]: Compare
+                - generic [ref=f6e707]:
+                  - link [ref=f6e709] [cursor=pointer]:
+                    - /url: https://www.ikea.com/es/en/p/isjakt-led-floor-uplighter-reading-lamp-dimmable-nickel-plated-40459708/
+                    - img "Modern nickel lamp with adjustable reading light and uplighter, sleek design for versatile lighting." [ref=f6e710]
+                    - img "Grey floor lamp with dual lights beside cosy sofa & plant." [ref=f6e711]
+                  - button "Save \"ISJAKT LED floor uplighter/reading lamp\" to shopping list" [ref=f6e713] [cursor=pointer]
+                - generic [ref=f6e714]:
+                  - generic [ref=f6e715]:
+                    - generic [ref=f6e717]:
+                      - heading "ISJAKT, LED floor uplighter/reading lamp, dimmable/nickel-plated, 180 cm LED floor uplighter/reading lamp, dimmable/nickel-plated, 180 cm" [level=3] [ref=f6e719]:
+                        - link "ISJAKT, LED floor uplighter/reading lamp, dimmable/nickel-plated, 180 cm" [ref=f6e721] [cursor=pointer]:
+                          - /url: https://www.ikea.com/es/en/p/isjakt-led-floor-uplighter-reading-lamp-dimmable-nickel-plated-40459708/
+                          - text: ISJAKT
+                        - generic [ref=f6e722]: LED floor uplighter/reading lamp, dimmable/nickel-plated, 180 cm
+                      - generic [ref=f6e725]:
+                        - generic [ref=f6e726]:
+                          - generic [aria-hidden] [ref=f6e727]:
+                            - generic [ref=f6e728]: "69"
+                            - generic [ref=f6e729]: ",99"
+                            - text: €
+                          - generic [ref=f6e730]: Price 69,99€
+                        - generic:
+                          - link "Energy efficiency class E, ISJAKT":
+                            - /url: https://www.ikea.com/es/en/p/isjakt-led-floor-uplighter-reading-lamp-dimmable-nickel-plated-40459708/?openFiche=true
+                            - img "Energy efficiency class E"
+                    - link "Product information sheet (opens in a new window)" [ref=f6e731] [cursor=pointer]:
+                      - /url: https://eprel.ec.europa.eu/qr/726202
+                      - text: Product information sheet
+                      - generic [ref=f6e732]: (opens in a new window)
+                  - button "Add \"ISJAKT LED floor uplighter/reading lamp\" to cart" [ref=f6e734] [cursor=pointer]
+                - 'button "Review: 4.2 out of 5 stars. Total reviews: (667)" [ref=f6e735] [cursor=pointer]':
+                  - generic [ref=f6e736]: "Review: 4.2 out of 5 stars. Total reviews:"
+                  - generic [ref=f6e737]: (667)
+              - generic [ref=f6e739]:
+                - generic [ref=f6e741]:
+                  - checkbox "Compare - Select for product comparison, Floor lamp" [ref=f6e742] [cursor=pointer]
+                  - generic [ref=f6e744]: Compare
+                - generic [ref=f6e746]:
+                  - link [ref=f6e748] [cursor=pointer]:
+                    - /url: https://www.ikea.com/es/en/p/simrishamn-floor-lamp-chrome-plated-opal-white-glass-10437765/
+                    - 'img "SIMRISHAMN chrome lamp: three white glass globes, chrome metal, tall, slim, modern, floor-standing design." [ref=f6e749]'
+                    - img "Modern living room with grey sofa, coffee table, framed photos, and tall chrome floor lamp with glass globes illuminating the space." [ref=f6e750]
+                  - button "Save \"SIMRISHAMN Floor lamp\" to shopping list" [ref=f6e752] [cursor=pointer]
+                - generic [ref=f6e753]:
+                  - generic [ref=f6e756]:
+                    - heading "SIMRISHAMN, Floor lamp, chrome-plated/opal white glass Floor lamp, chrome-plated/opal white glass" [level=3] [ref=f6e758]:
+                      - link "SIMRISHAMN, Floor lamp, chrome-plated/opal white glass" [ref=f6e760] [cursor=pointer]:
+                        - /url: https://www.ikea.com/es/en/p/simrishamn-floor-lamp-chrome-plated-opal-white-glass-10437765/
+                        - text: SIMRISHAMN
+                      - generic [ref=f6e761]: Floor lamp, chrome-plated/opal white glass
+                    - generic [ref=f6e765]:
+                      - generic [aria-hidden] [ref=f6e766]:
+                        - generic [ref=f6e767]: "99"
+                        - generic [ref=f6e768]: ",99"
+                        - text: €
+                      - generic [ref=f6e769]: Price 99,99€
+                  - button "Add \"SIMRISHAMN Floor lamp\" to cart" [ref=f6e771] [cursor=pointer]
+                - 'button "Review: 4.5 out of 5 stars. Total reviews: (381)" [ref=f6e772] [cursor=pointer]':
+                  - generic [ref=f6e773]: "Review: 4.5 out of 5 stars. Total reviews:"
+                  - generic [ref=f6e774]: (381)
+              - generic [ref=f6e776]:
+                - generic [ref=f6e778]:
+                  - checkbox "Compare - Select for product comparison, Floor/reading lamp" [ref=f6e779] [cursor=pointer]
+                  - generic [ref=f6e781]: Compare
+                - generic [ref=f6e783]:
+                  - link [ref=f6e785] [cursor=pointer]:
+                    - /url: https://www.ikea.com/es/en/p/lersta-floor-reading-lamp-aluminium-chrome-effect-00110640/
+                    - img "LERSTA floor lamp, silver, adjustable aluminium neck, round base, on/off switch, flexible reading light." [ref=f6e786]
+                    - img "Living room with LERSTA lamp, sofa, photos, and coffee table." [ref=f6e787]
+                  - button "Save \"LERSTA Floor/reading lamp\" to shopping list" [ref=f6e789] [cursor=pointer]
+                - generic [ref=f6e790]:
+                  - generic [ref=f6e793]:
+                    - heading "LERSTA, Floor/reading lamp, aluminium chrome effect Floor/reading lamp, aluminium chrome effect" [level=3] [ref=f6e795]:
+                      - link "LERSTA, Floor/reading lamp, aluminium chrome effect" [ref=f6e797] [cursor=pointer]:
+                        - /url: https://www.ikea.com/es/en/p/lersta-floor-reading-lamp-aluminium-chrome-effect-00110640/
+                        - text: LERSTA
+                      - generic [ref=f6e798]: Floor/reading lamp, aluminium chrome effect
+                    - generic [ref=f6e802]:
+                      - generic [aria-hidden] [ref=f6e803]:
+                        - generic [ref=f6e804]: "19"
+                        - generic [ref=f6e805]: ",99"
+                        - text: €
+                      - generic [ref=f6e806]: Price 19,99€
+                  - button "Add \"LERSTA Floor/reading lamp\" to cart" [ref=f6e808] [cursor=pointer]
+                - 'button "Review: 4.5 out of 5 stars. Total reviews: (1565)" [ref=f6e809] [cursor=pointer]':
+                  - generic [ref=f6e810]: "Review: 4.5 out of 5 stars. Total reviews:"
+                  - generic [ref=f6e811]: (1565)
+              - generic [ref=f6e813]:
+                - generic [ref=f6e815]:
+                  - checkbox "Compare - Select for product comparison, Floor lamp with 2-spot" [ref=f6e816] [cursor=pointer]
+                  - generic [ref=f6e818]: Compare
+                - generic [ref=f6e820]:
+                  - link [ref=f6e822] [cursor=pointer]:
+                    - /url: https://www.ikea.com/es/en/p/sjomakt-floor-lamp-with-2-spot-beige-ash-70595667/
+                    - img "SJÖMAKT Floor lamp with 2-spot, beige/ash" [ref=f6e823]
+                    - img "SJÖMAKT Floor lamp with 2-spot, beige/ash" [ref=f6e824]
+                  - button "Save \"SJÖMAKT Floor lamp with 2-spot\" to shopping list" [ref=f6e826] [cursor=pointer]
+                - generic [ref=f6e827]:
+                  - generic [ref=f6e830]:
+                    - heading "SJÖMAKT, Floor lamp with 2-spot, beige/ash Floor lamp with 2-spot, beige/ash" [level=3] [ref=f6e832]:
+                      - link "SJÖMAKT, Floor lamp with 2-spot, beige/ash" [ref=f6e834] [cursor=pointer]:
+                        - /url: https://www.ikea.com/es/en/p/sjomakt-floor-lamp-with-2-spot-beige-ash-70595667/
+                        - text: SJÖMAKT
+                      - generic [ref=f6e835]: Floor lamp with 2-spot, beige/ash
+                    - generic [ref=f6e839]:
+                      - generic [aria-hidden] [ref=f6e840]:
+                        - generic [ref=f6e841]: "39"
+                        - generic [ref=f6e842]: ",99"
+                        - text: €
+                      - generic [ref=f6e843]: Price 39,99€
+                  - button "Add \"SJÖMAKT Floor lamp with 2-spot\" to cart" [ref=f6e845] [cursor=pointer]
+                - 'button "Review: 4.1 out of 5 stars. Total reviews: (50)" [ref=f6e846] [cursor=pointer]':
+                  - generic [ref=f6e847]: "Review: 4.1 out of 5 stars. Total reviews:"
+                  - generic [ref=f6e848]: (50)
+              - generic [ref=f6e850]:
+                - generic [ref=f6e852]:
+                  - checkbox "Compare - Select for product comparison, Floor lamp, 159 cm" [ref=f6e853] [cursor=pointer]
+                  - generic [ref=f6e855]: Compare
+                - generic [ref=f6e857]:
+                  - link [ref=f6e859] [cursor=pointer]:
+                    - /url: https://www.ikea.com/es/en/p/stockholm-2025-floor-lamp-white-textile-brass-plated-50585914/
+                    - 'img "STOCKHOLM 2025 lamp: brass, travertine base, white textile shade, minimalist design for diffused light." [ref=f6e860]'
+                    - img "Modern living room with beige sofa, green patterned rug, stylish floor lamp with textile shade and brass base next to large window." [ref=f6e861]
+                  - button "Save \"STOCKHOLM 2025 Floor lamp\" to shopping list" [ref=f6e863] [cursor=pointer]
+                - generic [ref=f6e864]:
+                  - generic [ref=f6e867]:
+                    - heading "STOCKHOLM 2025, Floor lamp, white textile/brass-plated, 159 cm Floor lamp, white textile/brass-plated, 159 cm" [level=3] [ref=f6e869]:
+                      - link "STOCKHOLM 2025, Floor lamp, white textile/brass-plated, 159 cm" [ref=f6e871] [cursor=pointer]:
+                        - /url: https://www.ikea.com/es/en/p/stockholm-2025-floor-lamp-white-textile-brass-plated-50585914/
+                        - text: STOCKHOLM 2025
+                      - generic [ref=f6e872]: Floor lamp, white textile/brass-plated, 159 cm
+                    - generic [ref=f6e876]:
+                      - generic [aria-hidden] [ref=f6e877]:
+                        - generic [ref=f6e878]: "99"
+                        - generic [ref=f6e879]: ",99"
+                        - text: €
+                      - generic [ref=f6e880]: Price 99,99€
+                  - button "Add \"STOCKHOLM 2025 Floor lamp\" to cart" [ref=f6e882] [cursor=pointer]
+                - 'button "Review: 4.3 out of 5 stars. Total reviews: (116)" [ref=f6e883] [cursor=pointer]':
+                  - generic [ref=f6e884]: "Review: 4.3 out of 5 stars. Total reviews:"
+                  - generic [ref=f6e885]: (116)
+              - generic [ref=f6e887]:
+                - generic [ref=f6e889]:
+                  - checkbox "Compare - Select for product comparison, Floor lamp" [ref=f6e890] [cursor=pointer]
+                  - generic [ref=f6e892]: Compare
+                - generic [ref=f6e894]:
+                  - link [ref=f6e896] [cursor=pointer]:
+                    - /url: https://www.ikea.com/es/en/p/kloving-floor-lamp-anthracite-30540016/
+                    - img "Black dual-headed floor lamp, modern design with adjustable shades for task lighting." [ref=f6e897]
+                    - img "Modern living room with KLÖVING floor lamp lighting sofa and chair." [ref=f6e898]
+                  - button "Save \"KLÖVING Floor lamp\" to shopping list" [ref=f6e900] [cursor=pointer]
+                - generic [ref=f6e901]:
+                  - generic [ref=f6e904]:
+                    - heading "KLÖVING, Floor lamp, anthracite Floor lamp, anthracite" [level=3] [ref=f6e906]:
+                      - link "KLÖVING, Floor lamp, anthracite" [ref=f6e908] [cursor=pointer]:
+                        - /url: https://www.ikea.com/es/en/p/kloving-floor-lamp-anthracite-30540016/
+                        - text: KLÖVING
+                      - generic [ref=f6e909]: Floor lamp, anthracite
+                    - generic [ref=f6e913]:
+                      - generic [aria-hidden] [ref=f6e914]:
+                        - generic [ref=f6e915]: "29"
+                        - generic [ref=f6e916]: ",99"
+                        - text: €
+                      - generic [ref=f6e917]: Price 29,99€
+                  - button "Add \"KLÖVING Floor lamp\" to cart" [ref=f6e919] [cursor=pointer]
+                - 'button "Review: 3.8 out of 5 stars. Total reviews: (125)" [ref=f6e920] [cursor=pointer]':
+                  - generic [ref=f6e921]: "Review: 3.8 out of 5 stars. Total reviews:"
+                  - generic [ref=f6e922]: (125)
+              - generic [ref=f6e924]:
+                - generic [ref=f6e926]:
+                  - checkbox "Compare - Select for product comparison, Floor lamp" [ref=f6e927] [cursor=pointer]
+                  - generic [ref=f6e929]: Compare
+                - generic [ref=f6e931]:
+                  - link [ref=f6e933] [cursor=pointer]:
+                    - /url: https://www.ikea.com/es/en/p/ringsta-skaftet-floor-lamp-white-nickel-plated-s19385960/
+                    - img "A modern floor lamp called RINGSTA. It a sleek, nickel-plated base and a white textile shade. The shade diffuses a soft, even light." [ref=f6e934]
+                    - img "Modern living room with RINGSTA lamp beside beige sofa, offering warm light." [ref=f6e935]
+                  - button "Save \"RINGSTA / SKAFTET Floor lamp\" to shopping list" [ref=f6e937] [cursor=pointer]
+                - generic [ref=f6e938]:
+                  - generic [ref=f6e941]:
+                    - heading "RINGSTA / SKAFTET, Floor lamp, white/nickel-plated Floor lamp, white/nickel-plated" [level=3] [ref=f6e943]:
+                      - link "RINGSTA / SKAFTET, Floor lamp, white/nickel-plated" [ref=f6e945] [cursor=pointer]:
+                        - /url: https://www.ikea.com/es/en/p/ringsta-skaftet-floor-lamp-white-nickel-plated-s19385960/
+                        - text: RINGSTA / SKAFTET
+                      - generic [ref=f6e946]: Floor lamp, white/nickel-plated
+                    - generic [ref=f6e950]:
+                      - generic [aria-hidden] [ref=f6e951]:
+                        - generic [ref=f6e952]: "49"
+                        - generic [ref=f6e953]: ",98"
+                        - text: €
+                      - generic [ref=f6e954]: Price 49,98€
+                  - button "Add \"RINGSTA / SKAFTET Floor lamp\" to cart" [ref=f6e956] [cursor=pointer]
+                - 'button "Review: 4.5 out of 5 stars. Total reviews: (119)" [ref=f6e957] [cursor=pointer]':
+                  - generic [ref=f6e958]: "Review: 4.5 out of 5 stars. Total reviews:"
+                  - generic [ref=f6e959]: (119)
+              - generic [ref=f6e961]:
+                - generic [ref=f6e963]:
+                  - checkbox "Compare - Select for product comparison, Floor lamp" [ref=f6e964] [cursor=pointer]
+                  - generic [ref=f6e966]: Compare
+                - generic [ref=f6e968]:
+                  - link [ref=f6e970] [cursor=pointer]:
+                    - /url: https://www.ikea.com/es/en/p/nymo-skaftet-floor-lamp-black-brass-brass-s39319686/
+                    - 'img "NYMÖ lamp: brass base, black shade, modern." [ref=f6e971]'
+                    - img "A modern living room with a NYMÖ floor lamp casting a patterned light on the wall. The lamp has a brass-colored base and a black perforated shade." [ref=f6e972]
+                  - button "Save \"NYMÖ / SKAFTET Floor lamp\" to shopping list" [ref=f6e974] [cursor=pointer]
+                - generic [ref=f6e975]:
+                  - generic [ref=f6e978]:
+                    - heading "NYMÖ / SKAFTET, Floor lamp, black brass/brass Floor lamp, black brass/brass" [level=3] [ref=f6e980]:
+                      - link "NYMÖ / SKAFTET, Floor lamp, black brass/brass" [ref=f6e982] [cursor=pointer]:
+                        - /url: https://www.ikea.com/es/en/p/nymo-skaftet-floor-lamp-black-brass-brass-s39319686/
+                        - text: NYMÖ / SKAFTET
+                      - generic [ref=f6e983]: Floor lamp, black brass/brass
+                    - generic [ref=f6e987]:
+                      - generic [aria-hidden] [ref=f6e988]:
+                        - generic [ref=f6e989]: "69"
+                        - generic [ref=f6e990]: ",98"
+                        - text: €
+                      - generic [ref=f6e991]: Price 69,98€
+                  - button "Add \"NYMÖ / SKAFTET Floor lamp\" to cart" [ref=f6e993] [cursor=pointer]
+                - 'button "Review: 4.7 out of 5 stars. Total reviews: (112)" [ref=f6e994] [cursor=pointer]':
+                  - generic [ref=f6e995]: "Review: 4.7 out of 5 stars. Total reviews:"
+                  - generic [ref=f6e996]: (112)
+              - generic [ref=f6e998]:
+                - generic [ref=f6e1000]:
+                  - checkbox "Compare - Select for product comparison, Floor lamp with 3-spot" [ref=f6e1001] [cursor=pointer]
+                  - generic [ref=f6e1003]: Compare
+                - generic [ref=f6e1005]:
+                  - link [ref=f6e1007] [cursor=pointer]:
+                    - /url: https://www.ikea.com/es/en/p/hektar-floor-lamp-with-3-spot-brown-red-50577462/
+                    - img "A red HEKTAR floor lamp with three adjustable, directed shades." [ref=f6e1008]
+                    - img "HEKTAR floor lamp in red stands tall in cosy living space, lighting a grey armchair and beige couch, complementing rustic decor." [ref=f6e1009]
+                  - button "Save \"HEKTAR Floor lamp with 3-spot\" to shopping list" [ref=f6e1011] [cursor=pointer]
+                - generic [ref=f6e1012]:
+                  - generic [ref=f6e1015]:
+                    - heading "HEKTAR, Floor lamp with 3-spot, brown-red Floor lamp with 3-spot, brown-red" [level=3] [ref=f6e1017]:
+                      - link "HEKTAR, Floor lamp with 3-spot, brown-red" [ref=f6e1019] [cursor=pointer]:
+                        - /url: https://www.ikea.com/es/en/p/hektar-floor-lamp-with-3-spot-brown-red-50577462/
+                        - text: HEKTAR
+                      - generic [ref=f6e1020]: Floor lamp with 3-spot, brown-red
+                    - generic [ref=f6e1024]:
+                      - generic [aria-hidden] [ref=f6e1025]:
+                        - generic [ref=f6e1026]: "69"
+                        - generic [ref=f6e1027]: ",99"
+                        - text: €
+                      - generic [ref=f6e1028]: Price 69,99€
+                  - button "Add \"HEKTAR Floor lamp with 3-spot\" to cart" [ref=f6e1030] [cursor=pointer]
+                - 'button "Review: 4.4 out of 5 stars. Total reviews: (59)" [ref=f6e1031] [cursor=pointer]':
+                  - generic [ref=f6e1032]: "Review: 4.4 out of 5 stars. Total reviews:"
+                  - generic [ref=f6e1033]: (59)
+              - generic [ref=f6e1035]:
+                - generic [ref=f6e1037]:
+                  - checkbox "Compare - Select for product comparison, LED floor/wall lamp, 132 cm" [ref=f6e1038] [cursor=pointer]
+                  - generic [ref=f6e1040]: Compare
+                - generic [ref=f6e1042]:
+                  - link [ref=f6e1044] [cursor=pointer]:
+                    - /url: https://www.ikea.com/es/en/p/forlig-led-floor-wall-lamp-white-adjustable-colour-50592354/
+                    - img "FÖRLIG LED floor/wall lamp, white/adjustable colour, 132 cm" [ref=f6e1045]
+                    - img "FÖRLIG LED floor/wall lamp, white/adjustable colour, 132 cm" [ref=f6e1046]
+                  - button "Save \"FÖRLIG LED floor/wall lamp\" to shopping list" [ref=f6e1048] [cursor=pointer]
+                - generic [ref=f6e1049]:
+                  - generic [ref=f6e1052]:
+                    - generic [ref=f6e1053]:
+                      - generic [ref=f6e1054]: New
+                      - heading "FÖRLIG, LED floor/wall lamp, white/adjustable colour, 132 cm LED floor/wall lamp, white/adjustable colour, 132 cm" [level=3] [ref=f6e1055]:
+                        - link "FÖRLIG, LED floor/wall lamp, white/adjustable colour, 132 cm" [ref=f6e1057] [cursor=pointer]:
+                          - /url: https://www.ikea.com/es/en/p/forlig-led-floor-wall-lamp-white-adjustable-colour-50592354/
+                          - text: FÖRLIG
+                        - generic [ref=f6e1058]: LED floor/wall lamp, white/adjustable colour, 132 cm
+                    - generic [ref=f6e1062]:
+                      - generic [aria-hidden] [ref=f6e1063]:
+                        - generic [ref=f6e1064]: "19"
+                        - generic [ref=f6e1065]: ",99"
+                        - text: €
+                      - generic [ref=f6e1066]: Price 19,99€
+                  - button "Add \"FÖRLIG LED floor/wall lamp\" to cart" [ref=f6e1068] [cursor=pointer]
+                - 'button "Review: 4.6 out of 5 stars. Total reviews: (7)" [ref=f6e1069] [cursor=pointer]':
+                  - generic [ref=f6e1070]: "Review: 4.6 out of 5 stars. Total reviews:"
+                  - generic [ref=f6e1071]: (7)
+              - generic [ref=f6e1073]:
+                - generic [ref=f6e1075]:
+                  - checkbox "Compare - Select for product comparison, Floor lamp" [ref=f6e1076] [cursor=pointer]
+                  - generic [ref=f6e1078]: Compare
+                - generic [ref=f6e1080]:
+                  - link [ref=f6e1082] [cursor=pointer]:
+                    - /url: https://www.ikea.com/es/en/p/blankfyr-floor-lamp-nickel-plated-00566687/
+                    - img "A blankfyr floor lamp in nickel colour with a sleek, tripod base and a white, airy textile shade." [ref=f6e1083]
+                    - img "Living room with BLÄNKFYR lamp beside sofa, warm light." [ref=f6e1084]
+                  - button "Save \"BLÄNKFYR Floor lamp\" to shopping list" [ref=f6e1086] [cursor=pointer]
+                - generic [ref=f6e1087]:
+                  - generic [ref=f6e1090]:
+                    - heading "BLÄNKFYR, Floor lamp, nickel-plated Floor lamp, nickel-plated" [level=3] [ref=f6e1092]:
+                      - link "BLÄNKFYR, Floor lamp, nickel-plated" [ref=f6e1094] [cursor=pointer]:
+                        - /url: https://www.ikea.com/es/en/p/blankfyr-floor-lamp-nickel-plated-00566687/
+                        - text: BLÄNKFYR
+                      - generic [ref=f6e1095]: Floor lamp, nickel-plated
+                    - generic [ref=f6e1099]:
+                      - generic [aria-hidden] [ref=f6e1100]:
+                        - generic [ref=f6e1101]: "29"
+                        - generic [ref=f6e1102]: ",99"
+                        - text: €
+                      - generic [ref=f6e1103]: Price 29,99€
+                  - button "Add \"BLÄNKFYR Floor lamp\" to cart" [ref=f6e1105] [cursor=pointer]
+                - 'button "Review: 3.7 out of 5 stars. Total reviews: (49)" [ref=f6e1106] [cursor=pointer]':
+                  - generic [ref=f6e1107]: "Review: 3.7 out of 5 stars. Total reviews:"
+                  - generic [ref=f6e1108]: (49)
+              - generic [ref=f6e1110]:
+                - generic [ref=f6e1112]:
+                  - checkbox "Compare - Select for product comparison, Floor/reading lamp" [ref=f6e1113] [cursor=pointer]
+                  - generic [ref=f6e1115]: Compare
+                - generic [ref=f6e1117]:
+                  - link [ref=f6e1119] [cursor=pointer]:
+                    - /url: https://www.ikea.com/es/en/p/nymane-floor-reading-lamp-white-80336758/
+                    - img "A white NYMÅNE floor lamp with adjustable arms for directed lighting." [ref=f6e1120]
+                    - img "Cosy living room with NYMÅNE floor lamp, light wood, and neutral tones. Pinkish chair, grey sofa, adjustable lamp, wooden coffee table, and rug." [ref=f6e1121]
+                  - button "Save \"NYMÅNE Floor/reading lamp\" to shopping list" [ref=f6e1123] [cursor=pointer]
+                - generic [ref=f6e1124]:
+                  - generic [ref=f6e1127]:
+                    - heading "NYMÅNE, Floor/reading lamp, white Floor/reading lamp, white" [level=3] [ref=f6e1129]:
+                      - link "NYMÅNE, Floor/reading lamp, white" [ref=f6e1131] [cursor=pointer]:
+                        - /url: https://www.ikea.com/es/en/p/nymane-floor-reading-lamp-white-80336758/
+                        - text: NYMÅNE
+                      - generic [ref=f6e1132]: Floor/reading lamp, white
+                    - generic [ref=f6e1136]:
+                      - generic [aria-hidden] [ref=f6e1137]:
+                        - generic [ref=f6e1138]: "54"
+                        - generic [ref=f6e1139]: ",99"
+                        - text: €
+                      - generic [ref=f6e1140]: Price 54,99€
+                  - button "Add \"NYMÅNE Floor/reading lamp\" to cart" [ref=f6e1142] [cursor=pointer]
+                - 'button "Review: 4.2 out of 5 stars. Total reviews: (469)" [ref=f6e1143] [cursor=pointer]':
+                  - generic [ref=f6e1144]: "Review: 4.2 out of 5 stars. Total reviews:"
+                  - generic [ref=f6e1145]: (469)
+            - generic [ref=f6e1147]:
+              - status [ref=f6e1148]: Showing 24 of 47 results
+              - progressbar [aria-hidden] [ref=f6e1149]
+              - link "Show more products" [ref=f6e1150] [cursor=pointer]:
+                - /url: https://www.ikea.com/es/en/cat/floor-lamps-10731/?page=2#products-page-2
+                - generic: Show more
+      - heading "Recommended for you" [level=2] [ref=f6e1152]
+      - generic [ref=f6e1156]:
+        - heading "Related categories" [level=2] [ref=f6e1157]
+        - generic [ref=f6e1159]:
+          - link "Skip product categories list" [ref=f6e1160] [cursor=pointer]:
+            - /url: "#hnf--carousel__hnf-inpage-nav-skip-btn"
+          - list [ref=f6e1162]:
+            - listitem [ref=f6e1163]:
+              - link "Lighting" [ref=f6e1164] [cursor=pointer]:
+                - /url: https://www.ikea.com/es/en/cat/lighting-li001/
+            - listitem [ref=f6e1169]:
+              - link "Ceiling lights" [ref=f6e1170] [cursor=pointer]:
+                - /url: https://www.ikea.com/es/en/cat/ceiling-lights-18750/
+            - listitem [ref=f6e1173]:
+              - link "Table lamps" [ref=f6e1174] [cursor=pointer]:
+                - /url: https://www.ikea.com/es/en/cat/table-lamps-10732/
+            - listitem [ref=f6e1177]:
+              - link "Floor lamps" [ref=f6e1178] [cursor=pointer]:
+                - /url: https://www.ikea.com/es/en/cat/floor-lamps-10731/
+            - listitem [ref=f6e1181]:
+              - link "Wall lights" [ref=f6e1182] [cursor=pointer]:
+                - /url: https://www.ikea.com/es/en/cat/wall-lights-20503/
+            - listitem [ref=f6e1185]:
+              - link "Shades, bases & cords" [ref=f6e1186] [cursor=pointer]:
+                - /url: https://www.ikea.com/es/en/cat/shades-bases-cords-10803/
+            - listitem [ref=f6e1189]:
+              - link "Spotlights" [ref=f6e1190] [cursor=pointer]:
+                - /url: https://www.ikea.com/es/en/cat/spotlights-20506/
+            - listitem [ref=f6e1193]:
+              - link "Work lamps" [ref=f6e1194] [cursor=pointer]:
+                - /url: https://www.ikea.com/es/en/cat/work-lamps-20502/
+            - listitem [ref=f6e1197]:
+              - link "Children's lighting" [ref=f6e1198] [cursor=pointer]:
+                - /url: https://www.ikea.com/es/en/cat/childrens-lighting-18773/
+            - listitem [ref=f6e1201]:
+              - link "Smart lamps" [ref=f6e1202] [cursor=pointer]:
+                - /url: https://www.ikea.com/es/en/cat/smart-lamps-59308/
+            - listitem [ref=f6e1205]:
+              - link "LED lights" [ref=f6e1206] [cursor=pointer]:
+                - /url: https://www.ikea.com/es/en/cat/led-lights-20515/
+            - listitem [ref=f6e1209]:
+              - link "Portable lamps" [ref=f6e1210] [cursor=pointer]:
+                - /url: https://www.ikea.com/es/en/cat/portable-lamps-700512/
+    - generic [ref=f6e1213]:
+      - heading "The comfort your home needs, with every floor lamp and standing lamp built to shine" [level=2] [ref=f6e1214]
+      - paragraph [ref=f6e1215]: Light up your world! Illuminate your home with cosy and practical lighting from our standing floor lamps and standard lamps. Create a zen mood in your living room with a soft light in the corner. Or make reading a delight with some task lighting behind your favourite armchair or sofa.
+      - paragraph [ref=f6e1216]: There’s plenty of different styles of floor lamps to choose from. For example, the upright, tripod and arc floor lamps are available in a variety of materials, including copper-coloured metallics and woods. Wooden floor lamps are ideal for bringing some subtle texture into your home. If you prefer modern floor lamps that give a clean and tidy look, choose materials like metallics and tinted or shaded glass.
+      - paragraph [ref=f6e1217]: Whatever style you prefer, you’ll be able to find a lamp you like in our wide selection.
+      - heading "How do you choose a floor lamp or standing lamp?" [level=2] [ref=f6e1218]
+      - paragraph [ref=f6e1219]: Different types of floor lamps provide different types of lighting. Standing standard lamps like ÅSTRID are generally for the benefit of the whole room. Task lighting on the other hand, like our RANARP lamp, focuses lighting in one area, perfect for reading or writing. Uplighters, like our NOT lamp for example, point towards the ceiling, which helps illuminate the whole room.
+      - paragraph [ref=f6e1220]: If you can’t choose, you can combine! In our wide range you can find floor lamps with dual light sources that can be switched on and off separately. This way, you’ll always have the right lighting for whatever you need. For example, with lamps like FLUGBO, you get both a flexible spotlight for task lighting and an uplighter to light up the rest of the room.
+      - heading "Where should you put floor lamps?" [level=2] [ref=f6e1221]
+      - paragraph [ref=f6e1222]: The right spot to place a floor lamp depends on the type of lamp you have and your lighting needs. If the lamp is designed for directional task lighting, you should consider having it above or behind a sofa, armchair or table. This way, the lamp doesn’t get in your way and provides the light you need.
+      - paragraph [ref=f6e1223]: If it’s an up- or down-lighter, they’re generally best placed in a corner. This way, the light reflects on the walls and spreads throughout the room. Also remember that floor lamps are easily moved around, which is great if you're refurnishing or if you need it somewhere else.
+    - list [ref=f6e1225]:
+      - listitem [ref=f6e1226]:
+        - link "Adjustable head/arm floor lamps" [ref=f6e1227] [cursor=pointer]:
+          - /url: https://www.ikea.com/es/en/cat/floor-lamps-10731/f/adjustable-head-arm-floor-lamps-f-feature--58692/
+      - listitem [ref=f6e1228]:
+        - link "Beige floor lamps" [ref=f6e1229] [cursor=pointer]:
+          - /url: https://www.ikea.com/es/en/cat/floor-lamps-10731/f/beige-floor-lamps-f-colors--10003/
+      - listitem [ref=f6e1230]:
+        - link "Black floor lamps" [ref=f6e1231] [cursor=pointer]:
+          - /url: https://www.ikea.com/es/en/cat/floor-lamps-10731/f/black-floor-lamps-f-colors--10139/
+      - listitem [ref=f6e1232]:
+        - link "Dimmable floor lamps" [ref=f6e1233] [cursor=pointer]:
+          - /url: https://www.ikea.com/es/en/cat/floor-lamps-10731/f/dimmable-floor-lamps-f-feature--53139/
+      - listitem [ref=f6e1234]:
+        - link "Floor lamps, size 100 - 119 cm" [ref=f6e1235] [cursor=pointer]:
+          - /url: https://www.ikea.com/es/en/cat/floor-lamps-10731/f/floor-lamps-size-100-119-cm-f-measurement-buckets--HEIGHT_100_120/
+      - listitem [ref=f6e1236]:
+        - link "Floor lamps, size 120 - 139 cm" [ref=f6e1237] [cursor=pointer]:
+          - /url: https://www.ikea.com/es/en/cat/floor-lamps-10731/f/floor-lamps-size-120-139-cm-f-measurement-buckets--HEIGHT_120_140/
+      - listitem [ref=f6e1238]:
+        - link "Floor lamps, size 140 - 159 cm" [ref=f6e1239] [cursor=pointer]:
+          - /url: https://www.ikea.com/es/en/cat/floor-lamps-10731/f/floor-lamps-size-140-159-cm-f-measurement-buckets--HEIGHT_140_160/
+      - listitem [ref=f6e1240]:
+        - link "Floor lamps, size 160+ cm" [ref=f6e1241] [cursor=pointer]:
+          - /url: https://www.ikea.com/es/en/cat/floor-lamps-10731/f/floor-lamps-size-160-cm-f-measurement-buckets--HEIGHT_160_9223372036854775807/
+      - listitem [ref=f6e1242]:
+        - link "Grey floor lamps" [ref=f6e1243] [cursor=pointer]:
+          - /url: https://www.ikea.com/es/en/cat/floor-lamps-10731/f/grey-floor-lamps-f-colors--10028/
+      - listitem [ref=f6e1244]:
+        - link "Height adjustable floor lamps" [ref=f6e1245] [cursor=pointer]:
+          - /url: https://www.ikea.com/es/en/cat/floor-lamps-10731/f/height-adjustable-floor-lamps-f-feature--53486/
+      - listitem [ref=f6e1246]:
+        - link "Metal floor lamps" [ref=f6e1247] [cursor=pointer]:
+          - /url: https://www.ikea.com/es/en/cat/floor-lamps-10731/f/metal-floor-lamps-f-materials--47350/
+      - listitem [ref=f6e1248]:
+        - link "Paper floor lamps" [ref=f6e1249] [cursor=pointer]:
+          - /url: https://www.ikea.com/es/en/cat/floor-lamps-10731/f/paper-floor-lamps-f-materials--51376/
+      - listitem [ref=f6e1250]:
+        - link "Solid wood floor lamps" [ref=f6e1251] [cursor=pointer]:
+          - /url: https://www.ikea.com/es/en/cat/floor-lamps-10731/f/solid-wood-floor-lamps-f-materials--50788/
+      - listitem [ref=f6e1252]:
+        - link "White floor lamps" [ref=f6e1253] [cursor=pointer]:
+          - /url: https://www.ikea.com/es/en/cat/floor-lamps-10731/f/white-floor-lamps-f-colors--10156/
+      - listitem [ref=f6e1254]:
+        - link "Works with ikea home smart floor lamps" [ref=f6e1255] [cursor=pointer]:
+          - /url: https://www.ikea.com/es/en/cat/floor-lamps-10731/f/works-with-ikea-home-smart-floor-lamps-f-feature--52502/
+      - listitem [ref=f6e1256]:
+        - link "Yellow floor lamps" [ref=f6e1257] [cursor=pointer]:
+          - /url: https://www.ikea.com/es/en/cat/floor-lamps-10731/f/yellow-floor-lamps-f-colors--10042/
+  - contentinfo [ref=f6e1259]:
+    - generic [ref=f6e1260]:
+      - heading "Footer" [level=2] [ref=f6e1261]
+      - generic [ref=f6e1262]:
+        - generic [ref=f6e1263]:
+          - generic [ref=f6e1264]:
+            - heading "Become part of IKEA Family" [level=3] [ref=f6e1265]
+            - paragraph [ref=f6e1267]: Start to enjoy the awards and surprises, exclusive discounts and many more benefits.
+            - paragraph [ref=f6e1268]:
+              - link "Learn all about them" [ref=f6e1269] [cursor=pointer]:
+                - /url: https://www.ikea.com/es/en/ikea-family/?itm_campaign=family&itm_element=footer&itm_content=benefits
+            - link "Join or log in" [ref=f6e1270] [cursor=pointer]:
+              - /url: https://www.ikea.com/es/en/profile/signup/family/?itm_campaign=family&itm_element=footer&itm_content=signup
+          - generic [ref=f6e1271]:
+            - heading "Join IKEA Business Network" [level=3] [ref=f6e1272]
+            - paragraph [ref=f6e1274]: The business club that offers you offers, inspiration and advice for your business.
+            - paragraph [ref=f6e1275]:
+              - link "Discover all the advantages." [ref=f6e1276] [cursor=pointer]:
+                - /url: https://www.ikea.com/es/en/ikea-business/network/
+            - link "Join or log in" [ref=f6e1277] [cursor=pointer]:
+              - /url: https://www.ikea.com/es/en/business-profile/register-network/
+        - list [ref=f6e1279]:
+          - listitem [ref=f6e1280]:
+            - heading "Planning your purchase" [level=3] [ref=f6e1281]
+            - list "Planning your purchase All IKEA products Planners IKEA Stores Shopping at IKEA IKEA Apps Product guides Gift list Gift card Payment options" [ref=f6e1282]:
+              - listitem [ref=f6e1283]:
+                - link "All IKEA products" [ref=f6e1284] [cursor=pointer]:
+                  - /url: https://www.ikea.com/es/en/cat/products-products/
+              - listitem [ref=f6e1285]:
+                - link "Planners" [ref=f6e1286] [cursor=pointer]:
+                  - /url: https://www.ikea.com/es/en/planners/
+              - listitem [ref=f6e1287]:
+                - link "IKEA Stores" [ref=f6e1288] [cursor=pointer]:
+                  - /url: https://www.ikea.com/es/en/stores/
+              - listitem [ref=f6e1289]:
+                - link "Shopping at IKEA" [ref=f6e1290] [cursor=pointer]:
+                  - /url: https://www.ikea.com/es/en/customer-service/shopping-at-ikea/
+              - listitem [ref=f6e1291]:
+                - link "IKEA Apps" [ref=f6e1292] [cursor=pointer]:
+                  - /url: https://www.ikea.com/es/en/customer-service/mobile-apps/
+              - listitem [ref=f6e1293]:
+                - link "Product guides" [ref=f6e1294] [cursor=pointer]:
+                  - /url: https://www.ikea.com/es/en/product-guides/
+              - listitem [ref=f6e1295]:
+                - link "Gift list" [ref=f6e1296] [cursor=pointer]:
+                  - /url: https://www.ikea.com/es/en/gift-registry/
+              - listitem [ref=f6e1297]:
+                - link "Gift card" [ref=f6e1298] [cursor=pointer]:
+                  - /url: https://www.ikea.com/es/en/customer-service/ikea-gift-cards-pub4423c690
+              - listitem [ref=f6e1299]:
+                - link "Payment options" [ref=f6e1300] [cursor=pointer]:
+                  - /url: https://www.ikea.com/es/en/customer-service/payment-options/
+          - listitem [ref=f6e1301]:
+            - heading "Services" [level=3] [ref=f6e1302]
+            - list "Services Home delivery Click & collect Planning and consultation Interior design projects Remote sales Finance Assembly Installation IKEA Home Services App Removal & recycling Second hand Energy services Renovations" [ref=f6e1303]:
+              - listitem [ref=f6e1304]:
+                - link "Home delivery" [ref=f6e1305] [cursor=pointer]:
+                  - /url: https://www.ikea.com/es/en/customer-service/services/delivery/
+              - listitem [ref=f6e1306]:
+                - link "Click & collect" [ref=f6e1307] [cursor=pointer]:
+                  - /url: https://www.ikea.com/es/en/customer-service/services/click-collect/
+              - listitem [ref=f6e1308]:
+                - link "Planning and consultation" [ref=f6e1309] [cursor=pointer]:
+                  - /url: https://www.ikea.com/es/en/customer-service/services/planning-consultation/
+              - listitem [ref=f6e1310]:
+                - link "Interior design projects" [ref=f6e1311] [cursor=pointer]:
+                  - /url: https://www.ikea.com/es/en/customer-service/services/planning-consultation/#64cc6a30-1776-11eb-ba9e-e5f1ae1e6e45
+              - listitem [ref=f6e1312]:
+                - link "Remote sales" [ref=f6e1313] [cursor=pointer]:
+                  - /url: https://www.ikea.com/es/en/customer-service/shopping-at-ikea/remote-shopping/
+              - listitem [ref=f6e1314]:
+                - link "Finance" [ref=f6e1315] [cursor=pointer]:
+                  - /url: https://www.ikea.com/es/en/customer-service/services/finance-options/
+              - listitem [ref=f6e1316]:
+                - link "Assembly" [ref=f6e1317] [cursor=pointer]:
+                  - /url: https://www.ikea.com/es/en/customer-service/services/assembly/
+              - listitem [ref=f6e1318]:
+                - link "Installation" [ref=f6e1319] [cursor=pointer]:
+                  - /url: https://www.ikea.com/es/en/customer-service/services/installation/
+              - listitem [ref=f6e1320]:
+                - link "IKEA Home Services App" [ref=f6e1321] [cursor=pointer]:
+                  - /url: https://www.ikea.com/es/en/customer-service/mobile-apps/ikea-home-puba6e79180/
+              - listitem [ref=f6e1322]:
+                - link "Removal & recycling" [ref=f6e1323] [cursor=pointer]:
+                  - /url: https://www.ikea.com/es/en/customer-service/services/removal/
+              - listitem [ref=f6e1324]:
+                - link "Second hand" [ref=f6e1325] [cursor=pointer]:
+                  - /url: https://www.ikea.com/es/en/second-hand/
+              - listitem [ref=f6e1326]:
+                - link "Energy services" [ref=f6e1327] [cursor=pointer]:
+                  - /url: https://www.ikea.com/es/en/energy-services/?itm_campaign=null&itm_element=navigation&itm_content=en
+              - listitem [ref=f6e1328]:
+                - link "Renovations" [ref=f6e1329] [cursor=pointer]:
+                  - /url: https://www.ikea.com/es/en/customer-service/services/renovation-service-pub63f53c60/
+          - listitem [ref=f6e1330]:
+            - heading "Help" [level=3] [ref=f6e1331]
+            - list "Help Contact us Customer service Where’s my order? Returns Claims Withdrawal from the contract Item availability Invoices and receipts Lost items Care and repair FAQ's" [ref=f6e1332]:
+              - listitem [ref=f6e1333]:
+                - link "Contact us" [ref=f6e1334] [cursor=pointer]:
+                  - /url: https://www.ikea.com/es/en/customer-service/contact-us/
+              - listitem [ref=f6e1335]:
+                - link "Customer service" [ref=f6e1336] [cursor=pointer]:
+                  - /url: https://www.ikea.com/es/en/customer-service/
+              - listitem [ref=f6e1337]:
+                - link "Where’s my order?" [ref=f6e1338] [cursor=pointer]:
+                  - /url: https://www.ikea.com/es/en/purchases/lookup/
+              - listitem [ref=f6e1339]:
+                - link "Returns" [ref=f6e1340] [cursor=pointer]:
+                  - /url: https://www.ikea.com/es/en/customer-service/returns-claims/returns/
+              - listitem [ref=f6e1341]:
+                - link "Claims" [ref=f6e1342] [cursor=pointer]:
+                  - /url: https://www.ikea.com/es/en/customer-service/returns-claims/claims/
+              - listitem [ref=f6e1343]:
+                - link "Withdrawal from the contract" [ref=f6e1344] [cursor=pointer]:
+                  - /url: https://www.ikea.com/es/en/customer-service/returns-claims/returns/#237d4990-1e01-11f1-b2aa-6d39a2195c6a
+              - listitem [ref=f6e1345]:
+                - link "Item availability" [ref=f6e1346] [cursor=pointer]:
+                  - /url: https://www.ikea.com/es/en/customer-service/stock-availability/
+              - listitem [ref=f6e1347]:
+                - link "Invoices and receipts" [ref=f6e1348] [cursor=pointer]:
+                  - /url: https://www.ikea.com/es/en/customer-service/invoices-and-receipts-pub45f94310
+              - listitem [ref=f6e1349]:
+                - link "Lost items" [ref=f6e1350] [cursor=pointer]:
+                  - /url: https://www.ikea.com/es/en/customer-service/shopping-at-ikea/lost-and-found/
+              - listitem [ref=f6e1351]:
+                - link "Care and repair" [ref=f6e1352] [cursor=pointer]:
+                  - /url: https://www.ikea.com/es/en/circular/repair/
+              - listitem [ref=f6e1353]:
+                - link "FAQ's" [ref=f6e1354] [cursor=pointer]:
+                  - /url: https://www.ikea.com/es/en/customer-service/faq/
+          - listitem [ref=f6e1355]:
+            - heading "IKEA" [level=3] [ref=f6e1356]
+            - list "IKEA IKEA Family IKEA for your business IKEA Affiliate Programme Eating at IKEA About IKEA Work at IKEA Suppliers IKEA islands Accessibility" [ref=f6e1357]:
+              - listitem [ref=f6e1358]:
+                - link "IKEA Family" [ref=f6e1359] [cursor=pointer]:
+                  - /url: https://www.ikea.com/es/en/ikea-family/
+              - listitem [ref=f6e1360]:
+                - link "IKEA for your business" [ref=f6e1361] [cursor=pointer]:
+                  - /url: https://www.ikea.com/es/en/ikea-business/
+              - listitem [ref=f6e1362]:
+                - link "IKEA Affiliate Programme" [ref=f6e1363] [cursor=pointer]:
+                  - /url: https://www.ikea.com/es/en/campaigns/home-fanatic-recommend-ikea-pub9a336260
+              - listitem [ref=f6e1364]:
+                - link "Eating at IKEA" [ref=f6e1365] [cursor=pointer]:
+                  - /url: https://www.ikea.com/es/en/stores/restaurant/
+              - listitem [ref=f6e1366]:
+                - link "About IKEA" [ref=f6e1367] [cursor=pointer]:
+                  - /url: https://www.ikea.com/es/en/this-is-ikea/
+              - listitem [ref=f6e1368]:
+                - link "Work at IKEA" [ref=f6e1369] [cursor=pointer]:
+                  - /url: https://www.ikea.com/es/en/this-is-ikea/work-with-us/
+              - listitem [ref=f6e1370]:
+                - link "Suppliers" [ref=f6e1371] [cursor=pointer]:
+                  - /url: https://www.ikea.com/es/en/customer-service/suppliers-pub5b81b881
+              - listitem [ref=f6e1372]:
+                - link "IKEA islands" [ref=f6e1373] [cursor=pointer]:
+                  - /url: https://islas.ikea.es/
+              - listitem [ref=f6e1374]:
+                - link "Accessibility" [ref=f6e1375] [cursor=pointer]:
+                  - /url: https://www.ikea.com/es/en/customer-service/accessibility/
+        - generic [ref=f6e1376]:
+          - generic [ref=f6e1377]:
+            - list [ref=f6e1378]:
+              - listitem [ref=f6e1379]:
+                - link "Follow IKEA on Facebook" [ref=f6e1380] [cursor=pointer]:
+                  - /url: https://www.facebook.com/pages/IKEA-Espana/244033170035
+              - listitem [ref=f6e1383]:
+                - link "Follow IKEA on Instagram" [ref=f6e1384] [cursor=pointer]:
+                  - /url: https://www.instagram.com/ikeaspain
+              - listitem [ref=f6e1387]:
+                - link "Follow IKEA on Tiktok" [ref=f6e1388] [cursor=pointer]:
+                  - /url: https://www.tiktok.com/@ikea.spain
+              - listitem [ref=f6e1391]:
+                - link "Follow IKEA on Youtube" [ref=f6e1392] [cursor=pointer]:
+                  - /url: https://www.youtube.com/ikeaesiberica
+              - listitem [ref=f6e1395]:
+                - link "Follow IKEA on Pinterest" [ref=f6e1396] [cursor=pointer]:
+                  - /url: https://www.pinterest.es/ikeaspain/_created/
+              - listitem [ref=f6e1399]:
+                - link "Follow IKEA on Linkedin" [ref=f6e1400] [cursor=pointer]:
+                  - /url: https://www.linkedin.com/company/ikea
+              - listitem [ref=f6e1403]:
+                - link "Follow IKEA on X" [ref=f6e1404] [cursor=pointer]:
+                  - /url: https://x.com/IkeaSpain
+            - list [ref=f6e1407]:
+              - listitem [ref=f6e1408]:
+                - img "Verified by Visa" [ref=f6e1410]
+              - listitem [ref=f6e1411]:
+                - img "MasterCard SecureCode" [ref=f6e1413]
+              - listitem [ref=f6e1414]:
+                - img "Visa" [ref=f6e1416]
+              - listitem [ref=f6e1417]:
+                - img "MasterCard" [ref=f6e1419]
+              - listitem [ref=f6e1420]:
+                - img "Paypal" [ref=f6e1422]
+              - listitem [ref=f6e1423]:
+                - img "IKEA Gift Card" [ref=f6e1425]
+              - listitem [ref=f6e1426]:
+                - img "American Express" [ref=f6e1428]
+              - listitem [ref=f6e1429]:
+                - img "Bizum" [ref=f6e1431]
+              - listitem [ref=f6e1432]:
+                - img "Apple Pay" [ref=f6e1434]
+              - listitem [ref=f6e1435]:
+                - img "Google Pay" [ref=f6e1437]
+          - generic [ref=f6e1438]:
+            - button "Cookie settings" [ref=f6e1440] [cursor=pointer]
+            - button "Change language or country/region, current language is English" [ref=f6e1442] [cursor=pointer]:
+              - generic: ESEnglish
+      - generic [ref=f6e1443]:
+        - paragraph [ref=f6e1445]: © Inter IKEA Systems B.V. 1999-2026
+        - list [ref=f6e1447]:
+          - listitem [ref=f6e1448]:
+            - link "Privacy policy" [ref=f6e1449] [cursor=pointer]:
+              - /url: https://www.ikea.com/es/en/customer-service/privacy-policy/
+          - listitem [ref=f6e1450]:
+            - link "Cookie policy" [ref=f6e1451] [cursor=pointer]:
+              - /url: https://www.ikea.com/es/en/customer-service/cookie-policy/
+          - listitem [ref=f6e1452]:
+            - link "Terms and Conditions" [ref=f6e1453] [cursor=pointer]:
+              - /url: https://www.ikea.com/es/en/customer-service/terms-conditions/
+          - listitem [ref=f6e1454]:
+            - link "Your legal guarantee rights" [ref=f6e1455] [cursor=pointer]:
+              - /url: "#"
+          - listitem [ref=f6e1456]:
+            - link "Responsible Disclosure Policy" [ref=f6e1457] [cursor=pointer]:
+              - /url: https://www.ikea.com/es/en/customer-service/bug-bounty-program-pubf110a501
+      - generic [ref=f6e1459]:
+        - paragraph [ref=f6e1461]:
+          - text: "ADVERTISING *Finance through the IKEA VISA card is issued by the hybrid payment institution CaixaBank Payments & Consumer E.F.C., E.P., S.A.U., and is subject to its approval. The system chosen by the institution to protect payment service users' funds is to deposit them in a separate bank account held at CaixaBank, S.A. View the characteristics of your card with deferred (revolving) payment here:"
+          - link "www.caixabankpc.com/es/productos" [ref=f6e1462] [cursor=pointer]:
+            - /url: http://www.caixabankpc.com/es/productos
+        - generic [ref=f6e1463]:
+          - link "Withdraw from contract" [ref=f6e1464] [cursor=pointer]:
+            - /url: https://www.ikea.com/es/en/returns/
+          - link "Withdraw of services only" [ref=f6e1465] [cursor=pointer]:
+            - /url: https://www.ikea.com/es/en/purchases/withdrawal/

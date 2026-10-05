@@ -1,0 +1,295 @@
+- generic [active] [ref=f1e1]:
+  - region "Cookies on GOV.UK" [ref=f1e2]:
+    - generic [ref=f1e3]:
+      - generic [ref=f1e5]:
+        - heading "Cookies on GOV.UK" [level=2] [ref=f1e6]
+        - generic [ref=f1e8]:
+          - paragraph [ref=f1e9]: We use some essential cookies to make this website work.
+          - paragraph [ref=f1e10]: We’d like to set additional cookies to understand how you use GOV.UK, remember your settings and improve government services.
+          - paragraph [ref=f1e11]: We also use cookies set by other sites to help us deliver content from their services.
+      - generic [ref=f1e12]:
+        - button "Accept additional cookies" [ref=f1e13] [cursor=pointer]
+        - button "Reject additional cookies" [ref=f1e14] [cursor=pointer]
+        - link "View cookies" [ref=f1e15] [cursor=pointer]:
+          - /url: /help/cookies
+  - link "Skip to main content" [ref=f1e16] [cursor=pointer]:
+    - /url: "#content"
+  - banner [ref=f1e17]:
+    - navigation [ref=f1e21]:
+      - link "Go to the GOV.UK homepage" [ref=f1e23] [cursor=pointer]:
+        - /url: /
+        - img "GOV.UK" [ref=f1e24]
+      - heading "Navigation menu" [level=2] [ref=f1e37]
+      - button "Show navigation menu" [ref=f1e39] [cursor=pointer]:
+        - generic [ref=f1e40]: Menu
+      - button "Show search menu" [ref=f1e42] [cursor=pointer]:
+        - generic [ref=f1e43]: Search GOV.UK
+  - generic [ref=f1e44]:
+    - navigation "Breadcrumb" [ref=f1e46]:
+      - list [ref=f1e47]:
+        - listitem [ref=f1e48]:
+          - link "Home" [ref=f1e49] [cursor=pointer]:
+            - /url: /
+        - listitem [ref=f1e50]:
+          - link "Passports, travel and living abroad" [ref=f1e51] [cursor=pointer]:
+            - /url: /browse/abroad
+        - listitem [ref=f1e52]:
+          - link "Passports" [ref=f1e53] [cursor=pointer]:
+            - /url: /browse/abroad/passports
+    - main [ref=f1e54]:
+      - heading "Renew or replace your adult passport" [level=1] [ref=f1e58]
+      - generic [ref=f1e59]:
+        - generic [ref=f1e60]:
+          - link "Skip contents" [ref=f1e61] [cursor=pointer]:
+            - /url: "#guide-contents"
+          - navigation "Pages in this guide" [ref=f1e62]:
+            - heading "Contents" [level=2] [ref=f1e63]
+            - list [ref=f1e64]:
+              - listitem [ref=f1e65]:
+                - text: —
+                - link "Overview" [ref=f1e66] [cursor=pointer]:
+                  - /url: /renew-adult-passport
+              - listitem [ref=f1e67]: — Renew
+              - listitem [ref=f1e68]:
+                - text: —
+                - link "Replace a lost, stolen or damaged passport" [ref=f1e69] [cursor=pointer]:
+                  - /url: /renew-adult-passport/replace
+          - generic [ref=f1e70]:
+            - heading "Renew" [level=1] [ref=f1e72]
+            - generic [ref=f1e73]:
+              - paragraph [ref=f1e74]: "You must renew your passport before you can travel if either:"
+              - list [ref=f1e75]:
+                - listitem [ref=f1e76]: your passport has expired
+                - listitem [ref=f1e77]: you do not have enough time left on it
+              - paragraph [ref=f1e78]:
+                - text: How much time you need on your passport depends on the country you’re visiting.
+                - link "Check the entry requirements of the country you want to travel to" [ref=f1e79] [cursor=pointer]:
+                  - /url: /foreign-travel-advice
+                - text: .
+              - note "Information" [ref=f1e80]:
+                - paragraph [ref=f1e81]:
+                  - text: There are different rules if your
+                  - link "passport is lost, stolen or damaged" [ref=f1e82] [cursor=pointer]:
+                    - /url: /renew-adult-passport/replace
+                  - text: or you need to
+                  - link "change your name or personal details" [ref=f1e83] [cursor=pointer]:
+                    - /url: /changing-passport-information
+                  - text: .
+              - paragraph [ref=f1e84]: If your passport is burgundy or has ‘European Union’ on the cover, you can still use it as long as it’s valid for travel.
+              - heading "Supporting documents" [level=2] [ref=f1e85]
+              - paragraph [ref=f1e86]: "To renew your passport you’ll need:"
+              - list [ref=f1e87]:
+                - listitem [ref=f1e88]: your old passport
+                - listitem [ref=f1e89]: any valid passports you have from a different country - send either a colour photocopy of every page (including blank ones) or the physical passport
+              - heading "Renew online" [level=2] [ref=f1e90]
+              - paragraph [ref=f1e91]: Use this service to renew your passport online. It costs £102.
+              - paragraph [ref=f1e92]: "You’ll need:"
+              - list [ref=f1e93]:
+                - listitem [ref=f1e94]:
+                  - text: a
+                  - link "digital photo" [ref=f1e95] [cursor=pointer]:
+                    - /url: /photos-for-passports
+                - listitem [ref=f1e96]: a credit or debit card
+                - listitem [ref=f1e97]: your passport
+              - paragraph [ref=f1e98]:
+                - button "Renew online" [ref=f1e99] [cursor=pointer]
+              - note "Information" [ref=f1e103]:
+                - paragraph [ref=f1e104]:
+                  - text: This service is also available
+                  - link "in Welsh (Cymraeg)" [ref=f1e105] [cursor=pointer]:
+                    - /url: https://www.passport.service.gov.uk/filter?lang=cy&_ga=2.80103903.932495294.1537777477-946183992.1475581620
+                  - text: .
+              - heading "Renew using a paper application form" [level=2] [ref=f1e106]
+              - paragraph [ref=f1e107]: "You can get a paper application form by either:"
+              - list [ref=f1e108]:
+                - listitem [ref=f1e109]:
+                  - text: going to a Post Office that has a
+                  - link "Check and Send service" [ref=f1e110] [cursor=pointer]:
+                    - /url: /how-the-post-office-check-and-send-service-works
+                - listitem [ref=f1e111]:
+                  - text: calling the
+                  - link "Passport Adviceline" [ref=f1e112] [cursor=pointer]:
+                    - /url: /passport-advice-line
+              - paragraph [ref=f1e113]: "It costs £115.50. You can pay by either:"
+              - list [ref=f1e114]:
+                - listitem [ref=f1e115]: debit or credit card - fill in the form in the application pack
+                - listitem [ref=f1e116]: cheque - made payable to ‘HM Passport Office’
+              - paragraph [ref=f1e117]:
+                - text: You’ll need 2 new and identical
+                - link "printed photos" [ref=f1e118] [cursor=pointer]:
+                  - /url: /photos-for-passports/photo-requirements
+                - text: of yourself.
+              - heading "Unexpired visas" [level=2] [ref=f1e119]
+              - paragraph [ref=f1e120]: Send your previous passport with the visa attached to it with your application. Your previous passport will be returned to you.
+              - paragraph [ref=f1e121]: You’ll be able to use the visa if you carry both passports.
+              - note "Information" [ref=f1e122]:
+                - paragraph [ref=f1e123]:
+                  - text: The rules are different if you’re
+                  - link "travelling to Russia" [ref=f1e124] [cursor=pointer]:
+                    - /url: /foreign-travel-advice/russia
+                  - text: .
+            - navigation "Pagination" [ref=f1e125]:
+              - 'link "Previous : Overview" [ref=f1e127] [cursor=pointer]':
+                - /url: /renew-adult-passport
+                - text: Previous
+                - generic [ref=f1e130]: ":"
+                - generic [ref=f1e131]: Overview
+              - 'link "Next : Replace a lost, stolen or damaged passport" [ref=f1e133] [cursor=pointer]':
+                - /url: /renew-adult-passport/replace
+                - text: Next
+                - generic [ref=f1e136]: ":"
+                - generic [ref=f1e137]: Replace a lost, stolen or damaged passport
+            - link "View a printable version of the whole guide" [ref=f1e139] [cursor=pointer]:
+              - /url: /renew-adult-passport/print
+        - generic [ref=f1e142]:
+          - heading "Related content" [level=2] [ref=f1e143]
+          - navigation "Related content" [ref=f1e144]:
+            - list [ref=f1e145]:
+              - listitem [ref=f1e146]:
+                - link "Getting your first adult passport" [ref=f1e147] [cursor=pointer]:
+                  - /url: /apply-first-adult-passport
+              - listitem [ref=f1e148]:
+                - link "Get a passport urgently" [ref=f1e149] [cursor=pointer]:
+                  - /url: /get-a-passport-urgently
+              - listitem [ref=f1e150]:
+                - link "Get a passport for your child" [ref=f1e151] [cursor=pointer]:
+                  - /url: /get-a-child-passport
+              - listitem [ref=f1e152]:
+                - link "Passport fees" [ref=f1e153] [cursor=pointer]:
+                  - /url: /passport-fees
+      - navigation [ref=f1e158]:
+        - heading "Explore the topic" [level=2] [ref=f1e159]
+        - list [ref=f1e160]:
+          - listitem [ref=f1e161]:
+            - link "Passports" [ref=f1e162] [cursor=pointer]:
+              - /url: /browse/abroad/passports
+  - generic [ref=f1e166]:
+    - generic [ref=f1e168]:
+      - heading "Is this page useful?" [level=2] [ref=f1e169]
+      - list [ref=f1e170]:
+        - listitem [ref=f1e171]:
+          - button "Yes this page is useful" [ref=f1e172] [cursor=pointer]:
+            - text: "Yes"
+            - generic [ref=f1e173]: this page is useful
+        - listitem [ref=f1e174]:
+          - button "No this page is not useful" [ref=f1e175] [cursor=pointer]:
+            - text: "No"
+            - generic [ref=f1e176]: this page is not useful
+    - button "Report a problem with this page" [ref=f1e178] [cursor=pointer]
+  - contentinfo [ref=f1e179]:
+    - generic [ref=f1e180]:
+      - generic [ref=f1e191]:
+        - generic [ref=f1e192]:
+          - heading "Services and information" [level=2] [ref=f1e193]
+          - list [ref=f1e194]:
+            - listitem [ref=f1e195]:
+              - link "Benefits" [ref=f1e196] [cursor=pointer]:
+                - /url: /browse/benefits
+            - listitem [ref=f1e197]:
+              - link "Births, death, marriages and care" [ref=f1e198] [cursor=pointer]:
+                - /url: /browse/births-deaths-marriages
+            - listitem [ref=f1e199]:
+              - link "Business and self-employed" [ref=f1e200] [cursor=pointer]:
+                - /url: /browse/business
+            - listitem [ref=f1e201]:
+              - link "Childcare and parenting" [ref=f1e202] [cursor=pointer]:
+                - /url: /browse/childcare-parenting
+            - listitem [ref=f1e203]:
+              - link "Citizenship and living in the UK" [ref=f1e204] [cursor=pointer]:
+                - /url: /browse/citizenship
+            - listitem [ref=f1e205]:
+              - link "Crime, justice and the law" [ref=f1e206] [cursor=pointer]:
+                - /url: /browse/justice
+            - listitem [ref=f1e207]:
+              - link "Disabled people" [ref=f1e208] [cursor=pointer]:
+                - /url: /browse/disabilities
+            - listitem [ref=f1e209]:
+              - link "Driving and transport" [ref=f1e210] [cursor=pointer]:
+                - /url: /browse/driving
+            - listitem [ref=f1e211]:
+              - link "Education and learning" [ref=f1e212] [cursor=pointer]:
+                - /url: /browse/education
+            - listitem [ref=f1e213]:
+              - link "Employing people" [ref=f1e214] [cursor=pointer]:
+                - /url: /browse/employing-people
+            - listitem [ref=f1e215]:
+              - link "Environment and countryside" [ref=f1e216] [cursor=pointer]:
+                - /url: /browse/environment-countryside
+            - listitem [ref=f1e217]:
+              - link "Housing and local services" [ref=f1e218] [cursor=pointer]:
+                - /url: /browse/housing-local-services
+            - listitem [ref=f1e219]:
+              - link "Money and tax" [ref=f1e220] [cursor=pointer]:
+                - /url: /browse/tax
+            - listitem [ref=f1e221]:
+              - link "Passports, travel and living abroad" [ref=f1e222] [cursor=pointer]:
+                - /url: /browse/abroad
+            - listitem [ref=f1e223]:
+              - link "Visas and immigration" [ref=f1e224] [cursor=pointer]:
+                - /url: /browse/visas-immigration
+            - listitem [ref=f1e225]:
+              - link "Working, jobs and pensions" [ref=f1e226] [cursor=pointer]:
+                - /url: /browse/working
+        - generic [ref=f1e227]:
+          - heading "Government activity" [level=2] [ref=f1e228]
+          - list [ref=f1e229]:
+            - listitem [ref=f1e230]:
+              - link "Departments" [ref=f1e231] [cursor=pointer]:
+                - /url: /government/organisations
+            - listitem [ref=f1e232]:
+              - link "News" [ref=f1e233] [cursor=pointer]:
+                - /url: /search/news-and-communications
+            - listitem [ref=f1e234]:
+              - link "Guidance and regulation" [ref=f1e235] [cursor=pointer]:
+                - /url: /search/guidance-and-regulation
+            - listitem [ref=f1e236]:
+              - link "Research and statistics" [ref=f1e237] [cursor=pointer]:
+                - /url: /search/research-and-statistics
+            - listitem [ref=f1e238]:
+              - link "Policy papers and consultations" [ref=f1e239] [cursor=pointer]:
+                - /url: /search/policy-papers-and-consultations
+            - listitem [ref=f1e240]:
+              - link "Transparency" [ref=f1e241] [cursor=pointer]:
+                - /url: /search/transparency-and-freedom-of-information-releases
+            - listitem [ref=f1e242]:
+              - link "How government works" [ref=f1e243] [cursor=pointer]:
+                - /url: /government/how-government-works
+            - listitem [ref=f1e244]:
+              - link "Get involved" [ref=f1e245] [cursor=pointer]:
+                - /url: /government/get-involved
+      - separator [ref=f1e246]
+      - generic [ref=f1e247]:
+        - generic [ref=f1e248]:
+          - heading "Support links" [level=2] [ref=f1e249]
+          - list [ref=f1e250]:
+            - listitem [ref=f1e251]:
+              - link "Help" [ref=f1e252] [cursor=pointer]:
+                - /url: /help
+            - listitem [ref=f1e253]:
+              - link "Privacy" [ref=f1e254] [cursor=pointer]:
+                - /url: /help/privacy-notice
+            - listitem [ref=f1e255]:
+              - link "Cookies" [ref=f1e256] [cursor=pointer]:
+                - /url: /help/cookies
+            - listitem [ref=f1e257]:
+              - link "Accessibility statement" [ref=f1e258] [cursor=pointer]:
+                - /url: /help/accessibility-statement
+            - listitem [ref=f1e259]:
+              - link "Contact" [ref=f1e260] [cursor=pointer]:
+                - /url: /contact
+            - listitem [ref=f1e261]:
+              - link "Terms and conditions" [ref=f1e262] [cursor=pointer]:
+                - /url: /help/terms-conditions
+            - listitem [ref=f1e263]:
+              - link "Rhestr o Wasanaethau Cymraeg" [ref=f1e264] [cursor=pointer]:
+                - /url: /cymraeg
+            - listitem [ref=f1e265]:
+              - link "Government Digital Service" [ref=f1e266] [cursor=pointer]:
+                - /url: /government/organisations/government-digital-service
+          - generic [ref=f1e269]:
+            - text: All content is available under the
+            - link "Open Government Licence v3.0" [ref=f1e270] [cursor=pointer]:
+              - /url: https://www.nationalarchives.gov.uk/doc/open-government-licence/version/3/
+            - text: ", except where otherwise stated"
+        - link "© Crown copyright" [ref=f1e272] [cursor=pointer]:
+          - /url: https://www.nationalarchives.gov.uk/information-management/re-using-public-sector-information/uk-government-licensing-framework/crown-copyright/
