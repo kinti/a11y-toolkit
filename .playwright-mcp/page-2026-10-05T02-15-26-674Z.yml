@@ -1,0 +1,9 @@
+- generic [ref=e1]:
+  - heading "Acme Weekly" [level=1] [ref=e2]
+  - generic [ref=e3]: Latest issue
+  - paragraph [ref=e4]: Newsletter signup below.
+  - generic [ref=e5]:
+    - textbox "Your email" [ref=e6]: jesus@acme-weekly-test.org
+    - button "➔" [active] [ref=e7]
+    - generic [ref=e8]: Please enter a valid email address.
+    - generic [ref=e9]: Please enter a valid email address.

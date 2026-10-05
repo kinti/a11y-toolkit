@@ -114,6 +114,10 @@ page. If a run hangs, look for orphan chromium processes and retry.
 
 - Perception = accessibility tree ONLY. If a step needed something the tree
   didn't expose, that IS a finding — do not fall back to vision to "help".
+- Navigate like a screen-reader user: HEADINGS and LANDMARKS first, Tab as
+  the fallback. List them from each snapshot and jump by them — broken
+  heading hierarchies and missing landmarks are findings (2.4.6 / 2.4.1),
+  not inconveniences. This is the navigation real users run on every page.
 - Keep the SAME browser tab across steps (state matters); snapshot after
   every action, before deciding the next.
 - Log friction at the step it happened, with the pattern key — post-hoc

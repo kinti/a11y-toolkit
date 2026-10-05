@@ -94,6 +94,11 @@ for k in es:
     assert es[k][0] == en[k][0] and es[k][1] == en[k][1], f'{k}: criterio/severidad divergen'
     assert es[k][2] and en[k][2] and es[k][3] and en[k][3], f'{k}: texto vacío'
 assert all(k.startswith('journey_') for k in es)
+assert {'journey_heading_nav_broken', 'journey_landmark_missing', 'journey_mode_confusion',
+        'journey_duplicate_targets', 'journey_dynamic_stale'} <= set(en), 'faltan patrones SR-nativos'
+crit = {en[k][0] for k in en}
+assert crit <= {'1.1.1','1.2.2','1.3.1','2.1.1','2.1.2','2.2.1','2.4.1','2.4.3','2.4.4','2.4.6',
+                '3.3.1','3.3.2','4.1.2','4.1.3'}, crit
 print(f'9. catálogo J parejo ({len(es)} patrones) ✓')
 
 # 10. CLI end-to-end (la vía pública real)

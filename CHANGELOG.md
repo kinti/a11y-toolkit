@@ -1,5 +1,29 @@
 # Changelog
 
+## 5.2.0 — 2026-10-05 — "navigate like a screen-reader user"
+
+Blindfold, level two — the research pass:
+
+- **Five new friction patterns** model how real screen-reader users move:
+  `journey_heading_nav_broken` (2.4.6) and `journey_landmark_missing`
+  (2.4.1) — SR users navigate by headings and landmarks FIRST, Tab second,
+  so a Tab-walk alone never sees these; `journey_mode_confusion` (4.1.2,
+  keyboard-swallowing custom widgets), `journey_duplicate_targets` (4.1.2,
+  ambiguous accessible names), `journey_dynamic_stale` (4.1.3, the tree
+  changed under the agent with no announcement). Catalog: 15 patterns,
+  parity-tested.
+- **The `blindfold-task` prompt now instructs SR-native navigation**: list
+  headings and landmarks from every snapshot and jump by them — navigation
+  itself is under test.
+- **Golden rule added** to the skill: navigate by headings/landmarks first,
+  Tab as fallback; broken hierarchies are findings, not inconveniences.
+- **Worked example, run for real**: `docs/journey-example.md` — the author
+  executed a blindfold journey against a failing fixture strictly by the
+  rules (snapshot-only perception, accessible-name actions, gave_up
+  protocol). Result: blocked, 0/100, six findings across six criteria.
+  The run validated state-preserving perception, the new navigation rules
+  and the gave_up protocol in the wild.
+
 ## 5.1.1 — 2026-10-05 — "blindfold sees with the right eye"
 
 Functional fix to the blindfold loop: the prompt told the agent to perceive
