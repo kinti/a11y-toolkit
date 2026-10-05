@@ -1,6 +1,6 @@
 # Changelog
 
-## 5.1.1 — 2026-09-25 — "blindfold sees with the right eye"
+## 5.1.1 — 2026-10-05 — "blindfold sees with the right eye"
 
 Functional fix to the blindfold loop: the prompt told the agent to perceive
 via `a11y_sr_transcript`, which opens a FRESH page — mid-journey that loses
@@ -13,7 +13,7 @@ friction logged at the step it happened, 320px runs for mobile).
 
 Also: the one code comment naming a specific marketplace is now generic.
 
-## 5.1.0 — 2026-09-24 — "blindfold"
+## 5.1.0 — 2026-10-05 — "blindfold"
 
 The capability no other accessibility tool has: **task-based non-visual
 usability testing, where the agent IS the screen-reader user.**
