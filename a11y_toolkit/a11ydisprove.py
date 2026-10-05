@@ -71,7 +71,7 @@ def _recheck_rendered(url, hallazgos, timeout=45, lang='en'):
     return verificadas, None
 
 
-def disprove(url, informe=None, timeout=30, lang='en'):
+def disprove(url, report=None, timeout=30, lang='en'):
     """Audit a URL and disprove findings, or verify an existing report.
 
     Returns a report with each finding marked confirmed/rejected."""
@@ -130,7 +130,7 @@ def main(argv):
     if a.file:
         with open(a.file, encoding='utf-8') as f:
             informe = json.load(f)
-    res = disprove(a.url, informe=informe, timeout=a.timeout, lang=a.lang)
+    res = disprove(a.url, report=informe, timeout=a.timeout, lang=a.lang)
     if 'error' in res:
         print(json.dumps(res))
         return 1

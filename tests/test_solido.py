@@ -73,6 +73,7 @@ for _t in server.TOOLS:
 # ---------- 3c. conteos normativos WCAG 2.2 (fijados contra deriva) ----------
 from a11y_toolkit.a11ycrit import _C as _CAT, _EFFORT, effort  # noqa: E402
 from a11y_toolkit.a11yevidence import MANUAL_AA, empaquetar  # noqa: E402
+from a11y_toolkit.a11yjourney import _J  # noqa: E402
 
 # el conjunto A/AA normativo (w3.org/TR/WCAG22; 4.1.1 retirado; 3.2.6 y 3.3.7 son A)
 _NORM_A = {'1.1.1', '1.2.1', '1.2.2', '1.2.3', '1.3.1', '1.3.2', '1.3.3', '1.4.1', '1.4.2',
@@ -92,6 +93,8 @@ assert not _nivel_mal, f'niveles ≠ normativo: {_nivel_mal}'
 assert not ({m.split(' ')[0] for m in MANUAL_AA} - _NORM), 'MANUAL_AA fuera del conjunto A/AA'
 assert set(_EFFORT) == _NORM, 'la tabla de esfuerzo debe cubrir exactamente los 55 A/AA'
 assert effort('1.4.3')['class'] == 'MAX' and effort('9.9.9') is None
+assert set(_J['es']) == set(_J['en']), 'catálogo journey desparejo'
+assert all(_J['es'][k][0] == _J['en'][k][0] and _J['es'][k][1] == _J['en'][k][1] for k in _J['en']), 'journey: criterio/severidad divergen'
 from collections import Counter  # noqa: E402
 _dist = Counter(c for c, _ in _EFFORT.values())
 assert _dist == Counter({'MIN': 23, 'MED': 19, 'MAX': 13}), f'distribución de esfuerzo derivó: {dict(_dist)}'
@@ -112,7 +115,7 @@ _mods = [f[:-3] for f in os.listdir(os.path.join(ROOT, 'a11y_toolkit'))
 _sin_mapa = [m for m in _mods if f'`{m}.py`' not in _mapa]
 assert not _sin_mapa, f'módulos ausentes del mapa (docs/ARCHITECTURE.md): {_sin_mapa}'
 assert 'D12' in _mapa and 'T12' in _mapa, 'el mapa perdió secciones (decisiones/trampas)'
-assert '23 tools' in _mapa or '23 MCP' in _mapa, 'el mapa no refleja el conteo de tools'
+assert f'{len(server.TOOLS)} tools' in _mapa or f'{len(server.TOOLS)} MCP' in _mapa, 'el mapa no refleja el conteo de tools'
 
 # ---------- 4. fuzz determinista: HTML hostil no crashea ----------
 HOSTILES = [

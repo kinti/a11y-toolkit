@@ -7,7 +7,7 @@ read this. Every claim here that can be pinned by a test IS pinned by
 ## What this is
 
 a11y-toolkit is the machine half of WCAG 2.2 conformance work: an MCP server
-(23 tools + 5 prompts) and a CLI (`a11ytoolkit`) that audit, fix, document,
+(24 tools + 6 prompts) and a CLI (`a11ytoolkit`) that audit, fix, document,
 watch and hand off accessibility findings. The human half is priced, not
 guessed. Zero dependencies at the core; Playwright/Pillow optional behind
 import guards. Output es/en; wire keys English (`a11y-evidence-pack/2`).
@@ -16,13 +16,14 @@ import guards. Output es/en; wire keys English (`a11y-evidence-pack/2`).
 
 | Module | One line |
 |---|---|
-| `server.py` | MCP stdio server: 23 tools, 5 prompts, routing/annotations dicts. VERSION lives here. |
+| `server.py` | MCP stdio server: 24 tools, 6 prompts, routing/annotations dicts. VERSION lives here. |
 | `a11y.py` | CLI dispatcher (`SUBCOMANDOS` dict → module mains). |
 | `a11yaudit.py` | Static auditor: 50+ signals, `CRIT` name maps, weighted 0-100 score, sitemap crawl (`evaluar_sitio`). |
 | `a11ydom.py` | Rendered auditor (Playwright): shadow DOM, state contrast, target size, reflow, keyboard walk, forms, hover, sr_transcript; browser pool + auto-detection; `_TD` catalog. |
 | `a11yscroll.py` | Infinite-scroll audit (focus survival, announcements, feed end). |
 | `a11yevidence.py` | Evidence pack builder (`a11y-evidence-pack/2`): 55-criterion matrix, effort per row, SHA-256 chain, embedded bodies. |
 | `a11ycrit.py` | Knowledge catalog: `_C` (56 criteria, es/en), `_EFFORT` (55 A/AA effort classes), `effort()`. |
+| `a11yjourney.py` | Blindfold journey verdict: friction log → deterministic scored task verdict; `_J` friction catalogue (journey_* patterns → criterion + bilingual remediation). |
 | `a11ydiff.py` | Snapshot + regression diff (interactives, focus order, tree). |
 | `a11ybudget.py` | Error budget: only NEW blocking findings fail (exit 2). |
 | `a11yledger.py` | Coverage ledger: what was audited, when, resolved across runs. |
@@ -78,6 +79,12 @@ change (see 4.0.1); internal dev docs don't.
   scripts and MCP wire unchanged.
 - **D12 — Version discipline**: one command, three files, asserts, gates.
   Manual bumps drifted for 10 releases before this existed.
+- **D13 — Blindfold testing (v5.1.0)**: the agent IS the non-visual user —
+  tasks, not just rules. `blindfold-task` prompt drives perceive/act/log;
+  `a11y_journey_verdict` scores deterministically (start 100, −25/−12/−5 per
+  friction, −15 workaround; pass = completed, no high, no workaround, ≥85).
+  Journeys enter the pack as `report:journey`. Usability evidence, never
+  conformance: an AI agent is not a human screen-reader user.
 
 ## Trap catalogue (each class cost a bug — recognize the class)
 

@@ -66,7 +66,7 @@ assert init['serverInfo']['name'] == 'a11y-toolkit' and init['serverInfo']['vers
 assert 'WCAG' in init['instructions'] and 'prompts' in init['capabilities']
 
 nombres = [t['name'] for t in por_id[2]['result']['tools']]
-assert len(nombres) == 23 and 'a11y_html_validate' in nombres and 'a11y_forms' in nombres, nombres
+assert len(nombres) == 24 and 'a11y_html_validate' in nombres and 'a11y_forms' in nombres, nombres
 assert all(t['description'][0].isupper() for t in por_id[2]['result']['tools'])  # EN-first
 
 d = json.loads(por_id[3]['result']['content'][0]['text'])
@@ -78,7 +78,7 @@ assert 'alm-panel' in snip and "closest('.alm-panel')" in snip
 assert por_id[6]['result'].get('isError') is True
 
 prompts = por_id[7]['result']['prompts']
-assert {x['name'] for x in prompts} == {'audit-page', 'fix-contrast', 'pre-deploy-check', 'declaration-eaa', 'conformance-wcagem'}
+assert {x['name'] for x in prompts} == {'audit-page', 'fix-contrast', 'pre-deploy-check', 'declaration-eaa', 'conformance-wcagem', 'blindfold-task'}
 pr = por_id[8]['result']
 assert pr['messages'][0]['content']['text'].startswith('Run a full accessibility audit of https://ejemplo.test')
 

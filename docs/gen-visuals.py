@@ -16,7 +16,7 @@ RAIZ = os.path.dirname(AQUI)
 sys.path.insert(0, RAIZ)
 
 from a11y_toolkit.a11yaudit import audit_html
-from a11ybadge import badge
+from a11y_toolkit.a11ybadge import badge
 from a11y_toolkit.contrast import pair
 
 ANCHO, ALTO = 1024, 640
@@ -34,10 +34,10 @@ DEMO_HTML = '''<!doctype html><html><head><title>Demo</title></head><body><main>
 
 informe = audit_html(DEMO_HTML, 'https://demo.site', lang='en')
 p = pair('#999999', '#ffffff')
-sugerido = p['sugerencia_aa']['color']
+sugerido = p['aa_suggestion']['color']
 score_antes = informe['score']
-resumen = informe['resumen']
-fallos = [(h['criterio'], h['hallazgo']) for h in informe['hallazgos'][:3]]
+summary = informe['summary']
+fallos = [(h['criterion'], h['issue']) for h in informe['findings'][:3]]
 
 DEMO_FIX = DEMO_HTML.replace('<img src="hero.png">', '<img src="hero.png" alt="Hero">') \
     .replace('color:#999999', f'color:{sugerido}') \
@@ -132,18 +132,18 @@ h1 .dot{{color:#3fb950}}
 
     snap('<span class="p">$</span>', 500)
     escribe('claude mcp add a11y-toolkit -- uvx --from a11y-toolkit a11y-toolkit-mcp',
-            '<span class="ok">✓ a11y-toolkit registered</span>  <span class="c">(23 tools · 5 prompts)</span>',
+            '<span class="ok">✓ a11y-toolkit registered</span>  <span class="c">(24 tools · 6 prompts)</span>',
             hold=1100)
     salida_audit = (f'<span class="warn">score: {score_antes}/100</span>   '
-                    f'<span class="bad">high: {resumen["alta"]}</span>  '
-                    f'medium: {resumen["media"]}  low: {resumen["baja"]}'
+                    f'<span class="bad">high: {summary["high"]}</span>  '
+                    f'medium: {summary["medium"]}  low: {summary["low"]}'
                     + ''.join(f'\n<span class="bad">✗</span> <span class="c">{esc(c)}</span>  {esc(t[:48])}'
                               for c, t in fallos)
                     + '\n<span class="c">automation ≈ 1/3 of WCAG — filter, not verdict</span>')
     escribe('a11ytoolkit audit --url demo.site --lang en', salida_audit, hold=2400,
             blanco_previo=True)
     escribe('a11ytoolkit pair "#999999" "#ffffff"',
-            f'ratio: <span class="bad">2.85:1 ✗ AA</span>  →  sugerencia_aa: '
+            f'ratio: <span class="bad">2.85:1 ✗ AA</span>  →  aa_suggestion: '
             f'<span class="ok">{sugerido} ✓</span>', hold=1800, blanco_previo=True)
     escribe('a11ytoolkit audit --url demo.site   # after the fix',
             f'<span class="ok">score: {score_despues}/100 ✓</span>   '

@@ -8,8 +8,9 @@
 [![MCP](https://img.shields.io/badge/Model%20Context%20Protocol-server-purple)](https://modelcontextprotocol.io)
 [![Sponsor](https://img.shields.io/badge/Sponsor-%E2%9D%A4-pink)](https://github.com/sponsors/kinti)
 
-23 MCP tools, 5 prompts and a skill covering the whole WCAG 2.2 loop: audit, fix,
-document, watch, hand off. 51 of 55 A/AA criteria carry automated signals (93%), every
+24 MCP tools, 6 prompts and a skill covering the whole WCAG 2.2 loop: audit, fix,
+document, watch, hand off — and now blindfold usability testing, where the agent
+attempts real tasks perceiving only what a screen reader exposes. 51 of 55 A/AA criteria carry automated signals (93%), every
 finding ships with a concrete remediation your agent can apply, and the rendered tools
 run on whichever browser you have — Chromium, Firefox, WebKit, Chrome or Edge.
 
@@ -36,7 +37,7 @@ the human signs.
 | An evidence pack a human can countersign — hashes, matrix, empty signature block | ✗ | ✓ |
 | Runs with zero dependencies at core, speaks es/en, any browser you have | heavy runtimes | ✓ |
 
-## The tools (23)
+## The tools (24)
 
 ### Audit
 
@@ -85,8 +86,9 @@ the human signs.
 | `a11y_evidence` | **Countersignature-ready evidence pack**: full criteria matrix (fail/review/not-flagged/agent-verified/manual-only), SHA-256-hashed artifacts **with embedded report bodies** (self-verifying), empty signature block tied to the pack hash, **measured values** (e.g. "3.91:1") surfaced per criterion. Spec: [docs/evidence-pack-schema.md](docs/evidence-pack-schema.md). |
 | `a11y_disprove` | **Disprover pattern**: re-runs the audit against the live page and marks each finding confirmed or rejected — findings that don't reproduce are rejected with the reason. Returns a fresh score over confirmed findings only. |
 | `a11y_ledger` | **Coverage ledger**: persistent record of what has been audited, when, and with what result. Actions: record, gaps, summary. Accumulates across runs. |
+| `a11y_journey_verdict` | **Blindfold journey verdict** — the capability no other tool has: the agent attempted a real task perceiving only the accessibility tree, and its friction log becomes a deterministic scored verdict (pass/partial/fail/blocked) with WCAG-mapped findings that flow into the evidence pack as `report:journey`. Driven by the `blindfold-task` prompt. |
 
-**5 prompts**: `audit-page`, `fix-contrast`, `pre-deploy-check` (GO/NO-GO), `declaration-eaa`, `conformance-wcagem` (three-tier WCAG-EM ladder).
+**6 prompts**: `audit-page`, `fix-contrast`, `pre-deploy-check` (GO/NO-GO), `declaration-eaa`, `conformance-wcagem` (three-tier WCAG-EM ladder), `blindfold-task` (the agent attempts a real task non-visually and the friction log becomes scored evidence).
 
 ## Install
 

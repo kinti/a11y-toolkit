@@ -1,5 +1,33 @@
 # Changelog
 
+## 5.1.0 — 2026-09-24 — "blindfold"
+
+The capability no other accessibility tool has: **task-based non-visual
+usability testing, where the agent IS the screen-reader user.**
+
+- **New prompt `blindfold-task`**: the agent attempts a REAL task ("sign up",
+  "checkout", "password reset") perceiving ONLY the accessibility tree
+  (`a11y_sr_transcript` / `a11y_snapshot`) and acting only by accessible name
+  and keyboard. Reading HTML, screenshots or CSS is forbidden by the prompt —
+  what is not in the tree does not exist. After every action it re-perceives
+  and logs friction.
+- **New tool `a11y_journey_verdict`**: turns the friction log into a
+  deterministic scored verdict — start 100, −25/−12/−5 per high/medium/low
+  friction, −15 if the task was only completable via a workaround; verdicts
+  pass / partial / fail / blocked (gave_up is a paid outcome, not an agent
+  failure). Friction items map to WCAG criteria via a 10-pattern catalogue
+  (`journey_unnamed_control` → 4.1.2, `journey_focus_lost` → 2.4.3, …) or raw
+  criterion + issue, validated against the 55 A/AA set.
+- **Evidence pack integration**: journeys enter as `report:journey`; a high
+  friction observed in a real task is an `automated-fail` in the matrix —
+  usability evidence with the same hash chain as everything else.
+- Honesty guard: the verdict's score_note states a pass means ONE task was
+  completable non-visually by an AI agent — not conformance, not a human
+  screen-reader user.
+- Also: MCP argument `informe` → `report` in `a11y_disprove` (a v5.0.0
+  rename leftover), and gen-visuals fully on English keys (GIF regenerated
+  at 24 tools · 6 prompts).
+
 ## 5.0.0 — 2026-09-23 — "english on the wire"
 
 Every JSON key the toolkit emits is now English. The toolkit was born as a

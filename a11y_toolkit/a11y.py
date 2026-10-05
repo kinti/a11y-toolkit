@@ -39,6 +39,7 @@ from . import a11ydiff
 from . import a11ysarif
 from . import contrast
 from . import declaracion
+from . import a11yjourney
 
 SUBCOMANDOS = {
     'pair': (contrast, 'pair'),
@@ -60,6 +61,7 @@ SUBCOMANDOS = {
     'reflow': (a11ydom, 'reflow_main'),
     'badge': (a11ybadge, None),
     'budget': (a11ybudget, None),
+    'journey': (a11yjourney, None),
 }
 
 

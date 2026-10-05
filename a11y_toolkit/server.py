@@ -25,6 +25,7 @@ Tools:
   - a11y_forms(url, …)                            form errors 3.3.1/3.3.3 (fill+submit)
   - a11y_hover(url, …)                             tooltip Escape dismissibility (1.4.13)
   - a11y_sr_transcript(url, …)                     what a blind user hears, linearized
+  - a11y_journey_verdict(task, steps, outcome)    blindfold task verdict: friction log → scored evidence
   - a11y_disprove(url, informe?, …)                re-verify findings → confirmed/rejected
   - a11y_ledger(action, url?, informe?, …)          persistent coverage ledger
   - a11y_html_validate(url|html, …)                W3C Nu parser view
@@ -54,6 +55,7 @@ from .a11yvalidate import validar_url, validar_html  # noqa: E402
 from .a11yevidence import empaquetar as empaquetar_fn  # noqa: E402
 from .a11ydiff import snapshot as snapshot_fn, diff as diff_fn  # noqa: E402
 from .a11ycrit import criterio as criterio_fn  # noqa: E402
+from .a11yjourney import verdictar as journey_verdict_fn  # noqa: E402
 from .a11ydisprove import disprove as disprove_fn  # noqa: E402
 from .a11yledger import record as ledger_record, gaps as ledger_gaps, summary as ledger_summary  # noqa: E402
 from .a11ybadge import badge as badge_fn  # noqa: E402
@@ -64,7 +66,7 @@ try:
 except ImportError:
     ARIALIVE_JS = None  # repo checkout: read the file
 
-VERSION = '5.0.0'
+VERSION = '5.1.0'
 
 INSTRUCTIONS = (
     'Accessibility toolkit (WCAG 2.2), multilanguage es/en. '
@@ -400,7 +402,7 @@ TOOLS = [
                         'acting on any audit report.'),
         'inputSchema': {'type': 'object', 'properties': {
             'url': {'type': 'string', 'description': 'URL to re-verify against'},
-            'informe': {'type': 'object', 'description': 'existing audit report (optional; if absent, audits first)'},
+            'report': {'type': 'object', 'description': 'existing audit report (optional; if absent, audits first)'},
             'lang': {'type': 'string', 'enum': ['es', 'en'], 'description': 'Output language (en default)'},
             'timeout': {'type': 'number', 'description': 'Timeout seconds (30 default)'},
         }, 'required': ['url']},
@@ -416,7 +418,7 @@ TOOLS = [
             'action': {'type': 'string', 'enum': ['record', 'gaps', 'summary'],
                        'description': 'What to do'},
             'url': {'type': 'string', 'description': 'URL (for record/gaps)'},
-            'informe': {'type': 'object', 'description': 'audit report object (for record)'},
+            'report': {'type': 'object', 'description': 'audit report object (for record)'},
             'ledger_path': {'type': 'string', 'description': 'ledger file path (default: a11y-ledger.json)'},
         }, 'required': ['action']},
     },
@@ -431,6 +433,26 @@ TOOLS = [
             'code': {'type': 'string', 'description': 'criterion number, e.g. 1.4.3'},
             'lang': {'type': 'string', 'enum': ['es', 'en']},
         }, 'required': ['code']},
+    },
+    {
+        'name': 'a11y_journey_verdict',
+        'description': ('Blindfold journey verdict — the capability no other accessibility tool '
+                        'has: the agent attempted a REAL task (sign up, checkout, password reset) '
+                        'perceiving only the accessibility tree and acting by accessible name and '
+                        'keyboard; this turns its friction log into a deterministic scored verdict. '
+                        'Pass = task completable non-visually by the agent; friction items map to '
+                        'WCAG criteria and flow into the evidence pack (report:journey). Use with '
+                        'the blindfold-task prompt: perceive via a11y_sr_transcript, act by '
+                        'accessible name, log friction per step, then call this. Task usability '
+                        'evidence, never conformance.'),
+        'inputSchema': {'type': 'object', 'properties': {
+            'task': {'type': 'object', 'description': '{"goal": what the agent attempted, "kind": sign-up|checkout|password-reset|search|custom}'},
+            'steps': {'type': 'array', 'items': {'type': 'object'}, 'description': 'journey steps: {action, target (accessible name), perceived, friction?} — friction is {pattern: journey_* key} or {criterion, severity, issue, remediation?}'},
+            'outcome': {'type': 'object', 'description': '{"completed": bool, "gave_up": bool, "workaround_used": bool, "notes"}'},
+            'url': {'type': 'string', 'description': 'page(s) where the journey ran'},
+            'lang': {'type': 'string', 'enum': ['en', 'es'], 'description': 'output language'},
+            'output_path': {'type': 'string', 'description': 'write the full verdict JSON here instead of returning it inline'},
+        }, 'required': ['task', 'steps', 'outcome']},
     },
 ]
 
@@ -475,6 +497,20 @@ _PROMPTS = [
         'arguments': [
             {'name': 'url', 'description': 'site root to evaluate', 'required': True},
             {'name': 'tier', 'description': 'express | guided | conformance (default: express)', 'required': False},
+            {'name': 'language', 'description': 'es or en', 'required': False},
+        ],
+    },
+    {
+        'name': 'blindfold-task',
+        'description': ('Blindfold usability test — the agent attempts a real task perceiving '
+                        'ONLY the accessibility tree and acting only by accessible name and '
+                        'keyboard, logging friction per step; closes with a11y_journey_verdict. '
+                        'The capability no other accessibility tool has: task-based non-visual '
+                        'testing where the agent IS the screen-reader user.'),
+        'arguments': [
+            {'name': 'url', 'description': 'page where the task lives', 'required': True},
+            {'name': 'goal', 'description': 'the task in user terms ("sign up for the newsletter")', 'required': True},
+            {'name': 'kind', 'description': 'sign-up | checkout | password-reset | search | custom', 'required': False},
             {'name': 'language', 'description': 'es or en', 'required': False},
         ],
     },
@@ -558,6 +594,20 @@ def _prompt(nombre, args):
                   "5. Llama a a11y_generate_declaration (marco='eaa' para sector privado / EAA; 'rd1112' para sector público español), lang del sitio, y guarda con output_path.\n"
                   "6. Recuerda: la declaración debe enlazarse desde todas las páginas (típico en el pie) y revisarse tras cambios significativos.",
         },
+        'blindfold-task': {
+            'en': f"BLINDFOLD TEST of the task “{args.get('goal','the task')}” on {args.get('url','the URL')}:\n"
+                  "1. PERCEIVE through the accessibility tree only: a11y_sr_transcript (or a11y_snapshot). Reading HTML, screenshots or CSS is FORBIDDEN: what is not in the tree does not exist for you.\n"
+                  "2. ACT only by accessible name and keyboard: click by role+name, Tab/Enter/Escape. Never coordinates or CSS selectors.\n"
+                  "3. AFTER EVERY ACTION: re-perceive and log friction with a journey_* pattern (unnamed control 4.1.2, focus lost 2.4.3, silent error 3.3.1, unannounced status 4.1.3, no instructions 3.3.2, unreachable 2.1.1, dialog trap 2.1.2, generic link 2.4.4, hidden from tree 1.3.1, unextendable timeout 2.2.1) or criterion+issue if rarer. Describe STRUCTURE; never quote page content.\n"
+                  "4. NO CHEATING: if you only completed the task through a path a real screen reader would not offer, mark workaround_used. If after three reasonable attempts you cannot advance, log gave_up (a paid outcome, not an agent failure).\n"
+                  "5. CLOSE with a11y_journey_verdict (task, steps, outcome). Report verdict + score + friction with criterion and remediation, grouped by severity, plus the score_note: usability evidence, never conformance.",
+            'es': f"PRUEBA A CIEGAS de la tarea «{args.get('goal','la tarea')}» en {args.get('url','la URL')}:\n"
+                  "1. PERCIBE solo por el árbol de accesibilidad: a11y_sr_transcript (o a11y_snapshot). PROHIBIDO leer el HTML, capturas o CSS: si no está en el árbol, para ti no existe.\n"
+                  "2. ACTÚA solo por nombre accesible y teclado: clic por rol+nombre, Tab/Enter/Escape. Nunca coordenadas ni selectores CSS.\n"
+                  "3. TRAS CADA ACCIÓN: vuelve a percibir y registra la fricción con un patrón journey_* (control sin nombre 4.1.2, foco perdido 2.4.3, error silencioso 3.3.1, estado sin anunciar 4.1.3, sin instrucciones 3.3.2, no alcanzable 2.1.1, diálogo-trampa 2.1.2, enlace genérico 2.4.4, oculto al árbol 1.3.1, tiempo sin prórroga 2.2.1) o criterio+issue si es más raro. Describe ESTRUCTURA; nunca cites contenido de la página.\n"
+                  "4. SIN ATAJOS: si solo completaste la tarea por una vía que un lector real no ofrecería, marca workaround_used. Si tras 3 intentos razonables no avanzas, registra gave_up (resultado pagado, no fallo del agente).\n"
+                  "5. CIERRA con a11y_journey_verdict (task, steps, outcome). Comunica veredicto + score + fricción con criterio y remediation, agrupado por severidad, y el score_note: evidencia de usabilidad, nunca conformidad.",
+        },
     }
     txt = t[nombre][L]
     return {'description': next(p['description'] for p in _PROMPTS if p['name'] == nombre),
@@ -589,12 +639,18 @@ _PARAM_DOCS = {
  ('a11y_forms', 'browser'): 'Browser engine (auto = detect the first available)',
  ('a11y_sr_transcript', 'url'): 'Page URL to get the screen reader announcement transcript',
  ('a11y_sr_transcript', 'timeout'): 'Page load timeout in seconds (default 45)',
+ ('a11y_journey_verdict', 'task'): 'Task the agent attempted blindfolded: {"goal": …, "kind": sign-up|checkout|password-reset|search|custom}',
+ ('a11y_journey_verdict', 'steps'): 'Journey steps in order; each friction item is a journey_* pattern key or a raw {criterion, severity, issue}',
+ ('a11y_journey_verdict', 'outcome'): 'How the journey ended: completed / gave_up / workaround_used + notes',
+ ('a11y_journey_verdict', 'url'): 'Where the journey ran',
+ ('a11y_journey_verdict', 'lang'): 'Output language (en|es)',
+ ('a11y_journey_verdict', 'output_path'): 'File to write the full verdict JSON (optional)',
  ('a11y_disprove', 'url'): 'URL to re-verify findings against',
- ('a11y_disprove', 'informe'): 'Existing audit report to verify (optional; audits first if absent)',
+ ('a11y_disprove', 'report'): 'Existing audit report to verify (optional; audits first if absent)',
  ('a11y_disprove', 'timeout'): 'Fetch timeout seconds (default 30)',
  ('a11y_ledger', 'action'): 'record (add audit), gaps (what is missing), or summary (overview)',
  ('a11y_ledger', 'url'): 'URL being audited (for record/gaps)',
- ('a11y_ledger', 'informe'): 'Audit report object (for record action)',
+ ('a11y_ledger', 'report'): 'Audit report object (for record action)',
  ('a11y_ledger', 'ledger_path'): 'Path to the ledger JSON file (default: a11y-ledger.json)',
 
 
@@ -710,6 +766,7 @@ _ANN = {
     'a11y_disprove':         ('Disprover: re-verify findings', True, True),
     'a11y_ledger':           ('Coverage ledger (persistent)', True, False),
     'a11y_criterion':        ('WCAG criterion explained', True, False),
+    'a11y_journey_verdict':  ('Blindfold journey verdict', True, False),
 }
 for _t in TOOLS:
     _titulo, _ro, _ow = _ANN[_t['name']]
@@ -886,7 +943,7 @@ def llamar(nombre, args):
             return {'content': [{'type': 'text', 'text': f'error: {e}'}], 'isError': True}
     if nombre == 'a11y_disprove':
         try:
-            return _texto(disprove_fn(args['url'], informe=args.get('informe'),
+            return _texto(disprove_fn(args['url'], report=args.get('report'),
                                        timeout=args.get('timeout', 30),
                                        lang=args.get('lang', 'en')))
         except Exception as e:
@@ -896,10 +953,10 @@ def llamar(nombre, args):
             ruta = args.get('ledger_path', 'a11y-ledger.json')
             accion = args['action']
             if accion == 'record':
-                if not args.get('url') or not args.get('informe'):
+                if not args.get('url') or not args.get('report'):
                     return _texto({'error': 'record requires url + informe'})
                 from .a11yledger import record as _rec
-                return _texto(_rec(args['url'], args['informe'], ruta=ruta))
+                return _texto(_rec(args['url'], args['report'], ruta=ruta))
             if accion == 'gaps':
                 if not args.get('url'):
                     return _texto({'error': 'gaps requires url'})
@@ -912,6 +969,16 @@ def llamar(nombre, args):
             return {'content': [{'type': 'text', 'text': f'error: {e}'}], 'isError': True}
     if nombre == 'a11y_criterion':
         return _texto(criterio_fn(args['code'], lang=args.get('lang', 'en')))
+    if nombre == 'a11y_journey_verdict':
+        res = journey_verdict_fn(args['task'], args['steps'], args['outcome'],
+                                 url=args.get('url', ''), lang=args.get('lang', 'en'))
+        if args.get('output_path') and 'error' not in res:
+            with open(args['output_path'], 'w', encoding='utf-8') as f:
+                f.write(json.dumps(res, ensure_ascii=False, indent=1) + '\n')
+            return _texto({'out': args['output_path'], 'verdict': res['verdict'],
+                           'score': res['score'], 'high': res['summary']['high'],
+                           'medium': res['summary']['medium'], 'low': res['summary']['low']})
+        return _texto(res)
     if nombre == 'a11y_badge':
         svg = badge_fn(args['score'], fecha=args.get('fecha'),
                        lang=args.get('lang', 'en'))
