@@ -528,7 +528,7 @@ _C = {
 _NIVEL = {'A': 'A', 'AA': 'AA', 'AAA': 'AAA'}
 
 # Human-effort class for every A/AA criterion — what the HUMAN still does after
-# the machine's best signal. Used for review pricing (Countersignatory interlock)
+# the machine's best signal. Used for review-marketplace pricing interlocks
 # and emitted in the evidence pack matrix.
 #   MIN (1-3 min):  the agent verified with a measured signal; the human reads and confirms.
 #   MED (5-10 min): the agent prepares context; the human verifies in the browser.

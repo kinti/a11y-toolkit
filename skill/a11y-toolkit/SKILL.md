@@ -44,7 +44,7 @@ All output is English by default; pass `--lang es` (or the `lang: "es"` MCP argu
 | "does it scroll sideways on mobile?" (1.4.10) | `a11y_reflow` (320px viewport, real overflow + offenders) — axe/Lighthouse don't automate this |
 | "is the modal a keyboard trap?" (2.1.2) | `a11y_keyboard`: real Tab walk + cycle detection + Escape release test. Correct modals pass; traps are high severity |
 | "infinite scroll / feed / more posts keep loading" | `a11y_scroll`: real scroll batches — focus survival (2.4.3), announcements (4.1.3), end or load-more (Deque/APG Feed). Best on feeds you own or can log into |
-| "can a blind user actually DO this?" (task usability, not rules) | the `blindfold-task` prompt: attempt the task perceiving ONLY the accessibility tree, acting by accessible name and keyboard; log friction per step; close with `a11y_journey_verdict` — scored pass/partial/fail/blocked, criteria-mapped, pack-ready (`report:journey`) |
+| "can a blind user actually DO this?" (task usability, not rules) | the `blindfold-task` prompt: attempt the task perceiving ONLY the accessibility tree — your browser's own accessibility snapshot each step (it preserves filled forms and open dialogs; `a11y_sr_transcript` once at start for the linearized prose) — acting by accessible name and keyboard; log friction per step; close with `a11y_journey_verdict` — scored pass/partial/fail/blocked, criteria-mapped, pack-ready (`report:journey`) |
 
 ## 1. Audit
 
@@ -109,6 +109,19 @@ announcement with time, politeness, role, text.
 and must exclude itself from the MutationObserver; a `role="log"` panel matches
 its own selector and creates an infinite self-observation loop that hangs the
 page. If a run hangs, look for orphan chromium processes and retry.
+
+## Blindfold golden rules (do not skip)
+
+- Perception = accessibility tree ONLY. If a step needed something the tree
+  didn't expose, that IS a finding — do not fall back to vision to "help".
+- Keep the SAME browser tab across steps (state matters); snapshot after
+  every action, before deciding the next.
+- Log friction at the step it happened, with the pattern key — post-hoc
+  reconstruction loses the sequence, and sequence is the evidence.
+- Run journeys at 320px viewport for mobile too: the tree changes, and
+  2.5.8/1.4.4-class failures show up only there.
+
+## Notes
 
 ## Notes
 

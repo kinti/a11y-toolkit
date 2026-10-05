@@ -1,5 +1,18 @@
 # Changelog
 
+## 5.1.1 — 2026-09-25 — "blindfold sees with the right eye"
+
+Functional fix to the blindfold loop: the prompt told the agent to perceive
+via `a11y_sr_transcript`, which opens a FRESH page — mid-journey that loses
+session state (filled forms, open dialogs). Perception now happens through
+the agent's own browser accessibility snapshot at every step (state-
+preserving); `a11y_sr_transcript` stays as an optional one-shot at journey
+start for the linearized prose. Tool description and skill row updated, plus
+four golden rules for running journeys (no vision fallback, same tab,
+friction logged at the step it happened, 320px runs for mobile).
+
+Also: the one code comment naming a specific marketplace is now generic.
+
 ## 5.1.0 — 2026-09-24 — "blindfold"
 
 The capability no other accessibility tool has: **task-based non-visual

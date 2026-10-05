@@ -66,7 +66,7 @@ try:
 except ImportError:
     ARIALIVE_JS = None  # repo checkout: read the file
 
-VERSION = '5.1.0'
+VERSION = '5.1.1'
 
 INSTRUCTIONS = (
     'Accessibility toolkit (WCAG 2.2), multilanguage es/en. '
@@ -439,10 +439,10 @@ TOOLS = [
         'description': ('Blindfold journey verdict — the capability no other accessibility tool '
                         'has: the agent attempted a REAL task (sign up, checkout, password reset) '
                         'perceiving only the accessibility tree and acting by accessible name and '
-                        'keyboard; this turns its friction log into a deterministic scored verdict. '
+                        'keyboard; perceive via your browser accessibility snapshot (state-preserving). ''This turns its friction log into a deterministic scored verdict. '
                         'Pass = task completable non-visually by the agent; friction items map to '
                         'WCAG criteria and flow into the evidence pack (report:journey). Use with '
-                        'the blindfold-task prompt: perceive via a11y_sr_transcript, act by '
+                        'the blindfold-task prompt: act by '
                         'accessible name, log friction per step, then call this. Task usability '
                         'evidence, never conformance.'),
         'inputSchema': {'type': 'object', 'properties': {
@@ -596,13 +596,13 @@ def _prompt(nombre, args):
         },
         'blindfold-task': {
             'en': f"BLINDFOLD TEST of the task “{args.get('goal','the task')}” on {args.get('url','the URL')}:\n"
-                  "1. PERCEIVE through the accessibility tree only: a11y_sr_transcript (or a11y_snapshot). Reading HTML, screenshots or CSS is FORBIDDEN: what is not in the tree does not exist for you.\n"
+                  "1. PERCEIVE through the accessibility tree only: your browser's accessibility snapshot (browser_snapshot) at EVERY step — it preserves session state (filled forms, open dialogs); optionally a11y_sr_transcript ONCE at journey start for the linearized “what a screen reader says” prose. Reading HTML, screenshots or CSS is FORBIDDEN: what is not in the tree does not exist for you.\n"
                   "2. ACT only by accessible name and keyboard: click by role+name, Tab/Enter/Escape. Never coordinates or CSS selectors.\n"
                   "3. AFTER EVERY ACTION: re-perceive and log friction with a journey_* pattern (unnamed control 4.1.2, focus lost 2.4.3, silent error 3.3.1, unannounced status 4.1.3, no instructions 3.3.2, unreachable 2.1.1, dialog trap 2.1.2, generic link 2.4.4, hidden from tree 1.3.1, unextendable timeout 2.2.1) or criterion+issue if rarer. Describe STRUCTURE; never quote page content.\n"
                   "4. NO CHEATING: if you only completed the task through a path a real screen reader would not offer, mark workaround_used. If after three reasonable attempts you cannot advance, log gave_up (a paid outcome, not an agent failure).\n"
                   "5. CLOSE with a11y_journey_verdict (task, steps, outcome). Report verdict + score + friction with criterion and remediation, grouped by severity, plus the score_note: usability evidence, never conformance.",
             'es': f"PRUEBA A CIEGAS de la tarea «{args.get('goal','la tarea')}» en {args.get('url','la URL')}:\n"
-                  "1. PERCIBE solo por el árbol de accesibilidad: a11y_sr_transcript (o a11y_snapshot). PROHIBIDO leer el HTML, capturas o CSS: si no está en el árbol, para ti no existe.\n"
+                  "1. PERCIBE solo por el árbol de accesibilidad: el snapshot de accesibilidad de TU navegador (browser_snapshot) en CADA paso — conserva el estado de la sesión (formularios rellenos, diálogos abiertos); opcionalmente a11y_sr_transcript UNA vez al inicio para la prosa linealizada de lo que diría un lector. PROHIBIDO leer el HTML, capturas o CSS: si no está en el árbol, para ti no existe.\n"
                   "2. ACTÚA solo por nombre accesible y teclado: clic por rol+nombre, Tab/Enter/Escape. Nunca coordenadas ni selectores CSS.\n"
                   "3. TRAS CADA ACCIÓN: vuelve a percibir y registra la fricción con un patrón journey_* (control sin nombre 4.1.2, foco perdido 2.4.3, error silencioso 3.3.1, estado sin anunciar 4.1.3, sin instrucciones 3.3.2, no alcanzable 2.1.1, diálogo-trampa 2.1.2, enlace genérico 2.4.4, oculto al árbol 1.3.1, tiempo sin prórroga 2.2.1) o criterio+issue si es más raro. Describe ESTRUCTURA; nunca cites contenido de la página.\n"
                   "4. SIN ATAJOS: si solo completaste la tarea por una vía que un lector real no ofrecería, marca workaround_used. Si tras 3 intentos razonables no avanzas, registra gave_up (resultado pagado, no fallo del agente).\n"
