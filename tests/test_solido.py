@@ -99,6 +99,10 @@ from collections import Counter  # noqa: E402
 _dist = Counter(c for c, _ in _EFFORT.values())
 assert _dist == Counter({'MIN': 23, 'MED': 19, 'MAX': 13}), f'distribución de esfuerzo derivó: {dict(_dist)}'
 assert '51 of 55 A/AA criteria carry automated signals (93%)' in readme, 'claim de cobertura en README'
+_faltan_tools = [t['name'] for t in server.TOOLS if f'#### `{t["name"]}`' not in readme]
+assert not _faltan_tools, f'tools sin entrada completa en README: {_faltan_tools}'
+_faltan_prompts = [p2['name'] for p2 in server._PROMPTS if f'`{p2["name"]}`' not in readme]
+assert not _faltan_prompts, f'prompts sin entrada en README: {_faltan_prompts}'
 assert 'of 54' not in readme and '94%' not in readme, 'quedan restos del conteo antiguo en README'
 # pack de evidencia: exactamente 55 filas, todas con esfuerzo, totales del seed
 _pack = empaquetar([{'mode': 'static', 'url': 'https://t', 'score': 90, 'findings': []}])
