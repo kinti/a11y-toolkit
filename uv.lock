@@ -1,0 +1,8 @@
+version = 1
+revision = 3
+requires-python = ">=3.9"
+
+[[package]]
+name = "a11y-toolkit"
+version = "5.2.0"
+source = { editable = "." }
