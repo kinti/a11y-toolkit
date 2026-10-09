@@ -66,7 +66,7 @@ try:
 except ImportError:
     ARIALIVE_JS = None  # repo checkout: read the file
 
-VERSION = '5.2.0'
+VERSION = '5.2.1'
 
 INSTRUCTIONS = (
     'Accessibility toolkit (WCAG 2.2), multilanguage es/en. '
@@ -106,7 +106,7 @@ TOOLS = [
         'inputSchema': {'type': 'object', 'properties': {
             'url': {'type': 'string', 'description': 'URL to fetch and audit'},
             'html': {'type': 'string', 'description': 'raw HTML to audit directly (overrides url)'},
-            'pages': {'type': 'integer', 'description': 'light same-domain crawl: audit up to N pages, aggregated by score and recurring signals (default 1, max 20)'},
+            'pages': {'type': 'integer', 'minimum': 1, 'maximum': 20, 'description': 'light same-domain crawl: audit up to N pages, aggregated by score and recurring signals (default 1, max 20)'},
             'lang': {'type': 'string', 'enum': ['es', 'en'], 'description': 'output language (en default)'},
             'timeout': {'type': 'number', 'description': 'fetch timeout seconds (30 default)'},
         }},
@@ -768,11 +768,57 @@ _ANN = {
     'a11y_criterion':        ('WCAG criterion explained', True, False),
     'a11y_journey_verdict':  ('Blindfold journey verdict', True, False),
 }
+# TDQS hygiene: annotations must match reality, and every description states
+# its return shape and when (not) to use the tool. a11y_ledger.record mutates
+# a persistent file and a11y_forms really submits forms — neither is
+# read-only, and neither is idempotent.
+_RO_OVERRIDE = {'a11y_ledger': False, 'a11y_forms': False}
+_IDEM_OVERRIDE = {'a11y_ledger': False, 'a11y_forms': False}
+_RETURNS = {
+    'a11y_audit_url': 'Returns JSON: {mode, url|file, score 0-100, findings [{criterion, severity, signal, issue, remediation}], summary {high, medium, low}, limits, score_note}.',
+    'a11y_audit_dom': 'Returns JSON: {mode, url, score 0-100, findings [{criterion, severity, signal, issue, remediation}], summary, score_note} — same shape as the static audit.',
+    'a11y_contrast_pair': 'Returns JSON: {text, background, ratio, verdicts [{criterion, level, threshold, passes}], aa_suggestion?}.',
+    'a11y_contrast_image': 'Returns JSON: {worst_ratio, median_ratio, p95_ratio, area_passes_aa_normal_text_4_5, worst_zone, sampled_pixels}.',
+    'a11y_suggest_color': 'Returns JSON: {color, ratio, action} — the nearest opaque color reaching the target.',
+    'a11y_snapshot': 'Returns JSON: {url, ts, elements [{tag, role, name, ref…}], focus_order}.',
+    'a11y_diff': 'Returns JSON: {ok, added, removed, renamed, focus_order_changed, first_differences} — ok:false means a regression to review.',
+    'a11y_diff_urls': 'Returns the same diff shape as a11y_diff, for two live URLs.',
+    'a11y_aria_live_snippet': 'Returns the injectable JavaScript as text (bookmarklet or page.evaluate).',
+    'a11y_badge': 'Returns the honest SVG badge; writes a file only when output_path is given.',
+    'a11y_autofix': 'Returns JSON: {fixed_html, aplicados [{fix, …}], no_aplicados [{issue, remediation}]} — writes a file only when output_path is given.',
+    'a11y_reflow': 'Returns JSON: {url, viewport, horizontal_scroll, offenders [{selector, width}]}.',
+    'a11y_keyboard': 'Returns JSON: {tab_stops, trap_detected, escape_releases, findings}.',
+    'a11y_scroll': 'Returns JSON: {mode, url, score, findings [{criterion, severity, signal, issue, remediation}], summary} — same shape as the audits.',
+    'a11y_forms': 'Returns JSON: per-field error judgments {field, submitted_value_class, error_identified, announced, suggestion_present} plus an overall 3.3.1/3.3.3 verdict.',
+    'a11y_html_validate': 'Returns JSON: Nu validator messages mapped to WCAG criteria where they overlap.',
+    'a11y_hover': 'Returns JSON: {candidates, dismissed_on_escape, findings}.',
+    'a11y_sr_transcript': 'Returns JSON: {url, total, announcements [{time, politeness, role, text}] — the linearized reading order}.',
+    'a11y_disprove': 'Returns JSON: {confirmed, rejected, score} — a fresh score over confirmed findings only.',
+    'a11y_ledger': 'record returns the stored entry; gaps returns criteria never checked; summary returns {entries, active_signals, resolved, mean_score}.',
+    'a11y_criterion': 'Returns JSON: {criterion, level, requires, typical_failures, how_to_check} or {error, available} for unknown codes.',
+    'a11y_evidence': 'Returns the pack JSON (a11y-evidence-pack/2); writes a file only when output_path is given.',
+    'a11y_journey_verdict': 'Returns JSON: {verdict pass|partial|fail|blocked, score 0-100, findings [{criterion, severity, signal, issue, remediation, step}], summary, rules} — writes a file only when output_path is given.',
+    'a11y_generate_declaration': 'Returns {html, summary} — the accessible legal statement; writes a file only when output_path is given.',
+}
+_USAGE = {
+    'a11y_forms': 'Use on test/staging forms, or forms you own: invalid data is REALLY submitted. Do not run against production forms that trigger real emails, orders or leads.',
+    'a11y_ledger': 'record after every audit run; gaps before planning the next pass. The ledger file accumulates across runs — give each project its own ledger_path.',
+    'a11y_keyboard': 'Run on pages with modals, dialogs or embedded apps; a plain content page has nothing to trap.',
+    'a11y_reflow': 'Run once per template, not per page: fixed-width layouts are a property of the template.',
+    'a11y_journey_verdict': 'Run only after a real blindfold attempt (the blindfold-task prompt): the verdict prices the walk, it does not replace it.',
+    'a11y_evidence': 'Run after the audits you trust, and pass verified codes from the manual checklist — agent-verified never erases an automated-fail.',
+}
 for _t in TOOLS:
     _titulo, _ro, _ow = _ANN[_t['name']]
+    _titulo_ro = _RO_OVERRIDE.get(_t['name'], _ro)
+    _titulo_idem = _IDEM_OVERRIDE.get(_t['name'], True)
     _t['title'] = 'a11y-toolkit: ' + _titulo
-    _t['annotations'] = {'readOnlyHint': _ro, 'destructiveHint': not _ro,
-                         'idempotentHint': True, 'openWorldHint': _ow}
+    _t['annotations'] = {'readOnlyHint': _titulo_ro, 'destructiveHint': not _titulo_ro,
+                         'idempotentHint': _titulo_idem, 'openWorldHint': _ow}
+    if _t['name'] in _RETURNS:
+        _t['description'] += ' ' + _RETURNS[_t['name']]
+    if _t['name'] in _USAGE:
+        _t['description'] += ' ' + _USAGE[_t['name']]
 
 
 def _texto(obj):

@@ -1,5 +1,27 @@
 # Changelog
 
+## 5.2.1 — 2026-10-09 — "annotations that tell the truth"
+
+A TDQS audit (Glama's per-tool scoring) caught what the wire already said
+about two tools and what the annotations denied:
+
+- **`a11y_ledger`**: `record` mutates a persistent file and is not idempotent
+  — `readOnlyHint` and `idempotentHint` were both wrong (scored 1/5 on
+  Behavior). Now `false`/`false`.
+- **`a11y_forms`**: it REALLY submits forms with invalid data — no longer
+  declared read-only, and its description now carries the explicit usage
+  guard: test/staging forms or forms you own; never production forms that
+  trigger real emails, orders or leads.
+- **Every tool description now states its return shape** ("Returns JSON:
+  …") — 24 of 24, closing the Completeness penalty on tools like
+  `a11y_audit_dom`.
+- **`pages` parameter** gains `minimum: 1, maximum: 20` constraints.
+- Optional `output_path` writers (badge, autofix, evidence, journey,
+  declaration) disclose in-description that they write only when given.
+
+No behavior changes — the wire verbs, schemas and outputs are untouched;
+the annotations and descriptions now match what was always true.
+
 ## 5.2.0 — 2026-10-05 — "navigate like a screen-reader user"
 
 Blindfold, level two — the research pass:
