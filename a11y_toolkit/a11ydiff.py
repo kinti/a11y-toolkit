@@ -117,6 +117,8 @@ def diff(a, b):
     oa, ob = a['focus_order'], b['focus_order']
     comun_a = [x for x in oa if x in set(ob)]
     comun_b = [x for x in ob if x in set(oa)]
+    foco_eliminado = [x for x in oa if x not in set(ob)]   # perdió el Tab: regresión real
+    foco_aniadido = [x for x in ob if x not in set(oa)]    # nuevo enfocable: cambio, no pérdida
     foco_cambia = comun_a != comun_b
     primera_divergencia = next((i for i, (x, y) in enumerate(zip(comun_a, comun_b)) if x != y), None)
 
@@ -133,18 +135,23 @@ def diff(a, b):
             arbol_diff += [f'+ {lb[i]}' for i in range(min(len(la), len(lb)))
                            if i < len(lb) and la[i] != lb[i]][:5]
 
+    # perder un elemento del orden de foco ES la regresión que este diff
+    # existe para cazar (p. ej. tabindex="-1" añadido al botón de pago):
+    # el elemento sigue existiendo, pero ya no es alcanzable por teclado.
     ok = not (aniadidos or eliminados or renombrados or foco_cambia
-              or arbol_cambia)
+              or foco_eliminado or arbol_cambia)
     return {
         'ok': ok,
         'summary': {
             'elements': {'before': len(ea), 'after': len(eb)},
             'added': len(aniadidos), 'removed': len(eliminados),
             'renamed': len(renombrados),
-            'focus_order_changed': foco_cambia,
+            'focus_order_changed': foco_cambia or bool(foco_eliminado),
         },
         'added': aniadidos, 'removed': eliminados, 'renamed': renombrados,
-        'focus': {'before': oa, 'after': ob, 'first_divergence': primera_divergencia},
+        'focus': {'before': oa, 'after': ob, 'first_divergence': primera_divergencia,
+                  'removed': foco_eliminado, 'added': foco_aniadido,
+                  'reordered': bool(foco_cambia and not foco_eliminado and not foco_aniadido)},
         'tree': {'changed': arbol_cambia, 'first_differences': arbol_diff},
         'note': ('Elementos sin id se casan por tag+nombre+href: renombrar produce '
                  'eliminado+añadido, no un diff fino. Usa ids estables para trazabilidad.'),

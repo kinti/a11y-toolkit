@@ -141,18 +141,24 @@ def parse_color(s):
     # rgb()/rgba()/hsl()/hsla() con comas o espacios (sintaxis CSS moderna)
     m = re.fullmatch(r'(rgba?|hsla?)\(\s*([^)]*)\)', t)
     if m:
-        partes = [p for p in (x.strip() for x in re.split(r'[\s,]+', m.group(2))) if p]
+        cuerpo = m.group(2)
+        alfa_ext = None
+        if '/' in cuerpo:
+            cuerpo, alfa_ext = re.split(r'\s*/\s*', cuerpo, 1)
+        partes = [p for p in (x.strip() for x in re.split(r'[\s,]+', cuerpo)) if p]
         tipo, v = m.group(1), partes
         if tipo.startswith('rgb'):
             if len(v) < 3:
                 return None
             def _canal(x):
                 if x.endswith('%'):
-                    return min(255, round(float(x[:-1]) * 2.55))
-                return min(255, int(float(x)))
+                    return max(0, min(255, round(float(x[:-1]) * 2.55)))
+                return max(0, min(255, int(float(x))))
             c = {'r': _canal(v[0]), 'g': _canal(v[1]), 'b': _canal(v[2])}
             if len(v) >= 4:
                 c['a'] = max(0.0, min(1.0, float(v[3].rstrip('%')) / (100 if v[3].endswith('%') else 1)))
+            elif alfa_ext:
+                c['a'] = max(0.0, min(1.0, float(alfa_ext.strip().rstrip('%')) / (100 if alfa_ext.strip().endswith('%') else 1)))
             return c
         if len(v) < 3:
             return None

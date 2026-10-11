@@ -533,8 +533,10 @@ _JS = r'''(maxEj) => {
     const fgf = parseCol(s.color);
     const bgf = bgOf(el);
     if (fgf && !bgf.image) {
+      const fs = parseFloat(s.fontSize) || 16;
+      const large = fs >= 24 || (fs >= 18.66 && (parseInt(s.fontWeight) || 400) >= 700);
       const rf2 = ratioOf(fgf, bgf);
-      if (rf2 < 3 && out.focusContrast.length < 20)
+      if (rf2 < (large ? 3.0 : 4.5) && out.focusContrast.length < 20)
         out.focusContrast.push({ ej: path(el), ratio: Math.round(rf2 * 100) / 100 });
     }
     // (2.4.11 por parada se cubre abajo con la causa raíz)

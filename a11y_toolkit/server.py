@@ -66,7 +66,7 @@ try:
 except ImportError:
     ARIALIVE_JS = None  # repo checkout: read the file
 
-VERSION = '5.2.1'
+VERSION = '5.3.0'
 
 INSTRUCTIONS = (
     'Accessibility toolkit (WCAG 2.2), multilanguage es/en. '
@@ -214,6 +214,7 @@ TOOLS = [
                         'production). Requires local Playwright.'),
         'inputSchema': {'type': 'object', 'properties': {
             'url_a': {'type': 'string'}, 'url_b': {'type': 'string'},
+            'auth_state': {'type': 'string', 'description': 'Path to a Playwright storage_state JSON (exported session) to audit behind login — stays local'},
         }, 'required': ['url_a', 'url_b']},
     },
     {
@@ -374,6 +375,7 @@ TOOLS = [
             'url': {'type': 'string', 'description': 'Page URL to test'},
             'lang': {'type': 'string', 'enum': ['es', 'en'], 'description': 'Output language (en default)'},
             'timeout': {'type': 'number', 'description': 'Page load timeout (45 default)'},
+            'auth_state': {'type': 'string', 'description': 'Path to a Playwright storage_state JSON (exported session) to audit behind login — stays local'},
         }, 'required': ['url']},
     },
     {
@@ -389,6 +391,8 @@ TOOLS = [
             'url': {'type': 'string', 'description': 'Page URL to transcribe'},
             'lang': {'type': 'string', 'enum': ['es', 'en'], 'description': 'Output language (en default)'},
             'timeout': {'type': 'number', 'description': 'Page load timeout (45 default)'},
+            'auth_state': {'type': 'string', 'description': 'Path to a Playwright storage_state JSON (exported session) to audit behind login — stays local'},
+            'browser': {'type': 'string', 'enum': ['auto', 'chromium', 'firefox', 'webkit', 'chrome', 'msedge'], 'description': 'Browser engine (auto = detect the first available)'},
         }, 'required': ['url']},
     },
     {
@@ -774,6 +778,17 @@ _ANN = {
 # read-only, and neither is idempotent.
 _RO_OVERRIDE = {'a11y_ledger': False, 'a11y_forms': False}
 _IDEM_OVERRIDE = {'a11y_ledger': False, 'a11y_forms': False}
+_SCHEMA_EXTRA = {
+    'a11y_audit_dom': (('browser', {'type': 'string', 'enum': ['auto', 'chromium', 'firefox', 'webkit', 'chrome', 'msedge'],
+                                    'description': 'Browser engine (auto = detect the first available)'}),),
+    'a11y_keyboard': (('browser', {'type': 'string', 'enum': ['auto', 'chromium', 'firefox', 'webkit', 'chrome', 'msedge'],
+                                   'description': 'Browser engine (auto = detect the first available)'}),),
+    'a11y_reflow': (('browser', {'type': 'string', 'enum': ['auto', 'chromium', 'firefox', 'webkit', 'chrome', 'msedge'],
+                                 'description': 'Browser engine (auto = detect the first available)'}),),
+    'a11y_sr_transcript': (('browser', {'type': 'string', 'enum': ['auto', 'chromium', 'firefox', 'webkit', 'chrome', 'msedge'],
+                                        'description': 'Browser engine (auto = detect the first available)'}),),
+}
+
 _RETURNS = {
     'a11y_audit_url': 'Returns JSON: {mode, url|file, score 0-100, findings [{criterion, severity, signal, issue, remediation}], summary {high, medium, low}, limits, score_note}.',
     'a11y_audit_dom': 'Returns JSON: {mode, url, score 0-100, findings [{criterion, severity, signal, issue, remediation}], summary, score_note} — same shape as the static audit.',
@@ -819,6 +834,8 @@ for _t in TOOLS:
         _t['description'] += ' ' + _RETURNS[_t['name']]
     if _t['name'] in _USAGE:
         _t['description'] += ' ' + _USAGE[_t['name']]
+    for _pp, _pd in _SCHEMA_EXTRA.get(_t['name'], ()):
+        _t['inputSchema']['properties'].setdefault(_pp, _pd)
 
 
 def _texto(obj):
@@ -872,7 +889,9 @@ def llamar(nombre, args):
     if nombre == 'a11y_audit_dom':
         try:
             return _texto(audit_dom_url(args['url'], timeout=args.get('timeout', 45),
-                                        lang=args.get('lang', 'en')))
+                                        lang=args.get('lang', 'en'),
+                                        auth_state=args.get('auth_state'),
+                                        browser=args.get('browser', 'auto')))
         except ImportError:
             return {'content': [{'type': 'text',
                                  'text': 'Playwright not installed: pip install playwright && playwright install chromium (or use a11y_audit_url for the zero-dependency static audit)'}],
@@ -881,7 +900,7 @@ def llamar(nombre, args):
             return {'content': [{'type': 'text', 'text': f'error: {e}'}], 'isError': True}
     if nombre == 'a11y_snapshot':
         try:
-            return _texto(snapshot_fn(args['url']))
+            return _texto(snapshot_fn(args['url'], auth_state=args.get('auth_state')))
         except ImportError:
             return {'content': [{'type': 'text',
                                  'text': 'Playwright not installed: pip install playwright && playwright install chromium'}],
@@ -901,7 +920,8 @@ def llamar(nombre, args):
             return {'content': [{'type': 'text', 'text': f'error: {e}'}], 'isError': True}
     if nombre == 'a11y_diff_urls':
         try:
-            return _texto(diff_fn(snapshot_fn(args['url_a']), snapshot_fn(args['url_b'])))
+            return _texto(diff_fn(snapshot_fn(args['url_a'], auth_state=args.get('auth_state')),
+                                  snapshot_fn(args['url_b'], auth_state=args.get('auth_state'))))
         except ImportError:
             return {'content': [{'type': 'text',
                                  'text': 'Playwright not installed: pip install playwright && playwright install chromium'}],
@@ -911,7 +931,8 @@ def llamar(nombre, args):
     if nombre == 'a11y_scroll':
         try:
             return _texto(audit_scroll(args['url'], max_tandas=args.get('max_tandas', 5),
-                                       lang=args.get('lang', 'en')))
+                                       lang=args.get('lang', 'en'),
+                                       auth_state=args.get('auth_state')))
         except ImportError:
             return {'content': [{'type': 'text',
                                  'text': 'Playwright not installed: pip install playwright && playwright install chromium'}],
@@ -921,7 +942,9 @@ def llamar(nombre, args):
     if nombre == 'a11y_keyboard':
         try:
             return _texto(audit_keyboard(args['url'], max_pasos=args.get('max_pasos', 60),
-                                         lang=args.get('lang', 'en')))
+                                         lang=args.get('lang', 'en'),
+                                         auth_state=args.get('auth_state'),
+                                         browser=args.get('browser', 'auto')))
         except ImportError:
             return {'content': [{'type': 'text',
                                  'text': 'Playwright not installed: pip install playwright && playwright install chromium'}],
@@ -932,8 +955,7 @@ def llamar(nombre, args):
         try:
             return _texto(audit_forms(args['url'], timeout=args.get('timeout', 45),
                                       lang=args.get('lang', 'en'),
-                                      auth_state=args.get('auth_state'),
-                                      browser=args.get('browser', 'auto')))
+                                      auth_state=args.get('auth_state')))
         except ImportError:
             return {'content': [{'type': 'text',
                                  'text': 'Playwright not installed: pip install playwright && playwright install chromium'}],
@@ -954,7 +976,9 @@ def llamar(nombre, args):
     if nombre == 'a11y_reflow':
         try:
             return _texto(audit_reflow(args['url'], timeout=args.get('timeout', 45),
-                                       lang=args.get('lang', 'en')))
+                                       lang=args.get('lang', 'en'),
+                                       auth_state=args.get('auth_state'),
+                                       browser=args.get('browser', 'auto')))
         except ImportError:
             return {'content': [{'type': 'text',
                                  'text': 'Playwright not installed: pip install playwright && playwright install chromium'}],
@@ -1050,6 +1074,8 @@ def main():
             msg = json.loads(linea)
         except json.JSONDecodeError:
             continue
+        if not isinstance(msg, dict):
+            continue
         metodo = msg.get('method', '')
         mid = msg.get('id')
         if mid is None:
@@ -1071,7 +1097,7 @@ def main():
                 resp = {'jsonrpc': '2.0', 'id': mid, 'result': llamar(p.get('name'), p.get('arguments') or {})}
             elif metodo == 'prompts/list':
                 resp = {'jsonrpc': '2.0', 'id': mid, 'result': {'prompts': _PROMPTS}}
-            elif metodo == 'prompts/call':
+            elif metodo in ('prompts/get', 'prompts/call'):  # get = spec method (2024-11-05); call kept as alias
                 p = msg.get('params', {})
                 resp = {'jsonrpc': '2.0', 'id': mid, 'result': _prompt(p.get('name'), p.get('arguments') or {})}
             else:

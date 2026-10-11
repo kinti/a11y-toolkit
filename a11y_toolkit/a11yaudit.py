@@ -1164,6 +1164,11 @@ def audit_html(html_text, url='(html)', lang='en'):
 
 
 def _descarga(url, timeout=30, truncar_en=None):
+    esquema = url.split(':', 1)[0].lower() if ':' in url else ''
+    if esquema not in ('http', 'https'):
+        # política única para TODAS las rutas de descarga (audit_url la
+        # comprobaba; audit_site y el crawl pasaban por aquí sin frontera)
+        return {'error': f'esquema no permitido: {esquema or url[:24]!r} (solo http/https)'}
     req = urllib.request.Request(url, headers={
         'User-Agent': 'Mozilla/5.0 (compatible; a11y-toolkit/3.2; WCAG audit)',
         'Accept': 'text/html,application/xhtml+xml',
@@ -1175,8 +1180,11 @@ def _descarga(url, timeout=30, truncar_en=None):
         if len(datos) > techo and truncar_en is None:
             raise ValueError(f'HTML > {MAX_HTML // 1000000} MB, demasiado grande')
         if (r.headers.get('Content-Encoding') or '').lower() == 'gzip' or datos[:2] == b'\x1f\x8b':
-            import gzip
-            datos = gzip.decompress(datos)
+            import zlib
+            d = zlib.decompressobj(16 + zlib.MAX_WBITS)
+            datos = d.decompress(datos, techo)   # techo duro también al descomprimir
+            if d.unconsumed_tail:
+                datos = datos[:techo]            # bomba gzip: truncado, no OOM
         ctype = (r.headers.get('Content-Type') or '').lower()
         if ctype and 'html' not in ctype and 'xml' not in ctype and ctype.split(';')[0].strip():
             raise ValueError(f'la URL no devuelve HTML (Content-Type: {ctype.split(";")[0]})')

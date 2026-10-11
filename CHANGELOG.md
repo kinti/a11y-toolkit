@@ -1,5 +1,52 @@
 # Changelog
 
+## 5.3.0 — 2026-10-11 — "the external review"
+
+An external code review (2026-10-11) landed 6 P1/P2 claims and 10 further
+findings. Every claim was **verified before acting** — 12 confirmed, 2
+refuted (no `p`/`pw` lambda bug; the textarea case needed a `<form>` wrapper
+to reproduce, then confirmed). All twelve confirmed findings are fixed and
+pinned in `tests/test_revision_externa.py`:
+
+- **`a11y_disprove` crashed on every call** (UnboundLocalError): our 5.1.1
+  rename touched the signature but not the body. Fixed; and modes without a
+  re-verifier now return `not-rechecked` instead of substituting a static
+  audit — `rejected` is reserved for checks that actually disprove.
+- **MCP contract**: `prompts/get` (the spec method) implemented — we only
+  handled `prompts/call`, and our own test replicated the wrong method. Both
+  now work; the test asserts the standard.
+- **`auth_state` was accepted and silently dropped** in the dispatch of
+  audit_dom, snapshot, scroll, keyboard, reflow and diff_urls — clients got
+  unauthenticated audits of login-walled pages. Now transmitted everywhere.
+- **`browser` parameter** exposed in the schemas of the rendered tools that
+  support it (audit_dom, keyboard, reflow, sr_transcript).
+- **autofix no longer corrupts `textarea`/`select`**: the error layer was
+  injected INSIDE content-bearing elements, becoming their value. It now
+  goes after the close; options and content preserved (regression-tested).
+- **`_attrs`** crashed on empty attribute values (`value=""`) — StopIteration.
+- **contrast**: modern space syntax with alpha (`rgb(0 0 0 / 50%)`) crashed;
+  negative channels now clamp to 0. Focus-state text contrast uses the
+  typographic threshold (4.5:1, or 3:1 for genuinely large text) instead of
+  a blanket 3:1.
+- **`a11y_diff`**: losing a focusable element is now `ok:false` with
+  `focus.removed` — the exact regression (tabindex="-1" on the pay button)
+  the old common-order comparison let through.
+- **evidence pack**: findings marked `rejected`/`not-rechecked` by the
+  disprover can no longer revive as failures; `_RENDERED_ONLY` now covers
+  the specialized modes (forms, hover, keyboard, scroll) so static-only
+  packs say `not-run` instead of implying coverage.
+- **declaration**: the default method no longer claims expert manual review,
+  axe-core checking and screen-reader testing that nobody performed — it
+  states, in both languages, that the document is an unvalidated draft.
+- **limits**: gzip responses decompress under a hard cap (61 bytes → 10 KB
+  was the reviewer's proof); `_descarga` enforces the http/https-only policy
+  for every path (the multi-page crawl skipped it).
+- **CI/tests**: the dead `or True` assertion removed; `prompts/get` asserted;
+  Playwright + Chromium now installed in CI so the rendered suites run, and
+  Python 3.9 (our declared floor) entered the matrix.
+
+Refuted claims are documented in the review-response commit message.
+
 ## 5.2.1 — 2026-10-09 — "annotations that tell the truth"
 
 A TDQS audit (Glama's per-tool scoring) caught what the wire already said

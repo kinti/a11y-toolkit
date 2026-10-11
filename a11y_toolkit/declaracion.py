@@ -90,9 +90,10 @@ TXT = {
                     'de contacto indicado. En última instancia, el servicio está sujeto a '
                     'supervisión en los términos de la Ley 11/2023.'),
         },
-        'metodo_defecto': ('Revisión manual experta conforme a WCAG 2.2 nivel AA y EN 301 549, '
-                           'complementada con verificación automática (axe-core) y prueba con '
-                           'teclado y lector de pantalla.'),
+        'metodo_defecto': ('Pendiente de completar: declara aquí el método de evaluación real '
+                           '(revisión manual, herramientas y pruebas realizadas), con fechas y '
+                           'responsable. Esta declaración es un BORRADOR NO VALIDADO mientras '
+                           'este campo no se complete.'),
         'feedback_defecto': 'el formulario de contacto del sitio',
         'error_estado': "estado debe ser: 'plena', 'parcial' o 'no_conforme'",
         'error_incoherente': 'con estado plena no procede enumerar contenido no accesible',
@@ -127,9 +128,10 @@ TXT = {
                     'indicated. The service is ultimately subject to supervision under the '
                     'terms of Directive (EU) 2019/882.'),
         },
-        'metodo_defecto': ('Expert manual review against WCAG 2.2 level AA and EN 301 549, '
-                           'complemented by automated checking (axe-core) and keyboard and '
-                           'screen reader testing.'),
+        'metodo_defecto': ('To be completed: state the actual assessment method '
+                           '(manual review, tools used and testing performed), with dates and '
+                           'a responsible party. This declaration remains an UNVALIDATED DRAFT '
+                           'until this field is filled.'),
         'feedback_defecto': 'the site contact form',
         'error_estado': "estado must be: 'plena', 'parcial' or 'no_conforme'",
         'error_incoherente': 'with fully-compliant status, non-accessible content cannot be listed',

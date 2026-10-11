@@ -70,15 +70,17 @@ def empaquetar(informes, snapshot=None, evaluador=None, notas=None, verificados=
     tocados = {}
     for inf in informes:
         for h in inf.get('findings', []):
+            if (h.get('status') == 'rejected'
+                    or h.get('disprover_status') in ('rejected', 'not-rechecked')):
+                # un hallazgo desmentido (o no reverificado) no puede volver a
+                # convertirse en fallo dentro del pack
+                continue
             crit = h.get('criterion')
             if not crit or not isinstance(crit, str):   # informe malformado: saltar
                 continue
             code = crit.split(' ')[0]
-            texto = h.get('issue', '') or ''
-            texto = texto.lower() if isinstance(texto, str) else ''
-            estado = 'automated-review' if (h.get('severity') == 'low'
-                                            and ('review' in texto or 'revisar' in texto)) \
-                else 'automated-fail'
+            severidad = h.get('severity')
+            estado = 'automated-review' if severidad == 'low' else 'automated-fail'
             # el peor estado gana: fail > review
             if tocados.get(code) != 'automated-fail':
                 tocados[code] = estado
@@ -106,7 +108,8 @@ def empaquetar(informes, snapshot=None, evaluador=None, notas=None, verificados=
     # real es not-run, no not-flagged: la herramienta SÍ tiene señal pero el
     # modo que la produce no se incluyó)
     _RENDERED_ONLY = {'1.4.3', '1.4.12', '1.4.1', '1.3.2', '2.2.2', '2.5.8',
-                      '2.4.7', '2.4.11', '3.2.1', '3.2.2'}
+                      '2.4.7', '2.4.11', '3.2.1', '3.2.2', '3.3.1', '3.3.3',
+                      '1.4.13', '2.1.2', '4.1.3', '1.4.10'}
 
     verificados_set = {v.split(' ')[0] for v in (verificados or [])}
 

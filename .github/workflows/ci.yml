@@ -5,13 +5,14 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: ['3.10', '3.12', '3.14']
+        python-version: ['3.9', '3.10', '3.12', '3.14']
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
       - run: pip install pillow
+      - run: pip install playwright && playwright install --with-deps chromium
       - run: python tests/test_contrast.py
       - run: python tests/test_audit.py
       - run: python tests/test_dom.py     # self-skips if Playwright is absent

@@ -75,26 +75,33 @@ def disprove(url, report=None, timeout=30, lang='en'):
     """Audit a URL and disprove findings, or verify an existing report.
 
     Returns a report with each finding marked confirmed/rejected."""
-    if informe is None:
-        informe = audit_url(url, timeout=timeout, lang=lang)
-        if 'error' in informe:
-            return informe
+    if report is None:
+        report = audit_url(url, timeout=timeout, lang=lang)
+        if 'error' in report:
+            return report
 
-    modo = informe.get('mode', 'static')
-    hallazgos = informe.get('findings', [])
+    modo = report.get('mode', 'static')
+    hallazgos = report.get('findings', [])
 
     if modo in ('static', 'site'):
         verificadas, err = _recheck_static(url, hallazgos, timeout=timeout, lang=lang)
     elif modo == 'rendered':
         verificadas, err = _recheck_rendered(url, hallazgos, timeout=timeout, lang=lang)
     else:
-        # for other modes, re-run the static audit as a proxy
-        verificadas, err = _recheck_static(url, hallazgos, timeout=timeout, lang=lang)
+        # no re-verifier for this mode: report not-rechecked, never a proxy
+        # audit (a keyboard finding must not vanish just because the wrong
+        # method ran). `rejected` is reserved for an equivalent check that
+        # actually disproves the original finding.
+        res = dict(report)
+        res['findings'] = [dict(h, disprover_status='not-rechecked') for h in hallazgos]
+        res['disprover'] = {'executed': False,
+                            'reason': f"no re-verifier for mode {modo!r}"}
+        return res
 
     if err:
         return {'error': f'disprove re-audit failed: {err}'}
 
-    resultado = dict(informe)
+    resultado = dict(report)
     resultado['findings'] = verificadas
     resultado['disprover'] = {
         'executed': True,
@@ -108,7 +115,7 @@ def disprove(url, report=None, timeout=30, lang='en'):
     # recalcular score sobre los confirmed
     from .a11yaudit import calcular_score
     solo_confirmed = [h for h in verificadas if h.get('status') == 'confirmed']
-    resultado['score_original'] = informe.get('score')
+    resultado['score_original'] = report.get('score')
     resultado['score'] = calcular_score(solo_confirmed)
     resultado['summary'] = {
         'high': sum(1 for h in solo_confirmed if h['severity'] == 'high'),

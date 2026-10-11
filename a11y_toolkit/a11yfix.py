@@ -45,7 +45,7 @@ _TOKEN_POR_PISTA = [
 ]
 
 _RE_FORM = re.compile(r'<form\b[^>]*>', re.I)
-_RE_CAMPO = re.compile(r'<(input|select|textarea)\b[^>]*>', re.I)
+_RE_CAMPO = re.compile(r'<input\b[^>]*>|<(select|textarea)\b[^>]*>.*?</\1\s*>', re.I | re.S)
 _RE_SCRIPTS = re.compile(r'<script\b.*?</script>', re.S | re.I)
 _RE_FORM_BLOQUE = re.compile(r'<form\b.*?</form>', re.S | re.I)
 
@@ -100,9 +100,11 @@ _RE_TITLE = re.compile(r'<title>\s*</title>', re.I)
 
 
 def _attrs(tag_html):
-    pares = re.findall(r'([\w-]+)\s*=\s*(?:"([^"]*)"|\'([^\']*)\'|([^\s>]+))', tag_html)
-    return {k: next(v for v in vals if v != '') for k, *vals in
-            ((k, a, b, c) for k, a, b, c in pares)}
+    out = {}
+    for k, dbl, sgl, bare in re.findall(
+            r'([\w-]+)\s*=\s*(?:"([^"]*)"|\'([^\']*)\'|([^\s>]+))', tag_html):
+        out[k] = dbl if dbl is not None else (sgl if sgl is not None else bare)
+    return out
 
 
 def _viewport_limpio(content):
@@ -198,19 +200,26 @@ def autofix(html_text, lang=None, title=None, url='(html)', form_errors=True):
                 return tipo in ('email', 'url', 'number', 'tel', 'date', 'time',
                                 'datetime-local', 'month', 'week')
 
-            def _procesa_campo(tag):
-                if 'data-a11yfx-err' in tag or not _validable(tag):
-                    return tag
+            def _procesa_campo(elem):
+                if 'data-a11yfx-err' in elem or not _validable(elem):
+                    return elem
                 estado['campos'] += 1
                 fid = "a11yfx-e-%d-%d" % (estado['forms'], estado['campos'])
-                mdb = re.search(r'aria-describedby=["\']([^"\']*)["\']', tag, re.I)
+                apertura = re.match(r'<[^>]*>', elem).group(0)
+                mdb = re.search(r'aria-describedby=["\']([^"\']*)["\']', apertura, re.I)
                 if mdb:  # merge, preserving the existing reference
                     nueva = 'aria-describedby="%s %s"' % (mdb.group(1), fid)
-                    tag = tag[:mdb.start()] + nueva + tag[mdb.end():]
-                    tag = tag[:-1] + ' data-a11yfx-err="%s">' % fid
+                    apertura = apertura[:mdb.start()] + nueva + apertura[mdb.end():]
+                    apertura = apertura[:-1] + ' data-a11yfx-err="%s">' % fid
                 else:
-                    tag = tag[:-1] + ' data-a11yfx-err="%s" aria-describedby="%s">' % (fid, fid)
-                return tag + '\n<p class="a11yfx-err" id="%s" hidden></p>' % fid
+                    apertura = apertura[:-1] + ' data-a11yfx-err="%s" aria-describedby="%s">' % (fid, fid)
+                capa = '\n<p class="a11yfx-err" id="%s" hidden></p>' % fid
+                if apertura.lower().startswith(('<textarea', '<select')):
+                    # content-bearing element: the layer goes AFTER the close,
+                    # never inside (inside would become its value — a real
+                    # data-corruption regression, caught in external review)
+                    return elem.replace(re.match(r'<[^>]*>', elem).group(0), apertura, 1) + capa
+                return apertura + capa
 
             def _manejo_propio(atrs_form):
                 m = re.search(r'onsubmit=["\']([^"\']*)', atrs_form, re.I)

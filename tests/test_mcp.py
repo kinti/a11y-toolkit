@@ -29,7 +29,7 @@ REQ = [
      'params': {'name': 'a11y_contrast_image',
                 'arguments': {'path': '/no/existe.jpg', 'text_color': '#fff'}}},
     {'jsonrpc': '2.0', 'id': 7, 'method': 'prompts/list'},
-    {'jsonrpc': '2.0', 'id': 8, 'method': 'prompts/call',
+    {'jsonrpc': '2.0', 'id': 8, 'method': 'prompts/get',
      'params': {'name': 'audit-page', 'arguments': {'url': 'https://ejemplo.test'}}},
     {'jsonrpc': '2.0', 'id': 9, 'method': 'tools/call',
      'params': {'name': 'a11y_audit_url',
@@ -86,7 +86,7 @@ aud = json.loads(por_id[9]['result']['content'][0]['text'])
 crit = {h['criterion'] for h in aud['findings']}
 assert any(c.startswith('1.1.1') for c in crit), crit   # img sin alt vía html inline
 assert any(c.startswith('2.1.1') for c in crit), crit   # onclick en <p>
-assert all(h['criterion'].endswith('Non-text Content') or True for h in aud['findings'])
+assert '1.1.1 Non-text Content' in crit, sorted(crit)  # el criterio completo, no solo el código
 
 fx = json.loads(por_id[16]['result']['content'][0]['text'])
 fxs = sorted(a['signal'] for a in fx['aplicados'])
