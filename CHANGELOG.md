@@ -1,6 +1,11 @@
 # Changelog
 
-## 5.4.1 — 2026-10-11 — "changelog correction"
+## 5.4.2 — 2026-10-11 — "changelog correction"
+
+Release-process note: the tag v5.4.1 was burned — it was cut by hand
+(changelog + commit) without the atomic version bump, so its files still
+said 5.4.0 and PyPI rightly refused the duplicate wheel. Our own D12 rule,
+applied to ourselves: a published id is never edited, it is superseded.
 
 The re-review of v5.4.0 caught something worse than any bug: **five fixes
 that our own changelog announced were not in the code.** This release fixes
