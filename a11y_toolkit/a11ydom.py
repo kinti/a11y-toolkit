@@ -31,8 +31,8 @@ _CADENA = [
     ('chromium', lambda pw: pw.chromium.launch(headless=True)),
     ('firefox', lambda pw: pw.firefox.launch(headless=True)),
     ('webkit', lambda pw: pw.webkit.launch(headless=True)),
-    ('chrome', lambda pw: p.chromium.launch(channel='chrome', headless=True)),
-    ('msedge', lambda pw: p.chromium.launch(channel='msedge', headless=True)),
+    ('chrome', lambda pw: pw.chromium.launch(channel='chrome', headless=True)),
+    ('msedge', lambda pw: pw.chromium.launch(channel='msedge', headless=True)),
 ]
 
 _BROWSER_POR_PARAM = {
@@ -336,7 +336,11 @@ _JS = r'''(maxEj) => {
       const px = parseFloat(s.fontSize);
       const bold = parseInt(s.fontWeight || '400', 10) >= 600;
       const large = px >= 24 || (bold && px >= 18.66);
-      const r = ratioOf(fg, bg);
+      const over_ = (f, b) => { const a = (f.a === undefined) ? 1 : f.a;
+        return { r: Math.round(f.r * a + b.r * (1 - a)),
+          g: Math.round(f.g * a + b.g * (1 - a)),
+          b: Math.round(f.b * a + b.b * (1 - a)), a: 1 }; };
+      const r = ratioOf(over_(fg, bg), bg);  // alfa del TEXTO compuesto sobre el fondo
       const umbral = large ? 3.0 : 4.5;
       if (r >= umbral) continue;
       const fk = `rgb(${fg.r},${fg.g},${fg.b})`;
@@ -529,7 +533,10 @@ _JS = r'''(maxEj) => {
     const s = getComputedStyle(el);
     const outline = s.outlineStyle !== 'none' && parseFloat(s.outlineWidth || '0') > 0;
     const shadow = s.boxShadow && s.boxShadow !== 'none';
-    if (!outline && !shadow) out.focus.push(path(el));
+    const borde = ['Top', 'Right', 'Bottom', 'Left'].some(
+      k => parseFloat(s['border' + k + 'Width'] || '0') >= 2
+           && s['border' + k + 'Style'] !== 'none');
+    if (!outline && !shadow && !borde) out.focus.push(path(el));
     const fgf = parseCol(s.color);
     const bgf = bgOf(el);
     if (fgf && !bgf.image) {

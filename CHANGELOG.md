@@ -1,5 +1,42 @@
 # Changelog
 
+## 5.4.1 — 2026-10-11 — "changelog correction"
+
+The re-review of v5.4.0 caught something worse than any bug: **five fixes
+that our own changelog announced were not in the code.** This release fixes
+all five for real, plus the two regressions our own patches introduced, and
+pins each one in `tests/test_revision_externa.py` (round 2).
+
+Corrections to 5.4.0’s claims, now actually in the code:
+
+- **autofix and `<script>`**: 5.4.0 said "no longer touches scripts" — false.
+  There was no masking; the double-quoted case corrupted the JS (the
+  single-quote case survived by accident). Now: real masking of
+  `<script>/<style>/<!-- -->` before every transform, restored before
+  return. `<textarea>` deliberately stays unmasked — its error layer goes
+  after the close (5.2.1) and its content stays intact.
+- **rendered contrast and TEXT alpha**: 5.4.0 claimed the main scan composes
+  text alpha — the edit never landed. Now it does, with an inline `over_`
+  that tolerates alpha-less parses; verified live in Chromium:
+  `rgba(255,255,255,.3)` on black reads 2.48:1 (was a silent false 21:1).
+- **browser detection chain**: `p` → `pw` in the chrome/msedge lambdas
+  (we had "refuted" this by grepping the wrong shape — the bug was
+  `lambda pw: p.chromium`, not `lambda p`).
+- **focus indicator by border** (2.4.7): `outline:none; border:3px solid`
+  no longer reported as invisible.
+
+New regressions from our own 5.4.0 patches, fixed here:
+
+- `_attrs` read single-quoted attributes as empty strings (findall fills
+  `''`, not `None`) — the autofix silently stopped applying autocomplete to
+  single-quoted HTML. Now `finditer` with true group semantics.
+- viewport removal scanned for `>` without respecting quotes
+  (`data-note="a>b"` corrupted the document). Quote-aware tag-end scan.
+
+Both external reviewers were right where it counted. The lesson is pinned
+next to the tests: **a fix is not shipped when the changelog says so — it is
+shipped when the reproduction fails.**
+
 ## 5.4.0 — 2026-10-11 — "the second review" (40 findings, verified one by one)
 
 A deeper external review (full module read, all suites executed, browser

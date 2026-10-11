@@ -102,9 +102,10 @@ _RE_TITLE = re.compile(r'<title>\s*</title>', re.I)
 
 def _attrs(tag_html):
     out = {}
-    for k, dbl, sgl, bare in re.findall(
+    for m in re.finditer(
             r'([\w-]+)\s*=\s*(?:"([^"]*)"|\'([^\']*)\'|([^\s>]+))', tag_html):
-        out[k] = dbl if dbl is not None else (sgl if sgl is not None else bare)
+        dbl, sgl, bare = m.group(2), m.group(3), m.group(4)
+        out[m.group(1)] = dbl if dbl is not None else (sgl if sgl is not None else bare)
     return out
 
 
@@ -129,6 +130,30 @@ def autofix(html_text, lang=None, title=None, url='(html)', form_errors=True):
     aplicados = []
     fixed = html_text
 
+    # 0. máscara REAL: el contenido de script/style/textarea y los comentarios
+    #    no son marcado — ninguna regex de transformación debe verlo. Sin este
+    #    paso, el "no toco scripts" era falso (revisión externa, ronda 2).
+    _mascaras = []
+
+    def _enmascara(texto):
+        def _pon(m):
+            tok = '\x00A11YFXMASK%d\x00' % len(_mascaras)
+            _mascaras.append((tok, m.group(0)))
+            return tok
+        texto = re.sub(r'<script\b[^>]*>.*?</script\s*>', _pon, texto, flags=re.I | re.S)
+        texto = re.sub(r'<style\b[^>]*>.*?</style\s*>', _pon, texto, flags=re.I | re.S)
+        # textarea NO se enmascara: la capa de error se inserta tras su cierre
+        # (5.2.1) y el contenido queda intacto; ocultarlo quitaría el 3.3.1
+        texto = re.sub(r'<!--.*?-->', _pon, texto, flags=re.S)
+        return texto
+
+    def _desenmascara(texto):
+        for tok, original in _mascaras:
+            texto = texto.replace(tok, original)
+        return texto
+
+    fixed = _enmascara(fixed)
+
     # 1. viewport: zoom sin bloqueos (1.4.4)
     m = _RE_VIEWPORT.search(fixed)
     if m and (re.search(r'user-scalable\s*=\s*(no|0)', m.group(2), re.I)
@@ -137,9 +162,21 @@ def autofix(html_text, lang=None, title=None, url='(html)', form_errors=True):
         if limpio:
             fixed = fixed[:m.start()] + m.group(1) + limpio + m.group(3) + fixed[m.end():]
         else:
-            # eliminar el meta COMPLETO (m termina en la comilla; el `>` sigue)
-            fin = fixed.find('>', m.end())
-            fixed = fixed[:m.start()] + (fixed[fin + 1:] if fin != -1 else '')
+            # eliminar el meta COMPLETO: escanear el final de etiqueta
+            # respetando comillas (un `>` dentro de value= no cierra el tag)
+            fin = m.end()
+            q = None
+            while fin < len(fixed):
+                ch = fixed[fin]
+                if q:
+                    if ch == q:
+                        q = None
+                elif ch in ('"', "'"):
+                    q = ch
+                elif ch == '>':
+                    break
+                fin += 1
+            fixed = fixed[:m.start()] + (fixed[fin + 1:] if fin < len(fixed) else '')
         aplicados.append({'signal': 'zoom_no',
                           'hecho': f'viewport sin {", ".join(fuera)} (1.4.4: el zoom no se bloquea)'})
 
@@ -273,6 +310,7 @@ def autofix(html_text, lang=None, title=None, url='(html)', form_errors=True):
                                  'por_que_no': no_toca[senal],
                                  'remediation': h['remediation']})
 
+    fixed = _desenmascara(fixed)
     return {'fixed_html': fixed, 'aplicados': aplicados, 'no_aplicados': no_aplicados}
 
 

@@ -74,4 +74,44 @@ for esquema in ('file:///etc/passwd', 'ftp://x/y'):
     assert 'error' in r8 and 'http' in r8['error'], r8
 print('8. _descarga rechaza esquemas no http(s) ✓')
 
+
+# ── Ronda 2 (re-revisión de v5.4.0): lo que el changelog afirmaba en falso ──
+
+# 9. autofix: el contenido de <script> es intocable (el caso de comillas
+#    dobles era el que rompía; el de simples sobrevivía por accidente)
+SCRIPT = '<script>var t = \'<form id="f"><input type="email" required></form>\';</script>'
+r9 = autofix(SCRIPT, lang='en', title='T')
+assert "var t = '<form id=\"f\"><input type=\"email\" required></form>'" in r9['fixed_html'], r9['fixed_html']
+assert 'autocomplete' not in r9['fixed_html']
+print('9. autofix: <script> intocable (comillas dobles) ✓')
+
+# 10. _attrs: comillas simples (regresión del findall: rellenaba con '')
+a10 = _attrs("<input type='email' required>")
+assert a10.get('type') == 'email', a10
+print('10. _attrs lee comillas simples ✓')
+
+# 11. viewport: eliminar el meta respeta comillas al buscar el cierre
+r11 = autofix('<html><head><meta name="viewport" content="user-scalable=no" '
+              'data-note="a>b"></head><body>x</body></html>', lang='en')
+assert '<head></head>' in r11['fixed_html'] and '<head>>' not in r11['fixed_html']
+assert '<body>x</body>' in r11['fixed_html']
+print('11. viewport removal quote-safe ✓')
+
+# 12. detección de navegadores: la cadena chrome/msedge usa el parámetro real
+src_chain = open(os.path.join(ROOT, 'a11y_toolkit', 'a11ydom.py')).read()
+assert 'lambda pw: p.' not in src_chain, 'lambda con variable inexistente'
+print('12. cadena de navegadores sin NameError latente ✓')
+
+# 13. el contraste del pase principal compone el alfa del TEXTO
+main_js = src_chain if 'ratioOf(over_' in src_chain else None
+import a11y_toolkit.a11ydom as _dom
+src_dom = open(os.path.join(ROOT, 'a11y_toolkit', 'a11ydom.py')).read()
+assert 'ratioOf(over_(fg, bg), bg)' in src_dom, 'el pase principal no compone el alfa del texto'
+# y la definición de over_ precede a su uso en el mismo bloque
+i_over = src_dom.index('const over_ =')
+i_use = src_dom.index('ratioOf(over_(fg, bg), bg)')
+assert i_over < i_use
+print('13. pase principal: alfa del texto compuesto (over_ antes del uso) ✓')
+
+print('REVISIÓN EXTERNA — RONDA 2: CONFIRMADO, CORREGIDO Y FIJADO ✓')
 print('REVISIÓN EXTERNA 2026-10: TODOS LOS CASOS CONFIRMADOS, CORREGIDOS Y PINNED ✓')
