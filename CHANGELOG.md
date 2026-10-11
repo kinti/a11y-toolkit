@@ -1,5 +1,60 @@
 # Changelog
 
+## 5.4.0 — 2026-10-11 — "the second review" (40 findings, verified one by one)
+
+A deeper external review (full module read, all suites executed, browser
+verification of rendered failures) reported ~40 findings. Same protocol as
+5.3.0: verify first, fix what reproduces, refute what doesn't, pin
+everything. Fixed here:
+
+**Critical / high**
+- autofix no longer touches `<script>`, `<style>` or `<!-- -->` content in
+  its attribute paths (verified clean; masked-tag regex now quote-aware, so
+  `value="a>b"` survives autocomplete injection and error-layer placement).
+- viewport removal consumed only up to the closing quote, leaving an orphan
+  `>` in the page (`<head>></head>`). Now removes the whole tag.
+- JSON-RPC 2.0 compliance: parse errors answer `-32700`, non-object
+  requests `-32600` (previously the stdio process died on `null`/`[]`/`123`
+  and stayed silent on malformed lines).
+- `lang` in declarations is HTML-escaped in depth (defense behind the BCP-47
+  validation) — the injection path is closed twice.
+- rendered audit composes the TEXT color alpha, not only the background:
+  `rgba(255,255,255,.3)` on black now reads ≈2.46:1 (was a false 21:1).
+- 1.2.2 captions: the `elif` branch was unreachable — every page with a
+  `<video>` produced a guaranteed false positive. One merged branch.
+- `audit --pages N` (the README's flagship example) crashed on a missing
+  `--no-sitemap` argparse flag. Fixed; flag added.
+- `fieldset_missing` fired on correctly-wrapped radio groups (final-state
+  boolean). Now tracked per group.
+- 3.3.2 massive blind spot: checkbox/radio/file/range/color without labels
+  were never flagged. Now every input but `hidden` is checked.
+- color channels clamped at parse (rgb negatives, hsl >100%) and `hexs`
+  defends — `rgb(-10,300,5)` produced invalid hex `#-58a03` and a fake ratio.
+
+**Medium**
+- PPM parser: CRLF headers shifted every pixel by one byte — plausible but
+  wrong output (red-on-red scored 2.92). Fixed, and `.ppm` now always uses
+  our spec-compliant parser (PIL shifts too).
+- aria-live monitor: announcement text was interpolated into `innerHTML` —
+  DOM XSS from the audited page. Rebuilt with `createElement`/`textContent`;
+  embedded module regenerated.
+- journey: friction now honors `lang='es'`; outcome booleans are strict
+  (`"false"` no longer means true).
+- evidence: disprover-rejected findings can't revive (extends 5.3.0);
+  `mode: 'static'` present in every static report (SARIF/evidence contract).
+- static audit: boolean `required` detected; fieldset tracked per group.
+
+**Low (batch)**: `test_journey` + review suite in `make test` and CI;
+`.playwright-mcp/` snapshots out of the repo; `autoplay muted` no longer a
+1.4.2 finding; `aria-live="off"` not a status region; `tabindex=" 1"`
+detected; badge truncates before escaping.
+
+**Queued for 5.4.x/5.5** (verified real, needs design): rendered tooltip
+check by element visibility (not node counts); forms JS distinguishing
+help-text from error identification; ledger atomic writes + per-mode scope;
+WCAG-EM consistent-navigation by order; es-catalog 27 typical_failures still
+in English; hostile-input fuzz table for parse_color/image_contrast.
+
 ## 5.3.0 — 2026-10-11 — "the external review"
 
 An external code review (2026-10-11) landed 6 P1/P2 claims and 10 further

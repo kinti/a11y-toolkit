@@ -179,7 +179,7 @@ def generar(entidad, url, estado, contenido_no_accesible=None, metodo=None,
 
     titulo_doc = t['titulo'][marco]
     doc = f'''<!doctype html>
-<html lang="{lang}">
+<html lang="{html.escape(str(lang), quote=True)}">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">

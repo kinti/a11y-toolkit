@@ -27,7 +27,8 @@ MAX_HTML = 3_000_000
 
 # Campos de formulario que necesitan etiqueta visible o nombre accesible
 _CAMPOS = {'text', 'email', 'tel', 'url', 'search', 'password', 'number',
-           'date', 'time', 'datetime-local', 'month', 'week'}
+           'date', 'time', 'datetime-local', 'month', 'week', 'checkbox',
+           'radio', 'file', 'range', 'color'}
 _CONTROLES = ('a', 'button', 'summary')
 
 # Subetiquetas BCP-47 principales habituales (validación blanda)
@@ -555,7 +556,8 @@ class _Auditor(HTMLParser):
         self.placeholder_only = []     # 3.3.2: placeholder sin label
         self.required_sin_indicio = [] # 3.3.2: required sin * ni "obligatorio"
         self.fieldsets_faltan = 0      # 1.3.1: radio/check groups sin fieldset
-        self._radio_group = {}         # name → count (para detectar grupos)
+        self._radio_group = {}
+        self._radio_en_fieldset = {}         # name → count (para detectar grupos)
         self.labels_vagos = []         # 2.4.6: label quality
         self.financieros_sin_conf = 0  # 3.3.4: financial form no confirm
         self._form_financiero = False
@@ -692,17 +694,17 @@ class _Auditor(HTMLParser):
         elif tag == 'blink':
             self.moviles.append('<blink>')
         elif tag == 'track':
-            if (a.get('kind') or '').lower() == 'descriptions':
+            kind = (a.get('kind') or '').lower()
+            if kind == 'descriptions':
                 self.videos_descriptions += 1
+            elif kind in ('captions', 'subtitles'):
+                self.videos_con_subs += 1
         elif tag in ('video', 'audio'):
             if tag == 'video':
                 self.videos += 1
                 self._en_video = True
             if 'autoplay' in a:
                 self.medios_autoplay += 1
-        elif tag == 'track':
-            if (a.get('kind') or '').lower() in ('captions', 'subtitles'):
-                self.videos_con_subs += 1
         elif tag in ('ul', 'ol'):
             self._lista_prof += 1
         elif tag == 'li':
@@ -749,7 +751,7 @@ class _Auditor(HTMLParser):
             if a.get('placeholder') and not (a.get('aria-label') or a.get('aria-labelledby')):
                 if self._label_depth == 0 and not a.get('id'):
                     self.placeholder_only.append(f'{tag}[placeholder="{a.get("placeholder","")[:30]}"]')
-            if a.get('required') or a.get('aria-required') == 'true':
+            if a.get('required') is not None or 'required' in a or a.get('aria-required') == 'true':
                 ph = (a.get('placeholder') or '').lower()
                 title_ = (a.get('title') or '').lower()
                 if not re.search(r'\*|requerid|obligator|required|necesari|precisa', ph + title_):
@@ -758,6 +760,7 @@ class _Auditor(HTMLParser):
             if tag == 'input' and a.get('type') == 'radio':
                 nm = a.get('name') or '_sin_nombre'
                 self._radio_group[nm] = self._radio_group.get(nm, 0) + 1
+                self._radio_en_fieldset[nm] = self._en_fieldset
         if tag == 'fieldset':
             self._en_fieldset = True
         if tag in ('button', 'input'):
@@ -957,7 +960,7 @@ def audit_html(html_text, url='(html)', lang='en'):
 
     # 1.3.1: grupos de radio (name compartido, ≥2) sin fieldset
     for nm, count in p._radio_group.items():
-        if count >= 2 and not p._en_fieldset:
+        if count >= 2 and not p._radio_en_fieldset.get(nm, False):
             p.fieldsets_faltan += 1
 
     # Campos cuyo id sí tiene un <label for> explícito en otro punto: fuera.
@@ -1153,6 +1156,7 @@ def audit_html(html_text, url='(html)', lang='en'):
     resumen = {s: sum(1 for h in hallazgos if h['severity'] == s)
                for s in ('high', 'medium', 'low')}
     return {
+        'mode': 'static',
         'url': url,
         'score': calcular_score(hallazgos),
         'score_note': _t(lang, 'score_note'),
@@ -1368,7 +1372,9 @@ def main(argv):
     g.add_argument('--file')
     ap.add_argument('--lang', default='en', choices=['en', 'es'])
     ap.add_argument('--pages', type=int, default=1,
-                    help='páginas del mismo dominio a auditar (site crawl ligero)')
+                    help='crawl ligero mismo dominio (1 = solo la página)')
+    ap.add_argument('--no-sitemap', action='store_true',
+                    help='descubre por enlaces, sin leer el sitemap')
     a = ap.parse_args(argv)
     if a.url:
         try:

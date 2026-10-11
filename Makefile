@@ -3,7 +3,8 @@
 
 test:            ## todas las suites (dom/scroll se auto-omiten sin Playwright)
 	python3 tests/test_contrast.py && python3 tests/test_audit.py && python3 tests/test_v32.py \
-	  && python3 tests/test_dom.py && python3 tests/test_cli.py && python3 tests/test_solido.py && python3 tests/test_mcp.py
+	  && python3 tests/test_dom.py && python3 tests/test_cli.py && python3 tests/test_journey.py \
+	  && python3 tests/test_solido.py && python3 tests/test_mcp.py && python3 tests/test_revision_externa.py
 
 fast:            ## suites rápidas (lo que guarda el pre-push)
 	python3 tests/test_contrast.py && python3 tests/test_audit.py && python3 tests/test_v32.py \

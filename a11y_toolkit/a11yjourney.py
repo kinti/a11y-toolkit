@@ -134,13 +134,14 @@ def _crit_set():
     return {k for k, v in _C.items() if v[0] in ('A', 'AA')}
 
 
-def _validar_friction(item, crits):
+def _validar_friction(item, crits, lang='en'):
     """Expand a friction item (pattern key or raw criterion) → dict, or None+error."""
+    cat = _J['es' if lang == 'es' else 'en']
     if 'pattern' in item:
         pat = item['pattern']
-        if pat not in _J['en']:
-            return None, f"patrón desconocido: {pat} — disponibles: {sorted(_J['en'])}"
-        crit, sev, issue, rem = _J['en'][pat]
+        if pat not in cat:
+            return None, f"patrón desconocido: {pat} — disponibles: {sorted(cat)}"
+        crit, sev, issue, rem = cat[pat]
         return {'signal': pat, 'criterion': crit, 'severity': sev,
                 'issue': issue, 'remediation': rem}, None
     crit = str(item.get('criterion', '')).strip()
@@ -181,7 +182,7 @@ def verdictar(task, steps, outcome, url='', lang='en'):
             if not isinstance(item, dict):
                 errores.append(f'step[{i}].friction no es un objeto')
                 continue
-            conv, err = _validar_friction(item, crits)
+            conv, err = _validar_friction(item, crits, lang=lang)
             if err:
                 errores.append(f'step[{i}]: {err}')
                 continue
@@ -198,9 +199,16 @@ def verdictar(task, steps, outcome, url='', lang='en'):
 
     score = _RULES['start'] - high * _RULES['high'] - medium * _RULES['medium'] - low * _RULES['low']
     score = max(0, score)
-    completed = bool(outcome.get('completed'))
-    gave_up = bool(outcome.get('gave_up'))
-    workaround = bool(outcome.get('workaround_used'))
+    def _bool(v):
+        if isinstance(v, bool):
+            return v
+        if isinstance(v, str):
+            return v.strip().lower() == 'true'
+        return bool(v)
+
+    completed = _bool(outcome.get('completed'))
+    gave_up = _bool(outcome.get('gave_up'))
+    workaround = _bool(outcome.get('workaround_used'))
     if workaround:
         score = max(0, score - 15)
 

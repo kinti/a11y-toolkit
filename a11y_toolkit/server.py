@@ -66,7 +66,7 @@ try:
 except ImportError:
     ARIALIVE_JS = None  # repo checkout: read the file
 
-VERSION = '5.3.0'
+VERSION = '5.4.0'
 
 INSTRUCTIONS = (
     'Accessibility toolkit (WCAG 2.2), multilanguage es/en. '
@@ -1073,13 +1073,18 @@ def main():
         try:
             msg = json.loads(linea)
         except json.JSONDecodeError:
+            # JSON-RPC 2.0: parse error con id null (nunca silencio)
+            print(json.dumps({'jsonrpc': '2.0', 'id': None,
+                              'error': {'code': -32700, 'message': 'Parse error'}}), flush=True)
             continue
         if not isinstance(msg, dict):
+            print(json.dumps({'jsonrpc': '2.0', 'id': None,
+                              'error': {'code': -32600, 'message': 'Invalid Request'}}), flush=True)
             continue
         metodo = msg.get('method', '')
         mid = msg.get('id')
         if mid is None:
-            continue
+            continue  # notificación: sin respuesta
         try:
             if metodo == 'initialize':
                 resp = {'jsonrpc': '2.0', 'id': mid, 'result': {

@@ -55,8 +55,18 @@
     log.push(hora + ' [' + cortesia + '] ' + rol + ' · ' + desc(el) + ' · ' + texto);
     var fila = document.createElement('div');
     fila.className = 'alm-e';
-    fila.innerHTML = '<span class="alm-t">' + hora + '</span> [' + cortesia + '] <b>' + rol +
-      '</b> · ' + desc(el) + (razon ? ' <i>(' + razon + ')</i>' : '') + '<br>' + texto;
+    // DOM-safe: el contenido de la página auditada NUNCA va a innerHTML
+    var t = document.createElement('span'); t.className = 'alm-t'; t.textContent = hora;
+    fila.appendChild(t);
+    fila.appendChild(document.createTextNode(' [' + cortesia + '] '));
+    var b = document.createElement('b'); b.textContent = rol; fila.appendChild(b);
+    fila.appendChild(document.createTextNode(' \u00b7 ' + desc(el)));
+    if (razon) {
+      var i = document.createElement('i'); i.textContent = ' (' + razon + ')';
+      fila.appendChild(i);
+    }
+    fila.appendChild(document.createElement('br'));
+    fila.appendChild(document.createTextNode(texto));
     cont.appendChild(fila);
     panel.scrollTop = panel.scrollHeight;
   }

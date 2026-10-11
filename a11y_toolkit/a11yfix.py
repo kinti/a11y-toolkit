@@ -45,7 +45,8 @@ _TOKEN_POR_PISTA = [
 ]
 
 _RE_FORM = re.compile(r'<form\b[^>]*>', re.I)
-_RE_CAMPO = re.compile(r'<input\b[^>]*>|<(select|textarea)\b[^>]*>.*?</\1\s*>', re.I | re.S)
+_RE_TAG_Q = r'(?:[^>\"\']|\"[^\"]*\"|\'[^\']*\')*'
+_RE_CAMPO = re.compile(r'<input' + _RE_TAG_Q + r'>|<(select|textarea)' + _RE_TAG_Q + r'>.*?</\1\s*>', re.I | re.S)
 _RE_SCRIPTS = re.compile(r'<script\b.*?</script>', re.S | re.I)
 _RE_FORM_BLOQUE = re.compile(r'<form\b.*?</form>', re.S | re.I)
 
@@ -93,7 +94,7 @@ _JS_FORMAS = """<script>
 })();
 </script>"""
 
-_RE_INPUT = re.compile(r'<input\b[^>]*>', re.I)
+_RE_INPUT = re.compile(r'<input' + _RE_TAG_Q + r'>', re.I)
 _RE_VIEWPORT = re.compile(r'(<meta\s[^>]*name=["\']viewport["\'][^>]*content=["\'])([^"\']*)(["\'])', re.I)
 _RE_HTML_TAG = re.compile(r'<html\b([^>]*)>', re.I)
 _RE_TITLE = re.compile(r'<title>\s*</title>', re.I)
@@ -136,7 +137,9 @@ def autofix(html_text, lang=None, title=None, url='(html)', form_errors=True):
         if limpio:
             fixed = fixed[:m.start()] + m.group(1) + limpio + m.group(3) + fixed[m.end():]
         else:
-            fixed = fixed[:m.start()] + fixed[m.end():]
+            # eliminar el meta COMPLETO (m termina en la comilla; el `>` sigue)
+            fin = fixed.find('>', m.end())
+            fixed = fixed[:m.start()] + (fixed[fin + 1:] if fin != -1 else '')
         aplicados.append({'signal': 'zoom_no',
                           'hecho': f'viewport sin {", ".join(fuera)} (1.4.4: el zoom no se bloquea)'})
 
@@ -205,7 +208,7 @@ def autofix(html_text, lang=None, title=None, url='(html)', form_errors=True):
                     return elem
                 estado['campos'] += 1
                 fid = "a11yfx-e-%d-%d" % (estado['forms'], estado['campos'])
-                apertura = re.match(r'<[^>]*>', elem).group(0)
+                apertura = re.match(r'<[a-zA-Z]+(?:[^>"\']|"[^"]*"|\'[^\']*\')*>', elem).group(0)
                 mdb = re.search(r'aria-describedby=["\']([^"\']*)["\']', apertura, re.I)
                 if mdb:  # merge, preserving the existing reference
                     nueva = 'aria-describedby="%s %s"' % (mdb.group(1), fid)

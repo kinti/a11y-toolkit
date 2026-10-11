@@ -17,7 +17,9 @@ jobs:
       - run: python tests/test_audit.py
       - run: python tests/test_dom.py     # self-skips if Playwright is absent
       - run: python tests/test_v32.py
+      - run: python tests/test_journey.py
       - run: python tests/test_solido.py
+      - run: python tests/test_revision_externa.py
       - run: python tests/test_cli.py
       - run: python tests/test_mcp.py
       - name: Package smoke test (pip install .)

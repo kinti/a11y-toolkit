@@ -162,11 +162,12 @@ def parse_color(s):
             return c
         if len(v) < 3:
             return None
-        h_ = float(v[0].rstrip('deg'))
-        s_ = float(v[1].rstrip('%')) / 100.0
-        l_ = float(v[2].rstrip('%')) / 100.0
+        h_ = float(v[0].rstrip('deg')) % 360
+        s_ = max(0.0, min(1.0, float(v[1].rstrip('%')) / 100.0))
+        l_ = max(0.0, min(1.0, float(v[2].rstrip('%')) / 100.0))
         r, g, b = _hsl_a_rgb(h_, s_, l_)
-        c = {'r': r, 'g': g, 'b': b}
+        c = {'r': max(0, min(255, r)), 'g': max(0, min(255, g)),
+             'b': max(0, min(255, b))}
         if len(v) >= 4:
             c['a'] = max(0.0, min(1.0, float(v[3].rstrip('%')) / (100 if v[3].endswith('%') else 1)))
         return c
@@ -188,7 +189,10 @@ def componer(c, fondo):
 
 
 def hexs(c):
-    return '#%02x%02x%02x' % (c['r'], c['g'], c['b'])
+    # defensa: canales fuera de [0,255] (parse malformado) → acotados, hex válido
+    return '#%02x%02x%02x' % (max(0, min(255, c['r'])),
+                              max(0, min(255, c['g'])),
+                              max(0, min(255, c['b'])))
 
 
 def _lin(v):
@@ -277,7 +281,10 @@ def _cargar_ppm(ruta):
     campos = []
     while len(campos) < 3:
         while pos < len(datos) and datos[pos:pos + 1].isspace():
-            pos += 1
+            if datos[pos:pos + 2] == b'\r\n':
+                pos += 2
+            else:
+                pos += 1
         if datos[pos:pos + 1] == b'#':
             while datos[pos:pos + 1] not in (b'\n', b''):
                 pos += 1
@@ -286,20 +293,27 @@ def _cargar_ppm(ruta):
         while pos < len(datos) and not datos[pos:pos + 1].isspace():
             pos += 1
         campos.append(int(datos[ini:pos]))
-    pos += 1
+    # tras maxval: saltar UN fin de línea (\n o \r\n) — con CRLF un solo
+    # byte desplazaría TODOS los píxeles (salida plausible y falsa)
+    if datos[pos:pos + 2] == b'\r\n':
+        pos += 2
+    else:
+        pos += 1
     w, h, _maxv = campos
     return w, h, datos[pos:pos + w * h * 3]
 
 
 def cargar_imagen(ruta):
+    # .ppm → parser propio: PIL desplaza los píxeles cuando el header lleva
+    # CRLF (el \n del fin de línea entra como primer byte de la imagen)
+    if ruta.lower().endswith('.ppm'):
+        return _cargar_ppm(ruta)
     try:
         from PIL import Image
         im = Image.open(ruta).convert('RGB')
         return im.width, im.height, im.tobytes()
     except ImportError:
         pass
-    if ruta.lower().endswith('.ppm'):
-        return _cargar_ppm(ruta)
     if not shutil.which('sips'):
         raise RuntimeError('need Pillow (pip install pillow) or macOS (sips)')
     with tempfile.NamedTemporaryFile(suffix='.ppm', delete=False) as tf:

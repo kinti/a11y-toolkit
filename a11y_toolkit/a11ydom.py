@@ -535,7 +535,7 @@ _JS = r'''(maxEj) => {
     if (fgf && !bgf.image) {
       const fs = parseFloat(s.fontSize) || 16;
       const large = fs >= 24 || (fs >= 18.66 && (parseInt(s.fontWeight) || 400) >= 700);
-      const rf2 = ratioOf(fgf, bgf);
+      const rf2 = ratioOf(over(fgf, bgf), bgf);
       if (rf2 < (large ? 3.0 : 4.5) && out.focusContrast.length < 20)
         out.focusContrast.push({ ej: path(el), ratio: Math.round(rf2 * 100) / 100 });
     }

@@ -18,3 +18,5 @@ drafts/
 internal/
 *.draft.md
 *.local.md
+
+.playwright-mcp/
