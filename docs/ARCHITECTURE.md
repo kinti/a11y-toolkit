@@ -101,6 +101,8 @@ change (see 4.0.1); internal dev docs don't.
 | T9 | aria-live panel self-observation loop (`role="log"` panel) | Documented in SKILL.md — do not reintroduce. |
 | T10 | Browser hardcoding | Auto-detect chain chromium→firefox→webkit→chrome→msedge; pool reuse. |
 | T11 | `mcp-publisher` run outside repo root | `server.json not found` — run from repo root; token expires ~1h. |
+| T13 | Changelog announces a fix that never landed (edit lost between batch writes; "verified" by the script's print) | Re-read the file after the write; assert the fixed string exists post-write; pin the reproduction. |
+| T14 | Release cut by hand without versionar (tag ≠ file versions; PyPI rejects duplicate wheel) | `make release` / versionar ALWAYS, even for fix-only releases. Burned tag = superseded, never edited. |
 | T12 | Private repos on deploy hosts | minipc pull needs `GIT_SSH_COMMAND="ssh -i /root/.ssh/a11y_deploy"`; remote is SSH. |
 
 ## Where things live
