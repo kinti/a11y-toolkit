@@ -20,3 +20,8 @@ internal/
 *.local.md
 
 .playwright-mcp/
+
+# SaaS companion (a11y.watch) — repo privado, jamás en el público
+saas/
+Dockerfile
+docker-compose.yml

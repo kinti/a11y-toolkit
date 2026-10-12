@@ -20,6 +20,9 @@
   a11ytoolkit validate --url https://web                # W3C Nu parser view
   a11ytoolkit disprove --url https://web                # re-verify findings
   a11ytoolkit ledger record --url https://web --audit r.json  # track coverage
+  a11ytoolkit contrast-dom https://web --selector ".hero h1"   # auto-region pixel sampling
+  a11ytoolkit vpat pack.json --producto "App" -o vpat.html    # VPAT 2.5 (WCAG) draft
+  a11ytoolkit earl --from-audit audit.json -o earl.json       # ACT Rules / EARL export
 """
 
 import sys
@@ -40,6 +43,8 @@ from . import a11ysarif
 from . import contrast
 from . import declaracion
 from . import a11yjourney
+from . import a11yvpat
+from . import a11yact
 
 SUBCOMANDOS = {
     'pair': (contrast, 'pair'),
@@ -62,6 +67,9 @@ SUBCOMANDOS = {
     'badge': (a11ybadge, None),
     'budget': (a11ybudget, None),
     'journey': (a11yjourney, None),
+    'contrast-dom': (a11ydom, 'contrast_dom_main'),
+    'vpat': (a11yvpat, None),
+    'earl': (a11yact, None),
 }
 
 

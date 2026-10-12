@@ -66,7 +66,8 @@ assert init['serverInfo']['name'] == 'a11y-toolkit' and init['serverInfo']['vers
 assert 'WCAG' in init['instructions'] and 'prompts' in init['capabilities']
 
 nombres = [t['name'] for t in por_id[2]['result']['tools']]
-assert len(nombres) == 24 and 'a11y_html_validate' in nombres and 'a11y_forms' in nombres, nombres
+assert len(nombres) == len(server.TOOLS) and 'a11y_html_validate' in nombres and 'a11y_forms' in nombres, nombres
+assert 'a11y_generate_vpat' in nombres and 'a11y_contrast_dom' in nombres, nombres
 assert all(t['description'][0].isupper() for t in por_id[2]['result']['tools'])  # EN-first
 
 d = json.loads(por_id[3]['result']['content'][0]['text'])

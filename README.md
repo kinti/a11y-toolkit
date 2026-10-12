@@ -8,7 +8,7 @@
 [![MCP](https://img.shields.io/badge/Model%20Context%20Protocol-server-purple)](https://modelcontextprotocol.io)
 [![Sponsor](https://img.shields.io/badge/Sponsor-%E2%9D%A4-pink)](https://github.com/sponsors/kinti)
 
-24 MCP tools, 6 prompts and a skill covering the whole WCAG 2.2 loop: audit, fix,
+26 MCP tools, 6 prompts and a skill covering the whole WCAG 2.2 loop: audit, fix,
 document, watch, hand off — and now blindfold usability testing, where the agent
 attempts real tasks perceiving only what a screen reader exposes. 51 of 55 A/AA criteria carry automated signals (93%), every
 finding ships with a concrete remediation your agent can apply, and the rendered tools
@@ -27,6 +27,7 @@ the human signs.
 | Capability | axe-core / Lighthouse / pa11y | a11y-toolkit |
 |---|---|---|
 | Text contrast over images and gradients (pixel sampling of the real background) | ✗ | ✓ |
+| VPAT 2.5 (WCAG) draft from the evidence pack — US/ADA counterpart of the EAA statement | ✗ | ✓ |
 | Form error testing: fills invalid data, really submits, judges what happens | ✗ | ✓ |
 | Keyboard traps: real Tab walk + Escape-release test, plus focus/input-triggered navigation | ✗ | ✓ |
 | Infinite-scroll audit: focus survival, announcements, feed end | ✗ | ✓ |
@@ -37,7 +38,7 @@ the human signs.
 | An evidence pack a human can countersign — hashes, matrix, empty signature block | ✗ | ✓ |
 | Runs with zero dependencies at core, speaks es/en, any browser you have | heavy runtimes | ✓ |
 
-## The tools (24)
+## The tools (26)
 
 Every tool, complete — description, arguments, and behavior annotations, generated from the server itself (`server.TOOLS` is the source of truth). All tools accept `lang` (`en`|`es`) unless noted; output is JSON unless noted.
 
@@ -69,7 +70,7 @@ Express WCAG 2.2 audit of a URL or an HTML string: 20+ automated signals with a 
 
 <sub>read-only · network</sub>
 
-Deep RENDERED WCAG audit via local Playwright/Chromium: real computed text contrast against effective backgrounds with alpha compositing (1.4.3), minimum target size 24×24 (2.5.8, new in WCAG 2.2), visible focus indicator heuristic (2.4.7), plus rendered versions of the static checks (alt, accessible names, labels, headings, lang/title, tabindex, aria-hidden, captions, tables). Findings include remediation. Requires playwright: pip install playwright && playwright install chromium. — Use instead of a11y_audit_url on JS-heavy pages; needs local Playwright. Returns JSON: {mode, url, score 0-100, findings [{criterion, severity, signal, issue, remediation}], summary, score_note} — same shape as the static audit.
+Deep RENDERED WCAG audit via local Playwright/Chromium: real computed text contrast against effective backgrounds with alpha compositing (1.4.3), pixel-sampled measurement of text sitting over images/gradients (background captured with the text transparent — no text pixels, no antialiasing bias), minimum target size 24×24 (2.5.8, new in WCAG 2.2), visible focus indicator heuristic (2.4.7), plus rendered versions of the static checks (alt, accessible names, labels, headings, lang/title, tabindex, aria-hidden, captions, tables). Findings include remediation. Requires playwright: pip install playwright && playwright install chromium. — Use instead of a11y_audit_url on JS-heavy pages; needs local Playwright. Returns JSON: {mode, url, score 0-100, findings [{criterion, severity, signal, issue, remediation}], summary, score_note} — same shape as the static audit.
 
 
 **Arguments**
@@ -285,6 +286,32 @@ TEXT OVER IMAGE contrast: pixel-level sampling of the real background behind the
 - `lang` — one of ['es', 'en']: Output language (default en).
 
 
+#### `a11y_contrast_dom`
+
+<sub>read-only · network</sub>
+
+REAL contrast of an element against whatever is behind it (image, gradient, video, photo): loads the page in Chromium, screenshots the element matched by selector with its text turned transparent — so only the real background is sampled, no text pixels, no antialiasing edges — and contrasts the pixels with the text color (computed from the element when not given). The automated version of a11y_contrast_image: no manual screenshot, no region math. Requires local Playwright. — Use instead of a11y_contrast_image when the text lives in a live page (captures and measures it automatically); for flat pairs use a11y_contrast_pair. Returns JSON: {url, selector, text_color, worst_ratio, median_ratio, p95_ratio, area_passes_aa_normal_text_4_5, worst_zone?, sampled_pixels, interpretation}.
+
+
+**Arguments**
+
+- `url` *(required)*: Page URL where the element lives (http/https or file://).
+
+- `selector` *(required)*: CSS selector of the text element to measure.
+
+- `text_color`: Text color (default: computed from the element).
+
+- `sample`: Pixel step (default 4).
+
+- `lang` — one of ['es', 'en']: Output language (default en).
+
+- `timeout`: Page load timeout seconds (default 45).
+
+- `auth_state`: Path to a Playwright storage_state JSON to measure behind login — stays local.
+
+- `browser` — one of ['auto', 'chromium', 'firefox', 'webkit', 'chrome', 'msedge']: Browser engine (auto = detect the first available).
+
+
 #### `a11y_suggest_color`
 
 <sub>read-only</sub>
@@ -338,6 +365,40 @@ Generates an Accessibility Statement in HTML: art. 10 RD 1112/2018 (Spanish publ
 - `output_path`: save the HTML here (optional).
 
 - `lang` — one of ['es', 'en']: Statement language (default en; es uses the Spanish legal wording).
+
+
+#### `a11y_generate_vpat`
+
+<sub>mutates state</sub>
+
+Generates a VPAT 2.5 (WCAG edition) accessibility conformance report in accessible HTML from an a11y_evidence pack (or raw audit reports): the full 55-criterion WCAG 2.2 A/AA table with Remarks auto-filled from the pack (status, measured values, examples, remaining human effort) and every Conformance Level starting at Not Evaluated — automated fails force Does Not Support and a qualified human sets the final level via overrides (supports, partially_supports, does_not_support, not_applicable, not_evaluated). The document is a DRAFT until the signature block, which must reference the pack sha256, is completed. VPAT is the US/ADA counterpart of a11y_generate_declaration (EU/EAA): the machine fills Remarks, the human signs the claim. — The US/ADA counterpart of a11y_generate_declaration; feed it the a11y_evidence pack — levels stay Not Evaluated until a qualified human sets them. Returns {html, summary {level: count}, levels {code: level}, pack_sha256, draft} — the VPAT draft; writes a file only when output_path is given. Run after the audits you trust; a qualified human must set the final levels (overrides) and sign before publishing — the machine fills Remarks, never the claim.
+
+
+**Arguments**
+
+- `product` *(required)*: Product name as it must appear in the VPAT title and header.
+
+- `pack`: a11y_evidence output (evidence pack); alternative to reports.
+
+- `reports`: Audit report objects to bundle (when pack is not given, the pack is built here first).
+
+- `report_date`: VPAT report date ISO (default: today).
+
+- `product_description`: Product description paragraph.
+
+- `contact`: Contact information for questions about this VPAT.
+
+- `methods`: Evaluation methods used (default: honest automated-screening note).
+
+- `notes`: Additional notes to include.
+
+- `overrides`: Criterion → conformance level set by a qualified human: {"1.1.1": "supports", "1.2.2": "not_applicable", …}.
+
+- `reviewer`: {"name":…, "credential":…, "review_date":…} to prefill the signature block.
+
+- `output_path`: Local path to save the VPAT HTML (omit to receive it inline).
+
+- `lang` — one of ['es', 'en']: Document language (default en).
 
 
 #### `a11y_badge`
@@ -558,6 +619,9 @@ a11ytoolkit disprove --url https://mysite               # re-verify findings
 a11ytoolkit budget --budget budget.json --audit audit.json  # only NEW findings block
 a11ytoolkit sarif --from-audit audit.json -o a11y.sarif # GitHub code scanning
 a11ytoolkit badge --score 92 --out badge.svg            # honest SVG
+a11ytoolkit contrast-dom https://mysite --selector ".hero h1"  # auto-region pixel sampling
+a11ytoolkit vpat pack.json --producto "Acme" -o vpat.html      # VPAT 2.5 (WCAG) draft
+a11ytoolkit earl --from-audit audit.json -o earl.json          # ACT Rules / EARL export
 ```
 
 ## Coverage: 51 of 55 WCAG 2.2 A/AA criteria (93%)
@@ -625,7 +689,8 @@ MCP clients you trust.
 ```bash
 python3 tests/test_contrast.py && python3 tests/test_audit.py && python3 tests/test_v32.py \
   && python3 tests/test_dom.py && python3 tests/test_cli.py && python3 tests/test_solido.py \
-  && python3 tests/test_mcp.py
+  && python3 tests/test_mcp.py && python3 tests/test_png.py && python3 tests/test_vpat.py \
+  && python3 tests/test_act.py
 ```
 
 `tests/test_dom.py` self-skips without Playwright. `tests/test_solido.py` enforces the design

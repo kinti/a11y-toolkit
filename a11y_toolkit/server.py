@@ -26,6 +26,8 @@ Tools:
   - a11y_hover(url, …)                             tooltip Escape dismissibility (1.4.13)
   - a11y_sr_transcript(url, …)                     what a blind user hears, linearized
   - a11y_journey_verdict(task, steps, outcome)    blindfold task verdict: friction log → scored evidence
+  - a11y_generate_vpat(product, pack|reports, …)  VPAT 2.5 (WCAG) draft from the evidence pack
+  - a11y_contrast_dom(url, selector, …)           real text-over-anything contrast (auto-region sampling)
   - a11y_disprove(url, informe?, …)                re-verify findings → confirmed/rejected
   - a11y_ledger(action, url?, informe?, …)          persistent coverage ledger
   - a11y_html_validate(url|html, …)                W3C Nu parser view
@@ -60,6 +62,8 @@ from .a11ydisprove import disprove as disprove_fn  # noqa: E402
 from .a11yledger import record as ledger_record, gaps as ledger_gaps, summary as ledger_summary  # noqa: E402
 from .a11ybadge import badge as badge_fn  # noqa: E402
 from .a11yaudit import audit_site as audit_site_fn  # noqa: E402
+from .a11yvpat import generar_vpat as vpat_fn  # noqa: E402
+from .a11ydom import contrast_dom as contrast_dom_fn  # noqa: E402
 
 try:
     from .arialive_js import ARIALIVE_JS  # installed as a module (pip)
@@ -115,7 +119,9 @@ TOOLS = [
         'name': 'a11y_audit_dom',
         'description': ('Deep RENDERED WCAG audit via local Playwright/Chromium: real computed '
                         'text contrast against effective backgrounds with alpha compositing '
-                        '(1.4.3), minimum target size 24×24 (2.5.8, new in WCAG 2.2), visible '
+                        '(1.4.3), pixel-sampled measurement of text over images/gradients '
+                        '(background captured with the text transparent), minimum target size '
+                        '24×24 (2.5.8, new in WCAG 2.2), visible '
                         'focus indicator heuristic (2.4.7), plus rendered versions of the '
                         'static checks (alt, accessible names, labels, headings, lang/title, '
                         'tabindex, aria-hidden, captions, tables). Findings include remediation. '
@@ -458,6 +464,54 @@ TOOLS = [
             'output_path': {'type': 'string', 'description': 'write the full verdict JSON here instead of returning it inline'},
         }, 'required': ['task', 'steps', 'outcome']},
     },
+    {
+        'name': 'a11y_generate_vpat',
+        'description': ('Generates a VPAT 2.5 (WCAG edition) accessibility conformance report '
+                        'in accessible HTML from an a11y_evidence pack (or raw audit reports): '
+                        'the full 55-criterion WCAG 2.2 A/AA table with Remarks auto-filled from '
+                        'the pack (status, measured values, examples, remaining human effort) and '
+                        'every Conformance Level starting at Not Evaluated — automated fails force '
+                        'Does Not Support and a qualified human sets the final level via overrides '
+                        '(supports, partially_supports, does_not_support, not_applicable, '
+                        'not_evaluated). The document is a DRAFT until the signature block, which '
+                        'must reference the pack sha256, is completed. VPAT is the US/ADA '
+                        'counterpart of a11y_generate_declaration (EU/EAA): the machine fills '
+                        'Remarks, the human signs the claim.'),
+        'inputSchema': {'type': 'object', 'properties': {
+            'product': {'type': 'string', 'description': 'Product name as it must appear in the VPAT'},
+            'pack': {'type': 'object', 'description': 'a11y_evidence output (evidence pack); alternative to reports'},
+            'reports': {'type': 'array', 'items': {'type': 'object'}, 'description': 'Audit report objects to bundle (when pack is not given, the pack is built here first)'},
+            'report_date': {'type': 'string', 'description': 'VPAT report date ISO (default: today)'},
+            'product_description': {'type': 'string', 'description': 'Product description paragraph'},
+            'contact': {'type': 'string', 'description': 'Contact information for questions about this VPAT'},
+            'methods': {'type': 'string', 'description': 'Evaluation methods used (default: honest automated-screening note)'},
+            'notes': {'type': 'string', 'description': 'Additional notes to include'},
+            'overrides': {'type': 'object', 'description': 'Criterion → conformance level set by a qualified human: {"1.1.1": "supports", "1.2.2": "not_applicable", …}'},
+            'reviewer': {'type': 'object', 'description': '{"name":…, "credential":…, "review_date":…} to prefill the signature block'},
+            'output_path': {'type': 'string', 'description': 'save the VPAT HTML here (optional)'},
+            'lang': {'type': 'string', 'enum': ['es', 'en'], 'description': 'Document language (default en)'},
+        }, 'required': ['product']},
+    },
+    {
+        'name': 'a11y_contrast_dom',
+        'description': ('REAL contrast of an element against whatever is behind it (image, '
+                        'gradient, video, photo): loads the page in Chromium, screenshots the '
+                        'element matched by selector with its text turned transparent — so only '
+                        'the real background is sampled, no text pixels, no antialiasing edges — '
+                        'and contrasts the pixels with the text color (computed from the element '
+                        'when not given). The automated version of a11y_contrast_image: no '
+                        'manual screenshot, no region math. Requires local Playwright.'),
+        'inputSchema': {'type': 'object', 'properties': {
+            'url': {'type': 'string', 'description': 'Page URL where the element lives (http/https or file://)'},
+            'selector': {'type': 'string', 'description': 'CSS selector of the text element to measure'},
+            'text_color': {'type': 'string', 'description': 'Text color (default: computed from the element)'},
+            'sample': {'type': 'integer', 'description': 'Pixel step (default 4)'},
+            'lang': {'type': 'string', 'enum': ['es', 'en'], 'description': 'Output language (default en)'},
+            'timeout': {'type': 'number', 'description': 'Page load timeout seconds (default 45)'},
+            'auth_state': {'type': 'string', 'description': 'Path to a Playwright storage_state JSON to measure behind login — stays local'},
+            'browser': {'type': 'string', 'enum': ['auto', 'chromium', 'firefox', 'webkit', 'chrome', 'msedge'], 'description': 'Browser engine (auto = detect the first available)'},
+        }, 'required': ['url', 'selector']},
+    },
 ]
 
 _PROMPTS = [
@@ -713,6 +767,26 @@ _PARAM_DOCS = {
  ('a11y_evidence', 'snapshot'): 'Optional a11y_snapshot output to include as an artifact',
  ('a11y_evidence', 'reviewer'): 'Optional prefill for the signature block: {"name":…, "credential":…, "review_date":…}',
  ('a11y_aria_live_snippet', 'lang'): 'Monitor panel language (default en)',
+ ('a11y_generate_vpat', 'product'): 'Product name as it must appear in the VPAT title and header',
+ ('a11y_generate_vpat', 'pack'): 'a11y_evidence output (evidence pack); alternative to reports',
+ ('a11y_generate_vpat', 'reports'): 'Audit report objects to bundle (when pack is not given, the pack is built here first)',
+ ('a11y_generate_vpat', 'report_date'): 'VPAT report date ISO (default: today)',
+ ('a11y_generate_vpat', 'product_description'): 'Product description paragraph',
+ ('a11y_generate_vpat', 'contact'): 'Contact information for questions about this VPAT',
+ ('a11y_generate_vpat', 'methods'): 'Evaluation methods used (default: honest automated-screening note)',
+ ('a11y_generate_vpat', 'notes'): 'Additional notes to include',
+ ('a11y_generate_vpat', 'overrides'): 'Criterion → conformance level set by a qualified human: {"1.1.1": "supports", "1.2.2": "not_applicable", …}',
+ ('a11y_generate_vpat', 'reviewer'): '{"name":…, "credential":…, "review_date":…} to prefill the signature block',
+ ('a11y_generate_vpat', 'output_path'): 'Local path to save the VPAT HTML (omit to receive it inline)',
+ ('a11y_generate_vpat', 'lang'): 'Document language (default en)',
+ ('a11y_contrast_dom', 'url'): 'Page URL where the element lives (http/https or file://)',
+ ('a11y_contrast_dom', 'selector'): 'CSS selector of the text element to measure',
+ ('a11y_contrast_dom', 'text_color'): 'Text color (default: computed from the element)',
+ ('a11y_contrast_dom', 'sample'): 'Pixel step (default 4)',
+ ('a11y_contrast_dom', 'lang'): 'Output language (default en)',
+ ('a11y_contrast_dom', 'timeout'): 'Page load timeout in seconds (default 45)',
+ ('a11y_contrast_dom', 'auth_state'): 'Path to a Playwright storage_state JSON to measure behind login — stays local',
+ ('a11y_contrast_dom', 'browser'): 'Browser engine (auto = detect the first available)',
 }
 
 # Routing guidance: one "prefer sibling X" sentence per tool (TDQS dimension).
@@ -734,6 +808,8 @@ _ROUTING = {
  'a11y_evidence': 'The tier-3 handoff object; feed it every audit report you have.',
  'a11y_aria_live_snippet': 'Diagnostics aid to inject in a browser; not an audit by itself.',
  'a11y_generate_declaration': 'Legal statement generator; drive contenido_no_accesible from audit findings and a11y_evidence.',
+ 'a11y_generate_vpat': 'The US/ADA counterpart of a11y_generate_declaration; feed it the a11y_evidence pack — levels stay Not Evaluated until a qualified human sets them.',
+ 'a11y_contrast_dom': 'Use instead of a11y_contrast_image when the text lives in a live page (captures and measures it automatically); for flat pairs use a11y_contrast_pair.',
 }
 
 for _t in TOOLS:
@@ -771,6 +847,8 @@ _ANN = {
     'a11y_ledger':           ('Coverage ledger (persistent)', True, False),
     'a11y_criterion':        ('WCAG criterion explained', True, False),
     'a11y_journey_verdict':  ('Blindfold journey verdict', True, False),
+    'a11y_generate_vpat':    ('VPAT 2.5 report (WCAG edition)', False, False),
+    'a11y_contrast_dom':     ('Live-element contrast sampling', True, True),
 }
 # TDQS hygiene: annotations must match reality, and every description states
 # its return shape and when (not) to use the tool. a11y_ledger.record mutates
@@ -814,6 +892,8 @@ _RETURNS = {
     'a11y_evidence': 'Returns the pack JSON (a11y-evidence-pack/2); writes a file only when output_path is given.',
     'a11y_journey_verdict': 'Returns JSON: {verdict pass|partial|fail|blocked, score 0-100, findings [{criterion, severity, signal, issue, remediation, step}], summary, rules} — writes a file only when output_path is given.',
     'a11y_generate_declaration': 'Returns {html, summary} — the accessible legal statement; writes a file only when output_path is given.',
+    'a11y_generate_vpat': 'Returns {html, summary {level: count}, levels {code: level}, pack_sha256, draft} — the VPAT draft; writes a file only when output_path is given.',
+    'a11y_contrast_dom': 'Returns JSON: {url, selector, text_color, worst_ratio, median_ratio, p95_ratio, area_passes_aa_normal_text_4_5, worst_zone?, sampled_pixels, interpretation}.',
 }
 _USAGE = {
     'a11y_forms': 'Use on test/staging forms, or forms you own: invalid data is REALLY submitted. Do not run against production forms that trigger real emails, orders or leads.',
@@ -822,6 +902,7 @@ _USAGE = {
     'a11y_reflow': 'Run once per template, not per page: fixed-width layouts are a property of the template.',
     'a11y_journey_verdict': 'Run only after a real blindfold attempt (the blindfold-task prompt): the verdict prices the walk, it does not replace it.',
     'a11y_evidence': 'Run after the audits you trust, and pass verified codes from the manual checklist — agent-verified never erases an automated-fail.',
+    'a11y_generate_vpat': 'Run after the audits you trust; a qualified human must set the final levels (overrides) and sign before publishing — the machine fills Remarks, never the claim.',
 }
 for _t in TOOLS:
     _titulo, _ro, _ow = _ANN[_t['name']]
@@ -1049,6 +1130,39 @@ def llamar(nombre, args):
                            'score': res['score'], 'high': res['summary']['high'],
                            'medium': res['summary']['medium'], 'low': res['summary']['low']})
         return _texto(res)
+    if nombre == 'a11y_generate_vpat':
+        try:
+            res = vpat_fn(pack=args.get('pack'), reports=args.get('reports'),
+                          producto=args['product'], fecha=args.get('report_date'),
+                          descripcion=args.get('product_description'),
+                          contacto=args.get('contact'), metodos=args.get('methods'),
+                          notas=args.get('notes'), overrides=args.get('overrides'),
+                          evaluador=args.get('reviewer'), lang=args.get('lang', 'en'),
+                          output_path=args.get('output_path'))
+            if 'error' in res:
+                return {'content': [{'type': 'text', 'text': res['error']}], 'isError': True}
+            if args.get('output_path'):
+                return _texto({'guardado_en': args['output_path'],
+                               'summary': res['summary'],
+                               'pack_sha256': res['pack_sha256'], 'draft': True})
+            return {'content': [{'type': 'text', 'text': res['html']}]}
+        except Exception as e:  # noqa: BLE001
+            return {'content': [{'type': 'text', 'text': f'error: {e}'}], 'isError': True}
+    if nombre == 'a11y_contrast_dom':
+        try:
+            return _texto(contrast_dom_fn(args['url'], args['selector'],
+                                          text_color=args.get('text_color'),
+                                          sample=args.get('sample', 4),
+                                          lang=args.get('lang', 'en'),
+                                          timeout=args.get('timeout', 45),
+                                          auth_state=args.get('auth_state'),
+                                          browser=args.get('browser', 'auto')))
+        except ImportError:
+            return {'content': [{'type': 'text',
+                                 'text': 'Playwright not installed: pip install playwright && playwright install chromium'}],
+                    'isError': True}
+        except Exception as e:  # noqa: BLE001
+            return {'content': [{'type': 'text', 'text': f'error: {e}'}], 'isError': True}
     if nombre == 'a11y_badge':
         svg = badge_fn(args['score'], fecha=args.get('fecha'),
                        lang=args.get('lang', 'en'))

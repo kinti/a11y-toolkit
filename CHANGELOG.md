@@ -1,5 +1,50 @@
 # Changelog
 
+## Unreleased — the US/ADA + measurement + interop wave
+
+Five bets from the ecosystem gap analysis, landed together (no release yet —
+`make release` when the author signs off):
+
+- **VPAT 2.5 (WCAG edition) generator** (`a11yvpat.py`, MCP tool
+  `a11y_generate_vpat`, CLI `a11ytoolkit vpat`): the US/ADA counterpart of
+  the EAA declaration. The full 55-criterion WCAG 2.2 A/AA table with
+  Remarks auto-filled from the evidence pack (status, measured values,
+  examples, remaining human effort). Honesty rule pinned in `test_vpat.py`:
+  every Conformance Level starts at **Not Evaluated**, automated fails force
+  Does Not Support, and only a qualified human's `overrides` + a signature
+  block referencing `pack.sha256` turn the DRAFT into a claim. The machine
+  fills Remarks, never the level.
+- **Pixel-sampled contrast over images/gradients in the rendered audit**
+  (`a11ydom.py`): text zones the computed-contrast pass could only count as
+  "review" are now captured in-browser and measured for real — screenshot
+  clip, pure-Python PNG decode (new `decodificar_png`, zero-dep), sampling
+  with text pixels excluded (new `sample_rgb(excluir_texto=…)` in
+  `contrast.py`). Failures ship as `contrast_image_fail` (high) with the
+  worst ratio and % of AA-passing area; what cannot be measured stays an
+  honest `contrast_review`. This is the axe gap
+  ([dequelabs/axe-core#4628](https://github.com/dequelabs/axe-core/issues/4628)):
+  gradient backgrounds, marked "incomplete" there, measured here.
+- **`a11y_contrast_dom`** (MCP tool + CLI `a11ytoolkit contrast-dom`): the
+  auto-region companion — one selector, and the tool screenshots, decodes and
+  samples the element against whatever is behind it. No manual screenshot,
+  no region math.
+- **ACT Rules interop** (`a11yact.py`, CLI `a11ytoolkit earl`): curated
+  signal → ACT rule map (22 signals, 23 published rules, partial by design —
+  never invented rules, documented in `ACT_NOTES`) + EARL 1.0 JSON-LD export
+  where failures are asserted and absence is never asserted as pass.
+- **Screen-reader cross-check scaffold**: `docs/sr-crosscheck.md` (NVDA via
+  CI harness + VoiceOver via Caption Panel) and
+  `scripts/voiceover-capture.applescript` (experimental, human-driven).
+- **Watch-loop SaaS (private companion)**: the audit → budget → pack → badge
+  loop productized behind a multi-tenant panel. Built on this engine; will get
+  its own public home when it launches.
+
+Tests: `tests/test_png.py` (PNG decoder + sampler), `tests/test_vpat.py`
+(derivation honesty + overrides + pack hash in the document),
+`tests/test_act.py` (canonical ids, no orphan signals, EARL outcomes).
+Counts bumped 24 → 26 MCP tools across README, ARCHITECTURE, visuals and the
+pinned invariants.
+
 ## 5.4.2 — 2026-10-11 — "changelog correction"
 
 Release-process note: the tag v5.4.1 was burned — it was cut by hand

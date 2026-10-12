@@ -23,7 +23,8 @@ All output is English by default; pass `--lang es` (or the `lang: "es"` MCP argu
 | The user asks about… | Use |
 |---|---|
 | "is this site/page accessible?" | `a11y_audit_url` (fast, static, 0-100 score) then `a11y_audit_dom` if Playwright exists |
-| real text contrast, incl. over images/gradients | `a11y_contrast_pair` / `a11y_contrast_image` / `a11y_audit_dom` |
+| real text contrast, incl. over images/gradients | `a11y_contrast_pair` / `a11y_contrast_image` / `a11y_audit_dom` (now pixel-samples image/gradient zones) |
+| "measure THIS element against its background" (live page) | `a11y_contrast_dom` (url + selector: captures, samples, excludes text pixels — auto-region) |
 | "what color passes AA here?" | `a11y_suggest_color` (target 4.5 normal, 3.0 large/UI) |
 | legal accessibility statement (EU/Spain) | `a11y_generate_declaration` |
 | "did the deploy break a11y?" | `a11y_snapshot` + `a11y_diff` (or `a11y_diff_urls`) |
@@ -40,6 +41,8 @@ All output is English by default; pass `--lang es` (or the `lang: "es"` MCP argu
 | "record what I verified by hand/agent" | pass `verified` (criterion codes) to `a11y_evidence`: they become agent-verified in the matrix; automated-fail never erases |
 | "full evaluation / conformance / WCAG-EM" | the `conformance-wcagem` prompt — three tiers, escalate one at a time; protocol in `references/wcagem-guide.md` |
 | "produce something a human auditor can sign" | `a11y_evidence`: the countersignature-ready pack (criteria matrix + hashed artifacts + empty signature block). Vendor-neutral — any qualified human, any marketplace, or the consultant herself |
+| "a VPAT for the US market (ADA)" | `a11y_generate_vpat`: VPAT 2.5 (WCAG edition) draft from the pack — Remarks auto-filled, levels Not Evaluated until a qualified human sets them (`overrides`) and signs (hash-referenced). Draft until signed |
+| "export findings as ACT Rules / EARL" | `a11ytoolkit earl --from-audit audit.json -o earl.json` (curated ACT map; failures asserted, absence never asserted as pass) |
 | "FIX it for me" (zoom blocked, missing autocomplete, missing lang/title) | `a11y_autofix`: deterministic safe fixes + the accessible form-error layer (3.3.1/3.3.3, skips forms with their own handling); judgment fixes come back as `no_aplicados` + remediation. Never promise overlay-style full fixes |
 | "does it scroll sideways on mobile?" (1.4.10) | `a11y_reflow` (320px viewport, real overflow + offenders) — axe/Lighthouse don't automate this |
 | "is the modal a keyboard trap?" (2.1.2) | `a11y_keyboard`: real Tab walk + cycle detection + Escape release test. Correct modals pass; traps are high severity |

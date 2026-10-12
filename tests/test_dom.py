@@ -102,4 +102,28 @@ assert '2.85:1' in f14['issue'] and 'remediation' in f14
 # el botón mini aparece en los ejemplos de 2.5.8
 f25 = next(h for h in d['findings'] if h['criterion'].startswith('2.5.8'))
 assert any('14×14' in e for e in f25.get('examples', [])), f25
-print('TESTS DOM RENDERIZADO PASAN ✓ (1.4.3 computado, 2.5.8, 3.3.2, 1.1.1, modo rendered)')
+
+# 1.4.3 sobre degradados: el muestreo real de píxeles (regresión del fixture)
+FIX_GRAD = '''<!doctype html><html lang="en"><head><meta charset="utf-8"><title>grad</title>
+<style>.claro{width:640px;height:180px;box-sizing:border-box;
+background:linear-gradient(90deg,#ffffff,#ffd700);color:#fff;font-size:32px;padding:24px}
+.oscuro{width:640px;height:180px;box-sizing:border-box;
+background:linear-gradient(90deg,#000000,#222222);color:#fff;font-size:32px;padding:24px}</style>
+</head><body><main>
+<h1 class="claro">White text on a light gradient fails</h1>
+<h2 class="oscuro">White text on a dark gradient passes</h2>
+</main></body></html>'''
+with open('/tmp/fixture_grad.html', 'w', encoding='utf-8') as f:
+    f.write(FIX_GRAD)
+g = audit_dom_url('file:///tmp/fixture_grad.html', lang='en')
+imgf = [h for h in g['findings'] if h['signal'] == 'contrast_image_fail']
+assert len(imgf) == 1, [h['signal'] for h in g['findings']]  # solo el claro falla
+assert imgf[0]['severity'] == 'high' and 'worst 1.0' in imgf[0]['issue'], imgf[0]
+assert 'h1' in imgf[0]['examples'][0]  # la zona medida es la clara, no la oscura
+assert not any(h['signal'] == 'contrast_review' for h in g['findings']), 'ambas zonas medidas'
+from a11y_toolkit.a11ydom import contrast_dom as _cd
+ok = _cd('file:///tmp/fixture_grad.html', '.oscuro', lang='en')
+assert ok['worst_ratio'] >= 4.5 and ok['area_passes_aa_normal_text_4_5'] >= 99, ok
+mal2 = _cd('file:///tmp/fixture_grad.html', '.claro', lang='en')
+assert mal2['worst_ratio'] < 4.5
+print('TESTS DOM RENDERIZADO PASAN ✓ (1.4.3 computado + degradados por píxeles, 2.5.8, 3.3.2, 1.1.1, modo rendered)')

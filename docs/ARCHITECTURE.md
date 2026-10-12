@@ -7,7 +7,7 @@ read this. Every claim here that can be pinned by a test IS pinned by
 ## What this is
 
 a11y-toolkit is the machine half of WCAG 2.2 conformance work: an MCP server
-(24 tools + 6 prompts) and a CLI (`a11ytoolkit`) that audit, fix, document,
+(26 tools + 6 prompts) and a CLI (`a11ytoolkit`) that audit, fix, document,
 watch and hand off accessibility findings. The human half is priced, not
 guessed. Zero dependencies at the core; Playwright/Pillow optional behind
 import guards. Output es/en; wire keys English (`a11y-evidence-pack/2`).
@@ -23,6 +23,8 @@ import guards. Output es/en; wire keys English (`a11y-evidence-pack/2`).
 | `a11yscroll.py` | Infinite-scroll audit (focus survival, announcements, feed end). |
 | `a11yevidence.py` | Evidence pack builder (`a11y-evidence-pack/2`): 55-criterion matrix, effort per row, SHA-256 chain, embedded bodies. |
 | `a11ycrit.py` | Knowledge catalog: `_C` (56 criteria, es/en), `_EFFORT` (55 A/AA effort classes), `effort()`. |
+| `a11yvpat.py` | VPAT 2.5 (WCAG edition) generator: pack → accessible HTML VPAT, machine fills Remarks, human sets levels (overrides), signature references pack sha256. |
+| `a11yact.py` | ACT Rules interop: curated signal → ACT rule map (`ACT_MAP`, partial by design) + EARL 1.0 JSON-LD export (failures only, never asserts pass). |
 | `a11yjourney.py` | Blindfold journey verdict: friction log → deterministic scored task verdict; `_J` friction catalogue (journey_* patterns → criterion + bilingual remediation). |
 | `a11ydiff.py` | Snapshot + regression diff (interactives, focus order, tree). |
 | `a11ybudget.py` | Error budget: only NEW blocking findings fail (exit 2). |
@@ -85,6 +87,14 @@ change (see 4.0.1); internal dev docs don't.
   friction, −15 workaround; pass = completed, no high, no workaround, ≥85).
   Journeys enter the pack as `report:journey`. Usability evidence, never
   conformance: an AI agent is not a human screen-reader user.
+- **D14 — VPAT honesty + ACT interop (next)**: the VPAT generator fills
+  Remarks from the pack and leaves every Conformance Level at Not Evaluated
+  unless an automated fail forces Does Not Support — only a qualified human's
+  `overrides` (plus the signature block referencing pack.sha256) turn the
+  draft into a claim. ACT/EARL mapping is curated and partial by design:
+  only published rules that correspond directly; absence of findings is
+  never asserted as pass. PNG decoding is stdlib-only (`contrast.py`) so the
+  pixel-sampling path keeps the zero-dep core.
 
 ## Trap catalogue (each class cost a bug — recognize the class)
 

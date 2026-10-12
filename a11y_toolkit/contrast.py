@@ -35,6 +35,8 @@ T = {
         'sin_pixeles': 'sin píxeles en la región',
         'carga_error': 'no se pudo cargar la imagen',
         'texto_opaco': 'para texto sobre imagen usa un color opaco (sin alfa)',
+        'selector_falta': 'selector {s} no encontrado en la página',
+        'sin_caja': 'el elemento que coincide con {s} no tiene caja visible que muestrear',
         'aclarar': 'aclarando', 'oscurecer': 'oscureciendo',
         'sin_copia': 'sin copia específica del post: base a secas',
         'interp': ('El contraste del texto debe evaluarse contra el FONDO REAL tras él: '
@@ -56,6 +58,8 @@ T = {
         'sin_pixeles': 'no pixels in region',
         'carga_error': 'could not load image',
         'texto_opaco': 'use an opaque color for text over images (no alpha)',
+        'selector_falta': 'selector {s} not found on the page',
+        'sin_caja': 'the element matched by {s} has no visible box to sample',
         'aclarar': 'lightening', 'oscurecer': 'darkening',
         'sin_copia': 'no specific copy of the post: base only',
         'interp': ('Text contrast must be evaluated against the REAL background behind it: '
@@ -334,6 +338,151 @@ def _percentil(vals, p):
     return s[k]
 
 
+# ---------------------------------------------------------------- PNG puro ---
+# Playwright devuelve capturas PNG; sin Pillow no hay forma de leerlas, así que
+# el core decodifica PNG por sí mismo (zero-dep): IHDR/PLTE/IEND, filtros 0-4,
+# color types 0/2/3/6 a 8 bits. Lo que no sepa → ValueError con mensaje claro.
+
+
+def decodificar_png(datos):
+    """Bytes PNG → (ancho, alto, bytes RGB). Sin dependencias.
+
+    Soporta color types 0 (gris), 2 (RGB), 3 (paleta) y 6 (RGBA) a 8 bits;
+    el alfa se compone sobre blanco (las capturas de navegador son opacas).
+    Lanza ValueError si el PNG está fuera de ese soporte (p. ej. 16 bits)."""
+    import struct
+    import zlib
+    if datos[:8] != b'\x89PNG\r\n\x1a\n':
+        raise ValueError('not a PNG file')
+    pos, idat, w, h, bd, ct, plte = 8, b'', 0, 0, 0, 0, None
+    while pos < len(datos):
+        ln = struct.unpack('>I', datos[pos:pos + 4])[0]
+        tipo = datos[pos + 4:pos + 8]
+        cuerpo = datos[pos + 8:pos + 8 + ln]
+        if tipo == b'IHDR':
+            w, h, bd, ct = struct.unpack('>IIBB', cuerpo[:10])
+        elif tipo == b'IDAT':
+            idat += cuerpo
+        elif tipo == b'PLTE':
+            plte = cuerpo
+        elif tipo == b'IEND':
+            break
+        pos += 12 + ln
+    if bd != 8:
+        raise ValueError(f'PNG bit depth {bd} unsupported (8-bit only)')
+    canales = {0: 1, 2: 3, 3: 1, 4: 2, 6: 4}.get(ct)
+    if canales is None:
+        raise ValueError(f'PNG color type {ct} unsupported')
+    if ct == 3 and not plte:
+        raise ValueError('PNG palette without PLTE chunk')
+    crudo = zlib.decompress(idat)
+    paso = w * canales
+    filas = []
+    for y in range(h):
+        base = y * (paso + 1)
+        filtro = crudo[base]
+        f = bytearray(crudo[base + 1:base + 1 + paso])
+        prev = filas[-1] if filas else bytearray(paso)
+        for i in range(paso):
+            a = f[i - canales] if i >= canales else 0
+            b = prev[i]
+            c = prev[i - canales] if i >= canales else 0
+            if filtro == 1:
+                f[i] = (f[i] + a) & 255
+            elif filtro == 2:
+                f[i] = (f[i] + b) & 255
+            elif filtro == 3:
+                f[i] = (f[i] + ((a + b) >> 1)) & 255
+            elif filtro == 4:
+                p = a + b - c
+                pa, pb, pc = abs(p - a), abs(p - b), abs(p - c)
+                pr = a if (pa <= pb and pa <= pc) else (b if pb <= pc else c)
+                f[i] = (f[i] + pr) & 255
+        filas.append(f)
+    out = bytearray(w * h * 3)
+    for y in range(h):
+        f = filas[y]
+        for x in range(w):
+            o = x * canales
+            if ct == 0:
+                r = g = b = f[o]
+            elif ct == 2:
+                r, g, b = f[o], f[o + 1], f[o + 2]
+            elif ct == 3:
+                i = f[o] * 3
+                r, g, b = plte[i], plte[i + 1], plte[i + 2]
+            else:  # ct 6
+                r, g, b, al = f[o], f[o + 1], f[o + 2], f[o + 3]
+                if al < 255:
+                    r = (r * al + 255 * (255 - al)) // 255
+                    g = (g * al + 255 * (255 - al)) // 255
+                    b = (b * al + 255 * (255 - al)) // 255
+            p = (y * w + x) * 3
+            out[p], out[p + 1], out[p + 2] = r, g, b
+    return w, h, bytes(out)
+
+
+def sample_rgb(w, h, rgb, texto_color, sample=4, excluir_texto=False):
+    """Núcleo de muestreo compartido: bytes RGB + color de texto opaco → métricas.
+
+    excluir_texto=True salta los píxeles próximos al color del texto (distancia
+    RGB < 40): así, al capturar un elemento ENTERO (captura de navegador), se
+    mide el FONDO real y no el propio texto (que siempre fallaría 1:1). Cuando
+    se excluye >90% de la región no hay fondo medible → None.
+    Incluye la rejilla 3×3 de zona hostil cuando la región es ≥99×99."""
+    l_texto = luminancia(texto_color)
+    tr, tg, tb = texto_color['r'], texto_color['g'], texto_color['b']
+    ratios = []
+    excluidos = 0
+    usar_grid = w >= 99 and h >= 99
+    celdas = [[0, 0] for _ in range(9)]
+    for j in range(0, h, sample):
+        fila = j * w
+        cy = (j * 3) // h if usar_grid else 0
+        for i in range(0, w, sample):
+            o = (fila + i) * 3
+            if excluir_texto and ((rgb[o] - tr) ** 2 + (rgb[o + 1] - tg) ** 2
+                                  + (rgb[o + 2] - tb) ** 2) < 1600:
+                excluidos += 1
+                continue
+            lpix = (0.2126 * _lin(rgb[o]) + 0.7152 * _lin(rgb[o + 1])
+                    + 0.0722 * _lin(rgb[o + 2]))
+            l1, l2 = (l_texto, lpix) if l_texto > lpix else (lpix, l_texto)
+            r = (l1 + 0.05) / (l2 + 0.05)
+            ratios.append(r)
+            if usar_grid:
+                cx = (i * 3) // w
+                celdas[cy * 3 + cx][1] += 1
+                if r >= 4.5:
+                    celdas[cy * 3 + cx][0] += 1
+    if not ratios:
+        return None
+    if excluir_texto and excluidos / max(1, len(ratios) + excluidos) > 0.9:
+        return None
+    pasa45 = sum(1 for v in ratios if v >= 4.5)
+    pasa30 = sum(1 for v in ratios if v >= 3.0)
+    out = {
+        'worst_ratio': round(min(ratios), 2),
+        'median_ratio': round(_percentil(ratios, 50), 2),
+        'p95_ratio': round(_percentil(ratios, 95), 2),
+        'area_passes_aa_normal_text_4_5': round(100.0 * pasa45 / len(ratios), 1),
+        'area_passes_aa_min_3_0': round(100.0 * pasa30 / len(ratios), 1),
+        'sampled_pixels': len(ratios),
+    }
+    if excluir_texto:
+        out['excluded_text_pixels'] = excluidos
+    if usar_grid:
+        peor = min(range(9), key=lambda k: (celdas[k][0] / celdas[k][1]) if celdas[k][1] else 1)
+        py_, px_ = peor // 3, peor % 3
+        out['worst_zone'] = {
+            'cell': f'{["superior","central","inferior"][py_]}-{["izquierda","centro","derecha"][px_]}',
+            'x': (w * px_) // 3, 'y': (h * py_) // 3,
+            'width': w // 3, 'height': h // 3,
+            'pct_passes_aa': round(100.0 * celdas[peor][0] / celdas[peor][1], 1) if celdas[peor][1] else None,
+        }
+    return out
+
+
 def image_contrast(ruta, texto_color, region=None, sample=4, lang='en'):
     t9 = _t(lang)
     c = parse_color(texto_color)
@@ -364,51 +513,28 @@ def image_contrast(ruta, texto_color, region=None, sample=4, lang='en'):
     presupuesto = 2_000_000
     if (rw // sample) * (rh // sample) > presupuesto:
         sample = max(sample, int(((rw * rh) / presupuesto) ** 0.5) + 1)
-    l_texto = luminancia(c)
-    ratios = []
-    usar_grid = rw >= 99 and rh >= 99
-    celdas = [[0, 0] for _ in range(9)]  # [pasa45, total] por celda 3×3
-    for j in range(y, y + rh, sample):
-        fila = j * w
-        cy = ((j - y) * 3) // rh if usar_grid else 0
-        for i in range(x, x + rw, sample):
-            o = (fila + i) * 3
-            lpix = (0.2126 * _lin(rgb[o]) + 0.7152 * _lin(rgb[o + 1])
-                    + 0.0722 * _lin(rgb[o + 2]))
-            l1, l2 = (l_texto, lpix) if l_texto > lpix else (lpix, l_texto)
-            r = (l1 + 0.05) / (l2 + 0.05)
-            ratios.append(r)
-            if usar_grid:
-                cx = ((i - x) * 3) // rw
-                celdas[cy * 3 + cx][1] += 1
-                if r >= 4.5:
-                    celdas[cy * 3 + cx][0] += 1
-    if not ratios:
+    recorte = bytearray(rw * rh * 3)
+    for j in range(rh):
+        recorte[j * rw * 3:(j + 1) * rw * 3] = rgb[(y + j) * w * 3 + x * 3:
+                                                    (y + j) * w * 3 + (x + rw) * 3]
+    m = sample_rgb(rw, rh, bytes(recorte), c, sample)
+    if not m:
         return {'error': t9['sin_pixeles']}
 
-    pasa45 = sum(1 for v in ratios if v >= 4.5)
-    pasa30 = sum(1 for v in ratios if v >= 3.0)
     out = {
         'image': os.path.basename(ruta),
         'text_color': hexs(c),
         'region': {'x': x, 'y': y, 'width': rw, 'height': rh,
-                   'sampled_pixels': len(ratios), 'step': sample},
-        'worst_ratio': round(min(ratios), 2),
-        'median_ratio': round(_percentil(ratios, 50), 2),
-        'p95_ratio': round(_percentil(ratios, 95), 2),
-        'area_passes_aa_normal_text_4_5': round(100.0 * pasa45 / len(ratios), 1),
-        'area_passes_aa_min_3_0': round(100.0 * pasa30 / len(ratios), 1),
+                   'sampled_pixels': m.pop('sampled_pixels'), 'step': sample},
+        'worst_ratio': m['worst_ratio'],
+        'median_ratio': m['median_ratio'],
+        'p95_ratio': m['p95_ratio'],
+        'area_passes_aa_normal_text_4_5': m['area_passes_aa_normal_text_4_5'],
+        'area_passes_aa_min_3_0': m['area_passes_aa_min_3_0'],
         'interpretation': t9['interp'],
     }
-    if usar_grid:
-        peor = min(range(9), key=lambda k: (celdas[k][0] / celdas[k][1]) if celdas[k][1] else 1)
-        py_, px_ = peor // 3, peor % 3
-        out['worst_zone'] = {
-            'cell': f'{["superior","central","inferior"][py_]}-{["izquierda","centro","derecha"][px_]}',
-            'x': x + (rw * px_) // 3, 'y': y + (rh * py_) // 3,
-            'width': rw // 3, 'height': rh // 3,
-            'pct_passes_aa': round(100.0 * celdas[peor][0] / celdas[peor][1], 1) if celdas[peor][1] else None,
-        }
+    if 'worst_zone' in m:
+        out['worst_zone'] = m['worst_zone']
     return out
 
 # ---------------------------------------------------------------- CLI -------

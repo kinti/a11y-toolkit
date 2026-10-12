@@ -20,6 +20,7 @@ import re
 import sys
 
 from .a11yaudit import CRIT, T, calcular_score
+from .contrast import parse_color, decodificar_png, sample_rgb, hexs
 
 # browser pool: Chromium reutilizable entre llamadas consecutivas
 _POOL = {'playwright': None, 'browser': None, 'type': None}
@@ -98,7 +99,14 @@ _TD = {
                               'efectivo ya incluye superposiciones y transparencias; si hay '
                               'imagen de fondo, verifica esa zona a mano.'),
         'contrast_review': '{n} zonas de texto con imagen de fondo o sombra: no calculables, revisar.',
-        'contrast_review_rem': 'El contraste sobre imagen de fondo no es calculable aquí: usa a11y_contrast_image con una captura de esa región.',
+        'contrast_review_rem': ('El contraste sobre imagen de fondo no se pudo medir aquí: usa '
+                                'a11y_contrast_image con una captura de esa región o '
+                                'a11y_contrast_dom para medirlo directamente desde la página.'),
+        'contrast_image_fail': ('{n} zonas de texto sobre imagen/degradado con contraste insuficiente, '
+                                'MEDIDO por muestreo real de píxeles: {det}.'),
+        'contrast_image_fail_rem': ('Añade un velo/scrim semitransparente sobre la imagen, oscurécela '
+                                    'o mueve el texto a una zona segura. El ratio peor marca la zona '
+                                    'hostil; si el área que pasa AA no es 100%, el fondo real no es seguro.'),
         'target_small': ('{n} controles con área de toque menor de 24×24 px (WCAG 2.2, '
                          '2.5.8): {det}.'),
         'target_small_rem': ('Da a los controles al menos 24×24 px CSS (mejor 44×44) con padding o '
@@ -198,7 +206,14 @@ _TD = {
                               'background already includes overlays and translucency; with a '
                               'background image, check that area manually.'),
         'contrast_review': '{n} text areas over background images or with text-shadow: not computable, review.',
-        'contrast_review_rem': 'Contrast over a background image is not computable here: use a11y_contrast_image with a screenshot of that region.',
+        'contrast_review_rem': ('Contrast over a background image could not be measured here: use '
+                                'a11y_contrast_image with a screenshot of that region, or '
+                                'a11y_contrast_dom to measure it directly from the page.'),
+        'contrast_image_fail': ('{n} text areas over an image/gradient with insufficient contrast, '
+                                'MEASURED by real pixel sampling: {det}.'),
+        'contrast_image_fail_rem': ('Add a semi-transparent scrim over the image, darken it, or move the '
+                                    'text to a safe zone. The worst ratio marks the hostile area; if the '
+                                    'AA-passing area is not 100%, the real background is not safe.'),
         'target_small': ('{n} controls with a touch area smaller than 24×24 px (WCAG 2.2 '
                          '2.5.8): {det}.'),
         'target_small_rem': ('Give controls at least 24×24 CSS px (44×44 is better) via padding or '
@@ -227,7 +242,7 @@ def _t(lang, key):
 # ------------------------------------------------------------------- JS -----
 _JS = r'''(maxEj) => {
   const INTER = 'a[href], button, input, select, textarea, summary, [role="button"], [role="link"], [tabindex]';
-  const out = { contrast: {}, contrastReview: 0, targets: [], unnamed: [], fields: [],
+  const out = { contrast: {}, contrastReview: 0, contrastZones: [], targets: [], unnamed: [], fields: [],
                 imgs: [], iframes: [], headings: [], tabindex: [], ariaHidden: [],
                 blank: 0, videos: 0, videoSubs: 0, tables: 0, tableTh: 0,
                 focus: [], focusFail: [], focusContrast: [], focusObscured: [], marks: 0,
@@ -332,7 +347,23 @@ _JS = r'''(maxEj) => {
       if (!fg) continue;
       if (s.textShadow && s.textShadow !== 'none') { out.contrastReview++; continue; }
       const bg = bgOf(el);
-      if (bg.image) { out.contrastReview++; continue; }
+      if (bg.image) {
+        out.contrastReview++;
+        const fa = (fg.a === undefined) ? 1 : fg.a;
+        const pxx = parseFloat(s.fontSize);
+        const larg = pxx >= 24 || (parseInt(s.fontWeight || '400', 10) >= 600 && pxx >= 18.66);
+        if (out.contrastZones.length < 12 && fa >= 1 && !el.hasAttribute('data-a11ytxt')) {
+          const rr = el.getBoundingClientRect();
+          if (rr.width > 2 && rr.height > 2 && rr.width <= 1400 && rr.height <= 400) {
+            el.setAttribute('data-a11ytxt', out.contrastZones.length);
+            out.contrastZones.push({
+              i: out.contrastZones.length, ej: path(el),
+              fg: 'rgb(' + Math.round(fg.r) + ',' + Math.round(fg.g) + ',' + Math.round(fg.b) + ')',
+              px: pxx, large: larg, x: rr.x, y: rr.y, w: rr.width, h: rr.height });
+          }
+        }
+        continue;
+      }
       const px = parseFloat(s.fontSize);
       const bold = parseInt(s.fontWeight || '400', 10) >= 600;
       const large = px >= 24 || (bold && px >= 18.66);
@@ -589,9 +620,22 @@ def audit_dom(datos, url='(rendered)', lang='en'):
         ejemplos = [f"{f['fg']} {_sobre} {f['bg']} → {f['ratio']}:1 ({_pej} {f['ej']})" for f in fallos]
         _agrega(hallazgos, lang, 'high', '1.4.3', 'contrast_fail',
                 ejemplos=ejemplos, n=len(fallos), det=det)
-    if datos.get('contrastReview'):
-        _agrega(hallazgos, lang, 'low', '1.4.3', 'contrast_review',
-                n=datos['contrastReview'])
+    medidos = datos.get('contrastMeasured') or []
+    if medidos:
+        malos = [m for m in medidos
+                 if m['measured']['worst_ratio'] < (3.0 if m.get('large') else 4.5)]
+        if malos:
+            det = '; '.join(f"{m['ej']} → worst {m['measured']['worst_ratio']}:1, "
+                            f"{m['measured']['area_passes_aa_normal_text_4_5']}% passes AA"
+                            for m in malos[:4])
+            _agrega(hallazgos, lang, 'high', '1.4.3', 'contrast_image_fail',
+                    ejemplos=[f"{m['ej']} (worst {m['measured']['worst_ratio']}:1)"
+                              for m in malos],
+                    n=len(malos), det=det)
+    # las zonas medidas salen del contador de "revisar" (ya están juzgadas)
+    restantes = max(0, datos.get('contrastReview', 0) - len(medidos))
+    if restantes:
+        _agrega(hallazgos, lang, 'low', '1.4.3', 'contrast_review', n=restantes)
 
     # 2. Target size 2.5.8 (enlaces inline → baja: la excepción de espaciado
     #    probablemente aplica y no es medible aquí; bloques → media)
@@ -1291,6 +1335,75 @@ def audit_keyboard(url, max_pasos=60, lang='en', timeout=45, auth_state=None, br
     }
 
 
+# La captura del FONDO real: el texto se vuelve transparente durante el
+# screenshot (los glifos desaparecen y queda el fondo puro, sin bordes de
+# antialiasing que sesguen el muestreo); después se restaura. La imagen se
+# recorta geométricamente al rect real (Playwright redondea el clip: floor de
+# x/y, ceil de ancho/alto — las filas/columnas de "sliver" quedan fuera).
+_JS_FONDO = ("el => { el.__a11y_color = el.style.getPropertyValue('color'); "
+             "el.__a11y_fill = el.style.getPropertyValue('-webkit-text-fill-color'); "
+             "el.style.setProperty('color', 'transparent', 'important'); "
+             "el.style.setProperty('-webkit-text-fill-color', 'transparent', 'important'); }")
+_JS_RESTAURA = ("el => { if (el.__a11y_color !== undefined) { "
+                "el.style.setProperty('color', el.__a11y_color); "
+                "el.style.removeProperty('-webkit-text-fill-color'); "
+                "if (el.__a11y_fill) el.style.setProperty('-webkit-text-fill-color', el.__a11y_fill); } }")
+
+
+def _fraccion_cubierta(ini, tam, p):
+    """Fracción del intervalo [p, p+1) cubierta por [ini, ini+tam)."""
+    return max(0.0, min(p + 1.0, ini + tam) - max(p, ini))
+
+
+def _recorta_rect(rgb, w, h, rect):
+    """Descarta las filas/columnas del sliver de redondeo del screenshot.
+
+    rect = {'x', 'y', 'width', 'height'} (coordenadas fraccionales del
+    elemento). Devuelve (rw, rh, bytes) o None si no queda nada medible."""
+    import math
+    x0, y0 = math.floor(rect['x']), math.floor(rect['y'])
+    top = 0
+    while top < h and _fraccion_cubierta(rect['y'], rect['height'], y0 + top) < 0.5:
+        top += 1
+    bot = 0
+    while bot < h - top and _fraccion_cubierta(rect['y'], rect['height'], y0 + h - 1 - bot) < 0.5:
+        bot += 1
+    izq = 0
+    while izq < w and _fraccion_cubierta(rect['x'], rect['width'], x0 + izq) < 0.5:
+        izq += 1
+    der = 0
+    while der < w - izq and _fraccion_cubierta(rect['x'], rect['width'], x0 + w - 1 - der) < 0.5:
+        der += 1
+    rw, rh = w - izq - der, h - top - bot
+    if rw < 3 or rh < 3:
+        return None
+    recorte = bytearray(rw * rh * 3)
+    for j in range(rh):
+        o = ((top + j) * w + izq) * 3
+        recorte[j * rw * 3:(j + 1) * rw * 3] = rgb[o:o + rw * 3]
+    return rw, rh, bytes(recorte)
+
+
+def _muestrea_fondo(loc, rect, c):
+    """Captura el fondo real de `loc` (texto transparente) y lo muestrea.
+
+    Devuelve el dict de sample_rgb o None si no hay píxeles medibles."""
+    try:
+        loc.evaluate(_JS_FONDO)
+        png = loc.screenshot()
+    finally:
+        try:
+            loc.evaluate(_JS_RESTAURA)
+        except Exception:  # noqa: BLE001
+            pass
+    w, h, rgb = decodificar_png(png)
+    recorte = _recorta_rect(rgb, w, h, rect)
+    if not recorte:
+        return None
+    rw, rh, rgb2 = recorte
+    return sample_rgb(rw, rh, rgb2, c)
+
+
 def audit_dom_url(url, timeout=45, lang='en', auth_state=None, browser='auto'):
     """Carga la URL en Chromium y devuelve el informe renderizado.
 
@@ -1314,6 +1427,26 @@ def audit_dom_url(url, timeout=45, lang='en', auth_state=None, browser='auto'):
             datos = page.evaluate(_JS, MAX_EJEMPLOS)
             # 1.4.12: inject the WCAG spacing overrides, count clipped texts
             datos['spacingClipped'] = page.evaluate(_JS_SPACING)
+            # 1.4.3 real: captura + muestreo píxel a píxel de las zonas sobre
+            # imagen/degradado que el contraste computado no puede calcular
+            # (main frame; los iframes quedan como conteo de "revisar")
+            medidos = []
+            for z in (datos.get('contrastZones') or [])[:8]:
+                try:
+                    c = parse_color(z['fg'])
+                    if not c:
+                        continue
+                    m = _muestrea_fondo(
+                        page.locator(f'[data-a11ytxt="{z["i"]}"]'),
+                        {'x': z.get('x', 0), 'y': z.get('y', 0),
+                         'width': z.get('w', 1400), 'height': z.get('h', 400)}, c)
+                    if m:
+                        medidos.append({'ej': z['ej'], 'fg': z['fg'],
+                                        'large': bool(z.get('large')),
+                                        'measured': m})
+                except Exception:  # noqa: BLE001
+                    continue
+            datos['contrastMeasured'] = medidos
             # iframes same-origin: mismo colector por frame
             subs = []
             for fr in page.frames[1:5]:
@@ -1340,6 +1473,90 @@ def audit_dom_url(url, timeout=45, lang='en', auth_state=None, browser='auto'):
                 pass
     _mezcla_iframes(datos)
     return audit_dom(datos, url, lang=lang)
+
+
+def contrast_dom(url, selector, text_color=None, sample=4, lang='en', timeout=45,
+                 auth_state=None, browser='auto'):
+    """Contraste REAL de un elemento contra lo que sea que tenga detrás.
+
+    La versión automatizada de a11y_contrast_image: carga la página, captura el
+    elemento que coincide con `selector` con el texto en transparente (queda el
+    fondo puro, sin bordes de antialiasing), muestrea sus píxeles y los
+    contrasta con el color del texto — computado del elemento cuando no se da.
+    Para texto sobre imágenes, degradados, vídeo o cualquier fondo que el
+    cálculo CSS no puede resolver. Requiere Playwright.
+    """
+    from playwright.sync_api import sync_playwright
+    from .contrast import T as _TC
+    t9 = _TC.get(lang, _TC['es'])
+    with sync_playwright() as p:
+        nav = p.chromium.launch()
+        ctx = nav.new_context(storage_state=auth_state) if auth_state else nav
+        page = ctx.new_page() if auth_state else nav.new_page()
+        try:
+            page.goto(url, wait_until='load', timeout=timeout * 1000)
+            page.wait_for_timeout(300)
+            loc = page.locator(selector).first
+            try:
+                loc.wait_for(timeout=timeout * 1000)
+            except Exception:  # noqa: BLE001
+                return {'error': t9['selector_falta'].format(s=selector)}
+            if text_color:
+                c = parse_color(text_color)
+                if not c:
+                    return {'error': t9['color_invalido']}
+            else:
+                comp = loc.evaluate('el => getComputedStyle(el).color')
+                c = parse_color(comp)
+                if not c:
+                    return {'error': f"{t9['color_invalido']} (computed: {comp})"}
+            if c.get('a', 1) < 1:
+                return {'error': t9['texto_opaco']}
+            try:
+                box = loc.bounding_box()
+                if not box or box['width'] < 3 or box['height'] < 3:
+                    return {'error': t9['sin_caja'].format(s=selector)}
+                m = _muestrea_fondo(loc, box, c)
+            except Exception:  # noqa: BLE001
+                return {'error': t9['sin_caja'].format(s=selector)}
+            if not m:
+                return {'error': t9['sin_pixeles']}
+            out = {'url': url, 'selector': selector, 'text_color': hexs(c),
+                   'image': f'{selector} ({round(box["width"])}×{round(box["height"])})',
+                   'worst_ratio': m['worst_ratio'],
+                   'median_ratio': m['median_ratio'],
+                   'p95_ratio': m['p95_ratio'],
+                   'area_passes_aa_normal_text_4_5': m['area_passes_aa_normal_text_4_5'],
+                   'area_passes_aa_min_3_0': m['area_passes_aa_min_3_0'],
+                   'sampled_pixels': m['sampled_pixels'],
+                   'interpretation': t9['interp']}
+            if 'worst_zone' in m:
+                out['worst_zone'] = m['worst_zone']
+            return out
+        finally:
+            try:
+                ctx.close()
+            except Exception:  # noqa: BLE001
+                pass
+
+
+def contrast_dom_main(argv):
+    ap = argparse.ArgumentParser(description='Real text-over-anything contrast: screenshot + pixel sampling (auto-region)')
+    ap.add_argument('url')
+    ap.add_argument('--selector', required=True, help='CSS selector of the text element')
+    ap.add_argument('--text', help='text color (default: computed from the element)')
+    ap.add_argument('--sample', type=int, default=4)
+    ap.add_argument('--lang', default='en', choices=['en', 'es'])
+    ap.add_argument('--timeout', type=int, default=45)
+    a = ap.parse_args(argv)
+    try:
+        res = contrast_dom(a.url, a.selector, text_color=a.text, sample=a.sample,
+                           lang=a.lang, timeout=a.timeout)
+    except ImportError:
+        print(json.dumps({'error': 'Playwright not installed'}))
+        return 1
+    print(json.dumps(res, ensure_ascii=False, indent=1))
+    return 0
 
 
 def main(argv):
