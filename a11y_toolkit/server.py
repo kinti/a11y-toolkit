@@ -70,7 +70,7 @@ try:
 except ImportError:
     ARIALIVE_JS = None  # repo checkout: read the file
 
-VERSION = '5.4.2'
+VERSION = '5.5.0'
 
 INSTRUCTIONS = (
     'Accessibility toolkit (WCAG 2.2), multilanguage es/en. '

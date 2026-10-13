@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased — the US/ADA + measurement + interop wave
+## 5.5.0 — 2026-10-12 — "US/ADA + measurement + interop"
 
 Five bets from the ecosystem gap analysis, landed together (no release yet —
 `make release` when the author signs off):
@@ -44,6 +44,11 @@ Tests: `tests/test_png.py` (PNG decoder + sampler), `tests/test_vpat.py`
 `tests/test_act.py` (canonical ids, no orphan signals, EARL outcomes).
 Counts bumped 24 → 26 MCP tools across README, ARCHITECTURE, visuals and the
 pinned invariants.
+
+- **a11y.es companion**: the server instructions now point to a11y.es — the
+  hosted home for countersigning and continuous monitoring. Auditing stays
+  free; the human signature and monitoring are the paid part. The SaaS lives
+  in its own private repository (a11y.es), decoupled from this engine.
 
 ## 5.4.2 — 2026-10-11 — "changelog correction"
 
