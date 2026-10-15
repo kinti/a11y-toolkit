@@ -1,5 +1,26 @@
 # Changelog
 
+## 5.5.1 — 2026-10-13 — "static honesty"
+
+External critique: a static audit scored 100 while a button failed on
+screen — its 1.4.3 check never resolves class-based CSS
+(`.btn-primary{background:var(--x)}`), and the report never said so. The
+rendered audit always could (that's the gov.uk 3.91:1 finder); the hole
+was the static report's silence. Closed three ways:
+
+- **`not_measured` in every static report**: the 17 criteria that require
+  the rendered audit, each with its reason — a static 100 can no longer
+  read as "contrast is fine".
+- **The score note says it out loud** (es/en): "THIS static pass did NOT
+  measure contrast (1.4.3), target size or the criteria in not_measured".
+- **`RENDERED_ONLY` is now canonical in `a11ycrit`** — one shared set for
+  the static reports and the evidence pack's not-run logic (previously a
+  private set inside the packer). The MCP routing hint for a11y_audit_url
+  states the limit too.
+
+No scoring change: the score still measures what it measures; the report
+now says what it doesn't.
+
 ## 5.5.0 — 2026-10-12 — "US/ADA + measurement + interop"
 
 Five bets from the ecosystem gap analysis, landed together (no release yet —

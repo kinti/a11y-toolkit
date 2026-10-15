@@ -595,6 +595,17 @@ _EFFORT = {
 
 _EFFORT_MINUTES = {'MIN': (1, 3), 'MED': (5, 10), 'MAX': (15, 30)}
 
+# Criterios A/AA que SOLO el modo renderizado puede medir (a11y_audit_dom):
+# contraste computado, espaciado, tamaño de objetivo, foco, formularios vivos…
+# El informe estático los declara en `not_measured` — un 100 estático jamás
+# debe leerse como "contraste bien" (la limitación que la crítica externa
+# destapó: .btn-primary{background:var(--x)} es invisible para el HTML puro).
+RENDERED_ONLY = frozenset({
+    '1.3.2', '1.4.1', '1.4.3', '1.4.10', '1.4.11', '1.4.12', '1.4.13',
+    '2.1.2', '2.2.2', '2.4.7', '2.4.11', '2.5.8', '3.2.1', '3.2.2',
+    '3.3.1', '3.3.3', '4.1.3',
+})
+
 
 def criterio(code, lang='en'):
     code = code.strip()

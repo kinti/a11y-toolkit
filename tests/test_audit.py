@@ -3,6 +3,7 @@
 import os, sys
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from a11y_toolkit.a11yaudit import audit_html
+from a11y_toolkit.a11ycrit import RENDERED_ONLY
 
 # Página limpia: sin hallazgos (tiene <main> → 2.4.1 cubierto)
 limpia = '''<!doctype html><html lang="es"><head><meta charset="utf-8"><title>Ok</title></head>
@@ -176,3 +177,17 @@ _r2 = _au('ftp://x/y', lang='es')
 assert 'error' in _r2
 
 print('V3.1 OK ✓ (ARIA roto/desconocido, autocomplete 1.3.5, autoplay 1.4.2, enlaces 2.4.4, landmarks, accesskey, multi-label, score 0-100, valores ARIA)')
+
+
+# honradez estática: el informe declara lo que NO midió (crítica externa:
+# un 100 estático se leía como "contraste bien" con CSS de clases invisible)
+r_nm = audit_html('<html><head><style>.btn{background:var(--g);color:#fff}</style></head>'
+                  '<body><button class="btn">Buy</button></body></html>', lang='en')
+criterios_nm = {x['criterion'].split(' ')[0] for x in r_nm['not_measured']}
+assert '1.4.3' in criterios_nm and '2.5.8' in criterios_nm, sorted(criterios_nm)[:5]
+assert criterios_nm == set(RENDERED_ONLY), 'not_measured debe ser exactamente RENDERED_ONLY'
+assert all(x['reason'] for x in r_nm['not_measured'])
+assert 'did NOT measure contrast' in r_nm['score_note']
+r_nm_es = audit_html('<button>x</button>', lang='es')
+assert 'NO midió contraste' in r_nm_es['score_note']
+print('honradez estática: not_measured (17) + score_note explícito ✓')

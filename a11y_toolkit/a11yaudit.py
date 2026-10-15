@@ -330,7 +330,9 @@ T = {
         'video_autoplay_rem': 'Quita autoplay o añade muted + control visible de pausa/parada (1.4.2): el audio que arranca solo desordena a quien usa lector de pantalla.',
         'score_note': ('Puntuación ponderada: alta −12, media −6, baja −2 desde 100. Mide solo lo '
                        'automatizable (≈1/3 de WCAG): sirve para seguir tendencias entre versiones, '
-                       'no como conformidad.'),
+                       'no como conformidad. ESTE pase estático NO midió contraste (1.4.3), tamaño '
+                       'de objetivo ni los demás criterios de not_measured: un 100 aquí no es '
+                       '"contraste bien" — usa la auditoría renderizada.'),
         'limits': ('Automatización ≈ un tercio de WCAG: esto es un filtro exprés, no sustituye '
                     'revisión manual (teclado, lector de pantalla, contraste real, refrán de '
                     'auditoría).'),
@@ -465,7 +467,9 @@ T = {
         'video_autoplay_rem': 'Remove autoplay or add muted + a visible pause/stop control (1.4.2): audio that starts on its own disrupts screen-reader users.',
         'score_note': ('Weighted score: high −12, medium −6, low −2 from 100. It measures only '
                        'what is automatable (≈1/3 of WCAG): use it to track trends between '
-                       'releases, not as conformance.'),
+                       'releases, not as conformance. THIS static pass did NOT measure contrast '
+                       '(1.4.3), target size or the criteria in not_measured: a 100 here is not '
+                       '"contrast is fine" — run the rendered audit.'),
         'limits': ('Automation ≈ one third of WCAG: this is an express filter, not a substitute '
                     'for manual review (keyboard, screen reader, real contrast, audit rhyme).'),
     },
@@ -949,6 +953,23 @@ def calcular_score(hallazgos):
     return max(0, 100 - penal)
 
 
+def _not_measured(lang='en'):
+    """Criterios que el pase estático NO mide: renderizado obligatorio.
+
+    Honradez del informe: un 100 estático nunca debe leerse como
+    "contraste bien" (la limitación que la crítica externa destapó:
+    .btn-primary{background:var(--x)} es invisible para el HTML puro)."""
+    from .a11ycrit import RENDERED_ONLY, _C
+    return [{
+        'criterion': f"{c} {_C[c][1]['en'][0]}",
+        'reason': ('requires the rendered audit (a11y_audit_dom / a11ytoolkit dom): '
+                   'computed styles, cascade, var(), real layout'
+                   if lang == 'en' else
+                   'requiere la auditoría renderizada (a11y_audit_dom / a11ytoolkit dom): '
+                   'estilos computados, cascada, var(), layout real'),
+    } for c in sorted(RENDERED_ONLY)]
+
+
 def audit_html(html_text, url='(html)', lang='en'):
     """Analiza una cadena HTML y devuelve el informe de hallazgos (es/en)."""
     p = _Auditor()
@@ -1160,6 +1181,7 @@ def audit_html(html_text, url='(html)', lang='en'):
         'url': url,
         'score': calcular_score(hallazgos),
         'score_note': _t(lang, 'score_note'),
+        'not_measured': _not_measured(lang),
         'elements_scanned': p.elementos,
         'summary': resumen,
         'findings': hallazgos,
@@ -1355,6 +1377,7 @@ def audit_site(url, max_pages=5, timeout=30, lang='en', desde_sitemap=True):
     return {
         'url': url,
         'mode': 'site',
+        'not_measured': _not_measured(lang),
         'descubrimiento': 'sitemap' if urls_sm else 'links',
         'paginas': len(informes),
         'mean_score': round(sum(scores) / len(scores)) if scores else None,

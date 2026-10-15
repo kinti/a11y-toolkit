@@ -70,7 +70,7 @@ try:
 except ImportError:
     ARIALIVE_JS = None  # repo checkout: read the file
 
-VERSION = '5.5.0'
+VERSION = '5.5.1'
 
 INSTRUCTIONS = (
     'Accessibility toolkit (WCAG 2.2), multilanguage es/en. '
@@ -795,7 +795,7 @@ _PARAM_DOCS = {
 
 # Routing guidance: one "prefer sibling X" sentence per tool (TDQS dimension).
 _ROUTING = {
- 'a11y_audit_url': 'Prefer a11y_audit_dom when JS renders the content or contrast/2.5.8/focus matter; use pages for light multi-page sampling.',
+ 'a11y_audit_url': 'Prefer a11y_audit_dom when JS renders the content or contrast/2.5.8/focus matter; use pages for light multi-page sampling. Static CANNOT measure class/var() CSS contrast (1.4.3): the report\'s not_measured says so — a 100 is never \'contrast is fine\'.',
  'a11y_audit_dom': 'Use instead of a11y_audit_url on JS-heavy pages; needs local Playwright.',
  'a11y_reflow': 'Scope: 320px reflow only (1.4.10); for the full rendered pass use a11y_audit_dom.',
  'a11y_keyboard': 'Scope: keyboard traps (2.1.2); focus visibility is part of a11y_audit_dom.',

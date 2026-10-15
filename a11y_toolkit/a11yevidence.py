@@ -107,9 +107,7 @@ def empaquetar(informes, snapshot=None, evaluador=None, notas=None, verificados=
     # criterios que requieren modo rendered (si solo corrió static, su estado
     # real es not-run, no not-flagged: la herramienta SÍ tiene señal pero el
     # modo que la produce no se incluyó)
-    _RENDERED_ONLY = {'1.4.3', '1.4.12', '1.4.1', '1.3.2', '2.2.2', '2.5.8',
-                      '2.4.7', '2.4.11', '3.2.1', '3.2.2', '3.3.1', '3.3.3',
-                      '1.4.13', '2.1.2', '4.1.3', '1.4.10'}
+    from .a11ycrit import RENDERED_ONLY as _RENDERED_ONLY  # canónico (a11ycrit)
 
     verificados_set = {v.split(' ')[0] for v in (verificados or [])}
 
