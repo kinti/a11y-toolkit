@@ -39,3 +39,6 @@ jobs:
         with:
           name: axe-benchmark
           path: bench/results.json
+
+  # (results are committed to bench/results/<YYYY-MM>.json after each run —
+  #  the January run should open a PR instead of manual commit)

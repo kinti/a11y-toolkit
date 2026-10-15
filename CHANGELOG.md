@@ -1,5 +1,39 @@
 # Changelog
 
+## 5.6.0 — 2026-10-13 — "contract & usability gates"
+
+Four bets from the quality pass, each tested before, retested after and
+reviewed twice (a code-review pass found one P1 and two P2s in the first
+draft — all fixed and live-validated before this release):
+
+- **Contract tests** (`tests/test_contract.py`): every tool's schema,
+  dispatch and real function signature must agree — verified by parsing the
+  dispatch source and cross-checking with `inspect`. First run found three
+  live bugs (auth_state silently dropped in a11y_hover and
+  a11y_sr_transcript; a11y_autofix's schema missing url/form_errors) and a
+  schema-drift family: five stray `browser` entries living OUTSIDE
+  `properties` (invisible to every client). Fixed at the source; the
+  runtime patch is gone; a shape-guard now rejects orphan inputSchema keys.
+- **Journey budgets** (`a11ytoolkit journey-budget`): the usability
+  regression gate — rerun the same blindfold task after each deploy and
+  only NEW high friction (or a pass degrading) blocks. Keys are stable
+  `criterion:signal` (D3); severity collisions resolve to the worst; exit 2
+  = NO-GO, exit 1 = usage error, and `--init` refuses to write a poisoned
+  baseline.
+- **Ledger is crash-safe**: atomic writes (tempfile + fsync + os.replace),
+  per-path thread lock plus flock for multi-process, and corrupted files
+  are quarantined (.corrupto-TS) instead of crashing the run. Stress-tested
+  with 8 threads × 25 records.
+- **Precision fixes**: tooltip dismissal judged per-element with real
+  visibility (checkVisibility; display:none/visibility:hidden/opacity:0
+  hiding now works — live-validated) and forms 3.3.1/3.3.3 only count
+  NEW/changed post-submit text (help text no longer masquerades as error
+  identification — validated in Chromium with novalidate fixtures).
+- **October axe benchmark published**: bench/README.md + results/2026-10.json
+  (gov.uk: 5 criteria vs axe's 1, including the 3.91:1 axe marks incomplete).
+
+13 suites green (test_contract new); D14/D15 in the architecture map.
+
 ## 5.5.1 — 2026-10-13 — "static honesty"
 
 External critique: a static audit scored 100 while a button failed on

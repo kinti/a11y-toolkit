@@ -70,7 +70,7 @@ try:
 except ImportError:
     ARIALIVE_JS = None  # repo checkout: read the file
 
-VERSION = '5.5.1'
+VERSION = '5.6.0'
 
 INSTRUCTIONS = (
     'Accessibility toolkit (WCAG 2.2), multilanguage es/en. '
@@ -136,7 +136,8 @@ TOOLS = [
             'lang': {'type': 'string', 'enum': ['es', 'en']},
             'timeout': {'type': 'number', 'description': 'page load timeout seconds (45 default)'},
             'auth_state': {'type': 'string', 'description': 'Path to a Playwright storage_state JSON (exported session) to audit behind login — local file, never uploaded'},
-        },             'browser': {'type': 'string', 'enum': ['auto', 'chromium', 'firefox', 'webkit', 'chrome', 'msedge'], 'description': 'Browser engine (auto = detect the first available)'},
+            'browser': {'type': 'string', 'enum': ['auto', 'chromium', 'firefox', 'webkit', 'chrome', 'msedge'], 'description': 'Browser engine (auto = detect the first available)'},
+        },
 'required': ['url']},
     },
     {
@@ -261,6 +262,8 @@ TOOLS = [
                         'fixed_html + aplicados + no_aplicados.'),
         'inputSchema': {'type': 'object', 'properties': {
             'html': {'type': 'string', 'description': 'raw HTML to fix'},
+            'url': {'type': 'string', 'description': 'URL context for the report metadata (default: "(html)")'},
+            'form_errors': {'type': 'boolean', 'description': 'inject the accessible form-error layer into forms without their own handling (default true)'},
             'lang': {'type': 'string', 'description': 'only if provided and <html> lacks lang'},
             'title': {'type': 'string', 'description': 'only if provided and <title> is empty'},
         }, 'required': ['html']},
@@ -279,7 +282,8 @@ TOOLS = [
             'lang': {'type': 'string', 'enum': ['es', 'en']},
             'timeout': {'type': 'number'},
             'auth_state': {'type': 'string', 'description': 'Path to a Playwright storage_state JSON (exported session) to test behind login'},
-        },             'browser': {'type': 'string', 'enum': ['auto', 'chromium', 'firefox', 'webkit', 'chrome', 'msedge'], 'description': 'Browser engine (auto = detect the first available)'},
+            'browser': {'type': 'string', 'enum': ['auto', 'chromium', 'firefox', 'webkit', 'chrome', 'msedge'], 'description': 'Browser engine (auto = detect the first available)'},
+        },
 'required': ['url']},
     },
     {
@@ -295,7 +299,8 @@ TOOLS = [
             'lang': {'type': 'string', 'enum': ['es', 'en']},
             'max_pasos': {'type': 'integer', 'description': 'max real Tab presses (60 default)'},
             'auth_state': {'type': 'string', 'description': 'Path to a Playwright storage_state JSON (exported session) to Tab-walk behind login'},
-        },             'browser': {'type': 'string', 'enum': ['auto', 'chromium', 'firefox', 'webkit', 'chrome', 'msedge'], 'description': 'Browser engine (auto = detect the first available)'},
+            'browser': {'type': 'string', 'enum': ['auto', 'chromium', 'firefox', 'webkit', 'chrome', 'msedge'], 'description': 'Browser engine (auto = detect the first available)'},
+        },
 'required': ['url']},
     },
     {
@@ -315,7 +320,7 @@ TOOLS = [
             'lang': {'type': 'string', 'enum': ['es', 'en']},
             'max_tandas': {'type': 'integer', 'description': 'scroll batches (5 default)'},
             'auth_state': {'type': 'string', 'description': 'Path to a Playwright storage_state JSON (exported session) to audit an authenticated feed'},
-        },             'browser': {'type': 'string', 'enum': ['auto', 'chromium', 'firefox', 'webkit', 'chrome', 'msedge'], 'description': 'Browser engine (auto = detect the first available)'},
+        },
 'required': ['url']},
     },
     {
@@ -355,7 +360,7 @@ TOOLS = [
             'lang': {'type': 'string', 'enum': ['es', 'en'], 'description': 'Output language (en default)'},
             'timeout': {'type': 'number', 'description': 'Page load timeout seconds (45 default)'},
             'auth_state': {'type': 'string', 'description': 'Path to a Playwright storage_state JSON to test forms behind login'},
-        },             'browser': {'type': 'string', 'enum': ['auto', 'chromium', 'firefox', 'webkit', 'chrome', 'msedge'], 'description': 'Browser engine (auto = detect the first available)'},
+        },
 'required': ['url']},
     },
     {
@@ -860,17 +865,6 @@ _ANN = {
 # read-only, and neither is idempotent.
 _RO_OVERRIDE = {'a11y_ledger': False, 'a11y_forms': False}
 _IDEM_OVERRIDE = {'a11y_ledger': False, 'a11y_forms': False}
-_SCHEMA_EXTRA = {
-    'a11y_audit_dom': (('browser', {'type': 'string', 'enum': ['auto', 'chromium', 'firefox', 'webkit', 'chrome', 'msedge'],
-                                    'description': 'Browser engine (auto = detect the first available)'}),),
-    'a11y_keyboard': (('browser', {'type': 'string', 'enum': ['auto', 'chromium', 'firefox', 'webkit', 'chrome', 'msedge'],
-                                   'description': 'Browser engine (auto = detect the first available)'}),),
-    'a11y_reflow': (('browser', {'type': 'string', 'enum': ['auto', 'chromium', 'firefox', 'webkit', 'chrome', 'msedge'],
-                                 'description': 'Browser engine (auto = detect the first available)'}),),
-    'a11y_sr_transcript': (('browser', {'type': 'string', 'enum': ['auto', 'chromium', 'firefox', 'webkit', 'chrome', 'msedge'],
-                                        'description': 'Browser engine (auto = detect the first available)'}),),
-}
-
 _RETURNS = {
     'a11y_audit_url': 'Returns JSON: {mode, url|file, score 0-100, findings [{criterion, severity, signal, issue, remediation}], summary {high, medium, low}, limits, score_note}.',
     'a11y_audit_dom': 'Returns JSON: {mode, url, score 0-100, findings [{criterion, severity, signal, issue, remediation}], summary, score_note} — same shape as the static audit.',
@@ -919,8 +913,7 @@ for _t in TOOLS:
         _t['description'] += ' ' + _RETURNS[_t['name']]
     if _t['name'] in _USAGE:
         _t['description'] += ' ' + _USAGE[_t['name']]
-    for _pp, _pd in _SCHEMA_EXTRA.get(_t['name'], ()):
-        _t['inputSchema']['properties'].setdefault(_pp, _pd)
+
 
 
 def _texto(obj):
@@ -1082,7 +1075,8 @@ def llamar(nombre, args):
     if nombre == 'a11y_hover':
         try:
             return _texto(audit_hover(args['url'], timeout=args.get('timeout', 45),
-                                       lang=args.get('lang', 'en')))
+                                       lang=args.get('lang', 'en'),
+                                       auth_state=args.get('auth_state')))
         except ImportError:
             return {'content': [{'type': 'text', 'text': 'Playwright not installed'}], 'isError': True}
         except Exception as e:
@@ -1091,6 +1085,7 @@ def llamar(nombre, args):
         try:
             return _texto(sr_transcript(args['url'], timeout=args.get('timeout', 45),
                                         lang=args.get('lang', 'en'),
+                                        auth_state=args.get('auth_state'),
                                         browser=args.get('browser', 'auto')))
         except ImportError:
             return {'content': [{'type': 'text', 'text': 'Playwright not installed'}], 'isError': True}

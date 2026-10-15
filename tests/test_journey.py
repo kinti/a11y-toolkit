@@ -119,3 +119,30 @@ assert d2['verdict'] == 'partial' and d2['findings'][0]['criterion'] == '2.4.3'
 print('10. CLI -m módulo y dispatcher ✓')
 
 print('JOURNEY OK ✓ (scoring determinista, catálogo parejo, criterios validados, pack integra, CLI real)')
+
+
+# ── presupuesto de journeys: solo la fricción NUEVA bloquea (5.6.0) ──
+from a11y_toolkit.a11yjourney import budget_init, budget_compare  # noqa: E402
+
+vb = verdictar(TAREA, [{'friction': {'pattern': 'journey_status_silent'}}], {'completed': True}, url=URL)
+bb = budget_init(vb)
+assert bb['format'] == 'a11y-journey-budget/1'
+assert bb['friction'] == ['4.1.3:journey_status_silent']
+assert budget_compare(bb, vb)['verdict'] == 'GO'
+
+v_alta = verdictar(TAREA, [{'friction': {'pattern': 'journey_status_silent'}},
+                           {'friction': {'pattern': 'journey_unnamed_control'}}], {'completed': True}, url=URL)
+r_alta = budget_compare(bb, v_alta)
+assert r_alta['verdict'] == 'NO-GO' and '4.1.2:journey_unnamed_control' in r_alta['new_blocking']
+
+v_degrada = verdictar(TAREA, [{'friction': {'pattern': 'journey_status_silent'}}],
+                      {'completed': False, 'gave_up': True}, url=URL)
+assert budget_compare(bb, v_degrada)['degraded'] is True
+
+v_media = verdictar(TAREA, [{'friction': {'pattern': 'journey_generic_link'}}], {'completed': True}, url=URL)
+r_media = budget_compare(bb, v_media)
+assert r_media['verdict'] == 'GO' and r_media['new_friction'] and r_media['resolved']
+
+otra = verdictar({'goal': 'checkout', 'kind': 'checkout'}, [], {'completed': True})
+assert 'error' in budget_compare(bb, otra)
+print('11. journey budget: GO/NO-GO/degradación/resueltas/otra-tarea ✓')

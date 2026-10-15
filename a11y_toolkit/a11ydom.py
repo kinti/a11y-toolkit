@@ -801,10 +801,34 @@ _JS_FORM_FILL = r'''() => {
   return tocados;
 }'''
 
-_JS_FORM_STATE = r'''() => {
+_JS_FORM_PRE = r'''() => {
+  // PRE-submit: la ayuda ordinaria que ya existía (describedby, contexto).
+  // Sin esto, "Tu email" contaba como identificación de error y "Use…"
+  // como sugerencia — la crítica externa lo destapó: ayuda ≠ error.
+  const CAMPOS = 'input:not([type=hidden]):not([type=submit]):not([type=button]):not([type=reset]):not([type=image]), select, textarea';
+  const pre = {};
+  for (const el of document.querySelectorAll(CAMPOS)) {
+    if (el.disabled) continue;
+    const key = (el.name || el.id || el.type) + '@' + (el.form ? (el.form.id || el.form.action || '') : '');
+    let dbTxt = '';
+    const db = el.getAttribute('aria-describedby');
+    if (db) for (const id of db.split(/\s+/)) {
+      const r = document.getElementById(id);
+      if (r && (r.innerText || '').trim()) dbTxt += r.innerText.trim() + '\n';
+    }
+    const cerca = el.closest('div, p, li, td, fieldset');
+    pre[key] = { db: dbTxt, ctx: cerca ? (cerca.innerText || '').trim().slice(0, 400) : '' };
+  }
+  return pre;
+}'''
+
+_JS_FORM_STATE = r'''(pre) => {
   // After submit: how were errors identified and announced?
+  // Identificación = lo NUEVO tras el envío (aria-invalid, texto cambiado en
+  // un nodo referido, semántica de alerta) — la ayuda previa NO cuenta.
   const RX_ERR = /(error|invalid|required|obligatorio|requerido|inv[áa]lido|incorrecto|falta|requerid)/i;
   const RX_SUG = /(format|example|ejemplo|usa |use |dd\/mm|mm\/dd|pattern|como |like |must be|debe)/i;
+  pre = pre || {};
   const out = { forms: [], alerts: 0 };
   for (const a of document.querySelectorAll('[role=alert], [aria-live]')) {
     if ((a.innerText || '').trim() && RX_ERR.test(a.innerText)) out.alerts++;
@@ -816,18 +840,31 @@ _JS_FORM_STATE = r'''() => {
     for (const el of f.querySelectorAll(CAMPOS)) {
       if (el.disabled) continue;
       info.campos++;
+      const key = (el.name || el.id || el.type) + '@' + (f.id || f.action || '');
+      const antes = pre[key] || {};
       let identificado = false, sugerido = false;
       if (el.getAttribute('aria-invalid') === 'true') identificado = true;
       const db = el.getAttribute('aria-describedby');
       if (db) for (const id of db.split(/\s+/)) {
         const r = document.getElementById(id);
-        if (r && (r.innerText || '').trim()) { identificado = true; if (RX_SUG.test(r.innerText)) sugerido = true; }
+        if (!r) continue;
+        const texto = (r.innerText || '').trim();
+        if (!texto) continue;
+        const nuevoOCambiado = texto !== (antes.db || '').split('\n').find(t => t === texto)
+                               && !(antes.db || '').includes(texto);
+        const semanticaError = r.matches('[role=alert],[aria-live],.error,.invalid')
+                               || r.hasAttribute('aria-errormessage');
+        if (nuevoOCambiado || semanticaError) {
+          identificado = true;
+          if (RX_SUG.test(texto)) sugerido = true;
+        }
       }
       const cerca = el.closest('div, p, li, td, fieldset');
-      if (cerca && RX_ERR.test(cerca.innerText || '')) {
+      const ctxAhora = cerca ? (cerca.innerText || '').trim().slice(0, 400) : '';
+      if (cerca && RX_ERR.test(ctxAhora) && !RX_ERR.test(antes.ctx || '')) {
         identificado = true;
-        const lbl = el.labels && el.labels[0] ? el.labels[0].innerText : '';
-        if (RX_SUG.test(cerca.innerText || '') ) sugerido = true;
+        const nuevaParte = ctxAhora.replace((antes.ctx || ''), '');
+        if (RX_SUG.test(nuevaParte)) sugerido = true;
       }
       // native validation only identifies errors when the form lets it fire
       // (a novalidate form never shows the browser message — the API lying ≠ UX)
@@ -858,10 +895,11 @@ def audit_forms(url, timeout=45, lang='en', auth_state=None):
             nav.close()
             return {'error': _t(lang, 'descarga_error').format(e=e)}
         url_antes = page.url
+        pre = page.evaluate(_JS_FORM_PRE)
         tocados = page.evaluate(_JS_FORM_FILL)
         page.wait_for_timeout(900)
         navegado = page.url.split('#')[0] != url_antes.split('#')[0]
-        estado = None if navegado else page.evaluate(_JS_FORM_STATE)
+        estado = None if navegado else page.evaluate(_JS_FORM_STATE, pre)
         nav.close()
 
     hallazgos = []
@@ -996,17 +1034,40 @@ def audit_hover(url, timeout=45, lang='en', auth_state=None):
                 sel = f'{c["tag"]}#{c["id"]}' if c['id'] else c['tag']
                 page.hover(sel, timeout=2000)
                 page.wait_for_timeout(400)
-                # ¿apareció algo?
-                visibles_antes = page.evaluate(
-                    "() => document.querySelectorAll('[role=tooltip], [class*=tooltip], [class*=popover]:not([hidden])').length")
-                if visibles_antes == 0:
-                    continue  # no tooltip → no aplica
+                # identidad de los tooltips visibles ANTES (por elemento, no
+                # por recuento global: otro tooltip podía aparecer a la vez y
+                # el contador antiguo enmascaraba un cierre correcto)
+                antes = page.evaluate(
+                    "() => [...document.querySelectorAll("
+                    "'[role=tooltip], [class*=tooltip], [class*=popover]')]"
+                    ".filter(el => {"
+                    "  if (el.checkVisibility) "
+                    "    return el.checkVisibility({checkOpacity: true, checkVisibilityCSS: true});"
+                    "  const s = getComputedStyle(el);"
+                    "  const box = el.getBoundingClientRect();"
+                    "  return el.offsetParent !== null && s.visibility !== 'hidden'"
+                    "         && parseFloat(s.opacity || '1') > 0.01 && box.width > 0;"
+                    "})"
+                    ".map(el => el.tagName + '#' + (el.id || '') + '.' + (el.className.toString().slice(0, 30)))")
+                if not antes:
+                    continue  # nada visible → no aplica
                 # Escape
                 page.keyboard.press('Escape')
                 page.wait_for_timeout(300)
-                visibles_despues = page.evaluate(
-                    "() => document.querySelectorAll('[role=tooltip], [class*=tooltip], [class*=popover]:not([hidden])').length")
-                if visibles_despues == visibles_antes:
+                despues = page.evaluate(
+                    "() => [...document.querySelectorAll("
+                    "'[role=tooltip], [class*=tooltip], [class*=popover]')]"
+                    ".filter(el => {"
+                    "  if (el.checkVisibility) "
+                    "    return el.checkVisibility({checkOpacity: true, checkVisibilityCSS: true});"
+                    "  const s = getComputedStyle(el);"
+                    "  const box = el.getBoundingClientRect();"
+                    "  return el.offsetParent !== null && s.visibility !== 'hidden'"
+                    "         && parseFloat(s.opacity || '1') > 0.01 && box.width > 0;"
+                    "})"
+                    ".map(el => el.tagName + '#' + (el.id || '') + '.' + (el.className.toString().slice(0, 30)))")
+                if set(antes) <= set(despues):
+                    # los mismos (o más) siguen visibles: no se cerró con Escape
                     no_dismissibles.append(f'{c["tag"]}#{c["id"] or "no-id"}')
             except Exception:
                 continue

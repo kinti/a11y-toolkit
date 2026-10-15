@@ -1,0 +1,418 @@
+[
+ {
+  "url": "https://example.com",
+  "toolkit": {
+   "score_estatico": 88,
+   "score_dom": 86,
+   "criterios": [
+    "1.3.1",
+    "1.3.2",
+    "2.4.1"
+   ],
+   "findings_dom": 3
+  },
+  "axe": {
+   "violaciones": [
+    [
+     "landmark-one-main",
+     1,
+     "moderate"
+    ],
+    [
+     "page-has-heading-one",
+     1,
+     "moderate"
+    ],
+    [
+     "region",
+     7,
+     "moderate"
+    ]
+   ],
+   "criterios": [
+    "1.3.1",
+    "2.4.1"
+   ]
+  },
+  "coinciden": [
+   "1.3.1",
+   "2.4.1"
+  ],
+  "solo_axe": [],
+  "solo_toolkit": [
+   "1.3.2"
+  ],
+  "divergencias_detalle": {
+   "solo_axe": {},
+   "solo_toolkit": {
+    "1.3.2": [
+     {
+      "severity": "low",
+      "criterion": "1.3.2 Meaningful Sequence",
+      "signal": "dom_visual_order",
+      "issue": "DOM order differs from visual order in 2 text blocks: review with keyboard (1.3.2).",
+      "remediation": "Programmatic reading order must match visual order: check flex order, grid placement and position absolute (1.3.2)."
+     }
+    ]
+   }
+  }
+ },
+ {
+  "url": "https://www.gov.uk",
+  "toolkit": {
+   "score_estatico": 98,
+   "score_dom": 74,
+   "criterios": [
+    "1.3.1",
+    "1.3.2",
+    "1.4.12",
+    "1.4.3",
+    "2.5.8"
+   ],
+   "findings_dom": 4
+  },
+  "axe": {
+   "violaciones": [
+    [
+     "region",
+     2,
+     "moderate"
+    ]
+   ],
+   "criterios": [
+    "2.4.1"
+   ]
+  },
+  "coinciden": [],
+  "solo_axe": [
+   "2.4.1"
+  ],
+  "solo_toolkit": [
+   "1.3.1",
+   "1.3.2",
+   "1.4.12",
+   "1.4.3",
+   "2.5.8"
+  ],
+  "divergencias_detalle": {
+   "solo_axe": {
+    "2.4.1": [
+     [
+      "region",
+      2,
+      "moderate"
+     ]
+    ]
+   },
+   "solo_toolkit": {
+    "1.3.1": [
+     {
+      "severity": "low",
+      "criterion": "1.3.1 Info and Relationships",
+      "signal": "landmark_dup",
+      "issue": "1 groups of duplicated landmarks (<nav>, <header>…) without a distinguishing aria-label: header ×2.",
+      "remediation": "Name each repeated landmark (aria-label=\"Main menu\", aria-label=\"Footer menu\"): otherwise landmark navigation is a lottery."
+     }
+    ],
+    "1.3.2": [
+     {
+      "severity": "low",
+      "criterion": "1.3.2 Meaningful Sequence",
+      "signal": "dom_visual_order",
+      "issue": "DOM order differs from visual order in 2 text blocks: review with keyboard (1.3.2).",
+      "remediation": "Programmatic reading order must match visual order: check flex order, grid placement and position absolute (1.3.2)."
+     }
+    ],
+    "1.4.12": [
+     {
+      "severity": "medium",
+      "criterion": "1.4.12",
+      "signal": "text_spacing_clip",
+      "issue": "6 texts clipped when the 1.4.12 spacing overrides apply (line-height 1.5, letter 0.12em): review.",
+      "remediation": "Content must survive text-spacing overrides without clipping: replace fixed heights with min-height (1.4.12).",
+      "examples": [
+       "a",
+       "h2#super-navigation-menu-heading",
+       "span",
+       "span",
+       "span",
+       "h2"
+      ]
+     }
+    ],
+    "1.4.3": [
+     {
+      "severity": "high",
+      "criterion": "1.4.3 Contrast (Minimum)",
+      "signal": "contrast_fail",
+      "issue": "1 text areas with insufficient contrast: rgb(29,112,184) vs rgb(210,226,241) = 3.91:1 ×1. (computed fg/background, with alpha compositing).",
+      "remediation": "Raise contrast to ≥4.5:1 (≥3:1 for large text). The effective background already includes overlays and translucency; with a background image, check that area manually.",
+      "examples": [
+       "rgb(29,112,184) over rgb(210,226,241) → 3.91:1 (e.g. div > div > div > button)"
+      ]
+     }
+    ],
+    "2.5.8": [
+     {
+      "severity": "medium",
+      "criterion": "2.5.8 Target Size (Minimum)",
+      "signal": "target_small",
+      "issue": "5 controls with a touch area smaller than 24×24 px (WCAG 2.2 2.5.8): div#global-cookie-message > div > div > a (106×19), div > div > h3 > a (81×23), div > div > h3 > a (163×23), div > div > h3 > a (184×23).",
+      "remediation": "Give controls at least 24×24 CSS px (44×44 is better) via padding or min-width/min-height. Exceptions: equivalent inline links and sufficient surrounding spacing.",
+      "examples": [
+       "div#global-cookie-message > div > div > a (106×19px)",
+       "div > div > h3 > a (81×23px)",
+       "div > div > h3 > a (163×23px)",
+       "div > div > h3 > a (184×23px)",
+       "div > div > h3 > a (171×23px)"
+      ]
+     }
+    ]
+   }
+  }
+ },
+ {
+  "url": "https://es.wikipedia.org/wiki/Wikipedia:Portada",
+  "toolkit": {
+   "score_estatico": 42,
+   "score_dom": 56,
+   "criterios": [
+    "1.1.1",
+    "1.3.1",
+    "1.4.12",
+    "1.4.3",
+    "2.1.1",
+    "2.1.4",
+    "2.4.4",
+    "2.4.7",
+    "2.5.8",
+    "3.1.2",
+    "3.3.2",
+    "4.1.2"
+   ],
+   "findings_dom": 8
+  },
+  "axe": {
+   "violaciones": [
+    [
+     "aria-allowed-attr",
+     4,
+     "critical"
+    ],
+    [
+     "aria-allowed-role",
+     3,
+     "minor"
+    ],
+    [
+     "definition-list",
+     2,
+     "serious"
+    ],
+    [
+     "image-alt",
+     2,
+     "critical"
+    ],
+    [
+     "link-name",
+     2,
+     "serious"
+    ],
+    [
+     "region",
+     1,
+     "moderate"
+    ]
+   ],
+   "criterios": [
+    "1.1.1",
+    "1.3.1",
+    "2.4.1",
+    "4.1.2"
+   ]
+  },
+  "coinciden": [
+   "1.1.1",
+   "1.3.1",
+   "4.1.2"
+  ],
+  "solo_axe": [
+   "2.4.1"
+  ],
+  "solo_toolkit": [
+   "1.4.12",
+   "1.4.3",
+   "2.1.1",
+   "2.1.4",
+   "2.4.4",
+   "2.4.7",
+   "2.5.8",
+   "3.1.2",
+   "3.3.2"
+  ],
+  "divergencias_detalle": {
+   "solo_axe": {
+    "2.4.1": [
+     [
+      "region",
+      1,
+      "moderate"
+     ]
+    ]
+   },
+   "solo_toolkit": {
+    "1.4.12": [
+     {
+      "severity": "medium",
+      "criterion": "1.4.12",
+      "signal": "text_spacing_clip",
+      "issue": "3 texts clipped when the 1.4.12 spacing overrides apply (line-height 1.5, letter 0.12em): review.",
+      "remediation": "Content must survive text-spacing overrides without clipping: replace fixed heights with min-height (1.4.12).",
+      "examples": [
+       "a",
+       "span",
+       "span"
+      ]
+     }
+    ],
+    "1.4.3": [
+     {
+      "severity": "low",
+      "criterion": "1.4.3 Contrast (Minimum)",
+      "signal": "contrast_review",
+      "issue": "15 text areas over background images or with text-shadow: not computable, review.",
+      "remediation": "Contrast over a background image is not computable here: use a11y_contrast_image with a screenshot of that region."
+     }
+    ],
+    "2.1.1": [
+     {
+      "severity": "low",
+      "criterion": "2.1.1 Keyboard",
+      "signal": "accesskey_dup",
+      "issue": "4 duplicated accesskey values: \"f\" ×2, \"o\" ×2, \"e\" ×2, \"h\" ×2.",
+      "remediation": "Duplicated accesskeys trigger the wrong control and clash with browser shortcuts; remove or make unique."
+     }
+    ],
+    "2.1.4": [
+     {
+      "severity": "low",
+      "criterion": "2.1.4 Character Key Shortcuts",
+      "signal": "char_shortcut",
+      "issue": "19 single-character keyboard shortcuts detected: a[accesskey], a[accesskey], a[accesskey]. Review (2.1.4).",
+      "remediation": "Single-key shortcuts must be disablable, remappable, or active only on focus (2.1.4): voice-dictation users trigger every letter.",
+      "examples": [
+       "a[accesskey]",
+       "a[accesskey]",
+       "a[accesskey]",
+       "a[accesskey]",
+       "a[accesskey]"
+      ]
+     }
+    ],
+    "2.4.4": [
+     {
+      "severity": "low",
+      "criterion": "2.4.4 Link Purpose (In Context)",
+      "signal": "same_name_links",
+      "issue": "28 pairs of links with identical text pointing to different destinations.",
+      "remediation": "Differentiate the names (or unify the destination): \"Reports\" ×3 with three different URLs is a problem for anyone navigating by link list."
+     }
+    ],
+    "2.4.7": [
+     {
+      "severity": "low",
+      "criterion": "2.4.7 Focus Visible",
+      "signal": "focus_not_focusable",
+      "issue": "3 controls that never receive focus via .focus(): div > ul > li > a, div > ul > li > a, div > ul > li > a.",
+      "remediation": "If it must be interactive, make it focusable (tabindex=\"0\"); otherwise remove it from the tab path.",
+      "examples": [
+       "div > ul > li > a",
+       "div > ul > li > a",
+       "div > ul > li > a"
+      ]
+     }
+    ],
+    "2.5.8": [
+     {
+      "severity": "low",
+      "criterion": "2.5.8 Target Size (Minimum)",
+      "signal": "target_small",
+      "issue": "13 controls with a touch area smaller than 24×24 px (WCAG 2.2 2.5.8): div#vector-appearance-pinned-container > div#vector-appearance > div > button (52×22), div#main-potd > div > figure > a (500×17), div#main-cur > div > figure > a (120×17), div#main-cur > div > figure > a (120×17).",
+      "remediation": "Give controls at least 24×24 CSS px (44×44 is better) via padding or min-width/min-height. Exceptions: equivalent inline links and sufficient surrounding spacing.",
+      "examples": [
+       "div#vector-appearance-pinned-container > div#vector-appearance > div > button (52×22px)",
+       "div#main-potd > div > figure > a (500×17px)",
+       "div#main-cur > div > figure > a (120×17px)",
+       "div#main-cur > div > figure > a (120×17px)",
+       "div#mwDA > div#main-itd > figure > a (120×17px)",
+       "div#main-port > div > figure > a (20×16px)"
+      ]
+     }
+    ],
+    "3.1.2": [
+     {
+      "severity": "medium",
+      "criterion": "3.1.2 Language of Parts",
+      "signal": "lang_partes",
+      "issue": "22 invalid lang attributes on elements (BCP-47): a lang=\"an\", a lang=\"ast\", a lang=\"ay\", a lang=\"bpy\".",
+      "remediation": "Foreign-language fragments carry lang with a valid code (3.1.2): <blockquote lang=\"en\">…</blockquote>.",
+      "examples": [
+       "a lang=\"an\"",
+       "a lang=\"ast\"",
+       "a lang=\"ay\"",
+       "a lang=\"bpy\"",
+       "a lang=\"cbk\""
+      ]
+     }
+    ],
+    "3.3.2": [
+     {
+      "severity": "high",
+      "criterion": "3.3.2 Labels or Instructions",
+      "signal": "placeholder_only",
+      "issue": "1 fields using placeholder as their only label (no <label>): input[placeholder=\"Buscar en Wikipedia\"]. The placeholder vanishes on input (3.3.2).",
+      "remediation": "Placeholder is NOT a label: add a visible <label for=\"id\">. The placeholder disappears when typing starts and screen readers do not always announce it (3.3.2).",
+      "examples": [
+       "input[placeholder=\"Buscar en Wikipedia\"]"
+      ]
+     }
+    ]
+   }
+  }
+ },
+ {
+  "url": "https://www.jquin.net",
+  "toolkit": {
+   "score_estatico": 98,
+   "score_dom": 100,
+   "criterios": [
+    "2.4.4"
+   ],
+   "findings_dom": 0
+  },
+  "axe": {
+   "violaciones": [],
+   "criterios": []
+  },
+  "coinciden": [],
+  "solo_axe": [],
+  "solo_toolkit": [
+   "2.4.4"
+  ],
+  "divergencias_detalle": {
+   "solo_axe": {},
+   "solo_toolkit": {
+    "2.4.4": [
+     {
+      "severity": "low",
+      "criterion": "2.4.4 Link Purpose (In Context)",
+      "signal": "same_name_links",
+      "issue": "1 pairs of links with identical text pointing to different destinations.",
+      "remediation": "Differentiate the names (or unify the destination): \"Reports\" ×3 with three different URLs is a problem for anyone navigating by link list."
+     }
+    ]
+   }
+  }
+ }
+]

@@ -27,24 +27,79 @@ import sys
 from datetime import datetime, timezone
 
 
+import tempfile
+
+# lock por ruta: multi-hilo siempre; multi-proceso en POSIX (fcntl). El
+# SaaS programa auditorías mientras el panel escribe — sin esto, dos
+# escrituras simultáneas dejaban un JSON truncado (revisión externa 2026-10).
+_LOCKS = {}
+
+from contextlib import contextmanager
+
+
+@contextmanager
+def _lock(ruta):
+    import threading
+    lk = _LOCKS.setdefault(os.path.abspath(ruta), threading.Lock())
+    with lk:
+        fd = None
+        try:
+            try:
+                import fcntl
+                fd = open(os.path.abspath(ruta) + '.lock', 'w')
+                fcntl.flock(fd, fcntl.LOCK_EX)
+            except ImportError:
+                pass  # Windows: solo lock de hilo (documentado)
+            yield
+        finally:
+            if fd:
+                fd.close()  # libera el flock
+
+
 def _cargar(ruta='a11y-ledger.json'):
     if os.path.exists(ruta):
-        with open(ruta, encoding='utf-8') as f:
-            return json.load(f)
+        try:
+            with open(ruta, encoding='utf-8') as f:
+                return json.load(f)
+        except json.JSONDecodeError:
+            # corrupto (crash a mitad de escritura de una versión anterior):
+            # no arrastrar la corrupción — aislar y empezar limpio
+            os.replace(ruta, ruta + '.corrupto-' + datetime.now(timezone.utc)
+                       .strftime('%Y%m%dT%H%M%SZ'))
+            return {'version': 1, 'entries': {}, 'history': []}
     return {'version': 1, 'entries': {}, 'history': []}
 
 
 def _guardar(ledger, ruta='a11y-ledger.json'):
-    with open(ruta, 'w', encoding='utf-8') as f:
-        json.dump(ledger, f, ensure_ascii=False, indent=1)
+    # escritura atómica: tempfile EN EL MISMO DIRECTORIO + os.replace —
+    # un crash a mitad nunca deja el fichero a medias
+    d = os.path.dirname(os.path.abspath(ruta)) or '.'
+    temporal = None
+    try:
+        with tempfile.NamedTemporaryFile('w', encoding='utf-8', dir=d,
+                                         delete=False, suffix='.tmp') as f:
+            temporal = f.name
+            json.dump(ledger, f, ensure_ascii=False, indent=1)
+            f.flush()
+            os.fsync(f.fileno())
+        os.replace(temporal, ruta)
+    except BaseException:
+        if temporal and os.path.exists(temporal):
+            os.unlink(temporal)
+        raise
+
+
+def record(url, informe, ledger=None, ruta='a11y-ledger.json'):
+    """Record an audit result in the ledger (thread/process safe)."""
+    with _lock(ruta):
+        return _record(url, informe, ledger=ledger, ruta=ruta)
 
 
 def _hash_url(url):
     return hashlib.sha256(url.encode()).hexdigest()[:16]
 
 
-def record(url, informe, ledger=None, ruta='a11y-ledger.json'):
-    """Record an audit result in the ledger."""
+def _record(url, informe, ledger=None, ruta='a11y-ledger.json'):
     if ledger is None:
         ledger = _cargar(ruta)
     ahora = datetime.now(timezone.utc).isoformat(timespec='seconds')

@@ -1,53 +1,34 @@
-# Benchmark: a11y-toolkit vs axe-core 4.10 — real pages
+# Benchmark: a11y-toolkit vs axe-core (monthly, real pages)
 
-Methodology: on the SAME Chromium page and with the SAME Playwright, we run
-(a) a11y-toolkit's static auditor on the served HTML, (b) `a11y_audit_dom`
-(rendered) and (c) axe-core 4.10.3 injected. The criteria each reports are
-compared. Last run: 2026-09-07, **v3.10.0** (re-measured after the v3.9 criteria wave; re-runs monthly via CI — see `.github/workflows/bench.yml`).
+Methodology: [`compara.py`](compara.py) runs the toolkit's static + rendered
+audits and axe-core 4.10 on the same live pages, then compares criteria
+found. Scheduled monthly via CI (first run: **2026-10-01**, run
+[36874832232](https://github.com/kinti/a11y-toolkit/actions/runs/36874832232));
+raw JSON in `results/` per month.
 
-Reproduce it: `python3 bench/compara.py <url…>` (axe.min.js auto-downloads).
+## October 2026
 
-## Results
+| Page | Toolkit static | Toolkit rendered | Toolkit criteria | axe violations | axe criteria | Both | Only toolkit | Only axe |
+|---|---|---|---|---|---|---|---|---|
+| example.com | 88 | 86 | 3 | 9 | 2 | 2 | 1 | 0 |
+| www.gov.uk | 98 | 74 | 5 | 2 | 1 | 0 | 5 | 1 |
+| es.wikipedia.org/wiki/Wikipedia:Portada | 42 | 56 | 12 | 14 | 4 | 3 | 9 | 1 |
+| www.jquin.net | 98 | 100 | 1 | 0 | 0 | 0 | 1 | 0 |
 
-| Page | Toolkit (static/rendered) | Matches axe | axe only | Toolkit only | Triage verdict |
-|---|---|---|---|---|---|
-| example.com | 94 / 94 | 2.4.1 | — | — | perfect agreement |
-| **gov.uk** | 98 / **82** | — | 2.4.1 (`region`, 2 nodes) | **REAL 1.4.3** + 1.3.1 + 2.5.8 | **we found a real failure axe does not report**: "Search GOV.UK" button, `#1d70b8` on `#d2e2f1` at 13px = 3.91:1 < 4.5 (manually verified). axe files contrast under "incomplete"; we compute it |
-| es.wikipedia (front page) | 44 / 64 | 1.1.1, 1.3.1, 4.1.2 | 2.4.1 (`region`) | 1.4.3 (review: image backgrounds), 2.1.1/3.3.2/2.4.4/3.1.2 (static pass) | static score dropped 50→44 as the v3.9 criteria landed (3.1.2 lang-of-parts now caught) — raw HTML vs JS DOM: use `a11y_audit_dom` on JS-heavy sites |
-| jquin.net | 98 / **100** | — | — | 2.4.4 (static, advisory) | initially reported as an unnamed footer link — **re-triage showed OUR collector's false positive** (a link wrapping an image *with* alt: accname-legal, axe agrees). Fixed with a regression fixture; the site passes clean. The triage discipline cuts both ways. |
+Reading it honestly:
 
-axe's `region` rule (content OUTSIDE landmarks) is a different granularity
-from ours (that a bypass mechanism exists: main/skip link) — not a false
-negative on our side.
+- **Overlap where both look** (example.com: 2/3, Wikipedia: 3/12) — the
+  core signals agree. "Only toolkit" rows are mostly review-grade signals
+  (DOM-vs-visual order, heading quality) and the rendered checks axe marks
+  *incomplete*.
+- **gov.uk is the showcase**: axe reports 1 criterion (`region`), the
+  toolkit reports 5 — including the rendered contrast failure axe's own
+  rule leaves as "incomplete" (the manually-verified **3.91:1** search
+  button, criterion 1.4.3) plus text-spacing, focus and target-size checks
+  axe does not run.
+- **Only axe** on Wikipedia: `landmark-one-main` style rules the static
+  pass intentionally does not score (it flags, not fails, partial
+  landmark coverage) — the gap list is in the raw JSON, not hidden.
 
-## False positives this benchmark drove out (fixed in v3.4.0)
-
-1. `aria-hidden="true"` on controls with `tabindex="-1"` — not tabbable;
-   2.4.7/4.1.2 do not apply. **Fixed** (static + rendered).
-2. Hidden **honeypot** container (input with `tabindex="-1"` inside) reported
-   as a hidden control. **Fixed**: only reported when a descendant is tabbable.
-3. **Hidden skip link** (1×1px clipped) reported by 2.5.8. **Fixed**:
-   visually hidden elements are excluded from the target-size check.
-4. A **single generic link** reported as 2.4.4 — surrounding sentence context
-   usually disambiguates. **Fixed**: only reported on repetition (≥2).
-5. Inline links at 20-24px: the 2.5.8 **spacing exception** is not measurable
-   without full layout; when all cases are inline the finding drops to "low"
-   (review) instead of "medium".
-
-Every case has a regression fixture in `test_dom.py` / `test_audit.py`.
-
-## Known, honest limits
-
-- axe and we draw the violation vs "needs review" line differently; axe
-  returns many contrast results as *incomplete* (excluded here) while we
-  compute them — hence contrast findings axe does not list.
-- The static pass reflects the SERVED HTML (pre-JS): on SPAs and highly
-  dynamic sites it is a first-pass filter, not the final truth.
-- **Shadow DOM (v3.5.0)**: the collector traverses OPEN shadow roots (up to
-  20, depth 6) — contrast, targets, names, images, focus and states. Validated
-  with a web-component fixture (all four inner failures detected with
-  `mi-tarjeta ::slotted> …` paths) and in production: github.com (5 roots) and
-  m3.material.io (2 roots) scan without errors. CLOSED roots are impossible by
-  browser design — declared, not hidden.
-- `list_structure` rule (1.3.1) added: illegal children of `<ul>/<ol>`
-  (axe's `list` rule).
+The sanity gate in CI asserts the toolkit still finds things (≥4 signals)
+— a benchmark that could silently go blind would be worse than none.

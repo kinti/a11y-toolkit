@@ -81,6 +81,13 @@ change (see 4.0.1); internal dev docs don't.
   scripts and MCP wire unchanged.
 - **D12 — Version discipline**: one command, three files, asserts, gates.
   Manual bumps drifted for 10 releases before this existed.
+- **D14 — Contract tests (v5.6.0)**: schema ↔ dispatch ↔ firma reales,
+  verificados parseando el dispatch y contrastando con `inspect`. Matan las
+  clases browser= y auth_state-tirado. La forma del inputSchema también se
+  valida (nada fuera de properties).
+- **D15 — Journey budgets (v5.6.0)**: solo la fricción NUEVA (alta) o la
+  degradación pass→peor bloquea el deploy; claves `criterio:señal` estables
+  (D3); exit 2 = NO-GO, exit 1 = error de uso.
 - **D13 — Blindfold testing (v5.1.0)**: the agent IS the non-visual user —
   tasks, not just rules. `blindfold-task` prompt drives perceive/act/log;
   `a11y_journey_verdict` scores deterministically (start 100, −25/−12/−5 per

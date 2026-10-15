@@ -67,6 +67,7 @@ SUBCOMANDOS = {
     'badge': (a11ybadge, None),
     'budget': (a11ybudget, None),
     'journey': (a11yjourney, None),
+    'journey-budget': (a11yjourney, '_budget_main'),
     'contrast-dom': (a11ydom, 'contrast_dom_main'),
     'vpat': (a11yvpat, None),
     'earl': (a11yact, None),

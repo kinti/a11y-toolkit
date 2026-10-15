@@ -24,6 +24,7 @@ CLI:
 import argparse
 import json
 import sys
+from datetime import datetime, timezone
 
 # Friction catalogue: the recurring ways a task breaks non-visually, each with
 # its criterion and bilingual remediation. The agent logs `pattern` keys from
@@ -251,7 +252,108 @@ def verdictar(task, steps, outcome, url='', lang='en'):
     }
 
 
+def budget_init(verdict, url=''):
+    """Verdict → baseline del journey (para comparar tras cada deploy).
+
+    La clave de fricción es `criterio:señal` — los IDs de señal son estables
+    por diseño (D3), así que el baseline sigue siendo válido entre versiones
+    del motor."""
+    if not isinstance(verdict, dict) or verdict.get('verdict') is None:
+        return {'error': 'no es un veredicto de journey (usa a11y_journey_verdict)'}
+    return {
+        'format': 'a11y-journey-budget/1',
+        'task': verdict.get('task', {}),
+        'url': verdict.get('url', url),
+        'verdict': verdict['verdict'],
+        'score': verdict.get('score'),
+        'friction': sorted({f"{f['criterion']}:{f['signal']}" for f in verdict.get('findings', [])}),
+        'generated': datetime.now(timezone.utc).isoformat(),
+    }
+
+
+def budget_compare(baseline, verdict):
+    """Solo la fricción NUEVA bloquea — la regresión de USABILIDAD, no ya de reglas.
+
+    NO-GO si: aparece fricción alta nueva, o la tarea degradó su veredicto
+    (pass→partial/fail/blocked). La fricción nueva media/baja avisa, no bloquea."""
+    if not isinstance(baseline, dict) or baseline.get('format') != 'a11y-journey-budget/1':
+        return {'error': 'baseline inválida (usa budget_init)'}
+    if not isinstance(verdict, dict) or verdict.get('verdict') is None:
+        return {'error': 'no es un veredicto de journey'}
+    if baseline.get('task', {}).get('goal') != verdict.get('task', {}).get('goal'):
+        return {'error': "el baseline es de OTRA tarea: %r vs %r" % (
+            baseline.get('task', {}).get('goal'), verdict.get('task', {}).get('goal'))}
+
+    base = set(baseline.get('friction', []))
+    _rank = {'high': 2, 'medium': 1, 'low': 0}
+    actuales = {}
+    for f in verdict.get('findings', []):
+        k = f"{f['criterion']}:{f['signal']}"
+        prev = actuales.get(k)
+        # colisión clave→severidad MÁS grave (dos custom sobre el mismo
+        # criterio no pueden esconder una high tras una medium)
+        if prev is None or _rank[f['severity']] > _rank[prev['severity']]:
+            actuales[k] = f
+    nuevas = sorted(set(actuales) - base)
+    resueltas = sorted(base - set(actuales))
+    nuevas_altas = [k for k in nuevas if actuales[k]['severity'] == 'high']
+    degrada = (baseline.get('verdict') == 'pass'
+               and verdict['verdict'] in ('partial', 'fail', 'blocked'))
+
+    go = not nuevas_altas and not degrada
+    return {
+        'verdict': 'GO' if go else 'NO-GO',
+        'new_blocking': nuevas_altas,
+        'new_friction': nuevas,
+        'resolved': resueltas,
+        'verdict_before': baseline.get('verdict'),
+        'verdict_after': verdict['verdict'],
+        'degraded': degrada,
+        'score_before': baseline.get('score'),
+        'score_after': verdict.get('score'),
+        'note': ('task-based regression gate: only NEW high friction (or a '
+                 'pass degrading) blocks the deploy' if go else
+                 'the task got harder to complete without sight — fix before deploy'),
+    }
+
+
+def _budget_main(argv):
+    ap = argparse.ArgumentParser(description='journey budget: only NEW friction blocks')
+    ap.add_argument('verdict', help='verdict JSON from a11y_journey_verdict')
+    ap.add_argument('--init', action='store_true', help='create the baseline')
+    ap.add_argument('--budget', default='journey-budget.json')
+    ap.add_argument('-o', '--out', help='write the result here (default: stdout)')
+    a = ap.parse_args(argv)
+    with open(a.verdict, encoding='utf-8') as f:
+        v = json.load(f)
+    if a.init:
+        b = budget_init(v)
+        if 'error' in b:
+            print(json.dumps(b, ensure_ascii=False))
+            return 1
+        out = json.dumps(b, ensure_ascii=False, indent=1)
+        destino = a.out or a.budget
+        with open(destino, 'w', encoding='utf-8') as f:
+            f.write(out + '\n')
+        print(json.dumps({'budget': destino, 'friction': len(b.get('friction', [])),
+                          'verdict': b.get('verdict')}))
+        return 0
+    with open(a.budget, encoding='utf-8') as f:
+        b = json.load(f)
+    res = budget_compare(b, v)
+    out = json.dumps(res, ensure_ascii=False, indent=1)
+    if a.out:
+        with open(a.out, 'w', encoding='utf-8') as f:
+            f.write(out + '\n')
+    print(out)
+    if 'error' in res:
+        return 1  # error de uso ≠ NO-GO de regresión
+    return 0 if res.get('verdict') == 'GO' else 2
+
+
 def main(argv):
+    if argv and ('--init' in argv or '--budget' in argv):
+        return _budget_main(argv)
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument('log', help='JSON friction log: {task, steps, outcome, url?, lang?}')
     ap.add_argument('-o', '--out', help='escribe el veredicto en fichero')
