@@ -68,6 +68,28 @@ _DATO_PERSONAL = re.compile(
     r'(^|[\W_])(name|nombre|email|correo|phone|telefono|tel|address|direccion|postal|zip|'
     r'city|ciudad|country|pais|organi[sz]ation|company|empresa|street|user|usuario)([\W_]|$)', re.I)
 
+# Tokens autofill válidos (HTML §7.5 — subconjunto práctico del estándar;
+# one-time-code incluido: los campos OTP lo exigen y los lectores lo usan)
+_AUTOFILL_TOKENS = {
+    'name', 'honorific-prefix', 'given-name', 'additional-name', 'family-name',
+    'nickname', 'username', 'new-password', 'current-password', 'one-time-code',
+    'organization', 'street-address', 'address-line1', 'address-line2',
+    'address-line3', 'address-level4', 'address-level3', 'address-level2',
+    'address-level1', 'country', 'country-name', 'postal-code', 'cc-name',
+    'cc-given-name', 'cc-family-name', 'cc-number', 'cc-exp', 'cc-exp-month',
+    'cc-exp-year', 'cc-csc', 'cc-type', 'transaction-currency',
+    'transaction-amount', 'language', 'bday', 'bday-day', 'bday-month',
+    'bday-year', 'sex', 'url', 'photo',
+    'tel', 'tel-country-code', 'tel-national', 'tel-area-code', 'tel-local',
+    'email', 'impp',
+    # esquemas de contacto (WHATWG §7.5: «work email», «mobile tel»…)
+    'home', 'work', 'mobile', 'fax', 'pager',
+    # nombres de campo que faltaban
+    'cc-additional-name', 'tel-extension', 'webauthn',
+}
+# sección-*: comodín del estándar (section-main, section-top…)
+_SECCION = __import__('re').compile(r'^section-[a-z0-9-]+$')
+
 # Validación de VALORES aria-* (estilo axe aria-valid-attr-value)
 _ARIA_BOOL = {'aria-hidden', 'aria-expanded', 'aria-selected', 'aria-pressed',
               'aria-checked', 'aria-disabled', 'aria-required', 'aria-readonly',
@@ -204,6 +226,8 @@ T = {
         'descarga_error': 'no se pudo descargar: {e}',
         'imgs_alt': '{n} <img> sin atributo alt (ni siquiera alt="").',
         'imgs_alt_rem': 'Añade alt a cada <img>: texto descriptivo si aporta información, alt="" si es decorativa. En <input type="image"> y <area> es igual de obligatorio.',
+        'autocomplete_invalid': '{n} valores de autocomplete no válidos: {ej}. El token debe ser uno del estándar HTML (§7.5 autofill), o el lector no identificará el propósito (1.3.5).',
+        'autocomplete_invalid_rem': 'Usa tokens del estándar: email, tel, name, postal-code, one-time-code… (lista completa en la herramienta).',
         'input_img_alt': '<input type="image"> sin alt (botón gráfico sin nombre).',
         'input_img_alt_rem': 'Añade alt descriptivo al input type="image" (es su nombre accesible), o sustitúyelo por <button> con texto o <input type="submit" value="…">.',
         'ctrl_name': '{n} <{tag}> sin nombre accesible (sin texto, aria-label ni title).',
@@ -341,7 +365,9 @@ T = {
         'descarga_error': 'could not download: {e}',
         'imgs_alt': '{n} <img> without an alt attribute (not even alt="").',
         'imgs_alt_rem': 'Add alt to every <img>: descriptive text when it conveys information, alt="" when decorative. Same requirement for <input type="image"> and <area>.',
-        'input_img_alt': '<input type="image"> without alt (image button with no name).',
+                'autocomplete_invalid': '{n} invalid autocomplete token values: {ej}. Tokens must come from the HTML autofill standard (§7.5) or assistive tech cannot identify the purpose (1.3.5).',
+        'autocomplete_invalid_rem': 'Use standard tokens: email, tel, name, postal-code, one-time-code… (full list in the tool).',
+'input_img_alt': '<input type="image"> without alt (image button with no name).',
         'input_img_alt_rem': 'Add descriptive alt to the input type="image" (it is its accessible name), or replace it with a <button> with text or <input type="submit" value="…">.',
         'ctrl_name': '{n} <{tag}> with no accessible name (no text, aria-label or title).',
         'ctrl_name_rem': 'The accessible name comes from inner text, aria-label, title, or an inner image with alt. An empty control is invisible to screen readers.',
@@ -498,8 +524,11 @@ class _Auditor(HTMLParser):
         self.title = ''
         self._en_title = False
         self._en_script = False
+        self._en_estilo = False
         self.headings = []        # (nivel, texto)
         self._nivel_h = None
+        self._texto_h = []
+        self._texto_visible = []
         self._texto_h = []
         self.tabindex_positivos = []
         self.viewport = None
@@ -538,6 +567,7 @@ class _Auditor(HTMLParser):
         self.landmarks = {}       # tipo → [con_etiqueta, total]
         self.accesos = {}         # accesskey → tag
         self.autocomplete_faltan = []
+        self.autocomplete_invalidos = []
         self.enlaces = {}         # nombre normalizado → set de hrefs
         self.genericos = 0
         self.labels_for_dups = {}  # id → n labels (los >1, varios)
@@ -627,6 +657,8 @@ class _Auditor(HTMLParser):
             self._en_title = True
         elif tag == 'script':
             self._en_script = True
+        elif tag == 'style':
+            self._en_estilo = True
         elif tag == 'meta':
             if a.get('name', '').lower() == 'viewport':
                 self.viewport = a.get('content', '')
@@ -679,6 +711,12 @@ class _Auditor(HTMLParser):
                         tipo in ('email', 'tel')
                         or _DATO_PERSONAL.search((a.get('name') or '') + ' ' + (a.get('id') or ''))):
                     self.autocomplete_faltan.append(f'input type={tipo} name={a.get("name") or "?"}'[:44])
+        if tag == 'input' and 'autocomplete' in a:
+            for tok in (a['autocomplete'] or '').split():
+                if tok and tok not in ('on', 'off') and tok.split(':')[-1] not in _AUTOFILL_TOKENS \
+                        and tok not in ('shipping', 'billing') and not _SECCION.match(tok):
+                    self.autocomplete_invalidos.append(
+                        f'{tok} (input name={a.get("name") or "?"})'[:60])
         elif tag in ('select', 'textarea'):
             self._nota_campo()
             tiene_nombre = a.get('aria-label') or a.get('aria-labelledby') or a.get('title')
@@ -859,6 +897,8 @@ class _Auditor(HTMLParser):
             self._en_title = False
         elif tag == 'script':
             self._en_script = False
+        elif tag == 'style':
+            self._en_estilo = False
         elif tag == 'label':
             self._label_depth = max(0, self._label_depth - 1)
             if hasattr(self, '_label_texto_actual'):
@@ -928,6 +968,9 @@ class _Auditor(HTMLParser):
                 self.motions.append(_ma.split('(')[1].strip('\'"'))
 
     def handle_data(self, data):
+        en_codigo = getattr(self, '_en_script', False) or getattr(self, '_en_estilo', False)
+        if data.strip() and not en_codigo and not self._en_title:
+            self._texto_visible.append(data)  # prosa visible: ni JS, ni CSS, ni título
         if self._en_title:
             self.title += data
         elif getattr(self, '_en_script', False):
@@ -951,6 +994,43 @@ def calcular_score(hallazgos):
     pesos = {'high': 12, 'medium': 6, 'low': 2}
     penal = sum(pesos[h['severity']] for h in hallazgos)
     return max(0, 100 - penal)
+
+
+_VOCAL = re.compile(r'[aeiouyáéíóúàèìòùäëïöü]+', re.I)
+
+
+def _silabas(palabra):
+    """Heurística de sílabas por grupos vocálicos (suficiente para índices)."""
+    return max(1, len(_VOCAL.findall(palabra)))
+
+
+def _nivel_lectura(texto, lang='en'):
+    """Flesch Reading Ease (en) / Fernández-Huerta (es) — 3.1.5 cognitivo.
+
+    Informativo (AAA): se reporta, no penaliza el score. 100 = muy fácil;
+    <50 = difícil (nivel universitario)."""
+    limpio = re.sub(r'<[^>]+>', ' ', texto)
+    palabras = re.findall(r"[\wáéíóúñü'-]{2,}", limpio, re.UNICODE)
+    frases = [f for f in re.split(r'[.!?;:]+', limpio) if f.strip()]
+    if len(palabras) < 40 or not frases:
+        return None  # muestra insuficiente: no inventar un índice
+    sil = sum(_silabas(w) for w in palabras)
+    ppf = len(palabras) / len(frases)   # palabras por frase
+    spf = sil / len(palabras) * 100     # sílabas por 100 palabras
+    if lang == 'es':
+        # Fernández-Huerta: L = 206.84 − 0.60·P − 1.02·F
+        # (P = sílabas por 100 palabras, F = palabras por frase)
+        indice = 206.84 - 0.60 * spf - 1.02 * ppf
+        escala = ('muy fácil', 'fácil', 'estándar', 'difícil', 'muy difícil')
+    else:
+        indice = 206.835 - 1.015 * ppf - 84.6 * (sil / len(palabras))
+        escala = ('very easy', 'easy', 'standard', 'difficult', 'very difficult')
+    indice = round(max(0, min(100, indice)), 1)
+    nivel = escala[0] if indice >= 90 else escala[1] if indice >= 70 else \
+        escala[2] if indice >= 50 else escala[3] if indice >= 30 else escala[4]
+    return {'index': indice, 'level': nivel, 'scale': 'fernandez-huerta' if lang == 'es' else 'flesch-reading-ease',
+            'words': len(palabras), 'sentences': len(frases),
+            'note': 'informational (3.1.5 is level AAA): reported, never scored'}
 
 
 def _not_measured(lang='en'):
@@ -1093,6 +1173,9 @@ def audit_html(html_text, url='(html)', lang='en'):
     if p.autocomplete_faltan:
         add_ej('medium', '1.3.5', 'autocomplete', p.autocomplete_faltan,
                n=len(p.autocomplete_faltan), ej=', '.join(p.autocomplete_faltan[:4]))
+    if p.autocomplete_invalidos:
+        add_ej('medium', '1.3.5', 'autocomplete_invalid', p.autocomplete_invalidos,
+               n=len(p.autocomplete_invalidos), ej=', '.join(p.autocomplete_invalidos[:4]))
     if p.medios_autoplay:
         add('medium', '1.4.2', 'video_autoplay', n=p.medios_autoplay)
     if p.label_no_name:
@@ -1176,9 +1259,14 @@ def audit_html(html_text, url='(html)', lang='en'):
     hallazgos.sort(key=lambda h: severidad_orden[h['severity']])
     resumen = {s: sum(1 for h in hallazgos if h['severity'] == s)
                for s in ('high', 'medium', 'low')}
+    idioma_pagina = (p.lang or '').split('-')[0].lower() if getattr(p, 'lang', None) else ''
+    reading = _nivel_lectura(' '.join(p._texto_visible),
+                             idioma_pagina if idioma_pagina in ('es', 'en') else lang)
+
     return {
         'mode': 'static',
         'url': url,
+        'reading_level': reading,
         'score': calcular_score(hallazgos),
         'score_note': _t(lang, 'score_note'),
         'not_measured': _not_measured(lang),
@@ -1189,7 +1277,7 @@ def audit_html(html_text, url='(html)', lang='en'):
     }
 
 
-def _descarga(url, timeout=30, truncar_en=None):
+def _descarga(url, timeout=30, truncar_en=None, aceptar_ct=()):
     esquema = url.split(':', 1)[0].lower() if ':' in url else ''
     if esquema not in ('http', 'https'):
         # política única para TODAS las rutas de descarga (audit_url la
@@ -1212,8 +1300,10 @@ def _descarga(url, timeout=30, truncar_en=None):
             if d.unconsumed_tail:
                 datos = datos[:techo]            # bomba gzip: truncado, no OOM
         ctype = (r.headers.get('Content-Type') or '').lower()
-        if ctype and 'html' not in ctype and 'xml' not in ctype and ctype.split(';')[0].strip():
-            raise ValueError(f'la URL no devuelve HTML (Content-Type: {ctype.split(";")[0]})')
+        base = ctype.split(';')[0].strip()
+        extra_ok = any(base == p or base.startswith(p + '/') for p in aceptar_ct)
+        if ctype and not extra_ok and 'html' not in ctype and 'xml' not in ctype and base:
+            raise ValueError(f'la URL no devuelve HTML (Content-Type: {base})')
         charset = 'utf-8'
         m = re.search(rb'charset=["\']?([\w-]+)', datos[:2048])
         if m:

@@ -132,7 +132,7 @@ h1 .dot{{color:#3fb950}}
 
     snap('<span class="p">$</span>', 500)
     escribe('claude mcp add a11y-toolkit -- uvx --from a11y-toolkit a11y-toolkit-mcp',
-            '<span class="ok">✓ a11y-toolkit registered</span>  <span class="c">(26 tools · 6 prompts)</span>',
+            '<span class="ok">✓ a11y-toolkit registered</span>  <span class="c">(28 tools · 6 prompts)</span>',
             hold=1100)
     salida_audit = (f'<span class="warn">score: {score_antes}/100</span>   '
                     f'<span class="bad">high: {summary["high"]}</span>  '

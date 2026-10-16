@@ -26,6 +26,8 @@ Tools:
   - a11y_hover(url, …)                             tooltip Escape dismissibility (1.4.13)
   - a11y_sr_transcript(url, …)                     what a blind user hears, linearized
   - a11y_journey_verdict(task, steps, outcome)    blindfold task verdict: friction log → scored evidence
+  - a11y_vtt_check(url, …)                         caption CONTENT quality (1.2.2)
+  - a11y_audit_pdf(path)                           PDF structural screening — nobody automated it
   - a11y_generate_vpat(product, pack|reports, …)  VPAT 2.5 (WCAG) draft from the evidence pack
   - a11y_contrast_dom(url, selector, …)           real text-over-anything contrast (auto-region sampling)
   - a11y_disprove(url, informe?, …)                re-verify findings → confirmed/rejected
@@ -58,6 +60,8 @@ from .a11yevidence import empaquetar as empaquetar_fn  # noqa: E402
 from .a11ydiff import snapshot as snapshot_fn, diff as diff_fn  # noqa: E402
 from .a11ycrit import criterio as criterio_fn  # noqa: E402
 from .a11yjourney import verdictar as journey_verdict_fn  # noqa: E402
+from .a11yvtt import vtt_check as vtt_check_fn  # noqa: E402
+from .a11ypdf import pdf_screen as pdf_screen_fn  # noqa: E402
 from .a11ydisprove import disprove as disprove_fn  # noqa: E402
 from .a11yledger import record as ledger_record, gaps as ledger_gaps, summary as ledger_summary  # noqa: E402
 from .a11ybadge import badge as badge_fn  # noqa: E402
@@ -70,7 +74,7 @@ try:
 except ImportError:
     ARIALIVE_JS = None  # repo checkout: read the file
 
-VERSION = '5.6.0'
+VERSION = '5.7.0'
 
 INSTRUCTIONS = (
     'Accessibility toolkit (WCAG 2.2), multilanguage es/en. '
@@ -137,6 +141,7 @@ TOOLS = [
             'timeout': {'type': 'number', 'description': 'page load timeout seconds (45 default)'},
             'auth_state': {'type': 'string', 'description': 'Path to a Playwright storage_state JSON (exported session) to audit behind login — local file, never uploaded'},
             'browser': {'type': 'string', 'enum': ['auto', 'chromium', 'firefox', 'webkit', 'chrome', 'msedge'], 'description': 'Browser engine (auto = detect the first available)'},
+            'color_scheme': {'type': 'string', 'enum': ['light', 'dark'], 'description': 'Emulate prefers-color-scheme: run the contrast pass in dark mode too — dark themes fail where light passes (nobody audits both)'},
         },
 'required': ['url']},
     },
@@ -521,6 +526,39 @@ TOOLS = [
             'browser': {'type': 'string', 'enum': ['auto', 'chromium', 'firefox', 'webkit', 'chrome', 'msedge'], 'description': 'Browser engine (auto = detect the first available)'},
         }, 'required': ['url', 'selector']},
     },
+    {
+        'name': 'a11y_vtt_check',
+        'description': ('WebVTT caption QUALITY (1.2.2) — the substance, not the presence. '
+                        'Everyone stops at "<track> exists"; this downloads and parses the actual '
+                        '.vtt and judges what viewers get: malformed timing lines, empty cues, '
+                        'overlaps, impossible reading speed (>21 chars/second, BBC/Netflix '
+                        'standard) and coverage vs the media duration when given. Pass the .vtt '
+                        'URL (same http/https guard as the audits). Not a substitute for human '
+                        'review of accuracy or speaker identification. '
+                        'Returns JSON: {mode: "vtt", cues, characters, captioned_seconds, '
+                        'findings [{criterion, severity, signal, issue, remediation}], summary, limits}.'),
+        'inputSchema': {'type': 'object', 'properties': {
+            'url': {'type': 'string', 'description': 'URL of the .vtt caption file'},
+            'duration': {'type': 'number', 'minimum': 1, 'description': 'media duration in seconds — enables the coverage check (1.2.2 completeness)'},
+            'lang': {'type': 'string', 'enum': ['en', 'es'], 'description': 'output language'},
+        }, 'required': ['url']},
+    },
+    {
+        'name': 'a11y_audit_pdf',
+        'description': ('PDF accessibility screening — the space nobody automated (axe, pa11y, '
+                        'Lighthouse: HTML only). Zero-dep structural first pass on a LOCAL file: '
+                        'tagged tree (/StructTreeRoot — the root failure), title, language, '
+                        'outline, /Alt entries, text layer (scanned detection), encryption. '
+                        'Full PDF/UA conformance needs a spec validator (veraPDF); this finds '
+                        'the failures that make full validation pointless. Use for enterprise '
+                        'document pipelines and PDFs linked from the audited site. '
+                        'Returns JSON: {mode: "pdf", pages, tagged, lang, title, images, '
+                        'alt_entries, findings, summary, limits}.'),
+        'inputSchema': {'type': 'object', 'properties': {
+            'path': {'type': 'string', 'description': 'local PDF file path (never fetched remotely — download it yourself first)'},
+            'lang': {'type': 'string', 'enum': ['en', 'es'], 'description': 'output language'},
+        }, 'required': ['path']},
+    },
 ]
 
 _PROMPTS = [
@@ -712,6 +750,9 @@ _PARAM_DOCS = {
  ('a11y_journey_verdict', 'url'): 'Where the journey ran',
  ('a11y_journey_verdict', 'lang'): 'Output language (en|es)',
  ('a11y_journey_verdict', 'output_path'): 'File to write the full verdict JSON (optional)',
+ ('a11y_vtt_check', 'url'): 'URL of the .vtt caption file to download and judge',
+ ('a11y_vtt_check', 'duration'): 'Media duration in seconds — enables coverage (1.2.2 completeness)',
+ ('a11y_audit_pdf', 'path'): 'Local PDF file path to screen (structural pass)',
  ('a11y_disprove', 'url'): 'URL to re-verify findings against',
  ('a11y_disprove', 'report'): 'Existing audit report to verify (optional; audits first if absent)',
  ('a11y_disprove', 'timeout'): 'Fetch timeout seconds (default 30)',
@@ -858,6 +899,8 @@ _ANN = {
     'a11y_journey_verdict':  ('Blindfold journey verdict', True, False),
     'a11y_generate_vpat':    ('VPAT 2.5 report (WCAG edition)', False, False),
     'a11y_contrast_dom':     ('Live-element contrast sampling', True, True),
+    'a11y_vtt_check':        ('WebVTT caption quality', True, True),
+    'a11y_audit_pdf':        ('PDF accessibility screening', True, False),
 }
 # TDQS hygiene: annotations must match reality, and every description states
 # its return shape and when (not) to use the tool. a11y_ledger.record mutates
@@ -969,7 +1012,8 @@ def llamar(nombre, args):
             return _texto(audit_dom_url(args['url'], timeout=args.get('timeout', 45),
                                         lang=args.get('lang', 'en'),
                                         auth_state=args.get('auth_state'),
-                                        browser=args.get('browser', 'auto')))
+                                        browser=args.get('browser', 'auto'),
+                                        color_scheme=args.get('color_scheme', 'light')))
         except ImportError:
             return {'content': [{'type': 'text',
                                  'text': 'Playwright not installed: pip install playwright && playwright install chromium (or use a11y_audit_url for the zero-dependency static audit)'}],
@@ -1129,6 +1173,17 @@ def llamar(nombre, args):
                            'score': res['score'], 'high': res['summary']['high'],
                            'medium': res['summary']['medium'], 'low': res['summary']['low']})
         return _texto(res)
+    if nombre == 'a11y_vtt_check':
+        try:
+            return _texto(vtt_check_fn(args['url'], duration=args.get('duration'),
+                                       lang=args.get('lang', 'en')))
+        except Exception as e:
+            return {'content': [{'type': 'text', 'text': f'error: {e}'}], 'isError': True}
+    if nombre == 'a11y_audit_pdf':
+        try:
+            return _texto(pdf_screen_fn(args['path'], lang=args.get('lang', 'en')))
+        except Exception as e:
+            return {'content': [{'type': 'text', 'text': f'error: {e}'}], 'isError': True}
     if nombre == 'a11y_generate_vpat':
         try:
             res = vpat_fn(pack=args.get('pack'), reports=args.get('reports'),

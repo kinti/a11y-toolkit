@@ -351,7 +351,7 @@ _JS = r'''(maxEj) => {
         out.contrastReview++;
         const fa = (fg.a === undefined) ? 1 : fg.a;
         const pxx = parseFloat(s.fontSize);
-        const larg = pxx >= 24 || (parseInt(s.fontWeight || '400', 10) >= 600 && pxx >= 18.66);
+        const larg = pxx >= 24 || (parseInt(s.fontWeight || '400', 10) >= 700 && pxx >= 18.66);  // spec bold=700 (600 daba 3:1 a texto normal)
         if (out.contrastZones.length < 12 && fa >= 1 && !el.hasAttribute('data-a11ytxt')) {
           const rr = el.getBoundingClientRect();
           if (rr.width > 2 && rr.height > 2 && rr.width <= 1400 && rr.height <= 400) {
@@ -365,7 +365,7 @@ _JS = r'''(maxEj) => {
         continue;
       }
       const px = parseFloat(s.fontSize);
-      const bold = parseInt(s.fontWeight || '400', 10) >= 600;
+      const bold = parseInt(s.fontWeight || '400', 10) >= 700;
       const large = px >= 24 || (bold && px >= 18.66);
       const over_ = (f, b) => { const a = (f.a === undefined) ? 1 : f.a;
         return { r: Math.round(f.r * a + b.r * (1 - a)),
@@ -393,7 +393,7 @@ _JS = r'''(maxEj) => {
     const cont = el.closest('p, li, dd, dt, td, figcaption, blockquote');
     if (!cont || cont.textContent.trim().length < 40) continue;   // needs surrounding prose
     const s = getComputedStyle(el);
-    if (s.textDecorationLine.includes('underline') || parseInt(s.fontWeight || '400', 10) >= 600) continue;
+    if (s.textDecorationLine.includes('underline') || parseInt(s.fontWeight || '400', 10) >= 700) continue;  // bold spec=700
     if (el.querySelector('img, svg')) continue;                    // icon = extra cue
     const cl = parseCol(s.color), cp = parseCol(getComputedStyle(cont).color);
     if (cl && cp && ratioOf(cl, cp) < 3)
@@ -439,6 +439,7 @@ _JS = r'''(maxEj) => {
   }
 
   // ---- target size 2.5.8 (todas las raíces) ----
+  let interpRects = null;
   for (const el of deepQ(INTER)) {
     out.elements++;
     if (el.type === 'hidden' || !vis(el)) continue;
@@ -448,9 +449,31 @@ _JS = r'''(maxEj) => {
     if (r.width <= 2 || r.height <= 2) continue;   // patrón visualmente oculto (skip link)
     if (el.getAttribute('tabindex') === '-1') continue;
     if (r.width < 24 || r.height < 24) {
-      if (out.targets.length < 40) out.targets.push(
+      // excepción de espaciado (2.5.8): un objetivo menor de 24px PASA si el
+      // más cercano está a ≥24px. Vecinos precomputados (no 121 del DOM
+      // arbitrarios) y condena temprana: un solo vecino <24px basta.
+      if (!interpRects) {
+        interpRects = [];
+        for (const otro of deepQ(INTER)) {
+          if (otro.type === 'hidden' || !vis(otro)) continue;
+          const rr = otro.getBoundingClientRect();
+          if (rr.width <= 2 && rr.height <= 2) continue;
+          interpRects.push({ el: otro, r: rr });
+        }
+      }
+      let sep = Infinity;
+      for (const par of interpRects) {
+        if (par.el === el) continue;
+        const r2 = par.r;
+        const dx = Math.max(r.left - r2.right, r2.left - r.right, 0);
+        const dy = Math.max(r.top - r2.bottom, r2.top - r.bottom, 0);
+        const d = Math.hypot(dx, dy);
+        if (d < sep) sep = d;
+        if (sep < 24) break;   // condenado: no hace falta seguir
+      }
+      if (sep < 24 && out.targets.length < 40) out.targets.push(
         { ej: path(el), w: Math.round(r.width), h: Math.round(r.height),
-          inline: disp.includes('inline') });
+          inline: disp.includes('inline'), spacing: Math.round(sep) });
     }
   }
 
@@ -606,7 +629,7 @@ def _agrega(hallazgos, lang, severidad, code, key, ejemplos=None, **fmt):
     hallazgos.append(h)
 
 
-def audit_dom(datos, url='(rendered)', lang='en'):
+def audit_dom(datos, url='(rendered)', lang='en', color_scheme='light'):
     """Agrega los datos JS del DOM en un informe con la misma forma que audit_html."""
     hallazgos = []
 
@@ -761,6 +784,7 @@ def audit_dom(datos, url='(rendered)', lang='en'):
     return {
         'url': url,
         'mode': 'rendered',
+        'color_scheme': color_scheme,
         'iframes_anidados': datos.get('iframes_anidados', 0),
         'shadow_roots': datos.get('shadow_roots', 0),
         'score': calcular_score(hallazgos),
@@ -1465,7 +1489,7 @@ def _muestrea_fondo(loc, rect, c):
     return sample_rgb(rw, rh, rgb2, c)
 
 
-def audit_dom_url(url, timeout=45, lang='en', auth_state=None, browser='auto'):
+def audit_dom_url(url, timeout=45, lang='en', auth_state=None, browser='auto', color_scheme='light'):
     """Carga la URL en Chromium y devuelve el informe renderizado.
 
     Escanea también los iframes same-origin (hasta 4) y contrasta los estados
@@ -1477,6 +1501,10 @@ def audit_dom_url(url, timeout=45, lang='en', auth_state=None, browser='auto'):
         nav = p.chromium.launch()
         ctx = nav.new_context(storage_state=auth_state) if auth_state else nav
         page = ctx.new_page() if auth_state else nav.new_page()
+        if color_scheme in ('dark', 'light'):
+            # contraste por esquema: los temas oscuros fallan donde el claro
+            # pasa — nadie audita ambos (axe tampoco)
+            page.emulate_media(color_scheme=color_scheme)
         try:
             page.goto(url, wait_until='load', timeout=timeout * 1000)
             page.wait_for_timeout(400)
@@ -1533,7 +1561,7 @@ def audit_dom_url(url, timeout=45, lang='en', auth_state=None, browser='auto'):
             except Exception:
                 pass
     _mezcla_iframes(datos)
-    return audit_dom(datos, url, lang=lang)
+    return audit_dom(datos, url, lang=lang, color_scheme=color_scheme)
 
 
 def contrast_dom(url, selector, text_color=None, sample=4, lang='en', timeout=45,

@@ -8,7 +8,7 @@
 [![MCP](https://img.shields.io/badge/Model%20Context%20Protocol-server-purple)](https://modelcontextprotocol.io)
 [![Sponsor](https://img.shields.io/badge/Sponsor-%E2%9D%A4-pink)](https://github.com/sponsors/kinti)
 
-26 MCP tools, 6 prompts and a skill covering the whole WCAG 2.2 loop: audit, fix,
+28 MCP tools, 6 prompts and a skill covering the whole WCAG 2.2 loop: audit, fix,
 document, watch, hand off — and now blindfold usability testing, where the agent
 attempts real tasks perceiving only what a screen reader exposes. 51 of 55 A/AA criteria carry automated signals (93%), every
 finding ships with a concrete remediation your agent can apply, and the rendered tools
@@ -38,7 +38,7 @@ the human signs.
 | An evidence pack a human can countersign — hashes, matrix, empty signature block | ✗ | ✓ |
 | Runs with zero dependencies at core, speaks es/en, any browser you have | heavy runtimes | ✓ |
 
-## The tools (26)
+## The tools (28)
 
 Every tool, complete — description, arguments, and behavior annotations, generated from the server itself (`server.TOOLS` is the source of truth). All tools accept `lang` (`en`|`es`) unless noted; output is JSON unless noted.
 
@@ -310,6 +310,32 @@ REAL contrast of an element against whatever is behind it (image, gradient, vide
 - `auth_state`: Path to a Playwright storage_state JSON to measure behind login — stays local.
 
 - `browser` — one of ['auto', 'chromium', 'firefox', 'webkit', 'chrome', 'msedge']: Browser engine (auto = detect the first available).
+
+
+#### `a11y_vtt_check`
+
+<sub>read-only · network</sub>
+
+WebVTT caption QUALITY (1.2.2) — the substance, not the presence. Everyone stops at "<track> exists"; this downloads and parses the actual .vtt and judges what viewers get: malformed timing lines, empty cues, overlaps, impossible reading speed (>21 chars/second, BBC/Netflix standard) and coverage vs the media duration when given. Not a substitute for human review of accuracy or speaker identification. Returns JSON: {mode: "vtt", cues, characters, captioned_seconds, findings [{criterion, severity, signal, issue, remediation}], summary, limits}.
+
+
+**Arguments**
+
+- `url` *(required)*: URL of the .vtt caption file.
+- `duration`: media duration in seconds — enables the coverage check (1.2.2 completeness) — range 1…∞.
+- `lang` — one of ['en', 'es']: output language.
+
+#### `a11y_audit_pdf`
+
+<sub>read-only</sub>
+
+PDF accessibility screening — the space nobody automated (axe, pa11y, Lighthouse: HTML only). Zero-dep structural first pass on a LOCAL file: tagged tree (/StructTreeRoot — the root failure), title, language, outline, /Alt entries, text layer (scanned detection), encryption. Full PDF/UA conformance needs a spec validator (veraPDF); this finds the failures that make full validation pointless. Use for enterprise document pipelines and PDFs linked from the audited site. Returns JSON: {mode: "pdf", pages, tagged, lang, title, images, alt_entries, findings, summary, limits}.
+
+
+**Arguments**
+
+- `path` *(required)*: local PDF file path (never fetched remotely — download it yourself first).
+- `lang` — one of ['en', 'es']: output language.
 
 
 #### `a11y_suggest_color`

@@ -1,0 +1,102 @@
+#!/usr/bin/env python3
+"""VTT caption quality + PDF screening — the nobody-automated-them tools."""
+
+import json
+import os
+import subprocess
+import sys
+import zlib
+
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
+import a11y_toolkit.a11yaudit as audit_mod  # noqa: E402
+from a11y_toolkit.a11yvtt import vtt_check  # noqa: E402
+from a11y_toolkit.a11ypdf import pdf_screen  # noqa: E402
+
+VTT = """WEBVTT
+
+1
+00:00:00.000 --> 00:00:03.000
+Hola mundo
+
+2
+00:00:04.000 --> 00:00:04.500
+Supercalifragilisticexpialidocious texto largo imposible de leer a esta velocidad
+
+3
+00:00:05.000 --> 00:00:08.000
+
+
+4
+00:00:07.000 --> 00:00:09.000
+Solapa
+
+00:00:10.000 --> 00:00:12.000
+Final
+"""
+
+# 1-5. VTT: los seis juicios sobre contenido
+_orig = audit_mod._descarga
+audit_mod._descarga = lambda url, **kw: VTT
+try:
+    r = vtt_check('https://x/c.vtt', duration=15, lang='en')
+finally:
+    audit_mod._descarga = _orig
+sig = {h['signal'] for h in r['findings']}
+assert {'vtt_empty_cue', 'vtt_too_fast', 'vtt_overlap', 'vtt_coverage'} <= sig, sig
+assert r['cues'] == 5 and r['mode'] == 'vtt'
+print('1. VTT: vacío + rápido + solape + cobertura ✓')
+
+
+def mini_pdf(tagged=True, title=True, lang=True, texto=True, pages=3, img=False):
+    objs = [b'1 0 obj\n<< /Type /Catalog /Pages 2 0 R' +
+            (b' /StructTreeRoot 5 0 R' if tagged else b'') +
+            (b' /Lang (es-ES)' if lang else b'') + b' >>\nendobj\n']
+    contenido = (b'BT (Hola documento) Tj ET\n' if texto else b'') * 4
+    objs.append(b'2 0 obj\n<< /Type /Pages /Kids [' +
+                b' '.join(b'%d 0 R' % (10 + i) for i in range(pages)) + b'] /Count ' +
+                str(pages).encode() + b' >>\nendobj\n')
+    objs.append(b'3 0 obj\n<< ' + (b'/Title (Informe) ' if title else b'') +
+                b'/Producer (t) >>\nendobj\n')
+    if tagged:
+        objs.append(b'5 0 obj\n<< /Type /StructTreeRoot /MarkInfo << /Marked true >> >>\nendobj\n')
+    if img:
+        im = zlib.compress(b'\x00' * 81)
+        objs.append(b'11 0 obj\n<< /Type /XObject /Subtype /Image /Width 9 /Height 9 '
+                    b'/Filter /FlateDecode /Length %d >>\nstream\n' % len(im) + im + b'\nendstream\nendobj\n')
+    comp = zlib.compress(contenido)
+    body = b'%PDF-1.7\n' + b''.join(objs)
+    body += b'6 0 obj\n<< /Length %d /Filter /FlateDecode >>\nstream\n' % len(comp) + comp + b'\nendstream\nendobj\n'
+    for i in range(pages):
+        body += (b'%d 0 obj\n<< /Type /Page /Contents 6 0 R' % (10 + i)
+                 + (b' /Resources << /XObject << /Im0 11 0 R >> >>' if img else b'')
+                 + b' >>\nendobj\n')
+    return body + b'%%EOF\n'
+
+
+# 6-8. PDF: bueno limpio, malo con las cuatro señales raíz
+b = pdf_screen(mini_pdf(), lang='es')
+assert b['tagged'] and b['lang'] == 'es-ES' and b['title'] == 'Informe' and not b['findings']
+print('6. PDF bueno: 100 sin señales ✓')
+m = pdf_screen(mini_pdf(tagged=False, title=False, lang=False, texto=False, img=True), lang='es')
+assert {'pdf_untagged', 'pdf_no_title', 'pdf_no_lang', 'pdf_scanned'} <= {h['signal'] for h in m['findings']}
+assert not pdf_screen(b'no-pdf').get('tagged', False) and 'error' in pdf_screen(b'no-pdf')
+print('7. PDF malo: 4 señales raíz ✓  8. no-PDF rechazado ✓')
+
+# 9. CLI real de ambos
+ruta_pdf = os.path.join('/tmp', 'mini.pdf')
+with open(ruta_pdf, 'wb') as f:
+    f.write(mini_pdf(tagged=False, title=False, lang=False, texto=False))
+out = subprocess.run([sys.executable, '-m', 'a11y_toolkit.a11ypdf', ruta_pdf, '--lang', 'en'],
+                     capture_output=True, text=True, cwd=ROOT, timeout=30)
+d = json.loads(out.stdout)
+assert d['mode'] == 'pdf' and d['findings']
+print('9. CLI pdf ✓')
+
+print('VTT+PDF OK ✓')
+
+# 10. sin texto PERO sin imágenes: no hay base para acusar escaneo
+solo_estructura = pdf_screen(mini_pdf(tagged=False, title=False, lang=False, texto=False), lang='es')
+assert 'pdf_scanned' not in {h['signal'] for h in solo_estructura['findings']}
+print('10. escaneo solo con patrón (img+sin texto) ✓')

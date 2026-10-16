@@ -1,5 +1,43 @@
 # Changelog
 
+## 5.7.0 — 2026-10-16 — "measurement quality + the spaces nobody automated"
+
+The precision pass over every measurement, plus two capabilities that close
+real gaps (each verified live, reviewed, and re-reviewed before shipping —
+the review caught 2 P1s and 5 P2s in the first draft, all fixed):
+
+**Measurement precision**
+- Bold threshold 600→700 everywhere (spec's "bold" is 700: semibold text
+  was getting the 3:1 large-text pass it must not).
+- 2.5.8 target size implements the **spacing exception**: undersized
+  targets pass when the nearest neighbor is ≥24px away (precomputed
+  neighbors, early condemnation — no more false positives on isolated
+  small controls).
+- 1.3.5 validates autocomplete **values** against the WHATWG §7.5 token
+  set (incl. one-time-code, webauthn, contact schemes, section-*), not
+  just presence.
+- Static reports carry `reading_level` (Fernández-Huerta for Spanish
+  pages, Flesch for English — chosen by the PAGE's lang, computed over
+  visible prose only): informational 3.1.5, never scored.
+
+**New: the spaces nobody automated**
+- **`a11y_vtt_check` (tool 27)**: caption CONTENT quality — malformed
+  timing, empty cues, overlaps, >21 chars/second (BBC/Netflix standard),
+  coverage vs media duration (union of intervals). Everyone stops at
+  "<track> exists"; this judges what viewers actually get.
+- **`a11y_audit_pdf` (tool 28)**: zero-dep PDF structural screening —
+  tagged tree, title, /Lang, outline, /Alt, text layer (scan detection
+  requires the image+no-text pattern), encryption at the trailer, zlib-
+  bomb-capped stream inspection. axe, pa11y, Lighthouse: HTML only.
+- **Dark-mode contrast**: `a11y_audit_dom(color_scheme="dark")` emulates
+  prefers-color-scheme — dark themes fail where light passes, and nobody
+  (axe included) audits both.
+- HTTP fetch gate accepts content-types per caller (text/vtt for
+  captions); reading-level and 2.5.8 fixes above.
+
+28 MCP tools + 6 prompts; 15 suites; prefers-reduced-motion check queued
+(design note: needs a second page context, not a param).
+
 ## 5.6.0 — 2026-10-13 — "contract & usability gates"
 
 Four bets from the quality pass, each tested before, retested after and

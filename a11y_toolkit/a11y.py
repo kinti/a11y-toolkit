@@ -43,6 +43,8 @@ from . import a11ysarif
 from . import contrast
 from . import declaracion
 from . import a11yjourney
+from . import a11yvtt
+from . import a11ypdf
 from . import a11yvpat
 from . import a11yact
 
@@ -68,6 +70,8 @@ SUBCOMANDOS = {
     'budget': (a11ybudget, None),
     'journey': (a11yjourney, None),
     'journey-budget': (a11yjourney, '_budget_main'),
+    'vtt': (a11yvtt, None),
+    'pdf': (a11ypdf, None),
     'contrast-dom': (a11ydom, 'contrast_dom_main'),
     'vpat': (a11yvpat, None),
     'earl': (a11yact, None),
