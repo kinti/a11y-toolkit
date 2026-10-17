@@ -28,6 +28,12 @@ Tools:
   - a11y_journey_verdict(task, steps, outcome)    blindfold task verdict: friction log → scored evidence
   - a11y_vtt_check(url, …)                         caption CONTENT quality (1.2.2)
   - a11y_audit_pdf(path)                           PDF structural screening — nobody automated it
+  - a11ydocx.py(path)                              DOCX structural screening (alt, fake headings, lang, table headers)
+  - a11y_docx_screen(path)                         DOCX screening tool — same engine as a11ydocx.py
+  - a11y_reduced_motion(url)                       does the site honor prefers-reduced-motion? (2.2.2)
+  - a11y_forced_colors(url)                        SVG hardcoded fills vs forced-colors (Windows HCM)
+  - audit_reduced_motion(url)                      does the site honor prefers-reduced-motion? (2.2.2)
+  - audit_forced_colors(url)                       SVG hardcoded fills vs forced-colors / Windows HCM
   - a11y_generate_vpat(product, pack|reports, …)  VPAT 2.5 (WCAG) draft from the evidence pack
   - a11y_contrast_dom(url, selector, …)           real text-over-anything contrast (auto-region sampling)
   - a11y_disprove(url, informe?, …)                re-verify findings → confirmed/rejected
@@ -62,6 +68,8 @@ from .a11ycrit import criterio as criterio_fn  # noqa: E402
 from .a11yjourney import verdictar as journey_verdict_fn  # noqa: E402
 from .a11yvtt import vtt_check as vtt_check_fn  # noqa: E402
 from .a11ypdf import pdf_screen as pdf_screen_fn  # noqa: E402
+from .a11ydocx import docx_screen as docx_screen_fn  # noqa: E402
+from .a11ydom import audit_reduced_motion as reduced_motion_fn, audit_forced_colors as forced_colors_fn  # noqa: E402
 from .a11ydisprove import disprove as disprove_fn  # noqa: E402
 from .a11yledger import record as ledger_record, gaps as ledger_gaps, summary as ledger_summary  # noqa: E402
 from .a11ybadge import badge as badge_fn  # noqa: E402
@@ -74,7 +82,7 @@ try:
 except ImportError:
     ARIALIVE_JS = None  # repo checkout: read the file
 
-VERSION = '5.8.0'
+VERSION = '5.9.0'
 
 INSTRUCTIONS = (
     'Accessibility toolkit (WCAG 2.2), multilanguage es/en. '
@@ -559,6 +567,54 @@ TOOLS = [
             'lang': {'type': 'string', 'enum': ['en', 'es'], 'description': 'output language'},
         }, 'required': ['path']},
     },
+    {
+        'name': 'a11y_docx_screen',
+        'description': ('DOCX accessibility screening — the other half of enterprise paperwork. '
+                        'Zero-dep structural pass on a LOCAL .docx: images with no alt text '
+                        '(docPr without descr), fake headings (bold+big paragraphs with no Heading '
+                        'style — invisible to navigation pane and TOC), document language, tables '
+                        'without marked header row. Full review needs a human; this finds what '
+                        'makes it pointless. Returns JSON: {mode: "docx", idioma, images, tables, '
+                        'findings, summary, limits}.'),
+        'inputSchema': {'type': 'object', 'properties': {
+            'path': {'type': 'string', 'description': 'local .docx file path'},
+            'lang': {'type': 'string', 'enum': ['en', 'es'], 'description': 'output language'},
+        }, 'required': ['path']},
+    },
+    {
+        'name': 'a11y_reduced_motion',
+        'description': ('Does the site HONOR prefers-reduced-motion? Loads the page normally, '
+                        'counts looping CSS animations (>0.15s infinite), then reloads emulating '
+                        'prefers-reduced-motion: reduce and counts again. If the number does not '
+                        'drop, the site ignores the user\'s preference (2.2.2; 2.3.3 AAA). '
+                        'Nobody else automates this — axe leaves it as manual review. Covers CSS '
+                        'animations and video[autoplay]; JS/WebGL/scroll-parallax remain manual. '
+                        'Returns JSON: {mode, normal, reduced, respects, score, findings, limits}.'),
+        'inputSchema': {'type': 'object', 'properties': {
+            'url': {'type': 'string', 'description': 'Page URL to test'},
+            'auth_state': {'type': 'string', 'description': 'Path to a Playwright storage_state JSON (exported session) to test behind login — stays local'},
+            'browser': {'type': 'string', 'enum': ['auto', 'chromium', 'firefox', 'webkit', 'chrome', 'msedge'], 'description': 'Browser engine (auto = detect the first available)'},
+            'lang': {'type': 'string', 'enum': ['en', 'es'], 'description': 'output language'},
+            'timeout': {'type': 'number', 'description': 'page load timeout seconds (45 default)'},
+        }, 'required': ['url']},
+    },
+    {
+        'name': 'a11y_forced_colors',
+        'description': ('Does content survive forced-colors: active (Windows High Contrast)? '
+                        'Loads the page normally, flags SVGs with hardcoded colored fills (they '
+                        'fall back to inherited and icons can vanish), then emulates '
+                        'forced-colors and compares. Review-grade heuristic — the definitive '
+                        'check is visual on Windows HCM; this prepares it. Heuristic rev '
+                        '1: SVG fills only, images queued for the next rev. '
+                        'Returns JSON: {mode, normal, forced, score, findings, limits}.'),
+        'inputSchema': {'type': 'object', 'properties': {
+            'url': {'type': 'string', 'description': 'Page URL to test'},
+            'auth_state': {'type': 'string', 'description': 'Path to a Playwright storage_state JSON (exported session) to test behind login — stays local'},
+            'browser': {'type': 'string', 'enum': ['auto', 'chromium', 'firefox', 'webkit', 'chrome', 'msedge'], 'description': 'Browser engine (auto = detect the first available)'},
+            'lang': {'type': 'string', 'enum': ['en', 'es'], 'description': 'output language'},
+            'timeout': {'type': 'number', 'description': 'page load timeout seconds (45 default)'},
+        }, 'required': ['url']},
+    },
 ]
 
 _PROMPTS = [
@@ -753,6 +809,18 @@ _PARAM_DOCS = {
  ('a11y_vtt_check', 'url'): 'URL of the .vtt caption file to download and judge',
  ('a11y_vtt_check', 'duration'): 'Media duration in seconds — enables coverage (1.2.2 completeness)',
  ('a11y_audit_pdf', 'path'): 'Local PDF file path to screen (structural pass)',
+ ('a11y_docx_screen', 'path'): 'Local .docx file path to screen (structural pass)',
+ ('a11y_docx_screen', 'lang'): 'Output language (en|es)',
+ ('a11y_reduced_motion', 'url'): 'Page URL to test with and without prefers-reduced-motion',
+ ('a11y_reduced_motion', 'auth_state'): 'Playwright storage_state JSON path (behind-login testing)',
+ ('a11y_reduced_motion', 'browser'): 'Browser engine (auto = detect the first available)',
+ ('a11y_reduced_motion', 'lang'): 'Output language (en|es)',
+ ('a11y_reduced_motion', 'timeout'): 'Page load timeout seconds (45 default)',
+ ('a11y_forced_colors', 'url'): 'Page URL to test under forced-colors emulation',
+ ('a11y_forced_colors', 'auth_state'): 'Playwright storage_state JSON path (behind-login testing)',
+ ('a11y_forced_colors', 'browser'): 'Browser engine (auto = detect the first available)',
+ ('a11y_forced_colors', 'lang'): 'Output language (en|es)',
+ ('a11y_forced_colors', 'timeout'): 'Page load timeout seconds (45 default)',
  ('a11y_disprove', 'url'): 'URL to re-verify findings against',
  ('a11y_disprove', 'report'): 'Existing audit report to verify (optional; audits first if absent)',
  ('a11y_disprove', 'timeout'): 'Fetch timeout seconds (default 30)',
@@ -901,6 +969,9 @@ _ANN = {
     'a11y_contrast_dom':     ('Live-element contrast sampling', True, True),
     'a11y_vtt_check':        ('WebVTT caption quality', True, True),
     'a11y_audit_pdf':        ('PDF accessibility screening', True, False),
+    'a11y_docx_screen':      ('DOCX accessibility screening', True, False),
+    'a11y_reduced_motion':   ('prefers-reduced-motion honored?', True, True),
+    'a11y_forced_colors':    ('forced-colors survival heuristic', True, True),
 }
 # TDQS hygiene: annotations must match reality, and every description states
 # its return shape and when (not) to use the tool. a11y_ledger.record mutates
@@ -1177,6 +1248,31 @@ def llamar(nombre, args):
         try:
             return _texto(vtt_check_fn(args['url'], duration=args.get('duration'),
                                        lang=args.get('lang', 'en')))
+        except Exception as e:
+            return {'content': [{'type': 'text', 'text': f'error: {e}'}], 'isError': True}
+    if nombre == 'a11y_docx_screen':
+        try:
+            return _texto(docx_screen_fn(args['path'], lang=args.get('lang', 'en')))
+        except Exception as e:
+            return {'content': [{'type': 'text', 'text': f'error: {e}'}], 'isError': True}
+    if nombre == 'a11y_reduced_motion':
+        try:
+            return _texto(reduced_motion_fn(args['url'], timeout=args.get('timeout', 45),
+                                            lang=args.get('lang', 'en'),
+                                            auth_state=args.get('auth_state'),
+                                            browser=args.get('browser', 'auto')))
+        except ImportError:
+            return {'content': [{'type': 'text', 'text': 'Playwright not installed'}], 'isError': True}
+        except Exception as e:
+            return {'content': [{'type': 'text', 'text': f'error: {e}'}], 'isError': True}
+    if nombre == 'a11y_forced_colors':
+        try:
+            return _texto(forced_colors_fn(args['url'], timeout=args.get('timeout', 45),
+                                           lang=args.get('lang', 'en'),
+                                           auth_state=args.get('auth_state'),
+                                           browser=args.get('browser', 'auto')))
+        except ImportError:
+            return {'content': [{'type': 'text', 'text': 'Playwright not installed'}], 'isError': True}
         except Exception as e:
             return {'content': [{'type': 'text', 'text': f'error: {e}'}], 'isError': True}
     if nombre == 'a11y_audit_pdf':

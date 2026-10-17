@@ -8,7 +8,7 @@
 [![MCP](https://img.shields.io/badge/Model%20Context%20Protocol-server-purple)](https://modelcontextprotocol.io)
 [![Sponsor](https://img.shields.io/badge/Sponsor-%E2%9D%A4-pink)](https://github.com/sponsors/kinti)
 
-28 MCP tools, 6 prompts and a skill covering the whole WCAG 2.2 loop: audit, fix,
+31 MCP tools, 6 prompts and a skill covering the whole WCAG 2.2 loop: audit, fix,
 document, watch, hand off — and now blindfold usability testing, where the agent
 attempts real tasks perceiving only what a screen reader exposes. 51 of 55 A/AA criteria carry automated signals (93%), every
 finding ships with a concrete remediation your agent can apply, and the rendered tools
@@ -38,7 +38,7 @@ the human signs.
 | An evidence pack a human can countersign — hashes, matrix, empty signature block | ✗ | ✓ |
 | Runs with zero dependencies at core, speaks es/en, any browser you have | heavy runtimes | ✓ |
 
-## The tools (28)
+## The tools (31)
 
 Every tool, complete — description, arguments, and behavior annotations, generated from the server itself (`server.TOOLS` is the source of truth). All tools accept `lang` (`en`|`es`) unless noted; output is JSON unless noted.
 
@@ -324,6 +324,58 @@ WebVTT caption QUALITY (1.2.2) — the substance, not the presence. Everyone sto
 - `url` *(required)*: URL of the .vtt caption file.
 - `duration`: media duration in seconds — enables the coverage check (1.2.2 completeness) — range 1…∞.
 - `lang` — one of ['en', 'es']: output language.
+
+#### `a11y_audit_pdf`
+
+<sub>read-only</sub>
+
+PDF accessibility screening — the space nobody automated (axe, pa11y, Lighthouse: HTML only). Zero-dep structural first pass on a LOCAL file: tagged tree (/StructTreeRoot — the root failure), title, language, outline, /Alt entries, text layer (scanned detection), encryption. Full PDF/UA conformance needs a spec validator (veraPDF); this finds the failures that make full validation pointless. Use for enterprise document pipelines and PDFs linked from the audited site. Returns JSON: {mode: "pdf", pages, tagged, lang, title, images, alt_entries, findings, summary, limits}.
+
+
+**Arguments**
+
+- `path` *(required)*: local PDF file path (never fetched remotely — download it yourself first).
+- `lang` — one of ['en', 'es']: output language.
+
+#### `a11y_docx_screen`
+
+<sub>read-only</sub>
+
+DOCX accessibility screening — the other half of enterprise paperwork. Zero-dep structural pass on a LOCAL .docx: images with no alt text (docPr without descr), fake headings (bold+big paragraphs with no Heading style — invisible to the navigation pane and TOC), document language, tables without marked header row. Returns JSON: {mode: "docx", idioma, images, tables, findings, summary, limits}.
+
+
+**Arguments**
+
+- `path` *(required)*: local .docx file path.
+- `lang` — one of ['en', 'es']: output language.
+
+#### `a11y_reduced_motion`
+
+<sub>read-only · network</sub>
+
+Does the site HONOR prefers-reduced-motion? Loads the page normally, counts looping CSS animations (>0.15s infinite), then reloads emulating prefers-reduced-motion: reduce and counts again. If the number does not drop, the site ignores the user's preference (2.2.2; 2.3.3 AAA). Nobody else automates this. Covers CSS animations and video[autoplay]; JS/WebGL/scroll-parallax remain manual. Returns JSON: {mode, normal, reduced, respects, score, findings, limits}.
+
+
+**Arguments**
+
+- `url` *(required)*: page URL to test with and without prefers-reduced-motion.
+- `auth_state`: path to a Playwright storage_state JSON — test behind login, stays local.
+- `browser` — one of ['auto', 'chromium', 'firefox', 'webkit', 'chrome', 'msedge']: engine.
+- `lang` — one of ['en', 'es']: output language.
+- `timeout`: page load timeout seconds (45 default).
+
+#### `a11y_forced_colors`
+
+<sub>read-only · network</sub>
+
+Does content survive forced-colors: active (Windows High Contrast)? Flags SVGs with hardcoded colored fills (they fall back to inherited and icons can vanish). Review-grade heuristic — the definitive check is visual on Windows HCM; this prepares it. Returns JSON: {mode, normal, forced, score, findings, limits}.
+
+
+**Arguments**
+
+- `url` *(required)*: page URL to test under forced-colors emulation.
+- `auth_state`, `browser`, `lang`, `timeout`: as a11y_reduced_motion.
+
 
 #### `a11y_audit_pdf`
 

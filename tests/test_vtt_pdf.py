@@ -6,6 +6,7 @@ import os
 import subprocess
 import sys
 import zlib
+import zipfile
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -100,3 +101,51 @@ print('VTT+PDF OK ✓')
 solo_estructura = pdf_screen(mini_pdf(tagged=False, title=False, lang=False, texto=False), lang='es')
 assert 'pdf_scanned' not in {h['signal'] for h in solo_estructura['findings']}
 print('10. escaneo solo con patrón (img+sin texto) ✓')
+
+
+# ── DOCX screening (5.9-c) ──
+from a11y_toolkit.a11ydocx import docx_screen  # noqa: E402
+W_NS = 'xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"'
+
+def docx_tmp(cuerpo, estilos=None, name='t.docx'):
+    ruta = os.path.join('/tmp', name)
+    z = zipfile.ZipFile(ruta, 'w')
+    z.writestr('[Content_Types].xml', '<?xml version="1.0"?><Types/>')
+    z.writestr('word/document.xml', '<?xml version="1.0"?>' + cuerpo)
+    z.writestr('word/styles.xml', estilos or f'<?xml version="1.0"?><w:styles {W_NS}></w:styles>')
+    z.close()
+    return ruta
+
+cuerpo_malo = f'<w:document {W_NS}><w:body>' \
+    + '<w:p><w:r><w:rPr><w:b/><w:sz w:val="36"/></w:rPr><w:t>Sección principal</w:t></w:r></w:p>' \
+    + '<w:tbl><w:tr><w:tc><w:p><w:r><w:t>a</w:t></w:r></w:p></w:tc></w:tr></w:tbl>' \
+    + '<w:p><w:r><w:drawing><wp:docPr id="1" name="Img1"/></wp:drawing></w:r></w:p>' \
+    + '</w:body></w:document>'
+m = docx_screen(docx_tmp(cuerpo_malo, name='malo.docx'), lang='en')
+sig_m = {h['signal'] for h in m['findings']}
+assert {'docx_no_alt', 'docx_sin_idioma', 'docx_sin_tabla_header', 'docx_falsos_encabezados'} <= sig_m, sig_m
+print('11. DOCX malo: 4 señales raíz ✓')
+
+estilos_bien = (f'<?xml version="1.0"?><w:styles {W_NS}><w:docDefaults><w:rPrDefault>'
+                f'<w:rPr><w:lang w:val="es-ES"/></w:rPr></w:rPrDefault></w:docDefaults></w:styles>')
+cuerpo_bien = (f'<w:document {W_NS}><w:body>'
+               + '<w:p><w:pPr><w:pStyle w:val="Heading1"/></w:pPr><w:r><w:t>Sección</w:t></w:r></w:p>'
+               + '<w:tbl><w:tr><w:trPr><w:tblHeader/></w:trPr><w:tc><w:p><w:r><w:t>a</w:t></w:r></w:p></w:tc></w:tr></w:tbl>'
+               + '<w:p><w:r><w:drawing><wp:docPr id="1" name="i" descr="Gráfico de ventas"/></wp:drawing></w:r></w:p>'
+               + '</w:body></w:document>')
+b = docx_screen(docx_tmp(cuerpo_bien, estilos_bien, 'bien.docx'), lang='en')
+assert not b['findings'] and b['idioma'] == 'es-ES', (b['findings'], b['idioma'])
+print('12. DOCX bueno: sin señales, idioma detectado ✓')
+
+assert 'error' in docx_screen('/tmp', lang='en')
+print('13. no-docx rechazado ✓')
+
+# 14. CLI real
+out = subprocess.run([sys.executable, '-m', 'a11y_toolkit.a11ydocx',
+                      docx_tmp(cuerpo_malo, name='cli.docx'), '--lang', 'en'],
+                     capture_output=True, text=True, cwd=ROOT, timeout=30)
+d = json.loads(out.stdout)
+assert d['mode'] == 'docx' and d['findings']
+print('14. CLI docx ✓')
+
+print('DOCX SCREENING OK ✓')

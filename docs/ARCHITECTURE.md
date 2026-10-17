@@ -7,7 +7,7 @@ read this. Every claim here that can be pinned by a test IS pinned by
 ## What this is
 
 a11y-toolkit is the machine half of WCAG 2.2 conformance work: an MCP server
-(28 tools + 6 prompts) and a CLI (`a11ytoolkit`) that audit, fix, document,
+(31 tools + 6 prompts) and a CLI (`a11ytoolkit`) that audit, fix, document,
 watch and hand off accessibility findings. The human half is priced, not
 guessed. Zero dependencies at the core; Playwright/Pillow optional behind
 import guards. Output es/en; wire keys English (`a11y-evidence-pack/2`).
@@ -26,6 +26,7 @@ import guards. Output es/en; wire keys English (`a11y-evidence-pack/2`).
 | `a11yvpat.py` | VPAT 2.5 (WCAG edition) generator: pack → accessible HTML VPAT, machine fills Remarks, human sets levels (overrides), signature references pack sha256. |
 | `a11yact.py` | ACT Rules interop: curated signal → ACT rule map (`ACT_MAP`, partial by design) + EARL 1.0 JSON-LD export (failures only, never asserts pass). |
 | `a11yvtt.py` | WebVTT caption quality (1.2.2): parses the real .vtt — malformed/empty/overlapping/too-fast cues (>21 cps), coverage vs duration. |
+| `a11ydocx.py` | DOCX structural screening (zip+XML): images w/o alt, fake headings (bold+big without Heading style), document language, header rows. |
 | `a11ypdf.py` | PDF structural screening: tagged tree, title, /Lang, outline, /Alt, text layer (scans), encryption — zero-dep, the space nobody automated. |
 | `a11yjourney.py` | Blindfold journey verdict: friction log → deterministic scored task verdict; `_J` friction catalogue (journey_* patterns → criterion + bilingual remediation). |
 | `a11ydiff.py` | Snapshot + regression diff (interactives, focus order, tree). |

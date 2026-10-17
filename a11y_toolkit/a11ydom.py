@@ -141,6 +141,10 @@ _TD = {
         'focus_obscured_rem': ('Un elemento fijo no debe ocultar el elemento enfocado (2.4.11, '
                                'nuevo en WCAG 2.2 AA): usa scroll-padding-top igual a la altura '
                                'del header fijo, o hazlo auto-colapsable.'),
+        'forced_colors_svg': '{n} SVG con fill coloreado hardcoded: en forced-colors (Windows High Contrast) el fill cae al heredado y el icono puede volverse invisible.',
+        'forced_colors_svg_rem': 'Usa fill="currentColor" (hereda el color del texto que el sistema ya ajusta) o fuerza los keywords del sistema (CanvasText).',
+        'reduced_motion_ignored': '{n} animaciones en bucle siguen moviéndose con prefers-reduced-motion activo (antes {n}, ahora {nr}): la preferencia del usuario se ignora (2.2.2).',
+        'reduced_motion_ignored_rem': 'Envuelve las animaciones en @media (prefers-reduced-motion: reduce) { animation: none } — o paúsala con la API Animation. El usuario pidió menos movimiento; respóndelo.',
         'state_contrast': ('{n} controles con contraste insuficiente en estado :focus/:hover '
                            '(<3:1): {det}. Revisar.'),
         'state_contrast_rem': ('El texto del control también necesita contraste cuando está '
@@ -195,6 +199,10 @@ _TD = {
         'reflow_fail_rem': ('Use fluid layouts (flex/grid, max-width instead of fixed width) '
                             'and media queries: content must reflow to 320px without '
                             'horizontal scroll. Exceptions: data tables, maps, charts.'),
+        'forced_colors_svg': '{n} SVGs with hardcoded colored fill: under forced-colors (Windows High Contrast) the fill falls back to inherited and the icon can turn invisible.',
+        'forced_colors_svg_rem': 'Use fill="currentColor" (inherits text color, which the system already adjusts) or the system keywords (CanvasText).',
+        'reduced_motion_ignored': '{n} looping animations still run with prefers-reduced-motion set (before {n}, after {nr}): the user\'s preference is ignored (2.2.2).',
+        'reduced_motion_ignored_rem': 'Wrap animations in @media (prefers-reduced-motion: reduce) { animation: none } — or pause via the Animation API. The user asked for less motion; honor it.',
         'state_contrast': ('{n} controls with insufficient :focus/:hover state contrast '
                            '(<3:1): {det}. Review.'),
         'state_contrast_rem': ('The control text needs contrast when focused or hovered too '
@@ -1487,6 +1495,158 @@ def _muestrea_fondo(loc, rect, c):
         return None
     rw, rh, rgb2 = recorte
     return sample_rgb(rw, rh, rgb2, c)
+
+
+def audit_forced_colors(url, timeout=45, lang='en', auth_state=None, browser='auto'):
+    """1.4.3/1.4.12-adjacente — ¿sobrevive el contenido a forced-colors: active?
+
+    Los usuarios de Windows High Contrast Mode (ahora forced-colors CSS) ven
+    la paleta del sistema: los colores del autor desaparecen. Lo que se
+    rompe: texto pintado con color sobre fondo pintado (los DOS pasan al
+    esquema del sistema, el contraste del autor ya no aplica — pero los
+    iconos SVG con fill coloreado y las imágenes informativas PNG que
+    dependen del color del autor pueden quedar invisibles sobre el fondo
+    del sistema), y bordes usados como único indicador visual. Nadie más
+    lo automatiza."""
+    from playwright.sync_api import sync_playwright
+    _JS_FC = r'''() => {
+      const invisibles = [];
+      let n = 0;
+      for (const el of document.querySelectorAll('svg, img, [role=img], canvas')) {
+        if (n >= 400) break;
+        n++;
+        const r = el.getBoundingClientRect();
+        if (r.width <= 2 || r.height <= 2) continue;
+        const cs = getComputedStyle(el);
+        if (cs.visibility === 'hidden' || cs.display === 'none') continue;
+        // con forced-colors, fill/stroke coloreados del autor caen a heredado
+        // salvo que usen los keywords del sistema; detectar fill coloreado
+        // hardcoded en SVG (ni currentColor ni CanvasText)
+        if (el.tagName.toLowerCase() === 'svg') {
+          const fills = [...el.querySelectorAll('[fill]')].map(x => x.getAttribute('fill'));
+          if (el.getAttribute('fill')) fills.push(el.getAttribute('fill'));
+          const col = fills.find(f => f && !['currentColor', 'CanvasText', 'Canvas', 'none',
+                                          'inherit', 'transparent'].includes(f)
+                                  && !f.startsWith('url('));
+          if (col) invisibles.push('svg fill=' + col + ' — puede desaparecer en HCM');
+        }
+      }
+      // imágenes informativas sin forced-color-adjust: en HCM Windows las
+      // oscurece; si el PNG es oscuro, desaparece. Señal de revisión si hay
+      // PNG con clase de icono (heurística humilde)
+      const iconos = document.querySelectorAll('img[class*=icon i], svg[class*=icon i]').length;
+      return { svgColoreados: invisibles.slice(0, 8), iconos };
+    }'''
+    from .a11yaudit import _t as _t_audit, CRIT, calcular_score
+
+    with sync_playwright() as p:
+        nav = p.chromium.launch()
+        ctx = nav.new_context(storage_state=auth_state) if auth_state else nav
+        page = ctx.new_page() if auth_state else nav.new_page()
+        try:
+            page.goto(url, wait_until='load', timeout=timeout * 1000)
+            page.wait_for_timeout(400)
+            normal = page.evaluate(_JS_FC)
+            page.emulate_media(forced_colors='active')
+            page.wait_for_timeout(400)
+            forzado = page.evaluate(_JS_FC)
+        except Exception as e:  # noqa: BLE001
+            nav.close()
+            return {'error': _t_audit(lang, 'descarga_error').format(e=e)}
+        nav.close()
+
+    hallazgos = []
+    if forzado['svgColoreados']:
+        hallazgos.append({
+            'severity': 'low', 'criterion': CRIT.get(lang, CRIT['es']).get('1.4.3', '1.4.3'),
+            'signal': 'forced_colors_svg',
+            'issue': _t_audit(lang, 'forced_colors_svg').format(n=len(forzado['svgColoreados'])),
+            'remediation': _t_audit(lang, 'forced_colors_svg_rem'),
+            'examples': forzado['svgColoreados']})
+    orden = {'high': 0, 'medium': 1, 'low': 2}
+    hallazgos.sort(key=lambda h: orden[h['severity']])
+    return {
+        'mode': 'forced-colors', 'url': url,
+        'normal': normal, 'forced': forzado,
+        'score': calcular_score(hallazgos),
+        'findings': hallazgos,
+        'summary': {s2: sum(1 for h in hallazgos if h['severity'] == s2)
+                    for s2 in ('high', 'medium', 'low')},
+        'limits': ('Heurística de revisión (1.4.3/1.4.11 en HCM): los fills '
+                   'coloreados hardcoded en SVG suelen caer al heredado con '
+                   'forced-colors. La comprobación definitiva es visual con '
+                   'Windows High Contrast — esto la prepara, no la sustituye.'),
+    }
+
+
+def audit_reduced_motion(url, timeout=45, lang='en', auth_state=None, browser='auto'):
+    """2.2.2 (2.3.3) — ¿respeta el sitio prefers-reduced-motion?
+
+    Carga la página normal y cuenta animaciones CSS en bucle (>0.15s,
+    infinite). Recarga emulando prefers-reduced-motion: reduce y cuenta otra
+    vez. Si el número NO baja, el sitio ignora la preferencia del usuario
+    (2.2.2: pausa/parada/ocultar; 2.3.3 AAA). Nadie más lo automatiza:
+    axe lo deja en revisión manual."""
+    from playwright.sync_api import sync_playwright
+    _JS_RM = r'''() => {
+      let n = 0, ejemplos = [];
+      for (const el of document.querySelectorAll('*')) {
+        if (n >= 40) break;
+        const cs = getComputedStyle(el);
+        if (cs.animationIterationCount !== 'infinite' || cs.animationName === 'none') continue;
+        const durs = (cs.animationDuration || '0s').split(',').map(
+          x => { const v = parseFloat(x) || 0; return x.includes('ms') ? v / 1000 : v; });
+        const dur = Math.max(...durs, 0);
+        if (dur <= 0.15) continue;
+        n++;
+        if (ejemplos.length < 6) ejemplos.push(
+          el.tagName.toLowerCase() + (el.id ? '#' + el.id : '')
+          + '.' + String(el.className).slice(0, 25) + ' (' + cs.animationName.slice(0, 30) + ')');
+      }
+      const videos = document.querySelectorAll('video[autoplay]').length;
+      return { anims: n, ejemplos: ejemplos, videos };
+    }'''
+    from .a11yaudit import _t as _t_audit, CRIT, calcular_score
+
+    with sync_playwright() as p:
+        nav = p.chromium.launch()
+        ctx = nav.new_context(storage_state=auth_state) if auth_state else nav
+        page = ctx.new_page() if auth_state else nav.new_page()
+        try:
+            page.goto(url, wait_until='load', timeout=timeout * 1000)
+            page.wait_for_timeout(600)
+            normal = page.evaluate(_JS_RM)
+            page.emulate_media(reduced_motion='reduce')
+            page.wait_for_timeout(600)
+            reducido = page.evaluate(_JS_RM)
+        except Exception as e:  # noqa: BLE001
+            nav.close()
+            return {'error': _t_audit(lang, 'descarga_error').format(e=e)}
+        nav.close()
+
+    respeta = reducido['anims'] < normal['anims']
+    hallazgos = []
+    if normal['anims'] > 0 and not respeta:
+        hallazgos.append({
+            'severity': 'medium', 'criterion': CRIT.get(lang, CRIT['es']).get('2.2.2', '2.2.2'),
+            'signal': 'reduced_motion_ignored',
+            'issue': _t_audit(lang, 'reduced_motion_ignored').format(
+                n=normal['anims'], nr=reducido['anims']),
+            'remediation': _t_audit(lang, 'reduced_motion_ignored_rem'),
+            'examples': normal['ejemplos'][:4]})
+    orden = {'high': 0, 'medium': 1, 'low': 2}
+    hallazgos.sort(key=lambda h: orden[h['severity']])
+    return {
+        'mode': 'reduced-motion', 'url': url,
+        'normal': normal, 'reduced': reducido,
+        'respects': respeta,
+        'score': calcular_score(hallazgos),
+        'findings': hallazgos,
+        'summary': {s2: sum(1 for h in hallazgos if h['severity'] == s2)
+                    for s2 in ('high', 'medium', 'low')},
+        'limits': ('Mide CSS animations y video[autoplay]. No cubre '
+                   'animaciones JS/WebGL ni parallax por scroll — revisión manual.'),
+    }
 
 
 def audit_dom_url(url, timeout=45, lang='en', auth_state=None, browser='auto', color_scheme='light'):
