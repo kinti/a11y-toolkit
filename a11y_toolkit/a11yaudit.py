@@ -36,6 +36,16 @@ _LANG_CODES = set('''af am ar az be bg bn bs ca cs cy da de el en es et eu fa fi
 gu he hi hr hu hy id is it ja ka kk km kn ko ky lo lt lv mk ml mn mr ms my ne nl or pa
 pl ps pt ro ru rw si sk sl sq sr sv sw ta te tg th ti tk tr uk ur uz vi zh'''.split())
 
+_REGIONES = set('''af ax al dz as ad ao ai aq ag ar am aw au at az bs bh bd bb by be bz
+bm bt bo bq ba bw bv io br io bn bg bf bi cv kh cm ca ky cf td cl cn cx cc co km cg cd
+ck cr ci hr cu cw cy cz dj dk dm do ec eg sv gq er ee et fk fo fj fi fr gf pf tf ga gm
+ge de gh gi gr gl gd gp gu gt gn gw gy ht hm hn hk hu is in id ir iq ie im il it jm je
+jo kz ke ki kp kr kw kg la lv lb ls lr ly li lt lu mo mg mw my mv ml mt mh mq mr mu yt
+mx fm md mc mn me ms ma mz mm na nr np nl nc nz ni ne ng nu nf mp no om pk pw ps pa pg
+py pe ph pn pl pr qa re ro ru rw bl sh kn lc mf pm vc ws sm st sa sn rs sc sl sx sb so
+za gs ss es lk sd sr sj sz se ch sy tw tj tz th tl tg tk to tt tn tr tm tc tv ug ua ae
+gb us um uy uz vu ve vn vg vi wf eh ye zm zw'''.split())
+
 # Roles ARIA concretos (WAI-ARIA 1.2); doc- se admite como prefijo de DPUB
 _ROLES_ARIA = set('''alert alertdialog application article banner button caption cell
 checkbox code columnheader combobox complementary contentinfo definition deletion dialog
@@ -245,10 +255,14 @@ T = {
         'video_captions': '{n} <video> sin <track kind="captions">.',
         'video_captions_rem': 'Publica subtítulos para el audio del vídeo (1.2.2). Si es decorativo y sin audio, márcalo como tal.',
         'lang_missing': 'El elemento <html> no declara lang.',
+        'lang_region_invalida': 'lang «{l}»: la subetiqueta de región no existe (ISO 3166). Usa el idioma solo («es») o una región real («es-AR»).',
+        'lang_region_invalida_rem': 'Valida la región en el IANA Language Subtag Registry: «es» a secas o «es-AR» con región real.',
         'lang_missing_rem': 'Añade lang="es" (o el idioma real) a <html>: lectores de pantalla eligen la voz sintética por él.',
         'lang_invalid': 'lang="{lang}" no es un código de idioma válido (BCP-47).',
         'lang_invalid_rem': 'Usa el subtag principal ISO 639 correcto (es, en, pt…).',
         'title_missing': 'La página no tiene <title> con contenido.',
+        'title_generic': 'Título genérico («{t}»): no identifica esta página entre las abiertas (2.4.2, revisar).',
+        'title_generic_rem': 'Un título único por página: contenido + sitio («Contacto — MaisMedia»), nunca «Untitled», «Inicio» o «Documento».',
         'title_missing_rem': 'Escribe un <title> único y descriptivo por página (primer anuncio del lector, texto de la pestaña).',
         'heading_quality': '{n} encabezados/labels sospechosamente genéricos o vagos: {ej}. Revisar (2.4.6).',
         'heading_quality_rem': 'Los encabezados deben describir su sección: «Resultados del informe Q3», no «Sección 2» o «Más información» (2.4.6). Nombra las cosas.',
@@ -384,10 +398,14 @@ T = {
         'video_captions': '{n} <video> without <track kind="captions">.',
         'video_captions_rem': 'Publish captions for the video audio track (1.2.2). If decorative and silent, mark it as such.',
         'lang_missing': 'The <html> element does not declare lang.',
+        'lang_region_invalida': 'lang “{l}”: the region subtag does not exist (ISO 3166). Use the language alone (“en”) or a real region (“en-GB”).',
+        'lang_region_invalida_rem': 'Validate the region against the IANA Language Subtag Registry: “en” alone or “en-GB” with a real region.',
         'lang_missing_rem': 'Add lang="en" (the real language) to <html>: screen readers pick the synthetic voice from it.',
         'lang_invalid': 'lang="{lang}" is not a valid BCP-47 language code.',
         'lang_invalid_rem': 'Use the correct ISO 639 primary subtag (en, es, pt…).',
         'title_missing': 'The page has no <title> with content.',
+        'title_generic': 'Generic title (“{t}”): does not identify this page among the open ones (2.4.2, review).',
+        'title_generic_rem': 'One unique title per page: content + site (“Contact — MaisMedia”), never “Untitled”, “Home” or “Document”.',
         'title_missing_rem': 'Write a unique, descriptive <title> per page (screen reader\'s first announcement, tab text).',
         'heading_quality': '{n} suspiciously generic or vague headings/labels: {ej}. Review (2.4.6).',
         'heading_quality_rem': 'Headings should describe their section: "Q3 Report Results", not "Section 2" or "More info" (2.4.6). Name things.',
@@ -521,6 +539,7 @@ class _Auditor(HTMLParser):
         self.campos_sin_label = []
         self.iframes_sin_title = []
         self.lang = None
+        self.lang_region_invalida = None
         self.title = ''
         self._en_title = False
         self._en_script = False
@@ -653,6 +672,10 @@ class _Auditor(HTMLParser):
             self.ids[a['id']] = self.ids.get(a['id'], 0) + 1
         if tag == 'html':
             self.lang = (a.get('lang') or '').strip()
+            partes = self.lang.split('-')
+            if len(partes) == 2 and partes[1] and partes[1].isalpha() \
+                    and partes[1].lower() not in _REGIONES:
+                self.lang_region_invalida = self.lang
         elif tag == 'title':
             self._en_title = True
         elif tag == 'script':
@@ -1103,8 +1126,15 @@ def audit_html(html_text, url='(html)', lang='en'):
         add('medium', '3.1.1', 'lang_missing')
     elif p.lang.lower().split('-')[0] not in _LANG_CODES:
         add('medium', '3.1.1', 'lang_invalid', lang=p.lang)
-    if not p.title.strip():
+    elif p.lang_region_invalida:
+        add('low', '3.1.1', 'lang_region_invalida', l=p.lang_region_invalida)
+    t_limpio = (p.title or '').strip().lower()
+    if not t_limpio:
         add('medium', '2.4.2', 'title_missing')
+    elif t_limpio in ('untitled', 'documento', 'documento sin título', 'sin título',
+                      'home', 'inicio', 'page 1', 'new page', 'página 1',
+                      'untitled document', 'sin nombre', 'document'):
+        add('low', '2.4.2', 'title_generic', t=t_limpio)
     if p.iframes_sin_title:
         add_ej('medium', '4.1.2', 'iframe_title', p.iframes_sin_title, n=len(p.iframes_sin_title))
     if p.videos and p.videos_con_subs < p.videos:

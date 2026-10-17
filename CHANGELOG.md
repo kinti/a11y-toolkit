@@ -1,5 +1,37 @@
 # Changelog
 
+## 5.8.0 — 2026-10-16 — "the details nobody saw"
+
+The detail pass over WCAG 2.2 — ten delicate checks verified in code,
+three real gaps found and closed, the rest confirmed correct (bold 700 ✓,
+region validation now real ✓, muted-autoplay exemption ✓, img-in-link
+naming ✓, asterisk+required ✓):
+
+- **2.4.2 generic titles**: "Untitled document", "Inicio", "Page 1" were
+  accepted. Now a `title_generic` review finding (low) — the empty case
+  stays `title_missing` (medium).
+- **3.1.1 invented regions**: `lang="en-ZZ"` passed as valid. The region
+  subtag is now validated against ISO 3166-1 alpha-2 + UN M49 numeric
+  (es-AR ✓, en-ZZ flags, es-419 ✓) — a `lang_region_invalida` review
+  finding (low), because a reader cannot pronounce a region that does not
+  exist.
+- **2.5.8 spacing exception**: undersized targets pass when the nearest
+  neighbor is ≥24px away — no more false positives on isolated small
+  controls (the standard’s own exception, never implemented here).
+- **1.3.5 autocomplete VALUES validated** against WHATWG §7.5 (one-time-
+  code, webauthn, contact schemes, section-* wildcard, on/off), not just
+  presence.
+- **Bold threshold 700** (spec): semibold no longer gets the large-text
+  3:1 pass (three computation sites).
+- **reading_level**: Fernández-Huerta for Spanish pages, Flesch for
+  English — selected by the page's `lang`, computed over visible prose
+  only (script/style/title excluded), never scored (3.1.5 is AAA).
+
+Precision is measured in the replays: every fix above has a live
+verification (generic title fires / good title silent / en-ZZ flags /
+es-419 passes / isolated 20px button exempt / adjacent 20px buttons
+flagged / dark-only contrast failure caught).
+
 ## 5.7.0 — 2026-10-16 — "measurement quality + the spaces nobody automated"
 
 The precision pass over every measurement, plus two capabilities that close
