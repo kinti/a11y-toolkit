@@ -1,5 +1,24 @@
 # Changelog
 
+## 5.9.0 — 2026-10-17 — "the details, part two"
+
+The queued detail pass, shipped. Three new tools (31 total) plus precision:
+
+- **a11y_reduced_motion**: does the site HONOR prefers-reduced-motion?
+  Counts looping CSS animations, reloads emulating reduce, counts again.
+  If the number does not drop, the site ignores the user's preference
+  (2.2.2; 2.3.3 AAA). Nobody else automates this.
+- **a11y_forced_colors**: does content survive forced-colors: active
+  (Windows High Contrast)? Flags SVGs with hardcoded colored fills.
+- **a11y_docx_screen**: DOCX accessibility screening — images with no alt
+  text, fake headings, document language, tables without header rows.
+- **Precision**: bold 700; 2.5.8 spacing exception; 1.3.5 token values vs
+  WHATWG section 7.5; reading_level by page language; not_measured in
+  static reports; dark-mode contrast.
+- Contract tests new — first run caught three live bugs fixed here.
+
+31 MCP tools + 6 prompts; 15 suites green.
+
 ## 5.8.0 — 2026-10-16 — "the details nobody saw"
 
 The detail pass over WCAG 2.2 — ten delicate checks verified in code,
