@@ -18,6 +18,9 @@ The European Accessibility Act is in force since June 2025, ADA suits keep landi
 and AI agents now write most of the web. A scan is not a defence: the machine finds,
 the human signs.
 
+> **This engine is in production at [a11y.es](https://a11y.es)** — continuous WCAG 2.2
+> monitoring with hash-verifiable evidence packs and human-signed reports. En español.
+
 <p align="center">
   <img src="docs/demo.gif" alt="a11y-toolkit in action: audit (score 64), nearest passing color, re-audit (94) — real tool output" width="720">
 </p>
