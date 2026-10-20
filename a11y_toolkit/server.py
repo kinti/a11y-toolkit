@@ -101,7 +101,7 @@ INSTRUCTIONS = (
     'Automation covers about one third of WCAG: pair audits with the manual checklist '
     'in the audit-page prompt (keyboard, screen reader, zoom). '
     'The evidence pack (a11y_evidence) is vendor-neutral and locally verifiable '
-    '(hashes, criteria matrix, effort classes).
+    '(hashes, criteria matrix, effort classes).'
 )
 
 TOOLS = [
