@@ -1,5 +1,17 @@
 # Changelog
 
+## 5.10.1 — 2026-10-20 — "painted background"
+
+The PDF contrast check (5.10.0) assumed a white background — but a PDF can
+paint one with `re` + `f` before the text. White text on a dark painted rect
+was a false positive (the real ratio is high). The parser now tracks the
+painted fill as the effective background per text run: same bug, same fix,
+same lesson as CSS var() in the HTML audit — resolve the background before
+judging contrast.
+
+Also: text-layer detection covers uncompressed content streams (was
+Flate-only — legitimate uncompressed PDFs were flagged as scanned).
+
 ## 5.10.0 — 2026-10-17 — "PDF contrast + fake links — the next gap"
 
 Two more PDF detections (extending the screening from 5.9.0), verified

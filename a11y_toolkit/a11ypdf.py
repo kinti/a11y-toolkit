@@ -145,8 +145,11 @@ def pdf_screen(path_or_bytes, lang='en'):
     hallazgos = []
 
     # ── 1.4.3 en PDF: contraste del texto contra el fondo efectivo ──
-    # (el color actual lo fija `rg` antes de cada Tj; el fondo por defecto
-    #  del PDF es blanco si nadie lo pinta)
+    # Parseo de la secuencia: `rg` cambia el color de relleno de texto,
+    # `re` + `f` pinta un rectángulo (fondo), `Tj`/`TJ` escriben texto.
+    # El fondo por defecto del PDF es blanco si nadie lo pinta. Si un rect
+    # oscuro precede al texto, el fondo efectivo es ese fill — no acusar
+    # blanco-sobre-oscuro como bajo (el mismo bug que CSS var() en HTML).
     def _l(r, g, b):
         def lin(v):
             v /= 255.0
@@ -157,26 +160,40 @@ def pdf_screen(path_or_bytes, lang='en'):
         l1, l2 = max(f, b), min(f, b)
         return (l1 + 0.05) / (l2 + 0.05)
 
-    blanco = _l(255, 255, 255)
+    blanc = _l(255, 255, 255)
     bajos = []
     for flujo in flujos:
         texto = flujo.decode('latin-1', 'replace')
-        color_actual = (0, 0, 0)
+        texto_color = (0, 0, 0)
+        fondo_color = (255, 255, 255)   # el PDF no pinta fondo por defecto
+        fondo_pintado = False
         for m in re.finditer(
-                r'([\d.]+)\s+([\d.]+)\s+([\d.]+)\s+(rg|RG)\b|'
-                r'\((?:[^()\\]|\\.)*\)\s*\w*\s*(Tj|TJ)', texto):
-            if m.group(4):
+                r'([\d.]+)\s+([\d.]+)\s+([\d.]+)\s+(rg|re)\b'
+                r'|\b(f)\b'
+                r'|\((?:[^()\\]|\\.)*\)\s*(Tj|TJ)'
+                , texto):
+            op = m.group(4) or m.group(5) or m.group(6)
+            if op in ('rg', 're'):
                 try:
-                    color_actual = tuple(round(float(x) * 255) for x in m.groups()[:3])
+                    texto_color = tuple(
+                        max(0, min(255, round(float(x) * 255)))
+                        for x in m.groups()[:3])
                 except ValueError:
                     pass
-            else:
-                r, g, b = color_actual
-                lf = _l(r, g, b)
-                ratio = _ratio(lf, blanco)
+                if op == 're':
+                    # el rect se pinta con el fill actual: es el FONDO
+                    fondo_color = texto_color
+            elif op == 'f':
+                pass  # el f pinta con el fill ya establecido (fondo ya guardado)
+            else:  # Tj / TJ
+                lt = _l(*texto_color)
+                lb = _l(*fondo_color)
+                ratio = _ratio(lt, lb)
                 if ratio < 4.5:
-                    ej = f'rgb({r},{g},{b}) → {round(ratio, 2)}:1'
-                    if ej not in [x.split(' — ')[0] for x in bajos]:
+                    ej = (f'rgb({texto_color[0]},{texto_color[1]},{texto_color[2]})'
+                          f' sobre rgb({fondo_color[0]},{fondo_color[1]},{fondo_color[2]})'
+                          f' \u2192 {ratio:.2f}:1')
+                    if ej not in [x.split(' \u2014 ')[0] for x in bajos]:
                         bajos.append(ej)
         if len(bajos) >= 4:
             break
