@@ -38,6 +38,10 @@ T = {
         'pdf_encrypted_rem': 'Publica sin cifrado (o con permisos de extracción completos).',
         'pdf_scanned': 'sin capa de texto (0 caracteres en el contenido): parece un escaneo — invisible por completo (1.1.1).',
         'pdf_scanned_rem': 'Aplica OCR con texto real y etiqueta el resultado.',
+        'pdf_low_contrast': '{n} fragmentos de texto con color de relleno cercano al fondo (ratio < 4.5): el PDF no tiene cascada — el color actual lo fija el operador `rg` antes del Tj, y es medible. Ejemplos: {ej}.',
+        'pdf_low_contrast_rem': 'Sube el contraste del texto: en PDF el fondo por defecto es blanco si nadie lo pinta. m viewed con veraPDF/acrobat para confirmar el fondo real.',
+        'pdf_fake_link': '{n} textos con apariencia de enlace (color azulado / subrayado con rectángulo) sin anotación /A << /S /URI >> en la página: el lector de pantalla NO los anuncia como enlace (2.4.4).',
+        'pdf_fake_link_rem': 'Usa anotaciones de enlace reales (/Subtype /Link /A << /S /URI /URI (…) >>) sobre el texto del enlace.',
         'limits': ('Cribado estructural zero-dep: la conformidad PDF/UA completa '
                    'exige un validador de especificación (veraPDF). Este cribado '
                    'encuentra lo que hace inútil la validación completa.'),
@@ -57,6 +61,10 @@ T = {
         'pdf_encrypted_rem': 'Publish unencrypted (or with full extraction permissions).',
         'pdf_scanned': 'no text layer (0 characters in content): looks like a scan — fully invisible (1.1.1).',
         'pdf_scanned_rem': 'Apply OCR with real text and tag the result.',
+        'pdf_low_contrast': '{n} text fragments with fill color near the background (ratio < 4.5): a PDF has no cascade — the current color is set by the `rg` operator before each Tj, and it is measurable. Examples: {ej}.',
+        'pdf_low_contrast_rem': 'Raise the text contrast: a PDF\'s default background is white if nothing is painted. Confirm the real background with veraPDF/acrobat.',
+        'pdf_fake_link': '{n} text fragments styled like links (bluish fill / underlined with a rectangle) with no /A << /S /URI >> annotation on the page: screen readers do NOT announce them as links (2.4.4).',
+        'pdf_fake_link_rem': 'Use real link annotations (/Subtype /Link /A << /S /URI /URI (…) >>) over the link text.',
         'limits': ('Zero-dep structural screening: full PDF/UA conformance needs '
                    'a spec validator (veraPDF). This screening finds what makes '
                    'full validation pointless.'),
@@ -136,11 +144,77 @@ def pdf_screen(path_or_bytes, lang='en'):
 
     hallazgos = []
 
+    # ── 1.4.3 en PDF: contraste del texto contra el fondo efectivo ──
+    # (el color actual lo fija `rg` antes de cada Tj; el fondo por defecto
+    #  del PDF es blanco si nadie lo pinta)
+    def _l(r, g, b):
+        def lin(v):
+            v /= 255.0
+            return v / 12.92 if v <= 0.03928 else ((v + 0.055) / 1.055) ** 2.4
+        return 0.2126 * lin(r) + 0.7152 * lin(g) + 0.0722 * lin(b)
+
+    def _ratio(f, b):
+        l1, l2 = max(f, b), min(f, b)
+        return (l1 + 0.05) / (l2 + 0.05)
+
+    blanco = _l(255, 255, 255)
+    bajos = []
+    for flujo in flujos:
+        texto = flujo.decode('latin-1', 'replace')
+        color_actual = (0, 0, 0)
+        for m in re.finditer(
+                r'([\d.]+)\s+([\d.]+)\s+([\d.]+)\s+(rg|RG)\b|'
+                r'\((?:[^()\\]|\\.)*\)\s*\w*\s*(Tj|TJ)', texto):
+            if m.group(4):
+                try:
+                    color_actual = tuple(round(float(x) * 255) for x in m.groups()[:3])
+                except ValueError:
+                    pass
+            else:
+                r, g, b = color_actual
+                lf = _l(r, g, b)
+                ratio = _ratio(lf, blanco)
+                if ratio < 4.5:
+                    ej = f'rgb({r},{g},{b}) → {round(ratio, 2)}:1'
+                    if ej not in [x.split(' — ')[0] for x in bajos]:
+                        bajos.append(ej)
+        if len(bajos) >= 4:
+            break
+    if bajos:
+        hallazgos.append({
+            'severity': 'medium', 'criterion': '1.4.3 (PDF)',
+            'signal': 'pdf_low_contrast',
+            'issue': _t(lang, 'pdf_low_contrast').format(n=len(bajos), ej='; '.join(bajos[:3])),
+            'remediation': _t(lang, 'pdf_low_contrast_rem')})
+
+    # ── 2.4.4 en PDF: falso affordance de enlace ──
+    # texto azulado sin /Annot URI en la misma página
+    azules, n_uri = [], len(re.findall(rb'/S\s*/URI', datos))
+    for flujo in flujos:
+        texto = flujo.decode('latin-1', 'replace')
+        for m in re.finditer(
+                r'0\s+0\s+1\s+rg\s*(?:\n|.)*?\(([^)]{4,80})\)\s*Tj', texto):
+            azules.append(m.group(1)[:40])
+            if len(azules) >= 3:
+                break
+        if len(azules) >= 3:
+            break
+    if azules and n_uri == 0:
+        hallazgos.append({
+            'severity': 'medium', 'criterion': '2.4.4 (PDF)',
+            'signal': 'pdf_fake_link',
+            'issue': _t(lang, 'pdf_fake_link').format(n=len(azules)),
+            'remediation': _t(lang, 'pdf_fake_link_rem'),
+            'examples': azules})
+
     def add(key):
         crit, sev = _CRIT[key]
         hallazgos.append({'severity': sev, 'criterion': f'{crit} (PDF)',
                           'signal': key, 'issue': _t(lang, key),
                           'remediation': _t(lang, key + '_rem')})
+
+    # detecciones de contenido: contraste y falso enlace (necesitan hallazgos)
+
 
     if cifrado:
         add('pdf_encrypted')
