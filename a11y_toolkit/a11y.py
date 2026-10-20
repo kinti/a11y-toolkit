@@ -15,7 +15,7 @@
   a11ytoolkit reflow https://web                          # 320px reflow (1.4.10)
   a11ytoolkit kbd https://web                             # keyboard traps? (2.1.2)
   a11ytoolkit scroll https://medium/section               # infinite-scroll audit
-  a11ytoolkit evidence audit.json -o pack.json           # countersignature-ready pack
+  a11ytoolkit evidence audit.json -o pack.json           # verifiable evidence pack
   a11ytoolkit forms https://web/contact                 # form errors (3.3.1/3.3.3)
   a11ytoolkit validate --url https://web                # W3C Nu parser view
   a11ytoolkit disprove --url https://web                # re-verify findings

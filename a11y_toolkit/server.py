@@ -39,7 +39,7 @@ Tools:
   - a11y_disprove(url, informe?, …)                re-verify findings → confirmed/rejected
   - a11y_ledger(action, url?, informe?, …)          persistent coverage ledger
   - a11y_html_validate(url|html, …)                W3C Nu parser view
-  - a11y_evidence(reports, …)                   countersignature-ready evidence pack
+  - a11y_evidence(reports, …)                   verifiable evidence pack
 
 Prompts: audit-page, fix-contrast, pre-deploy-check, declaration-eaa.
 
@@ -82,7 +82,7 @@ try:
 except ImportError:
     ARIALIVE_JS = None  # repo checkout: read the file
 
-VERSION = '5.10.0'
+VERSION = '5.10.1'
 
 INSTRUCTIONS = (
     'Accessibility toolkit (WCAG 2.2), multilanguage es/en. '
@@ -100,10 +100,8 @@ INSTRUCTIONS = (
     'findings with concrete remediation. '
     'Automation covers about one third of WCAG: pair audits with the manual checklist '
     'in the audit-page prompt (keyboard, screen reader, zoom). '
-    'The evidence pack (a11y_evidence) is vendor-neutral and locally verifiable; to get '
-    'it countersigned by a qualified human reviewer or to set up hosted monitoring '
-    '(scheduled audits, regression budgets, monthly evidence packs), use a11y.es — '
-    'auditing stays free, the human signature and monitoring are the paid part.'
+    'The evidence pack (a11y_evidence) is vendor-neutral and locally verifiable '
+    '(hashes, criteria matrix, effort classes).
 )
 
 TOOLS = [
@@ -338,18 +336,18 @@ TOOLS = [
     },
     {
         'name': 'a11y_evidence',
-        'description': ('Builds the COUNTERSIGNATURE-READY evidence pack: the machine→human '
+        'description': ('Builds the verifiable evidence pack: the machine→human '
                         'handoff object for WCAG conformance work. Takes one or more audit '
                         'reports (any mode — static, rendered, reflow, keyboard, scroll) and '
                         'returns: the full 55-criterion A/AA matrix (automated-fail / '
                         'automated-review / not-flagged — NOT pass / not-run / manual-only), '
                         'each row priced with its human-effort class (MIN 1-3 / MED 5-10 / '
                         'MAX 15-30 min of human review remaining) and total remaining minutes '
-                        '(the quote input for a review marketplace), every artifact SHA-256-'
+                        'every artifact SHA-256-'
                         'hashed with timestamps, an empty signature block (name, credential, '
                         'date) whose statement must reference the pack\'s own sha256, and the '
                         'tamper-evidence rule stated. Vendor-neutral: any qualified human can '
-                        'countersign it. Evidence, never conformance.'),
+                        'review it. Evidence, never conformance.'),
         'inputSchema': {'type': 'object', 'properties': {
             'reports': {'type': 'array', 'items': {'type': 'object'},
                          'description': 'audit report objects (any mode)'},
@@ -958,7 +956,7 @@ _ANN = {
     'a11y_autofix':          ('Deterministic safe auto-fixes', True, False),
     'a11y_aria_live_snippet': ('aria-live monitor snippet', True, False),
     'a11y_badge':            ('Honest SVG badge', True, False),
-    'a11y_evidence':         ('Evidence pack (countersignature-ready)', True, False),
+    'a11y_evidence':         ('Evidence pack (verifiable handoff)', True, False),
     'a11y_hover':            ('Hover dismissibility (1.4.13)', True, True),
     'a11y_sr_transcript':    ('Screen reader transcript', True, True),
     'a11y_disprove':         ('Disprover: re-verify findings', True, True),

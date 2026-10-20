@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Evidence pack — the machine→human handoff object (countersignature-ready).
+"""Evidence pack — the machine→human handoff object for WCAG conformance work.
 
 The design lesson comes from outside: an agent can produce a thorough audit
 and still not produce a conformance statement, because conformance needs a
@@ -10,7 +10,7 @@ statement references the pack's own hash.
 
 No third parties, no network, no claim of conformance: the pack IS the thing
 any qualified human (the maintainer, a marketplace auditor, a regulator-facing
-consultant) reviews and countersigns.
+consultant) reviews and signs.
 
   criterios: full matrix — every WCAG 2.2 A/AA criterion with a status:
              automated-fail / automated-review / not-flagged / manual-only
@@ -53,7 +53,7 @@ def _sha256(obj):
 
 
 def empaquetar(informes, snapshot=None, evaluador=None, notas=None, verificados=None, sr_transcript=None):
-    """Informes (lista de dicts JSON) → paquete de evidencia contrafirmable.
+    """Informes (lista de dicts JSON) → paquete de evidencia verificable.
 
     verificados: lista de códigos de criterio ("1.4.1", "3.3.1"…) que un
     agente o una persona han verificado manualmente sobre esta muestra
@@ -140,7 +140,7 @@ def empaquetar(informes, snapshot=None, evaluador=None, notas=None, verificados=
         ef = effort(code)
         if ef:
             # human-effort class: what the HUMAN still does after the machine's
-            # best signal (pricing input for review marketplaces)
+            # best signal (pricing input for human-review scoping)
             entrada['effort'] = {'class': ef['class'], 'minutes': ef['minutes'],
                                    'why': ef['why']}
         if code in valores:
@@ -171,7 +171,7 @@ def empaquetar(informes, snapshot=None, evaluador=None, notas=None, verificados=
 
     # remaining human review, in minutes: MIN/MED/MAX per class summed over
     # every row a human still has to touch (everything except agent-verified).
-    # This is the quote input for a review marketplace: agent output in,
+    # This is the scope input for human review: agent output in,
     # priced human scope out.
     _MIN = {'MIN': (1, 3), 'MED': (5, 10), 'MAX': (15, 30)}
     pend = {}
@@ -225,7 +225,7 @@ def empaquetar(informes, snapshot=None, evaluador=None, notas=None, verificados=
             'credential': (evaluador or {}).get('credential'),
             'review_date': (evaluador or {}).get('review_date'),
             'statement': None,
-            'note': ('any countersignature must reference pack.sha256 and state which '
+            'note': ('any signature must reference pack.sha256 and state which '
                      'criteria the human reviewed beyond the automated matrix'),
         },
         'notes': notas,
@@ -238,7 +238,7 @@ def empaquetar(informes, snapshot=None, evaluador=None, notas=None, verificados=
 
 
 def main(argv):
-    ap = argparse.ArgumentParser(description='Evidence pack (countersignature-ready)')
+    ap = argparse.ArgumentParser(description='Evidence pack (verifiable handoff)')
     ap.add_argument('reports', nargs='+', help='audit report JSON files (any mode)')
     ap.add_argument('--snapshot', help='a11y snapshot JSON (optional)')
     ap.add_argument('--evaluador', help='JSON: {"name":…, "credential":…, "review_date":…}')

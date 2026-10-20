@@ -6,7 +6,7 @@ This table is data, not prose — `_EFFORT` in [`a11ycrit.py`](../a11y_toolkit/a
 the source of truth (this document is generated from it); the evidence pack
 emits the class per matrix row and the remaining totals in `effort_pending`.
 
-An outside marketplace maps classes to its own billing; this table prices the
+An outside reviewer maps classes to their own billing; this table prices the
 remaining scope honestly, it does not set anyone's price. Provenance: seed by
 Jesús Quintana from 20 years of practice plus a monthly axe benchmark; a
 counterparty's own published table supersedes it for their engagements.

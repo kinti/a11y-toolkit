@@ -52,7 +52,7 @@ Scoring, deterministically: start 100, −25 per high friction (three: broken
 headings, unnamed button, silent error), −12 per medium (three), `gave_up`
 → **blocked at 0/100**. The six findings carry per-step remediations and map
 to six distinct criteria — the exact brief a human reviewer needs, and the
-exact input a review marketplace prices.
+exact input a human reviewer prices.
 
 ## What this validated
 

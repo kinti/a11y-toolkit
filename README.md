@@ -38,7 +38,7 @@ the human signs.
 | Screen reader transcript: what a blind user hears, linearized | ✗ | ✓ |
 | Tooltips that ignore Escape caught by actually hovering (1.4.13) | ✗ | ✓ |
 | Legal statements for the EAA / RD 1112/2018, in Spanish and English | ✗ | ✓ |
-| An evidence pack a human can countersign — hashes, matrix, empty signature block | ✗ | ✓ |
+| An evidence pack a human can sign — hashes, matrix, empty signature block | ✗ | ✓ |
 | Runs with zero dependencies at core, speaks es/en, any browser you have | heavy runtimes | ✓ |
 
 ## The tools (31)
@@ -576,7 +576,7 @@ Returns injectable JavaScript for an aria-live announcement monitor (bookmarklet
 
 <sub>read-only</sub>
 
-Builds the COUNTERSIGNATURE-READY evidence pack: the machine→human handoff object for WCAG conformance work. Takes one or more audit reports (any mode — static, rendered, reflow, keyboard, scroll) and returns: the full 55-criterion A/AA matrix (automated-fail / automated-review / not-flagged — NOT pass / not-run / manual-only), each row priced with its human-effort class (MIN 1-3 / MED 5-10 / MAX 15-30 min of human review remaining) and total remaining minutes (the quote input for a review marketplace), every artifact SHA-256-hashed with timestamps, an empty signature block (name, credential, date) whose statement must reference the pack's own sha256, and the tamper-evidence rule stated. Vendor-neutral: any qualified human can countersign it. Evidence, never conformance. — The tier-3 handoff object; feed it every audit report you have. Returns the pack JSON (a11y-evidence-pack/2); writes a file only when output_path is given. Run after the audits you trust, and pass verified codes from the manual checklist — agent-verified never erases an automated-fail.
+Builds the verifiable evidence pack: the machine→human handoff object for WCAG conformance work. Takes one or more audit reports (any mode — static, rendered, reflow, keyboard, scroll) and returns: the full 55-criterion A/AA matrix (automated-fail / automated-review / not-flagged — NOT pass / not-run / manual-only), each row priced with its human-effort class (MIN 1-3 / MED 5-10 / MAX 15-30 min of human review remaining) and total remaining minutes (the quote input for a review marketplace), every artifact SHA-256-hashed with timestamps, an empty signature block (name, credential, date) whose statement must reference the pack's own sha256, and the tamper-evidence rule stated. Vendor-neutral: any qualified human can review it. Evidence, never conformance. — The tier-3 handoff object; feed it every audit report you have. Returns the pack JSON (a11y-evidence-pack/2); writes a file only when output_path is given. Run after the audits you trust, and pass verified codes from the manual checklist — agent-verified never erases an automated-fail.
 
 
 **Arguments**
@@ -695,7 +695,7 @@ a11ytoolkit fix --file page.html -o fixed.html          # safe autofix
 a11ytoolkit declaration --entidad "Acme" --url https://… --estado parcial --marco eaa
 a11ytoolkit snapshot https://mysite --out before.json   # before deploy
 a11ytoolkit diff before.json after.json                 # after deploy
-a11ytoolkit evidence audit.json -o pack.json            # countersignature-ready pack
+a11ytoolkit evidence audit.json -o pack.json            # verifiable evidence pack
 a11ytoolkit disprove --url https://mysite               # re-verify findings
 a11ytoolkit budget --budget budget.json --audit audit.json  # only NEW findings block
 a11ytoolkit sarif --from-audit audit.json -o a11y.sarif # GitHub code scanning
@@ -789,7 +789,7 @@ pricing. The full history lives in the [changelog](CHANGELOG.md).
 
 Next, roughly in this order:
 
-- [ ] Attestation interlock: let an external auditor's countersignature reference the evidence pack by hash (their schema, my side adapts)
+- [ ] Attestation interlock: let an external auditor's signature reference the evidence pack by hash (their schema, my side adapts)
 - [ ] Publish the monthly axe-core benchmark results from CI, run over real pages
 - [ ] Screen-reader transcript cross-checks against NVDA and VoiceOver output
 - [ ] More verified client configs (JetBrains AI, Gemini CLI), same treatment as [docs/clients.md](docs/clients.md)
