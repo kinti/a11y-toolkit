@@ -1,5 +1,23 @@
 # Changelog
 
+## 5.10.0 — 2026-10-17 — "PDF contrast + fake links — the next gap"
+
+Two more PDF detections (extending the screening from 5.9.0), verified
+with crafted PDFs and validated against the URI-annotation control:
+
+- **`pdf_low_contrast` (1.4.3)**: parses the content stream for `rg` fill
+  colors and computes WCAG contrast against the PDF's default white
+  background. White-on-white and light-gray text now flagged (medium).
+  No cascade, no var() — the operator IS the color, fully measurable.
+- **`pdf_fake_link` (2.4.4)**: bluish fill (the classic "looks like a
+  link" pattern) with NO URI annotation on the page → flagged. With
+  URI annotations present, bluish text is presumed real links (control
+  case verified). Screen readers do not announce styled text as links.
+
+Both are review-grade heuristics: a PDF's painted background may exist
+(detectable via `re f` operator — queued); default white is the honest
+assumption. Full contrast needs the painted-background resolution.
+
 ## 5.9.0 — 2026-10-17 — "the details, part two"
 
 The queued detail pass, shipped. Three new tools (31 total) plus precision:
