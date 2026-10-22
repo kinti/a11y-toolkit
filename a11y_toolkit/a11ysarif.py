@@ -16,11 +16,13 @@ CLI:
 
 import argparse
 import json
+
+from .a11yaudit import normalize_signal  # noqa: E402  (compat 5.10)
 import sys
 
 from .a11yaudit import audit_url, audit_site, audit_html
 
-NIVEL = {'high': 'error', 'medium': 'warning', 'low': 'note'}
+LEVEL = {'high': 'error', 'medium': 'warning', 'low': 'note'}
 
 # Criterio → Understanding URL oficial de WCAG 2.2
 _UNDERSTANDING = {
@@ -47,38 +49,38 @@ _UNDERSTANDING = {
 _BASE = 'https://www.w3.org/WAI/WCAG22/Understanding/'
 
 
-def _help_uri(criterio_texto):
-    code = criterio_texto.split(' ')[0]
+def _help_uri(criterion_text):
+    code = criterion_text.split(' ')[0]
     slug = _UNDERSTANDING.get(code)
     return _BASE + slug if slug else 'https://www.w3.org/TR/WCAG22/'
 
 
-def desde_informe(informe, driver_version='3.2.0'):
+def from_report(report, driver_version='3.2.0'):
     """Informe(s) del auditor → dict SARIF 2.1.0.
 
     Acepta un informe individual (audit_html/audit_url) o uno 'site'
     (con la lista 'reports')."""
-    paginas = informe.get('reports') if 'reports' in informe else [informe]
-    reglas = {}
-    resultados = []
-    for pg in paginas:
+    pages = report.get('reports') if 'reports' in report else [report]
+    rules = {}
+    results = []
+    for pg in pages:
         url = pg.get('url', '(html)')
         for h in pg.get('findings', []):
             code = h['criterion'].split(' ')[0]
-            rule_id = f'WCAG-{code}-{h["signal"]}'
-            if rule_id not in reglas:
-                reglas[rule_id] = {
+            rule_id = f'WCAG-{code}-{normalize_signal(h.get("signal", ""))}'
+            if rule_id not in rules:
+                rules[rule_id] = {
                     'id': rule_id,
                     'shortDescription': {'text': h['criterion']},
                     'helpUri': _help_uri(h['criterion']),
                 }
-            mensaje = h['issue']
+            message = h['issue']
             if h.get('remediation'):
-                mensaje += ' — Fix: ' + h['remediation']
-            resultados.append({
+                message += ' — Fix: ' + h['remediation']
+            results.append({
                 'ruleId': rule_id,
-                'level': NIVEL.get(h['severity'], 'note'),
-                'message': {'text': mensaje},
+                'level': LEVEL.get(h['severity'], 'note'),
+                'message': {'text': message},
                 'locations': [{
                     'physicalLocation': {
                         'artifactLocation': {'uri': url},
@@ -93,9 +95,9 @@ def desde_informe(informe, driver_version='3.2.0'):
                 'name': 'a11y-toolkit',
                 'version': driver_version,
                 'informationUri': 'https://github.com/kinti/a11y-toolkit',
-                'rules': sorted(reglas.values(), key=lambda r: r['id']),
+                'rules': sorted(rules.values(), key=lambda r: r['id']),
             }},
-            'results': resultados,
+            'results': results,
         }],
     }
 
@@ -112,24 +114,24 @@ def main(argv):
     a = ap.parse_args(argv)
     if a.from_audit:
         with open(a.from_audit, encoding='utf-8') as f:
-            informe = json.load(f)
+            report = json.load(f)
     elif a.url:
-        informe = (audit_site(a.url, max_pages=a.pages, lang=a.lang)
+        report = (audit_site(a.url, max_pages=a.pages, lang=a.lang)
                    if a.pages > 1 else audit_url(a.url, lang=a.lang))
     else:
         with open(a.file, encoding='utf-8', errors='replace') as f:
-            informe = audit_html(f.read(), a.file, lang=a.lang)
-    if 'error' in informe:
-        print(json.dumps(informe))
+            report = audit_html(f.read(), a.file, lang=a.lang)
+    if 'error' in report:
+        print(json.dumps(report))
         return 1
-    sarif = desde_informe(informe)
+    sarif = from_report(report)
     with open(a.out, 'w', encoding='utf-8') as f:
         json.dump(sarif, f, ensure_ascii=False, indent=1)
-    resumen = informe.get('summary', {'high': 0, 'medium': 0, 'low': 0})
+    summary = report.get('summary', {'high': 0, 'medium': 0, 'low': 0})
     print(json.dumps({'sarif': a.out,
-                      'resultados': len(sarif['runs'][0]['results']),
-                      'score': informe.get('score'),
-                      'summary': resumen}))
+                      'results': len(sarif['runs'][0]['results']),
+                      'score': report.get('score'),
+                      'summary': summary}))
     return 0
 
 

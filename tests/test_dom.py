@@ -3,15 +3,15 @@ import re
 """Tests de la auditoría renderizada (a11ydom) contra un fixture local file://.
 
 Se auto-omiten si Playwright no está instalado (CI no lo instala: la auditoría
-estática ya cubre el núcleo; esto valida el camino renderizado donde exista).
+estática already cubre el núcleo; esto valida el camino renderizado donde exista).
 """
 import json
 import os
 import subprocess
 import sys
 
-AQUI = os.path.dirname(os.path.abspath(__file__))
-ROOT = os.path.dirname(AQUI)
+HERE = os.path.dirname(os.path.abspath(__file__))
+ROOT = os.path.dirname(HERE)
 sys.path.insert(0, ROOT)
 
 try:
@@ -52,11 +52,11 @@ customElements.define('mi-tarjeta', class extends HTMLElement {
   }
 });
 </script>'''
-ruta = os.path.join('/tmp', 'a11ydom_fixture.html')
-with open(ruta, 'w', encoding='utf-8') as f:
+path = os.path.join('/tmp', 'a11ydom_fixture.html')
+with open(path, 'w', encoding='utf-8') as f:
     f.write(FIXTURE.replace('</head>', SHADOW_JS + '</head>'))
 # v3.9 2.4.11: header sticky SIN scroll-padding debe disparar; con él, no
-FIX_MAL = '<!doctype html><html lang="es"><head><title>s</title><style>header{position:sticky;top:0;height:60px;background:#eee}</style></head><body><header>h</header><main><h1>Documento de prueba</h1><button>ok</button></main></body></html>'
+FIX_MAL = '<!doctype html><html lang="es"><head><title>s</title><style>header{position:sticky;top:0;height:60px;background:#eee}</style></head><body><header>h</header><main><h1>Documento de how_to_check</h1><button>ok</button></main></body></html>'
 FIX_BIEN = FIX_MAL.replace('</style>', 'html{scroll-padding-top:64px}</style>')
 with open(os.path.join('/tmp', 'sticky_mal.html'), 'w', encoding='utf-8') as f:
     f.write(FIX_MAL)
@@ -64,30 +64,33 @@ with open(os.path.join('/tmp', 'sticky_bien.html'), 'w', encoding='utf-8') as f:
     f.write(FIX_BIEN)
 
 r = subprocess.run([sys.executable, '-m', 'a11y_toolkit.a11ydom',
-                    'file://' + ruta, '--lang', 'en'],
+                    'file://' + path, '--lang', 'en'],
                    cwd=ROOT, capture_output=True, text=True, timeout=120)
 d = json.loads(r.stdout)
 assert 'error' not in d, d
 
 crit = {h['criterion'] for h in d['findings']}
 assert any(c.startswith('1.4.3') for c in crit), sorted(crit)          # contraste real
-assert any(c.startswith('2.5.8') for c in crit), sorted(crit)          # target size (nuevo WCAG 2.2)
+assert any(c.startswith('2.5.8') for c in crit), sorted(crit)          # target size (new WCAG 2.2)
 assert any(c.startswith('3.3.2') for c in crit), sorted(crit)          # campo sin label
 assert any(c.startswith('1.1.1') for c in crit), sorted(crit)          # img sin alt
 assert d['mode'] == 'rendered'
 assert d.get('shadow_roots', 0) >= 1, d.get('shadow_roots')
 assert any('mi-tarjeta' in str(e) for h in d['findings'] for e in h.get('examples', [])), \
-    'los fallos del shadow root no aparecen'
-assert d.get('iframes_anidados', 0) == 1, d.get('iframes_anidados')   # iframe same-origin
+    'los failures del shadow root no aparecen'
+assert d.get('nested_iframes', 0) == 1, d.get('nested_iframes')   # iframe same-origin
 assert any('iframe: y.png' in str(e) for h in d['findings'] for e in h.get('examples', []))
 # FPs corregidos tras el bench: honeypot aria-hidden, tabindex=-1 y skip oculto no se reportan
-senales = {h['signal']: h for h in d['findings']}
+signals = {h['signal']: h for h in d['findings']}
+# 5.11: la señal renombrada llega al camino rendered con TEXTO real, no la entry_key como literal
+assert 'img_no_alt' in signals and signals['img_no_alt']['issue'] != 'img_no_alt', \
+    'el modo rendered emite imgs_alt/basura (bug revisión 5.11)'
 # v3.16.1: a link wrapping an image WITH alt has a name (accname) — never flagged
-if 'ctrl_name' in senales:
+if 'ctrl_name' in signals:
     assert not any('badge.png' in str(e) or "src=\"b.png\"" in str(e)
-                   for e in senales['ctrl_name'].get('examples', []))
-assert 'aria_hidden_focusable' not in senales, senales.get('aria_hidden_focusable')
-f258 = senales.get('target_small')
+                   for e in signals['ctrl_name'].get('examples', []))
+assert 'aria_hidden_focusable' not in signals, signals.get('aria_hidden_focusable')
+f258 = signals.get('target_small')
 assert f258 is None or not any(re.search(r'\(([0-2])×([0-2])px\)', str(e)) for e in f258.get('examples', []))
 
 # 2.4.11: causa raíz header-fijo-vs-scroll-padding
@@ -96,7 +99,7 @@ mal = audit_dom_url('file:///tmp/sticky_mal.html', lang='en')
 bien = audit_dom_url('file:///tmp/sticky_bien.html', lang='en')
 assert any(h['signal'] == 'focus_obscured' for h in mal['findings']), mal['summary']
 assert not any(h['signal'] == 'focus_obscured' for h in bien['findings'])
-# el párrafo con buen contraste NO provoca hallazgo: solo 2 zonas malas agrupadas
+# el párrafo con buen contraste NO provoca finding: solo 2 zonas malas agrupadas
 f14 = next(h for h in d['findings'] if h['criterion'].startswith('1.4.3'))
 assert '2.85:1' in f14['issue'] and 'remediation' in f14
 # el botón mini aparece en los ejemplos de 2.5.8

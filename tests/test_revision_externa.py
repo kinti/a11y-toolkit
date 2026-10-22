@@ -13,11 +13,11 @@ from a11y_toolkit.a11ydisprove import disprove  # noqa: E402
 from a11y_toolkit.a11yfix import autofix, _attrs  # noqa: E402
 from a11y_toolkit import contrast  # noqa: E402
 from a11y_toolkit import a11ydiff  # noqa: E402
-from a11y_toolkit.a11yaudit import _descarga  # noqa: E402
-from a11y_toolkit.a11yevidence import empaquetar  # noqa: E402
-from a11y_toolkit import declaracion  # noqa: E402
+from a11y_toolkit.a11yaudit import _fetch  # noqa: E402
+from a11y_toolkit.a11yevidence import build_pack  # noqa: E402
+from a11y_toolkit import a11ystatement as declaracion  # noqa: E402
 
-# 1. disprove acepta report y su cuerpo usa el mismo nombre (era UnboundLocalError)
+# 1. disprove acepta report y su body usa el mismo name (era UnboundLocalError)
 r = disprove('https://nonexistent.example',
              report={'mode': 'scroll', 'url': 'x', 'score': 9,
                      'findings': [{'criterion': '4.1.3', 'severity': 'high'}]},
@@ -37,7 +37,7 @@ print('2. autofix conserva valores y opciones ✓')
 
 # 3. _attrs no revienta con atributos vacíos y los conserva
 a = _attrs('<input value="" required>')
-assert a['value'] == ''  # el valor vacío se conserva (antes: StopIteration)
+assert a['value'] == ''  # el valor vacío se conserva (before: StopIteration)
 print('3. _attrs con value="" ✓')
 
 # 4. parse_color: sintaxis moderna con '/' y canales negativos acotados
@@ -53,26 +53,26 @@ d = a11ydiff.diff({'elements': [], 'focus_order': ['#pay', '#cancel']},
 assert d['ok'] is False and d['focus']['removed'] == ['#pay']
 print('5. a11ydiff detecta foco eliminado ✓')
 
-# 6. evidence: un hallazgo rejected no revive como fail; no-rechecked tampoco
+# 6. evidence: un finding rejected no revive como fail; no-rechecked tampoco
 inf = {'mode': 'static', 'url': 'x', 'score': 9, 'findings': [
     {'criterion': '1.4.3 Contrast', 'severity': 'high', 'signal': 'x', 'issue': 'x', 'status': 'rejected'},
     {'criterion': '1.1.1 Non-text', 'severity': 'high', 'signal': 'y', 'issue': 'y'}]}
-p6 = empaquetar([inf])
+p6 = build_pack([inf])
 row = next(m for m in p6['criteria'] if m['criterion'].startswith('1.4.3'))
 assert row['status'] != 'automated-fail'
 print('6. evidence respeta rejected ✓ (1.4.3 →', row['status'] + ')')
 
 # 7. declaracion: el método por defecto no atribuye evaluaciones no realizadas
-d7 = declaracion.generar(entidad='X', url='https://x.example', estado='parcial')
+d7 = declaracion.generate(entity='X', url='https://x.example', status='partial')
 assert 'axe-core' not in d7['html']
 assert ('BORRADOR NO VALIDADO' in d7['html']) or ('UNVALIDATED DRAFT' in d7['html'])
 print('7. declaración honesta por defecto ✓')
 
-# 8. política de esquema uniforme en _descarga
+# 8. política de esquema uniforme en _fetch
 for esquema in ('file:///etc/passwd', 'ftp://x/y'):
-    r8 = _descarga(esquema)
+    r8 = _fetch(esquema)
     assert 'error' in r8 and 'http' in r8['error'], r8
-print('8. _descarga rechaza esquemas no http(s) ✓')
+print('8. _fetch rechaza esquemas no http(s) ✓')
 
 
 # ── Ronda 2 (re-revisión de v5.4.0): lo que el changelog afirmaba en falso ──
@@ -106,12 +106,12 @@ print('12. cadena de navegadores sin NameError latente ✓')
 main_js = src_chain if 'ratioOf(over_' in src_chain else None
 import a11y_toolkit.a11ydom as _dom
 src_dom = open(os.path.join(ROOT, 'a11y_toolkit', 'a11ydom.py')).read()
-assert 'ratioOf(over_(fg, bg), bg)' in src_dom, 'el pase principal no compone el alfa del texto'
-# y la definición de over_ precede a su uso en el mismo bloque
+assert 'ratioOf(over_(fg, bg), bg)' in src_dom, 'el pase principal no compone el alfa del text'
+# y la definición de over_ precede a su uso en el mismo block
 i_over = src_dom.index('const over_ =')
 i_use = src_dom.index('ratioOf(over_(fg, bg), bg)')
 assert i_over < i_use
-print('13. pase principal: alfa del texto compuesto (over_ antes del uso) ✓')
+print('13. pase principal: alfa del text compuesto (over_ before del uso) ✓')
 
 print('REVISIÓN EXTERNA — RONDA 2: CONFIRMADO, CORREGIDO Y FIJADO ✓')
 print('REVISIÓN EXTERNA 2026-10: TODOS LOS CASOS CONFIRMADOS, CORREGIDOS Y PINNED ✓')

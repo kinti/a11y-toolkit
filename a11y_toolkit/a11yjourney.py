@@ -159,7 +159,7 @@ def _validar_friction(item, crits, lang='en'):
             'remediation': str(item.get('remediation', '')).strip()}, None
 
 
-def verdictar(task, steps, outcome, url='', lang='en'):
+def verdict(task, steps, outcome, url='', lang='en'):
     """Friction log → deterministic journey verdict (pack-ready report shape)."""
     lang = 'es' if lang == 'es' else 'en'
     if not isinstance(task, dict) or not str(task.get('goal', '')).strip():
@@ -171,11 +171,11 @@ def verdictar(task, steps, outcome, url='', lang='en'):
 
     crits = _crit_set()
     findings, errores = [], []
-    for i, paso in enumerate(steps):
-        if not isinstance(paso, dict):
+    for i, step in enumerate(steps):
+        if not isinstance(step, dict):
             errores.append(f'step[{i}] no es un objeto')
             continue
-        f = paso.get('friction')
+        f = step.get('friction')
         if not f:
             continue
         items = f if isinstance(f, list) else [f]
@@ -188,11 +188,11 @@ def verdictar(task, steps, outcome, url='', lang='en'):
                 errores.append(f'step[{i}]: {err}')
                 continue
             conv['step'] = i
-            conv.setdefault('perceived', str(paso.get('perceived', ''))[:120] or None)
+            conv.setdefault('perceived', str(step.get('perceived', ''))[:120] or None)
             findings.append(conv)
 
     if errores:
-        return {'error': 'log de fricción inválido', 'detalles': errores}
+        return {'error': 'log de fricción inválido', 'details': errores}
 
     high = sum(1 for x in findings if x['severity'] == 'high')
     medium = sum(1 for x in findings if x['severity'] == 'medium')
@@ -295,7 +295,7 @@ def budget_compare(baseline, verdict):
         if prev is None or _rank[f['severity']] > _rank[prev['severity']]:
             actuales[k] = f
     nuevas = sorted(set(actuales) - base)
-    resueltas = sorted(base - set(actuales))
+    resolved = sorted(base - set(actuales))
     nuevas_altas = [k for k in nuevas if actuales[k]['severity'] == 'high']
     degrada = (baseline.get('verdict') == 'pass'
                and verdict['verdict'] in ('partial', 'fail', 'blocked'))
@@ -305,7 +305,7 @@ def budget_compare(baseline, verdict):
         'verdict': 'GO' if go else 'NO-GO',
         'new_blocking': nuevas_altas,
         'new_friction': nuevas,
-        'resolved': resueltas,
+        'resolved': resolved,
         'verdict_before': baseline.get('verdict'),
         'verdict_after': verdict['verdict'],
         'degraded': degrada,
@@ -361,7 +361,7 @@ def main(argv):
     a = ap.parse_args(argv)
     with open(a.log, encoding='utf-8') as f:
         d = json.load(f)
-    res = verdictar(d.get('task', {}), d.get('steps', []), d.get('outcome', {}),
+    res = verdict(d.get('task', {}), d.get('steps', []), d.get('outcome', {}),
                     url=d.get('url', ''), lang=a.lang or d.get('lang', 'en'))
     out = json.dumps(res, ensure_ascii=False, indent=1)
     if a.out:

@@ -27,6 +27,8 @@ CLI:
 import argparse
 import hashlib
 import json
+
+from .a11yaudit import normalize_report  # noqa: E402  (compat 5.10)
 import sys
 from datetime import datetime, timezone
 
@@ -40,7 +42,7 @@ MANUAL_AA = [
     '3.3.7 Redundant Entry',
 ]
 
-_ESTADOS = ('automated-fail', 'automated-review', 'not-flagged', 'manual-only',
+_STATES = ('automated-fail', 'automated-review', 'not-flagged', 'manual-only',
             'agent-verified', 'not-run')
 
 
@@ -52,7 +54,7 @@ def _sha256(obj):
     return hashlib.sha256(_canon(obj).encode('utf-8')).hexdigest()
 
 
-def empaquetar(informes, snapshot=None, evaluador=None, notas=None, verificados=None, sr_transcript=None):
+def build_pack(reports, snapshot=None, reviewer=None, notes=None, verified=None, sr_transcript=None):
     """Informes (lista de dicts JSON) → paquete de evidencia verificable.
 
     verificados: lista de códigos de criterio ("1.4.1", "3.3.1"…) que un
@@ -61,14 +63,15 @@ def empaquetar(informes, snapshot=None, evaluador=None, notas=None, verificados=
     'agent-verified' — salvo que una señal automática diera fail, que
     permanece como fail (el fallo no se borra verificando). La fuente
     (agente/humano, fecha) queda registrada en el bloque verificacion."""
-    ahora = datetime.now(timezone.utc).isoformat(timespec='seconds')
+    now = datetime.now(timezone.utc).isoformat(timespec='seconds')
+    reports = [normalize_report(i) for i in reports]  # compat 5.10: señales previas al rename
 
     # matriz de criterios: los que tocamos (estado según hallazgos) + manuales
     from .a11ycrit import _C as _CAT, effort
     codes_aa = sorted(k for k, v in _CAT.items() if v[0] in ('A', 'AA'))
-    modos_incluidos = {inf.get('mode', 'static') for inf in informes}
+    modes_included = {inf.get('mode', 'static') for inf in reports}
     tocados = {}
-    for inf in informes:
+    for inf in reports:
         for h in inf.get('findings', []):
             if (h.get('status') == 'rejected'
                     or h.get('disprover_status') in ('rejected', 'not-rechecked')):
@@ -80,18 +83,18 @@ def empaquetar(informes, snapshot=None, evaluador=None, notas=None, verificados=
                 continue
             code = crit.split(' ')[0]
             severidad = h.get('severity')
-            estado = 'automated-review' if severidad == 'low' else 'automated-fail'
+            state = 'automated-review' if severidad == 'low' else 'automated-fail'
             # el peor estado gana: fail > review
             if tocados.get(code) != 'automated-fail':
-                tocados[code] = estado
+                tocados[code] = state
 
-    verificados = {v.split(' ')[0] for v in (verificados or [])}
+    verified = {v.split(' ')[0] for v in (verified or [])}
     # extraer valores medidos clave de los hallazgos (ratio, ejemplos)
-    valores = {}
-    for inf in informes:
+    values = {}
+    for inf in reports:
         for h in inf.get('findings', []):
             code = (h.get('criterion') or '').split(' ')[0]
-            if code not in valores:
+            if code not in values:
                 val = {}
                 if 'ratio' in h.get('issue', '').lower() or ':' in h.get('issue', ''):
                     import re as _re
@@ -102,72 +105,72 @@ def empaquetar(informes, snapshot=None, evaluador=None, notas=None, verificados=
                 if ej:
                     val['example'] = str(ej[0])[:80]
                 if val:
-                    valores[code] = val
+                    values[code] = val
 
     # criterios que requieren modo rendered (si solo corrió static, su estado
     # real es not-run, no not-flagged: la herramienta SÍ tiene señal pero el
     # modo que la produce no se incluyó)
     from .a11ycrit import RENDERED_ONLY as _RENDERED_ONLY  # canónico (a11ycrit)
 
-    verificados_set = {v.split(' ')[0] for v in (verificados or [])}
+    verificados_set = {v.split(' ')[0] for v in (verified or [])}
 
     matriz = []
     _manual_codes = {m.split(' ')[0] for m in MANUAL_AA}
     for code in codes_aa:
         if code in _manual_codes:
             continue  # covered by the manual-only rows appended below
-        estado = tocados.get(code, 'not-flagged')
+        state = tocados.get(code, 'not-flagged')
 
         # not-run: el criterio requiere rendered y este pack no lo incluye
-        if estado == 'not-flagged' and code in _RENDERED_ONLY and 'rendered' not in modos_incluidos:
-            estado = 'not-run'
+        if state == 'not-flagged' and code in _RENDERED_ONLY and 'rendered' not in modes_included:
+            state = 'not-run'
 
         # verificados: promueve not-flagged/not-run/manual-only → agent-verified
         # (pero automated-fail permanece: un fallo no se borra verificando)
-        if code in verificados_set and estado != 'automated-fail':
-            estado = 'agent-verified'
+        if code in verificados_set and state != 'automated-fail':
+            state = 'agent-verified'
 
         nota = None
-        if estado == 'not-flagged':
+        if state == 'not-flagged':
             nota = 'not-flagged ≠ pass: no automated signal fired on this sample'
-        elif estado == 'not-run':
+        elif state == 'not-run':
             nota = ('requires rendered mode (a11y_audit_dom) — this pack only '
                     'includes the static audit, so no signal was tried')
-        elif estado == 'agent-verified':
+        elif state == 'agent-verified':
             nota = 'verified against this sample per the manual checklist protocol'
 
-        entrada = {'criterion': f"{code} {_CAT[code][1]['en'][0]}", 'status': estado, 'note': nota}
+        entry = {'criterion': f"{code} {_CAT[code][1]['en'][0]}", 'status': state, 'note': nota}
         ef = effort(code)
         if ef:
             # human-effort class: what the HUMAN still does after the machine's
             # best signal (pricing input for human-review scoping)
-            entrada['effort'] = {'class': ef['class'], 'minutes': ef['minutes'],
+            entry['effort'] = {'class': ef['class'], 'minutes': ef['minutes'],
                                    'why': ef['why']}
-        if code in valores:
-            entrada['value'] = valores[code]
-        matriz.append(entrada)
-    manuales_restantes = [m for m in MANUAL_AA if m.split(' ')[0] not in verificados]
+        if code in values:
+            entry['value'] = values[code]
+        matriz.append(entry)
+    manual_remaining = [m for m in MANUAL_AA if m.split(' ')[0] not in verified]
     # los not-run son adicionalmente "pendientes" (la máquina no miró)
-    for nombre in manuales_restantes:
-        fila = {'criterion': nombre, 'status': 'manual-only',
+    for name in manual_remaining:
+        row = {'criterion': name, 'status': 'manual-only',
                 'note': 'no automated signal exists for this criterion in this toolkit'}
-        ef = effort(nombre.split(' ')[0])
+        ef = effort(name.split(' ')[0])
         if ef:
-            fila['effort'] = {'class': ef['class'], 'minutes': ef['minutes'],
+            row['effort'] = {'class': ef['class'], 'minutes': ef['minutes'],
                                 'why': ef['why']}
-        matriz.append(fila)
-    for code in sorted(verificados):
-        if any(code in m for m in MANUAL_AA) and not any(m.startswith(code) for m in manuales_restantes):
-            nombre = next(m for m in MANUAL_AA if m.startswith(code))
-            fila = {'criterion': nombre, 'status': 'agent-verified',
+        matriz.append(row)
+    for code in sorted(verified):
+        if any(code in m for m in MANUAL_AA) and not any(m.startswith(code) for m in manual_remaining):
+            name = next(m for m in MANUAL_AA if m.startswith(code))
+            row = {'criterion': name, 'status': 'agent-verified',
                     'note': 'verified against this sample per the manual checklist protocol'}
             ef = effort(code)
             if ef:
-                fila['effort'] = {'class': ef['class'], 'minutes': ef['minutes'],
+                row['effort'] = {'class': ef['class'], 'minutes': ef['minutes'],
                                     'why': ef['why']}
-            matriz.append(fila)
+            matriz.append(row)
 
-    resumen = {e: sum(1 for m in matriz if m['status'] == e) for e in _ESTADOS}
+    summary = {e: sum(1 for m in matriz if m['status'] == e) for e in _STATES}
 
     # remaining human review, in minutes: MIN/MED/MAX per class summed over
     # every row a human still has to touch (everything except agent-verified).
@@ -196,7 +199,7 @@ def empaquetar(informes, snapshot=None, evaluador=None, notas=None, verificados=
     }
 
     artefactos = []
-    for i, inf in enumerate(informes):
+    for i, inf in enumerate(reports):
         artefactos.append({'type': f"report:{inf.get('mode', 'static')}",
                            'url': inf.get('url'), 'sha256': _sha256(inf),
                            'score': inf.get('score'),
@@ -211,24 +214,24 @@ def empaquetar(informes, snapshot=None, evaluador=None, notas=None, verificados=
 
     pack = {
         'format': 'a11y-evidence-pack/2',
-        'generated': ahora,
+        'generated': now,
         'tool': 'a11y-toolkit (github.com/kinti/a11y-toolkit)',
-        'summary': resumen,
+        'summary': summary,
         'effort_pending': esfuerzo_pendiente,
         'criteria': matriz,
         'manual_pending': [m['criterion'] for m in matriz if m['status'] == 'manual-only'],
         'verification': ({'source': 'agent', 'protocol': 'skill manual checklist'}
-                         if verificados else None),
+                         if verified else None),
         'artifacts': artefactos,
         'reviewer': {  # bloque a completar por la persona que firma
-            'name': (evaluador or {}).get('name'),
-            'credential': (evaluador or {}).get('credential'),
-            'review_date': (evaluador or {}).get('review_date'),
+            'name': (reviewer or {}).get('name'),
+            'credential': (reviewer or {}).get('credential'),
+            'review_date': (reviewer or {}).get('review_date'),
             'statement': None,
             'note': ('any signature must reference pack.sha256 and state which '
                      'criteria the human reviewed beyond the automated matrix'),
         },
-        'notes': notas,
+        'notes': notes,
         'notice': ('This pack is evidence, not conformance: it says what machines found '
                   'and what remains for a human. A conformance claim requires the firma '
                   'block completed by a qualified person who reviewed the manual list.'),
@@ -241,13 +244,13 @@ def main(argv):
     ap = argparse.ArgumentParser(description='Evidence pack (verifiable handoff)')
     ap.add_argument('reports', nargs='+', help='audit report JSON files (any mode)')
     ap.add_argument('--snapshot', help='a11y snapshot JSON (optional)')
-    ap.add_argument('--evaluador', help='JSON: {"name":…, "credential":…, "review_date":…}')
+    ap.add_argument('--reviewer', help='JSON: {"name":…, "credential":…, "review_date":…}')
     ap.add_argument('-o', '--out', default='evidence-pack.json')
     a = ap.parse_args(argv)
-    informes = [json.load(open(f, encoding='utf-8')) for f in a.reports]
+    reports = [json.load(open(f, encoding='utf-8')) for f in a.reports]
     snapshot = json.load(open(a.snapshot, encoding='utf-8')) if a.snapshot else None
-    evaluador = json.loads(a.evaluador) if a.evaluador else None
-    pack = empaquetar(informes, snapshot=snapshot, evaluador=evaluador)
+    reviewer = json.loads(a.reviewer) if a.reviewer else None
+    pack = build_pack(reports, snapshot=snapshot, reviewer=reviewer)
     with open(a.out, 'w', encoding='utf-8') as f:
         json.dump(pack, f, ensure_ascii=False, indent=1)
     print(json.dumps({'pack': a.out, 'sha256': pack['sha256'],

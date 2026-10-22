@@ -61,93 +61,93 @@ def _t(lang, key):
     return T.get(lang, T['en'])[key]
 
 
-def _segundos(h, m, s, ms):
+def _seconds(h, m, s, ms):
     return int(h or 0) * 3600 + int(m) * 60 + int(s) + int(ms) / 1000.0
 
 
 def vtt_check(url, duration=None, lang='en'):
     """Descarga y juzga un .vtt — el contenido de 1.2.2, no su mera presencia."""
-    from .a11yaudit import _descarga, calcular_score, CRIT
-    datos = _descarga(url, timeout=30, truncar_en=2_000_000)
-    if isinstance(datos, dict) and 'error' in datos:
-        return datos
-    if isinstance(datos, bytes):
-        texto = datos.decode('utf-8', errors='replace')
+    from .a11yaudit import _fetch, compute_score, CRIT
+    data = _fetch(url, timeout=30, truncate_at=2_000_000)
+    if isinstance(data, dict) and 'error' in data:
+        return data
+    if isinstance(data, bytes):
+        text = data.decode('utf-8', errors='replace')
     else:
-        texto = str(datos)
+        text = str(data)
 
-    hallazgos = []
+    findings = []
 
     def add(sev, key, **fmt):
-        hallazgos.append({'severity': sev, 'criterion': CRIT.get(lang, CRIT['es']).get('1.2.2', '1.2.2'),
+        findings.append({'severity': sev, 'criterion': CRIT.get(lang, CRIT['es']).get('1.2.2', '1.2.2'),
                           'signal': key, 'issue': _t(lang, key).format(**fmt),
                           'remediation': _t(lang, key + '_rem').format(**fmt)})
 
-    if not texto.lstrip().startswith('WEBVTT'):
+    if not text.lstrip().startswith('WEBVTT'):
         return {'error': 'no declara WEBVTT (¿es un .srt u otro formato?)',
-                'primeros_bytes': texto[:40]}
+                'primeros_bytes': text[:40]}
 
-    bloques = [b for b in re.split(r'\n\s*\n', texto) if b.strip()]
-    cues, malformados = [], []
-    for b in bloques[1:]:  # el primero es la cabecera
-        lineas = [l for l in b.splitlines() if l.strip()]
+    blocks = [b for b in re.split(r'\n\s*\n', text) if b.strip()]
+    cues, malformed = [], []
+    for b in blocks[1:]:  # el primero es la cabecera
+        lines = [l for l in b.splitlines() if l.strip()]
         m = None
-        for i, l in enumerate(lineas):
+        for i, l in enumerate(lines):
             m = _RE_TiEMPO.search(l)
             if m:
-                cuerpo = '\n'.join(lineas[i + 1:]).strip()
+                body = '\n'.join(lines[i + 1:]).strip()
                 break
         if not m:
             if '-->' in b:
-                malformados.append(lineas[0][:30])
+                malformed.append(lines[0][:30])
             continue
-        ini = _segundos(*m.groups()[:4])
-        fin = _segundos(*m.groups()[4:])
-        cues.append({'ini': ini, 'fin': fin, 'texto': cuerpo})
+        start = _seconds(*m.groups()[:4])
+        end = _seconds(*m.groups()[4:])
+        cues.append({'start': start, 'end': end, 'text': body})
 
-    if malformados:
-        add('high', 'vtt_malformed', n=len(malformados), ej=', '.join(malformados[:3]))
+    if malformed:
+        add('high', 'vtt_malformed', n=len(malformed), ej=', '.join(malformed[:3]))
     if not cues:
         add('high', 'vtt_no_cues')
-        return _informe(url, hallazgos, 0, 0, lang, duration, cues)
+        return _report(url, findings, 0, 0, lang, duration, cues)
 
-    vacios = [c for c in cues if not c['texto']]
+    vacios = [c for c in cues if not c['text']]
     if vacios:
         add('medium', 'vtt_empty_cue', n=len(vacios))
 
-    solapes = sum(1 for a, b in zip(cues, cues[1:]) if b['ini'] < a['fin'])
-    if solapes:
-        add('low', 'vtt_overlap', n=solapes)
+    overlaps = sum(1 for a, b in zip(cues, cues[1:]) if b['start'] < a['end'])
+    if overlaps:
+        add('low', 'vtt_overlap', n=overlaps)
 
-    rapidos = [{'t': c['texto'][:30], 'cps': round(len(c['texto']) / max(c['fin'] - c['ini'], 0.1), 1)}
-               for c in cues if not c['texto'].startswith('<') and c['texto']
-               and len(c['texto']) / max(c['fin'] - c['ini'], 0.1) > 21]
-    if rapidos:
-        add('medium', 'vtt_too_fast', n=len(rapidos),
-            ej=', '.join(f"{r['t']}… ({r['cps']}cps)" for r in rapidos[:3]))
+    too_fast = [{'t': c['text'][:30], 'cps': round(len(c['text']) / max(c['end'] - c['start'], 0.1), 1)}
+               for c in cues if not c['text'].startswith('<') and c['text']
+               and len(c['text']) / max(c['end'] - c['start'], 0.1) > 21]
+    if too_fast:
+        add('medium', 'vtt_too_fast', n=len(too_fast),
+            ej=', '.join(f"{r['t']}… ({r['cps']}cps)" for r in too_fast[:3]))
 
     if duration:
-        cubierto = sum(max(0.0, min(c['fin'], duration) - c['ini']) for c in cues if c['ini'] < duration)
-        pct = round(100 * cubierto / max(duration, 1), 1)
+        covered = sum(max(0.0, min(c['end'], duration) - c['start']) for c in cues if c['start'] < duration)
+        pct = round(100 * covered / max(duration, 1), 1)
         if pct < 95:
             add('medium', 'vtt_coverage', pct=pct, dur=round(duration))
 
-    n_char = sum(len(c['texto']) for c in cues)
-    return _informe(url, hallazgos, len(cues), n_char, lang, duration, cues)
+    n_char = sum(len(c['text']) for c in cues)
+    return _report(url, findings, len(cues), n_char, lang, duration, cues)
 
 
-def _informe(url, hallazgos, n_cues, n_char, lang, duration, cues):
-    from .a11yaudit import calcular_score
-    orden = {'high': 0, 'medium': 1, 'low': 2}
-    hallazgos.sort(key=lambda h: orden[h['severity']])
+def _report(url, findings, n_cues, n_char, lang, duration, cues):
+    from .a11yaudit import compute_score
+    order = {'high': 0, 'medium': 1, 'low': 2}
+    findings.sort(key=lambda h: order[h['severity']])
     return {
         'mode': 'vtt', 'url': url,
         'duration': duration,
         'cues': n_cues, 'characters': n_char,
-        'captioned_seconds': round(sum(c['fin'] - c['ini'] for c in cues), 1) if cues else 0,
-        'score': calcular_score(hallazgos),
-        'findings': hallazgos,
-        'summary': {s: sum(1 for h in hallazgos if h['severity'] == s)
+        'captioned_seconds': round(sum(c['end'] - c['start'] for c in cues), 1) if cues else 0,
+        'score': compute_score(findings),
+        'findings': findings,
+        'summary': {s: sum(1 for h in findings if h['severity'] == s)
                     for s in ('high', 'medium', 'low')},
         'limits': _t(lang, 'limits'),
     }

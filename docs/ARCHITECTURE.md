@@ -38,7 +38,7 @@ import guards. Output es/en; wire keys English (`a11y-evidence-pack/2`).
 | `a11ybadge.py` | Honest SVG badge (score + date + scope, XML-escaped). |
 | `a11yfix.py` | Deterministic autofix (zoom, autocomplete, lang/title, form-error layer). |
 | `contrast.py` | Contrast math (pairs, names, hsl/rgba) + pixel sampling over images. |
-| `declaracion.py` | Legal statements: EAA / RD 1112/2018, es/en. |
+| `a11ystatement.py` | Legal statements: EAA / RD 1112/2018, es/en. |
 | `arialive_js.py` | Embedded aria-live monitor JS (`ARIALIVE_JS` string). |
 | `arialive.js` | The raw monitor script (package-data; regenerate `arialive_js.py` from it). |
 

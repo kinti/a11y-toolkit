@@ -7,7 +7,7 @@ import sys
 import tempfile
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from a11y_toolkit.contrast import pair, parse_color, ratio, sugerir  # noqa: E402
+from a11y_toolkit.contrast import pair, parse_color, ratio, suggest  # noqa: E402
 
 
 def cerca(a, b, tol=0.01):
@@ -20,34 +20,34 @@ cerca(ratio(parse_color('#000000'), parse_color('#ffffff')), 21.0)  # simetría
 cerca(ratio(parse_color('#767676'), parse_color('#ffffff')), 4.54, 0.02)  # frontera AA
 r = pair('#999999', '#ffffff')
 cerca(r['ratio'], 2.85, 0.02)
-assert r['verdicts'][0]['passes'] is False  # texto normal AA falla
+assert r['verdicts'][0]['passes'] is False  # text normal AA falla
 assert r['verdicts'][4]['passes'] is False  # 1.4.11 (3:1) también falla
 r2 = pair('#1f2328', '#fbfaf7')
 cerca(r2['ratio'], 15.13, 0.02)
 
-# 2. Formatos de entrada
+# 2. Formatos de entry
 assert parse_color('rgb(255, 0, 0)') == {'r': 255, 'g': 0, 'b': 0}
 assert parse_color('#f00') == {'r': 255, 'g': 0, 'b': 0}
 assert parse_color('naranja') is None
 
-# 3. Sugerencia: desde #999999 sobre blanco debe alcanzar AA
-s = sugerir(parse_color('#999999'), parse_color('#ffffff'), 4.5)
+# 3. Sugerencia: desde #999999 sobre white debe alcanzar AA
+s = suggest(parse_color('#999999'), parse_color('#ffffff'), 4.5)
 assert s and s['ratio'] >= 4.5, s
 cerca(ratio(parse_color(s['color']), parse_color('#ffffff')), s['ratio'], 0.02)
 
-# 4. Modo imagen con PPM sintético (gradiente blanco→negro)
+# 4. Modo imagen con PPM sintético (gradiente white→negro)
 with tempfile.NamedTemporaryFile(suffix='.ppm', delete=False) as f:
     w = h = 100
     f.write(b'P6\n%d %d\n255\n' % (w, h))
     for j in range(h):
         v = int(255 * j / h)
         f.write(bytes([v, v, v]) * w)
-    ruta = f.name
+    path = f.name
 from a11y_toolkit.contrast import image_contrast  # noqa: E402
-res = image_contrast(ruta, '#ffffff', sample=2)
-os.unlink(ruta)
-cerca(res['worst_ratio'], 1.05, 0.02)          # contra la fila más clara (v=252)
-assert res['median_ratio'] >= 3             # mitad de la rampa ya es oscura
+res = image_contrast(path, '#ffffff', sample=2)
+os.unlink(path)
+cerca(res['worst_ratio'], 1.05, 0.02)          # contra la row más clara (v=252)
+assert res['median_ratio'] >= 3             # mitad de la rampa already es oscura
 assert res['area_passes_aa_normal_text_4_5'] > 40
 # región inválida → error amigable, no traceback
 assert 'error' in image_contrast('/dev/null', '#fff', region='a,b,c')
@@ -65,7 +65,7 @@ print('TODOS LOS TESTS DE CONTRASTE PASAN ✓')
 # 6. Multilenguaje
 r_en = pair('#999999', '#ffffff', lang='en')
 assert r_en['verdicts'][0]['criterion'].startswith('1.4.3 Contrast'), r_en['verdicts'][0]
-assert r_en['aa_suggestion']['accion'] == 'darkening'
+assert r_en['aa_suggestion']['action'] == 'darkening'
 r_es = pair('#999999', '#ffffff', lang='es')
 assert r_es['verdicts'][0]['criterion'].startswith('1.4.3 Contraste')
 print('MULTILINGUE PAR OK ✓')
@@ -82,6 +82,6 @@ with _tf.NamedTemporaryFile(suffix='.ppm', delete=False) as _f:
     _ruta = _f.name
 _g = image_contrast(_ruta, '#ffffff', sample=3)
 os.unlink(_ruta)
-assert _g['worst_zone']['cell'] == 'superior-derecha', _g['worst_zone']
+assert _g['worst_zone']['cell'] == 'top-right', _g['worst_zone']
 assert _g['worst_zone']['pct_passes_aa'] < 10
 print('GRID ZONA HOSTIL OK ✓')

@@ -13,7 +13,7 @@ engine via `uvx` — no clone, no venv:
 uvx --from a11y-toolkit a11ytoolkit pair "#1f2328" "#fbfaf7"          # color pair
 uvx --from a11y-toolkit a11ytoolkit audit --url https://example.com   # static audit
 uvx --from a11y-toolkit a11ytoolkit image hero.jpg --text "#fff" --region 120,40,420,90
-uvx --from a11y-toolkit a11ytoolkit declaration --entidad "Acme" --url https://acme.example --estado parcial --marco eaa --lang en --output decl.html
+uvx --from a11y-toolkit a11ytoolkit declaration --entity "Acme" --url https://acme.example --status partial --framework eaa --lang en --output decl.html
 ```
 
 All output is English by default; pass `--lang es` (or the `lang: "es"` MCP argument) for Spanish.
@@ -43,7 +43,7 @@ All output is English by default; pass `--lang es` (or the `lang: "es"` MCP argu
 | "produce something a human auditor can sign" | `a11y_evidence`: the verifiable pack (criteria matrix + hashed artifacts + empty signature block). Vendor-neutral — any qualified human |
 | "a VPAT for the US market (ADA)" | `a11y_generate_vpat`: VPAT 2.5 (WCAG edition) draft from the pack — Remarks auto-filled, levels Not Evaluated until a qualified human sets them (`overrides`) and signs (hash-referenced). Draft until signed |
 | "export findings as ACT Rules / EARL" | `a11ytoolkit earl --from-audit audit.json -o earl.json` (curated ACT map; failures asserted, absence never asserted as pass) |
-| "FIX it for me" (zoom blocked, missing autocomplete, missing lang/title) | `a11y_autofix`: deterministic safe fixes + the accessible form-error layer (3.3.1/3.3.3, skips forms with their own handling); judgment fixes come back as `no_aplicados` + remediation. Never promise overlay-style full fixes |
+| "FIX it for me" (zoom blocked, missing autocomplete, missing lang/title) | `a11y_autofix`: deterministic safe fixes + the accessible form-error layer (3.3.1/3.3.3, skips forms with their own handling); judgment fixes come back as `not_applied` + remediation. Never promise overlay-style full fixes |
 | "does it scroll sideways on mobile?" (1.4.10) | `a11y_reflow` (320px viewport, real overflow + offenders) — axe/Lighthouse don't automate this |
 | "is the modal a keyboard trap?" (2.1.2) | `a11y_keyboard`: real Tab walk + cycle detection + Escape release test. Correct modals pass; traps are high severity |
 | "infinite scroll / feed / more posts keep loading" | `a11y_scroll`: real scroll batches — focus survival (2.4.3), announcements (4.1.3), end or load-more (Deque/APG Feed). Best on feeds you own or can log into |

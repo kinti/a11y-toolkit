@@ -22,50 +22,50 @@ import os
 
 T = {
     'es': {
-        'criterios': [
+        'criteria': [
             ('1.4.3 Contraste (mínimo) · texto normal', 'AA', 4.5),
             ('1.4.3 Contraste (mínimo) · texto grande', 'AA', 3.0),
             ('1.4.6 Contraste (mejorado) · texto normal', 'AAA', 7.0),
             ('1.4.6 Contraste (mejorado) · texto grande', 'AAA', 4.5),
             ('1.4.11 Contraste no textual (UI, iconos, bordes)', 'AA', 3.0),
         ],
-        'color_invalido': 'color no válido (usa #rgb, #rrggbb o rgb(r,g,b))',
-        'region_invalida': 'region debe ser x,y,ancho,alto (números separados por comas)',
-        'region_fuera': 'región fuera de la imagen',
-        'sin_pixeles': 'sin píxeles en la región',
-        'carga_error': 'no se pudo cargar la imagen',
-        'texto_opaco': 'para texto sobre imagen usa un color opaco (sin alfa)',
-        'selector_falta': 'selector {s} no encontrado en la página',
-        'sin_caja': 'el elemento que coincide con {s} no tiene caja visible que muestrear',
-        'aclarar': 'aclarando', 'oscurecer': 'oscureciendo',
-        'sin_copia': 'sin copia específica del post: base a secas',
+        'invalid_color': 'color no válido (usa #rgb, #rrggbb o rgb(r,g,b))',
+        'invalid_region': 'region debe ser x,y,ancho,alto (números separados por comas)',
+        'region_outside': 'región fuera de la imagen',
+        'no_pixels': 'sin píxeles en la región',
+        'load_error': 'no se pudo cargar la imagen',
+        'opaque_text': 'para texto sobre imagen usa un color opaco (sin alfa)',
+        'selector_missing': 'selector {s} no encontrado en la página',
+        'no_box': 'el elemento que coincide con {s} no tiene caja visible que muestrear',
+        'lightening': 'aclarando', 'darkening': 'oscureciendo',
+        'no_post_copy': 'sin copia específica del post: base a secas',
         'interp': ('El contraste del texto debe evaluarse contra el FONDO REAL tras él: '
-                   'usa ratio_peor para saber la zona más hostil y area_pasa_aa_texto_normal '
-                   'para saber cuánta superficie es segura. Si area_pasa < 100% con texto '
+                   'usa worst_ratio para saber la zona más hostil y area_passes_aa_normal_text_4_5 '
+                   'para saber cuánta superficie es segura. Si area_passes_aa_normal_text_4_5 < 100% con texto '
                    'sobre imagen, se necesita velo/overlay o texto alternativo posicionado.'),
     },
     'en': {
-        'criterios': [
+        'criteria': [
             ('1.4.3 Contrast (Minimum) · normal text', 'AA', 4.5),
             ('1.4.3 Contrast (Minimum) · large text', 'AA', 3.0),
             ('1.4.6 Contrast (Enhanced) · normal text', 'AAA', 7.0),
             ('1.4.6 Contrast (Enhanced) · large text', 'AAA', 4.5),
             ('1.4.11 Non-text Contrast (UI, icons, borders)', 'AA', 3.0),
         ],
-        'color_invalido': 'invalid color (use #rgb, #rrggbb or rgb(r,g,b))',
-        'region_invalida': 'region must be x,y,width,height (comma-separated numbers)',
-        'region_fuera': 'region outside the image',
-        'sin_pixeles': 'no pixels in region',
-        'carga_error': 'could not load image',
-        'texto_opaco': 'use an opaque color for text over images (no alpha)',
-        'selector_falta': 'selector {s} not found on the page',
-        'sin_caja': 'the element matched by {s} has no visible box to sample',
-        'aclarar': 'lightening', 'oscurecer': 'darkening',
-        'sin_copia': 'no specific copy of the post: base only',
+        'invalid_color': 'invalid color (use #rgb, #rrggbb or rgb(r,g,b))',
+        'invalid_region': 'region must be x,y,width,height (comma-separated numbers)',
+        'region_outside': 'region outside the image',
+        'no_pixels': 'no pixels in region',
+        'load_error': 'could not load image',
+        'opaque_text': 'use an opaque color for text over images (no alpha)',
+        'selector_missing': 'selector {s} not found on the page',
+        'no_box': 'the element matched by {s} has no visible box to sample',
+        'lightening': 'lightening', 'darkening': 'darkening',
+        'no_post_copy': 'no specific copy of the post: base only',
         'interp': ('Text contrast must be evaluated against the REAL background behind it: '
-                   'use ratio_peor (worst) to find the most hostile area and '
-                   'area_pasa_aa_texto_normal to know how much surface is safe. If '
-                   'area_pasa < 100% for text over image, you need an overlay/scrim or '
+                   'use worst_ratio to find the most hostile area and '
+                   'area_passes_aa_normal_text_4_5 to know how much surface is safe. If '
+                   'area_passes_aa_normal_text_4_5 < 100% for text over image, you need an overlay/scrim or '
                    'repositioned alternative text.'),
     },
 }
@@ -77,7 +77,7 @@ def _t(lang):
 # ---------------------------------------------------------------- colores ---
 
 # Nombres CSS (X11/CSS Color Module Level 4), 148 entradas
-_NOMBRES = '''
+_NAMES = '''
 aliceblue:f0f8ff antiquewhite:faebd7 aqua:00ffff aquamarine:7fffd4 azure:f0ffff
 beige:f5f5dc bisque:ffe4c4 black:000000 blanchedalmond:ffebcd blue:0000ff
 blueviolet:8a2be2 brown:a52a2a burlywood:deb887 cadetblue:5f9ea0 chartreuse:7fff00
@@ -111,7 +111,7 @@ slategray:708090 slategrey:708090 snow:fffafa springgreen:00ff7f steelblue:4682b
 tan:d2b48c teal:008080 thistle:d8bfd8 tomato:ff6347 turquoise:40e0d0 violet:ee82ee
 wheat:f5deb3 white:ffffff whitesmoke:f5f5f5 yellow:ffff00 yellowgreen:9acd32
 '''
-COLORES_NOMBRE = {n: h for n, h in (par.split(':') for par in _NOMBRES.split())}
+COLOR_NAMES = {n: h for n, h in (par.split(':') for par in _NAMES.split())}
 
 
 def _hsl_a_rgb(h, s, l):
@@ -145,20 +145,20 @@ def parse_color(s):
     # rgb()/rgba()/hsl()/hsla() con comas o espacios (sintaxis CSS moderna)
     m = re.fullmatch(r'(rgba?|hsla?)\(\s*([^)]*)\)', t)
     if m:
-        cuerpo = m.group(2)
+        body = m.group(2)
         alfa_ext = None
-        if '/' in cuerpo:
-            cuerpo, alfa_ext = re.split(r'\s*/\s*', cuerpo, 1)
-        partes = [p for p in (x.strip() for x in re.split(r'[\s,]+', cuerpo)) if p]
-        tipo, v = m.group(1), partes
-        if tipo.startswith('rgb'):
+        if '/' in body:
+            body, alfa_ext = re.split(r'\s*/\s*', body, 1)
+        parts = [p for p in (x.strip() for x in re.split(r'[\s,]+', body)) if p]
+        kind, v = m.group(1), parts
+        if kind.startswith('rgb'):
             if len(v) < 3:
                 return None
-            def _canal(x):
+            def _channel(x):
                 if x.endswith('%'):
                     return max(0, min(255, round(float(x[:-1]) * 2.55)))
                 return max(0, min(255, int(float(x))))
-            c = {'r': _canal(v[0]), 'g': _canal(v[1]), 'b': _canal(v[2])}
+            c = {'r': _channel(v[0]), 'g': _channel(v[1]), 'b': _channel(v[2])}
             if len(v) >= 4:
                 c['a'] = max(0.0, min(1.0, float(v[3].rstrip('%')) / (100 if v[3].endswith('%') else 1)))
             elif alfa_ext:
@@ -175,21 +175,21 @@ def parse_color(s):
         if len(v) >= 4:
             c['a'] = max(0.0, min(1.0, float(v[3].rstrip('%')) / (100 if v[3].endswith('%') else 1)))
         return c
-    if t in COLORES_NOMBRE:
-        h = COLORES_NOMBRE[t]
+    if t in COLOR_NAMES:
+        h = COLOR_NAMES[t]
         return {'r': int(h[0:2], 16), 'g': int(h[2:4], 16), 'b': int(h[4:6], 16)}
     return None
 
 
-BLANCO = {'r': 255, 'g': 255, 'b': 255}
+WHITE = {'r': 255, 'g': 255, 'b': 255}
 
 
-def componer(c, fondo):
+def composite(c, bg):
     """Compone c (con alfa) sobre fondo opaco → dict opaco r,g,b."""
     a = c.get('a', 1.0)
-    return {'r': round(c['r'] * a + fondo['r'] * (1 - a)),
-            'g': round(c['g'] * a + fondo['g'] * (1 - a)),
-            'b': round(c['b'] * a + fondo['b'] * (1 - a))}
+    return {'r': round(c['r'] * a + bg['r'] * (1 - a)),
+            'g': round(c['g'] * a + bg['g'] * (1 - a)),
+            'b': round(c['b'] * a + bg['b'] * (1 - a))}
 
 
 def hexs(c):
@@ -204,117 +204,117 @@ def _lin(v):
     return c / 12.92 if c <= 0.03928 else ((c + 0.055) / 1.055) ** 2.4
 
 
-def luminancia(c):
+def luminance(c):
     return 0.2126 * _lin(c['r']) + 0.7152 * _lin(c['g']) + 0.0722 * _lin(c['b'])
 
 
 def ratio(fg, bg):
-    l1, l2 = sorted((luminancia(fg), luminancia(bg)), reverse=True)
+    l1, l2 = sorted((luminance(fg), luminance(bg)), reverse=True)
     return (l1 + 0.05) / (l2 + 0.05)
 
 
-def veredictos(r, lang='en'):
+def verdicts(r, lang='en'):
     return [
         {'criterion': n, 'level': lvl, 'threshold': u, 'passes': r >= u}
-        for n, lvl, u in _t(lang)['criterios']
+        for n, lvl, u in _t(lang)['criteria']
     ]
 
 
-def sugerir(fg, bg, objetivo=4.5, lang='en'):
+def suggest(fg, bg, target=4.5, lang='en'):
     """Color opaco más cercano (distancia RGB) al original que cumple el objetivo.
 
     Prueba mezclas hacia blanco y hacia negro y elige la de menor distancia real,
     con búsqueda fina de 400 pasos."""
     t9 = _t(lang)
-    fg0 = componer(fg, bg) if fg.get('a', 1) < 1 else fg
-    if ratio(fg0, bg) >= objetivo:
+    fg0 = composite(fg, bg) if fg.get('a', 1) < 1 else fg
+    if ratio(fg0, bg) >= target:
         return None
-    mejor = None
-    for blanco in (True, False):
-        o = (255, 255, 255) if blanco else (0, 0, 0)
-        for paso in range(1, 401):
-            tt = paso / 400
+    best = None
+    for white in (True, False):
+        o = (255, 255, 255) if white else (0, 0, 0)
+        for step in range(1, 401):
+            tt = step / 400
             c = {'r': round(fg0['r'] + (o[0] - fg0['r']) * tt),
                  'g': round(fg0['g'] + (o[1] - fg0['g']) * tt),
                  'b': round(fg0['b'] + (o[2] - fg0['b']) * tt)}
-            if ratio(c, bg) >= objetivo:
+            if ratio(c, bg) >= target:
                 d = (c['r'] - fg0['r']) ** 2 + (c['g'] - fg0['g']) ** 2 + (c['b'] - fg0['b']) ** 2
-                if mejor is None or d < mejor['_d']:
-                    mejor = {'color': hexs(c), 'ratio': round(ratio(c, bg), 2),
-                             'accion': t9['aclarar'] if blanco else t9['oscurecer'],
+                if best is None or d < best['_d']:
+                    best = {'color': hexs(c), 'ratio': round(ratio(c, bg), 2),
+                             'action': t9['lightening'] if white else t9['darkening'],
                              'step': tt, '_d': d}
                 break
-    if mejor:
-        del mejor['_d']
-    return mejor
+    if best:
+        del best['_d']
+    return best
 
 
 def pair(fg_s, bg_s, con_sugerencia=True, lang='en'):
     fg, bg = parse_color(fg_s), parse_color(bg_s)
     if not fg or not bg:
-        return {'error': _t(lang)['color_invalido']}
+        return {'error': _t(lang)['invalid_color']}
     nota_alfa = None
     if bg.get('a', 1) < 1:
-        bg = componer(bg, BLANCO)
+        bg = composite(bg, WHITE)
         nota_alfa = hexs(bg)
     if fg.get('a', 1) < 1:
-        fg = componer(fg, bg)
+        fg = composite(fg, bg)
         nota_alfa = hexs(fg)
     r = ratio(fg, bg)
     out = {
         'text': hexs(fg), 'background': hexs(bg),
         'ratio': round(r, 2),
-        'verdicts': veredictos(r, lang),
+        'verdicts': verdicts(r, lang),
     }
     if nota_alfa:
         out['effective_color'] = nota_alfa
     if con_sugerencia and r < 4.5:
-        s = sugerir(fg, bg, 4.5, lang)
+        s = suggest(fg, bg, 4.5, lang)
         if s:
             out['aa_suggestion'] = s
     return out
 
 # ---------------------------------------------------------------- imagen ----
 
-def _cargar_ppm(ruta):
-    with open(ruta, 'rb') as f:
-        datos = f.read()
-    if not datos.startswith(b'P6'):
+def _load_ppm(path):
+    with open(path, 'rb') as f:
+        data = f.read()
+    if not data.startswith(b'P6'):
         raise ValueError('no es PPM P6')
     pos = 2
-    campos = []
-    while len(campos) < 3:
-        while pos < len(datos) and datos[pos:pos + 1].isspace():
-            if datos[pos:pos + 2] == b'\r\n':
+    fields = []
+    while len(fields) < 3:
+        while pos < len(data) and data[pos:pos + 1].isspace():
+            if data[pos:pos + 2] == b'\r\n':
                 pos += 2
             else:
                 pos += 1
-        if datos[pos:pos + 1] == b'#':
-            while datos[pos:pos + 1] not in (b'\n', b''):
+        if data[pos:pos + 1] == b'#':
+            while data[pos:pos + 1] not in (b'\n', b''):
                 pos += 1
             continue
-        ini = pos
-        while pos < len(datos) and not datos[pos:pos + 1].isspace():
+        start = pos
+        while pos < len(data) and not data[pos:pos + 1].isspace():
             pos += 1
-        campos.append(int(datos[ini:pos]))
+        fields.append(int(data[start:pos]))
     # tras maxval: saltar UN fin de línea (\n o \r\n) — con CRLF un solo
     # byte desplazaría TODOS los píxeles (salida plausible y falsa)
-    if datos[pos:pos + 2] == b'\r\n':
+    if data[pos:pos + 2] == b'\r\n':
         pos += 2
     else:
         pos += 1
-    w, h, _maxv = campos
-    return w, h, datos[pos:pos + w * h * 3]
+    w, h, _maxv = fields
+    return w, h, data[pos:pos + w * h * 3]
 
 
-def cargar_imagen(ruta):
+def load_image(path):
     # .ppm → parser propio: PIL desplaza los píxeles cuando el header lleva
     # CRLF (el \n del fin de línea entra como primer byte de la imagen)
-    if ruta.lower().endswith('.ppm'):
-        return _cargar_ppm(ruta)
+    if path.lower().endswith('.ppm'):
+        return _load_ppm(path)
     try:
         from PIL import Image
-        im = Image.open(ruta).convert('RGB')
+        im = Image.open(path).convert('RGB')
         return im.width, im.height, im.tobytes()
     except ImportError:
         pass
@@ -323,14 +323,14 @@ def cargar_imagen(ruta):
     with tempfile.NamedTemporaryFile(suffix='.ppm', delete=False) as tf:
         tmp = tf.name
     try:
-        subprocess.run(['sips', '-s', 'format', 'ppm', ruta, '--out', tmp],
+        subprocess.run(['sips', '-s', 'format', 'ppm', path, '--out', tmp],
                        check=True, capture_output=True)
-        return _cargar_ppm(tmp)
+        return _load_ppm(tmp)
     finally:
         os.unlink(tmp)
 
 
-def _percentil(vals, p):
+def _percentile(vals, p):
     if not vals:
         return None
     s = sorted(vals)
@@ -344,7 +344,7 @@ def _percentil(vals, p):
 # color types 0/2/3/6 a 8 bits. Lo que no sepa → ValueError con mensaje claro.
 
 
-def decodificar_png(datos):
+def decodificar_png(data):
     """Bytes PNG → (ancho, alto, bytes RGB). Sin dependencias.
 
     Soporta color types 0 (gris), 2 (RGB), 3 (paleta) y 6 (RGBA) a 8 bits;
@@ -352,20 +352,20 @@ def decodificar_png(datos):
     Lanza ValueError si el PNG está fuera de ese soporte (p. ej. 16 bits)."""
     import struct
     import zlib
-    if datos[:8] != b'\x89PNG\r\n\x1a\n':
+    if data[:8] != b'\x89PNG\r\n\x1a\n':
         raise ValueError('not a PNG file')
     pos, idat, w, h, bd, ct, plte = 8, b'', 0, 0, 0, 0, None
-    while pos < len(datos):
-        ln = struct.unpack('>I', datos[pos:pos + 4])[0]
-        tipo = datos[pos + 4:pos + 8]
-        cuerpo = datos[pos + 8:pos + 8 + ln]
-        if tipo == b'IHDR':
-            w, h, bd, ct = struct.unpack('>IIBB', cuerpo[:10])
-        elif tipo == b'IDAT':
-            idat += cuerpo
-        elif tipo == b'PLTE':
-            plte = cuerpo
-        elif tipo == b'IEND':
+    while pos < len(data):
+        ln = struct.unpack('>I', data[pos:pos + 4])[0]
+        kind = data[pos + 4:pos + 8]
+        body = data[pos + 8:pos + 8 + ln]
+        if kind == b'IHDR':
+            w, h, bd, ct = struct.unpack('>IIBB', body[:10])
+        elif kind == b'IDAT':
+            idat += body
+        elif kind == b'PLTE':
+            plte = body
+        elif kind == b'IEND':
             break
         pos += 12 + ln
     if bd != 8:
@@ -376,14 +376,14 @@ def decodificar_png(datos):
     if ct == 3 and not plte:
         raise ValueError('PNG palette without PLTE chunk')
     crudo = zlib.decompress(idat)
-    paso = w * canales
-    filas = []
+    step = w * canales
+    rows = []
     for y in range(h):
-        base = y * (paso + 1)
+        base = y * (step + 1)
         filtro = crudo[base]
-        f = bytearray(crudo[base + 1:base + 1 + paso])
-        prev = filas[-1] if filas else bytearray(paso)
-        for i in range(paso):
+        f = bytearray(crudo[base + 1:base + 1 + step])
+        prev = rows[-1] if rows else bytearray(step)
+        for i in range(step):
             a = f[i - canales] if i >= canales else 0
             b = prev[i]
             c = prev[i - canales] if i >= canales else 0
@@ -398,10 +398,10 @@ def decodificar_png(datos):
                 pa, pb, pc = abs(p - a), abs(p - b), abs(p - c)
                 pr = a if (pa <= pb and pa <= pc) else (b if pb <= pc else c)
                 f[i] = (f[i] + pr) & 255
-        filas.append(f)
+        rows.append(f)
     out = bytearray(w * h * 3)
     for y in range(h):
-        f = filas[y]
+        f = rows[y]
         for x in range(w):
             o = x * canales
             if ct == 0:
@@ -422,7 +422,7 @@ def decodificar_png(datos):
     return w, h, bytes(out)
 
 
-def sample_rgb(w, h, rgb, texto_color, sample=4, excluir_texto=False):
+def sample_rgb(w, h, rgb, text_color, sample=4, exclude_text=False):
     """Núcleo de muestreo compartido: bytes RGB + color de texto opaco → métricas.
 
     excluir_texto=True salta los píxeles próximos al color del texto (distancia
@@ -430,99 +430,99 @@ def sample_rgb(w, h, rgb, texto_color, sample=4, excluir_texto=False):
     mide el FONDO real y no el propio texto (que siempre fallaría 1:1). Cuando
     se excluye >90% de la región no hay fondo medible → None.
     Incluye la rejilla 3×3 de zona hostil cuando la región es ≥99×99."""
-    l_texto = luminancia(texto_color)
-    tr, tg, tb = texto_color['r'], texto_color['g'], texto_color['b']
+    l_text = luminance(text_color)
+    tr, tg, tb = text_color['r'], text_color['g'], text_color['b']
     ratios = []
-    excluidos = 0
-    usar_grid = w >= 99 and h >= 99
-    celdas = [[0, 0] for _ in range(9)]
+    excluded = 0
+    use_grid = w >= 99 and h >= 99
+    cells = [[0, 0] for _ in range(9)]
     for j in range(0, h, sample):
-        fila = j * w
-        cy = (j * 3) // h if usar_grid else 0
+        row = j * w
+        cy = (j * 3) // h if use_grid else 0
         for i in range(0, w, sample):
-            o = (fila + i) * 3
-            if excluir_texto and ((rgb[o] - tr) ** 2 + (rgb[o + 1] - tg) ** 2
+            o = (row + i) * 3
+            if exclude_text and ((rgb[o] - tr) ** 2 + (rgb[o + 1] - tg) ** 2
                                   + (rgb[o + 2] - tb) ** 2) < 1600:
-                excluidos += 1
+                excluded += 1
                 continue
             lpix = (0.2126 * _lin(rgb[o]) + 0.7152 * _lin(rgb[o + 1])
                     + 0.0722 * _lin(rgb[o + 2]))
-            l1, l2 = (l_texto, lpix) if l_texto > lpix else (lpix, l_texto)
+            l1, l2 = (l_text, lpix) if l_text > lpix else (lpix, l_text)
             r = (l1 + 0.05) / (l2 + 0.05)
             ratios.append(r)
-            if usar_grid:
+            if use_grid:
                 cx = (i * 3) // w
-                celdas[cy * 3 + cx][1] += 1
+                cells[cy * 3 + cx][1] += 1
                 if r >= 4.5:
-                    celdas[cy * 3 + cx][0] += 1
+                    cells[cy * 3 + cx][0] += 1
     if not ratios:
         return None
-    if excluir_texto and excluidos / max(1, len(ratios) + excluidos) > 0.9:
+    if exclude_text and excluded / max(1, len(ratios) + excluded) > 0.9:
         return None
-    pasa45 = sum(1 for v in ratios if v >= 4.5)
-    pasa30 = sum(1 for v in ratios if v >= 3.0)
+    passes45 = sum(1 for v in ratios if v >= 4.5)
+    passes30 = sum(1 for v in ratios if v >= 3.0)
     out = {
         'worst_ratio': round(min(ratios), 2),
-        'median_ratio': round(_percentil(ratios, 50), 2),
-        'p95_ratio': round(_percentil(ratios, 95), 2),
-        'area_passes_aa_normal_text_4_5': round(100.0 * pasa45 / len(ratios), 1),
-        'area_passes_aa_min_3_0': round(100.0 * pasa30 / len(ratios), 1),
+        'median_ratio': round(_percentile(ratios, 50), 2),
+        'p95_ratio': round(_percentile(ratios, 95), 2),
+        'area_passes_aa_normal_text_4_5': round(100.0 * passes45 / len(ratios), 1),
+        'area_passes_aa_min_3_0': round(100.0 * passes30 / len(ratios), 1),
         'sampled_pixels': len(ratios),
     }
-    if excluir_texto:
-        out['excluded_text_pixels'] = excluidos
-    if usar_grid:
-        peor = min(range(9), key=lambda k: (celdas[k][0] / celdas[k][1]) if celdas[k][1] else 1)
-        py_, px_ = peor // 3, peor % 3
+    if exclude_text:
+        out['excluded_text_pixels'] = excluded
+    if use_grid:
+        worst = min(range(9), key=lambda k: (cells[k][0] / cells[k][1]) if cells[k][1] else 1)
+        py_, px_ = worst // 3, worst % 3
         out['worst_zone'] = {
-            'cell': f'{["superior","central","inferior"][py_]}-{["izquierda","centro","derecha"][px_]}',
+            'cell': f'{["top","middle","bottom"][py_]}-{["left","center","right"][px_]}',
             'x': (w * px_) // 3, 'y': (h * py_) // 3,
             'width': w // 3, 'height': h // 3,
-            'pct_passes_aa': round(100.0 * celdas[peor][0] / celdas[peor][1], 1) if celdas[peor][1] else None,
+            'pct_passes_aa': round(100.0 * cells[worst][0] / cells[worst][1], 1) if cells[worst][1] else None,
         }
     return out
 
 
-def image_contrast(ruta, texto_color, region=None, sample=4, lang='en'):
+def image_contrast(path, text_color, region=None, sample=4, lang='en'):
     t9 = _t(lang)
-    c = parse_color(texto_color)
+    c = parse_color(text_color)
     if not c:
-        return {'error': t9['color_invalido']}
+        return {'error': t9['invalid_color']}
     if c.get('a', 1) < 1:
-        return {'error': t9['texto_opaco']}
+        return {'error': t9['opaque_text']}
     if region:
         try:
             x, y, rw, rh = (int(v) for v in region.split(','))
         except ValueError:
-            return {'error': t9['region_invalida']}
+            return {'error': t9['invalid_region']}
     try:
-        w, h, rgb = cargar_imagen(ruta)
+        w, h, rgb = load_image(path)
     except Exception as e:  # noqa: BLE001
-        return {'error': f'{t9["carga_error"]}: {e}'}
+        return {'error': f'{t9["load_error"]}: {e}'}
     if region:
         x, y = max(0, x), max(0, y)
         rw = min(rw, w - x)
         rh = min(rh, h - y)
         if rw <= 0 or rh <= 0:
-            return {'error': t9['region_fuera']}
+            return {'error': t9['region_outside']}
     else:
         x, y, rw, rh = 0, 0, w, h
 
     sample = max(1, int(sample))
     # Guardián de rendimiento: regiones gigantes aumentan el paso automáticamente.
-    presupuesto = 2_000_000
-    if (rw // sample) * (rh // sample) > presupuesto:
-        sample = max(sample, int(((rw * rh) / presupuesto) ** 0.5) + 1)
+    budget = 2_000_000
+    if (rw // sample) * (rh // sample) > budget:
+        sample = max(sample, int(((rw * rh) / budget) ** 0.5) + 1)
     recorte = bytearray(rw * rh * 3)
     for j in range(rh):
         recorte[j * rw * 3:(j + 1) * rw * 3] = rgb[(y + j) * w * 3 + x * 3:
                                                     (y + j) * w * 3 + (x + rw) * 3]
     m = sample_rgb(rw, rh, bytes(recorte), c, sample)
     if not m:
-        return {'error': t9['sin_pixeles']}
+        return {'error': t9['no_pixels']}
 
     out = {
-        'image': os.path.basename(ruta),
+        'image': os.path.basename(path),
         'text_color': hexs(c),
         'region': {'x': x, 'y': y, 'width': rw, 'height': rh,
                    'sampled_pixels': m.pop('sampled_pixels'), 'step': sample},

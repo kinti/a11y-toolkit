@@ -11,8 +11,8 @@ import os
 import subprocess
 import sys
 
-AQUI = os.path.dirname(os.path.abspath(__file__))
-ROOT = os.path.dirname(AQUI)
+HERE = os.path.dirname(os.path.abspath(__file__))
+ROOT = os.path.dirname(HERE)
 CLI = None  # CLI runs as a module: python3 -m a11y_toolkit.a11y
 FIX = os.path.join('/tmp', 'a11ycli_ok.html')
 FIX_MAL = os.path.join('/tmp', 'a11ycli_mal.html')
@@ -38,8 +38,8 @@ assert abs(json.loads(r.stdout)['ratio'] - 4.54) < 0.02
 r = run('audit', '--file', FIX)
 assert r.returncode == 0 and json.loads(r.stdout)['score'] == 100, r.stderr[-300:]
 r = run('audit', '--file', FIX_MAL, '--lang', 'en')
-senales = {h['signal'] for h in json.loads(r.stdout)['findings']}
-assert {'imgs_alt', 'zoom_no', 'autocomplete', 'title_missing'} <= senales, senales
+signals = {h['signal'] for h in json.loads(r.stdout)['findings']}
+assert {'img_no_alt', 'zoom_no', 'autocomplete', 'title_missing'} <= signals, signals
 r = run('criterion', '2.5.8', '--lang', 'en')
 assert r.returncode == 0 and 'Target Size' in r.stdout
 r = run('badge', '--score', '90', '--lang', 'en')
@@ -47,7 +47,7 @@ assert r.returncode == 0 and r.stdout.startswith('<svg') and '90/100' in r.stdou
 r = run('fix', '--file', FIX_MAL, '--lang', 'es', '--title', 'T', '-o', os.path.join('/tmp', 'cli_fixed.html'))
 assert r.returncode == 0, r.stderr[-300:]
 fx = json.loads(r.stdout)
-assert sorted(a['signal'] for a in fx['aplicados']) == ['autocomplete', 'lang_missing', 'title_missing', 'zoom_no']
+assert sorted(a['signal'] for a in fx['applied']) == ['autocomplete', 'lang_missing', 'title_missing', 'zoom_no']
 r = run('sarif', '--file', FIX_MAL, '-o', os.path.join('/tmp', 'cli.sarif'))
 assert r.returncode == 0 and os.path.exists(os.path.join('/tmp', 'cli.sarif'))
 # budget: init desde audit por stdin + comparación
@@ -95,7 +95,7 @@ assert '<script>' not in mal['fixed_html'], 'XSS vía title'
 mal2 = autofix('<html><head><title>t</title></head><body></body></html>',
                lang='es" onclick="evil')
 assert 'onclick' not in mal2['fixed_html'], 'rompe atributo vía lang'
-b = badge(90, fecha='2026"><script>x</script>')
+b = badge(90, date='2026"><script>x</script>')
 assert '<script>' not in b and '<' not in b[b.find('2026'):b.find('2026') + 20], 'inyección SVG vía fecha'
 
 # 4. la afirmación del README («26 criterios tocados») queda clavada

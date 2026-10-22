@@ -50,7 +50,7 @@ COLECTOR = r'''() => {
 }'''
 
 
-def snapshot(url, salida=None, auth_state=None):
+def snapshot(url, output=None, auth_state=None):
     """Captura una URL. Con salida=None devuelve los datos sin escribir fichero."""
     from playwright.sync_api import sync_playwright
     with sync_playwright() as p:
@@ -58,22 +58,22 @@ def snapshot(url, salida=None, auth_state=None):
         ctx = nav.new_context(storage_state=auth_state) if auth_state else nav
         page = ctx.new_page() if auth_state else nav.new_page()
         page.goto(url, wait_until='networkidle', timeout=45000)
-        elementos = page.evaluate(COLECTOR)
+        elements = page.evaluate(COLECTOR)
 
         # Árbol de accesibilidad REAL (roles/nombres computados, lo que anuncia
         # un lector de pantalla). Playwright ≥1.49; si no está, se omite.
-        arbol = None
+        tree = None
         try:
-            arbol = page.locator('body').aria_snapshot()
-            if len(arbol) > 60_000:
-                arbol = arbol[:60_000] + '\n… (truncado)'
+            tree = page.locator('body').aria_snapshot()
+            if len(tree) > 60_000:
+                tree = tree[:60_000] + '\n… (truncado)'
         except Exception:  # noqa: BLE001
-            arbol = None
+            tree = None
 
-        orden = []
+        order = []
         page.keyboard.press('Tab')
-        vistos = set()
-        for _ in range(len(elementos) * 2 + 10):
+        seen = set()
+        for _ in range(len(elements) * 2 + 10):
             info = page.evaluate(r'''() => {
               const el = document.activeElement;
               if (!el || el === document.body) return null;
@@ -86,22 +86,22 @@ def snapshot(url, salida=None, auth_state=None):
             }''')
             if info is None:
                 break
-            clave = info + '@' + str(len(vistos))
-            if info in vistos:
+            entry_key = info + '@' + str(len(seen))
+            if info in seen:
                 break
-            vistos.add(info)
-            orden.append(info)
+            seen.add(info)
+            order.append(info)
             page.keyboard.press('Tab')
         nav.close()
 
-    datos = {'url': url, 'ts': datetime.now(timezone.utc).isoformat(),
-             'elements': elementos, 'focus_order': orden}
-    if arbol is not None:
-        datos['arbol_accesible'] = arbol
-    if salida:
-        with open(salida, 'w', encoding='utf-8') as f:
-            json.dump(datos, f, ensure_ascii=False, indent=1)
-    return datos
+    data = {'url': url, 'ts': datetime.now(timezone.utc).isoformat(),
+             'elements': elements, 'focus_order': order}
+    if tree is not None:
+        data['arbol_accesible'] = tree
+    if output:
+        with open(output, 'w', encoding='utf-8') as f:
+            json.dump(data, f, ensure_ascii=False, indent=1)
+    return data
 
 
 def diff(a, b):
@@ -115,31 +115,31 @@ def diff(a, b):
             renombrados.append({'key': k, 'before': ea[k]['name'], 'after': eb[k]['name']})
 
     oa, ob = a['focus_order'], b['focus_order']
-    comun_a = [x for x in oa if x in set(ob)]
-    comun_b = [x for x in ob if x in set(oa)]
+    common_a = [x for x in oa if x in set(ob)]
+    common_b = [x for x in ob if x in set(oa)]
     foco_eliminado = [x for x in oa if x not in set(ob)]   # perdió el Tab: regresión real
     foco_aniadido = [x for x in ob if x not in set(oa)]    # nuevo enfocable: cambio, no pérdida
-    foco_cambia = comun_a != comun_b
-    primera_divergencia = next((i for i, (x, y) in enumerate(zip(comun_a, comun_b)) if x != y), None)
+    foco_cambia = common_a != common_b
+    primera_divergencia = next((i for i, (x, y) in enumerate(zip(common_a, common_b)) if x != y), None)
 
     # Árbol de accesibilidad: si ambos snapshots lo traen, detecta cambios en
     # roles/nombres computados que la lista de interactivos no ve.
-    arbol_cambia = None
-    arbol_diff = None
+    tree_changed = None
+    tree_diff = None
     if 'arbol_accesible' in a and 'arbol_accesible' in b:
         la, lb = a['arbol_accesible'].splitlines(), b['arbol_accesible'].splitlines()
-        arbol_cambia = la != lb
-        if arbol_cambia:
-            arbol_diff = [f'- {la[i]}' for i in range(min(len(la), len(lb)))
+        tree_changed = la != lb
+        if tree_changed:
+            tree_diff = [f'- {la[i]}' for i in range(min(len(la), len(lb)))
                           if la[i] != lb[i]][:5]
-            arbol_diff += [f'+ {lb[i]}' for i in range(min(len(la), len(lb)))
+            tree_diff += [f'+ {lb[i]}' for i in range(min(len(la), len(lb)))
                            if i < len(lb) and la[i] != lb[i]][:5]
 
     # perder un elemento del orden de foco ES la regresión que este diff
     # existe para cazar (p. ej. tabindex="-1" añadido al botón de pago):
     # el elemento sigue existiendo, pero ya no es alcanzable por teclado.
     ok = not (aniadidos or eliminados or renombrados or foco_cambia
-              or foco_eliminado or arbol_cambia)
+              or foco_eliminado or tree_changed)
     return {
         'ok': ok,
         'summary': {
@@ -152,7 +152,7 @@ def diff(a, b):
         'focus': {'before': oa, 'after': ob, 'first_divergence': primera_divergencia,
                   'removed': foco_eliminado, 'added': foco_aniadido,
                   'reordered': bool(foco_cambia and not foco_eliminado and not foco_aniadido)},
-        'tree': {'changed': arbol_cambia, 'first_differences': arbol_diff},
+        'tree': {'changed': tree_changed, 'first_differences': tree_diff},
         'note': ('Elementos sin id se casan por tag+nombre+href: renombrar produce '
                  'eliminado+añadido, no un diff fino. Usa ids estables para trazabilidad.'),
     }

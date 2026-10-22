@@ -790,7 +790,7 @@
      {
       "severity": "high",
       "criterion": "1.1.1 Non-text Content",
-      "signal": "imgs_alt",
+      "signal": "img_no_alt",
       "issue": "1 <img> without an alt attribute (not even alt=\"\").",
       "remediation": "Add alt to every <img>: descriptive text when it conveys information, alt=\"\" when decorative. Same requirement for <input type=\"image\"> and <area>.",
       "examples": [

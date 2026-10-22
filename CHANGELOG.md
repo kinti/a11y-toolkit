@@ -1,5 +1,79 @@
 # Changelog
 
+## 5.11.0 — 2026-10-22 — "English-only, all the way down" (naming, evidence-driven)
+
+The TDQS registry score (2026-10-17) flagged Naming Consistency 2/5. The
+empirical scan behind this release found three layers of Spanish leaking
+into the public surface an agent sees — params in the tool schemas, keys in
+the returned JSON, and finding signal codes. All renamed to English, with a
+permanent test (tests/test_naming.py, seven sections: schema params and
+enums, descriptions, dict keys, code identifiers, string-key READS — the
+exact hole where four string-reference bugs hid — and phrase-table/JS
+placeholder consistency) so Spanish can never slip in again:
+
+- **Schema params** (aliases still accepted, nothing breaks):
+  `metodo`→`method`, `fecha_evaluacion`→`evaluation_date`,
+  `reclamacion`→`complaints`, `disponibilidad_alternativa`→`alternative_format`
+  (a11y_generate_declaration), `fecha`→`date` (a11y_badge),
+  `max_pasos`→`max_steps` (a11y_keyboard), `max_tandas`→`max_batches`
+  (a11y_scroll). Status enum is now `full | partial | not_conformant`
+  (`plena | parcial | no_conforme` still accepted).
+- **Output keys**: `aplicados/no_aplicados/por_que_no`→`applied/not_applied/
+  why_not` (autofix), `tandas/fin_alcanzado/anuncios_vivos/fuera_de_pantalla/
+  alternativa_cargar_mas`→`batches/end_reached/live_announcements/offscreen/
+  load_more_alternative` (scroll), `pasos/paradas/ciclo{detectado,
+  escape_libera}`→`steps/tab_stops/cycle{detected,escape_releases}` (keyboard),
+  `campos_invalidados/detalle`→`invalid_fields/detail` (forms),
+  `iframes_anidados/elementos_interactivos`→`nested_iframes/
+  interactive_elements` (rendered), `idioma`→`language` (docx),
+  `paginas/score_peor/senales_recurrentes/descubrimiento`→`pages/worst_score/
+  recurring_signals/discovery` (site), `ultimo_audit/score_peor/score_mejor/
+  total_resueltas`→`last_audit/worst_score/best_score/total_resolved` (ledger),
+  `guardado_en`→`saved_to`, `accion`→`action`, `mediciones`→`measurements`,
+  `razon_rechazo`→`reject_reason`, `criterios_disponibles`→`available_criteria`.
+- **Signal codes** (7 renamed, all backward-compatible on ingest):
+  `imgs_alt`→`img_no_alt`, `descarga_error`→`fetch_error`,
+  `lang_partes`→`element_lang_invalid`, `lang_region_invalida`→
+  `lang_region_invalid`, `docx_falsos_encabezados`→`docx_fake_headings`,
+  `docx_sin_idioma`→`docx_no_lang`, `docx_sin_tabla_header`→
+  `docx_table_no_header`. `normalize_signal()` runs at every ingest point
+  (ledger, evidence pack, disprove, SARIF, ACT/EARL, budget), so reports,
+  ledgers and budgets saved before 5.11.0 keep comparing correctly.
+- **String-reference bugs (found by the independent review, all fixed and
+  pinned)**: the injected form-error JS read `F.corto`/`F.patron` after the
+  phrase table became `short`/`pattern` (TypeError killed the 3.3.1/3.3.3
+  layer); `kbd_trap` messages kept a `{ciclo}` placeholder while the kwarg
+  became `cycle` (crash exactly on a real trap); three error paths read dead
+  table keys (`carga_error`, `selector_falta`, `color_invalido`…); Spanish
+  JS transport keys (`campos`, `ejemplos`, `hayMas`, `svgColoreados`…)
+  renamed together with their Python readers — verified live with Playwright.
+- **Fixed along the way (found by the same scan)**: contrast guidance text
+  pointed agents at output keys that no longer existed (`ratio_peor`,
+  `area_pasa_aa_texto_normal`) — both languages now cite the real keys;
+  keyboard `limits` and scroll `note` were hardcoded Spanish even with
+  `lang=en`; the tab-stop fallback label (`parada N`) was always Spanish;
+  `worst_zone.cell` position values (`superior-derecha`…) are now
+  `top/middle/bottom-left/center/right`; docs/audit-report.schema.json
+  documented keys the code never emitted — rewritten against the real output.
+- **Total homogenization (the part earlier passes never reached)**: ~1,900
+  Spanish identifiers renamed across all 25 modules via token-level rewrite
+  (variables, functions, parser attrs, constants — string literals and
+  comments untouched). `declaracion.py` → `a11ystatement.py`. The 2026-09
+  v5.0.0 "english on the wire" pass renamed the audit-report keys and a few
+  declaration params, and deliberately kept signal IDs Spanish; nothing was
+  pinned, so every layer added since (scroll, keyboard, docx outputs, new
+  params) shipped Spanish again. v3.9.5 had already caught "4 Spanish-only
+  rendered signals shipped since 3.6" — same failure mode, point fix. The
+  identifier pin (below) ends the cycle.
+- **CLI flags** renamed to English across modules (declaration, vpat, badge,
+  keyboard, scroll); Spanish content output (`lang=es`) is untouched.
+
+Breaking: output KEY names changed (renames above). Input params and status
+values keep working through aliases. Reports persisted by older versions are
+normalized on read everywhere they are consumed. Programmatic imports of
+internal functions/renamed modules (a11ystatement.generate, suggest,
+build_pack, compute_score…) must switch to the English names.
+
 ## 5.10.1 — 2026-10-20 — "painted background"
 
 The PDF contrast check (5.10.0) assumed a white background — but a PDF can

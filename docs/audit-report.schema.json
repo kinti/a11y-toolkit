@@ -4,13 +4,13 @@
   "title": "a11y-toolkit audit report",
   "description": "Formal schema for any audit report produced by a11y-toolkit (static, rendered, reflow, keyboard, scroll, forms, hover, w3c-nu). Validated programmatically — a consumer can trust the shape without reading the code.",
   "type": "object",
-  "required": ["url", "modo", "score", "resumen", "hallazgos"],
+  "required": ["url", "mode", "score", "summary", "findings"],
   "properties": {
     "url": {
       "type": "string",
       "description": "The audited URL or '(html)' for inline HTML"
     },
-    "modo": {
+    "mode": {
       "type": "string",
       "enum": ["static", "rendered", "reflow", "keyboard", "scroll", "forms", "hover", "w3c-nu", "site"],
       "description": "The audit mode that produced this report"
@@ -21,76 +21,81 @@
       "maximum": 100,
       "description": "Weighted score: high −12, medium −6, low −2 from 100"
     },
-    "score_nota": {
+    "score_note": {
       "type": "string",
       "description": "Honesty note about what the score measures"
     },
-    "resumen": {
+    "summary": {
       "type": "object",
-      "required": ["alta", "media", "baja"],
+      "required": ["high", "medium", "low"],
       "properties": {
-        "alta": { "type": "integer", "minimum": 0 },
-        "media": { "type": "integer", "minimum": 0 },
-        "baja": { "type": "integer", "minimum": 0 }
+        "high": { "type": "integer", "minimum": 0 },
+        "medium": { "type": "integer", "minimum": 0 },
+        "low": { "type": "integer", "minimum": 0 }
       },
       "description": "Finding counts by severity"
     },
-    "hallazgos": {
+    "findings": {
       "type": "array",
       "items": {
         "type": "object",
-        "required": ["severidad", "criterio", "senal", "hallazgo", "remediacion"],
+        "required": ["severity", "criterion", "signal", "issue", "remediation"],
         "properties": {
-          "severidad": {
+          "severity": {
             "type": "string",
-            "enum": ["alta", "media", "baja"]
+            "enum": ["high", "medium", "low"]
           },
-          "criterio": {
+          "criterion": {
             "type": "string",
             "pattern": "^\\d+\\.\\d+\\.\\d+\\s.+",
             "description": "WCAG criterion code and name (e.g. '1.4.3 Contrast (Minimum)')"
           },
-          "senal": {
+          "signal": {
             "type": "string",
-            "description": "Stable signal identifier (e.g. 'imgs_alt', 'contrast_fail')"
+            "description": "Stable signal identifier (e.g. 'img_no_alt', 'contrast_fail')"
           },
-          "hallazgo": {
+          "issue": {
             "type": "string",
             "minLength": 10,
             "description": "What was found, with measured values when available"
           },
-          "remediacion": {
+          "remediation": {
             "type": "string",
             "minLength": 10,
             "description": "Concrete fix the agent can apply"
           },
-          "ejemplos": {
+          "examples": {
             "type": "array",
             "items": { "type": "string" },
             "maxItems": 6,
             "description": "Specific elements that triggered the finding"
           },
-          "estado": {
+          "status": {
             "type": "string",
-            "enum": ["confirmed", "rejected", "needs_validation"],
+            "enum": ["confirmed", "rejected"],
             "description": "Verification status (present when the disprover has run)"
           },
-          "razon_rechazo": {
+          "reject_reason": {
             "type": "string",
-            "description": "Why the finding was rejected (present when estado=rejected)"
+            "description": "Why the finding was rejected (present when status=rejected)"
+          },
+          "disprover_status": {
+            "type": "string",
+            "enum": ["confirmed", "rejected", "not-rechecked"],
+            "description": "Disprover outcome per finding (a11y_disprove output)"
           }
         }
       }
     },
-    "limites": {
+    "limits": {
       "type": "string",
       "description": "Honest scope note about what automation cannot check"
     },
-    "elementos_analizados": {
+    "elements_scanned": {
       "type": "integer",
       "description": "Total elements parsed (static mode)"
     },
-    "elementos_interactivos": {
+    "interactive_elements": {
       "type": "integer",
       "description": "Interactive elements found (rendered mode)"
     },
@@ -98,54 +103,78 @@
       "type": "integer",
       "description": "Open shadow roots traversed (rendered mode)"
     },
-    "iframes_anidados": {
+    "nested_iframes": {
       "type": "integer",
       "description": "Same-origin iframes scanned (rendered mode)"
     },
-    "manual_pendiente_n": {
-      "type": "integer",
-      "description": "Criteria requiring human review (site mode / analyzer)"
-    },
-    "descubrimiento": {
+    "discovery": {
       "type": "string",
       "enum": ["sitemap", "links"],
       "description": "Page discovery strategy (site mode)"
     },
-    "paginas": {
+    "pages": {
       "type": "integer",
       "description": "Pages audited (site mode)"
     },
-    "score_medio": {
+    "mean_score": {
       "type": "integer",
       "description": "Mean score across pages (site mode)"
     },
-    "informes": {
+    "worst_score": {
+      "type": "integer",
+      "description": "Lowest page score (site mode)"
+    },
+    "recurring_signals": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Signals repeating across pages, most frequent first (site mode)"
+    },
+    "reports": {
       "type": "array",
       "description": "Per-page reports (site mode)"
     },
-    "campos_invalidados": {
+    "invalid_fields": {
       "type": "integer",
       "description": "Fields filled with invalid data (forms mode)"
     },
-    "anuncios_vivos": {
+    "detail": {
       "type": "array",
+      "items": { "type": "object" },
+      "description": "Per-field error judgment (forms mode)"
+    },
+    "batches": {
+      "type": "integer",
+      "description": "Scroll batches loaded (scroll mode)"
+    },
+    "end_reached": {
+      "type": "boolean",
+      "description": "Whether the feed ended (scroll mode)"
+    },
+    "live_announcements": {
+      "type": "array",
+      "items": { "type": "string" },
       "description": "Live-region announcements captured (scroll mode)"
     },
-    "pasos": {
+    "load_more_alternative": {
+      "type": "boolean",
+      "description": "Whether a load-more alternative exists (scroll mode)"
+    },
+    "steps": {
       "type": "integer",
       "description": "Tab stops walked (keyboard mode)"
     },
-    "paradas": {
+    "tab_stops": {
       "type": "array",
+      "items": { "type": "string" },
       "description": "Tab stop descriptions (keyboard mode)"
     },
-    "ciclo": {
+    "cycle": {
       "type": "object",
-      "description": "Keyboard trap cycle info (keyboard mode)"
+      "description": "Keyboard trap cycle info: {detected, elements[], escape_releases} (keyboard mode)"
     },
-    "mediciones": {
+    "measurements": {
       "type": "object",
-      "description": "Reflow measurements at 320px (reflow mode)"
+      "description": "Reflow measurements: {reflow_320: {scroll, viewport, ok}} (reflow mode)"
     }
   },
   "additionalProperties": true

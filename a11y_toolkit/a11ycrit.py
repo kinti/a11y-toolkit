@@ -525,7 +525,7 @@ _C = {
     }),
 }
 
-_NIVEL = {'A': 'A', 'AA': 'AA', 'AAA': 'AAA'}
+_LEVEL = {'A': 'A', 'AA': 'AA', 'AAA': 'AAA'}
 
 # Human-effort class for every A/AA criterion — what the HUMAN still does after
 # the machine's best signal. Used for review-marketplace pricing interlocks
@@ -607,19 +607,19 @@ RENDERED_ONLY = frozenset({
 })
 
 
-def criterio(code, lang='en'):
+def criterion(code, lang='en'):
     code = code.strip()
     if code not in _C:
         return {'error': f'criterio desconocido: {code}',
                 'available': sorted(_C)}
-    nivel, idiomas = _C[code]
-    nombre, exige, fallos, prueba = idiomas.get(lang) or idiomas['es']
+    level, languages = _C[code]
+    name, requires, failures, how_to_check = languages.get(lang) or languages['es']
     return {
-        'criterion': f'{code} {nombre}',
-        'level': _NIVEL[nivel],
-        'requires': exige,
-        'typical_failures': fallos,
-        'how_to_check': prueba,
+        'criterion': f'{code} {name}',
+        'level': _LEVEL[level],
+        'requires': requires,
+        'typical_failures': failures,
+        'how_to_check': how_to_check,
         'note': ('Esto resume el criterio, no sustituye su texto oficial en '
                  'https://www.w3.org/TR/WCAG22/#' if lang == 'es' else
                  'This summarizes the criterion; the official text at '
@@ -642,9 +642,9 @@ def main(argv):
     ap.add_argument('--list', action='store_true')
     a = ap.parse_args(argv)
     if a.list or not a.code:
-        print(json.dumps({'criterios_disponibles': sorted(_C)}, indent=1))
+        print(json.dumps({'available_criteria': sorted(_C)}, indent=1))
         return 0
-    print(json.dumps(criterio(a.code, a.lang), ensure_ascii=False, indent=1))
+    print(json.dumps(criterion(a.code, a.lang), ensure_ascii=False, indent=1))
     return 0
 
 

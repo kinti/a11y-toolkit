@@ -14,7 +14,7 @@ statement must reference the evidence pack's sha256 — same tamper-evidence
 rule as the pack itself. VPAT is a vendor self-declaration, not a certificate.
 
 CLI:
-  a11yvpat.py pack.json --producto "Acme App" --contact a11y@acme.example \
+  a11yvpat.py pack.json --product "Acme App" --contact a11y@acme.example \
       --overrides '{"1.1.1": "does_not_support", "1.2.2": "not_applicable"}' \
       -o vpat.html
 """
@@ -25,7 +25,7 @@ import html
 import json
 import sys
 
-NIVELES = {
+LEVELS = {
     'es': {
         'supports': 'Lo soporta',
         'partially_supports': 'Lo soporta parcialmente',
@@ -42,7 +42,7 @@ NIVELES = {
     },
 }
 
-_ESTADO_A_NIVEL = {
+_STATUS_TO_LEVEL = {
     'automated-fail': 'does_not_support',
     'automated-review': 'partially_supports',
     # not-flagged ≠ pass; agent-verified no es una firma humana
@@ -54,75 +54,75 @@ _ESTADO_A_NIVEL = {
 
 TXT = {
     'es': {
-        'titulo': 'Informe de conformidad de accesibilidad VPAT® 2.5 — edición WCAG',
-        'seccion_estandar': 'Pautas/estándares aplicables',
-        'estandar': ('<abbr lang="en" title="Web Content Accessibility Guidelines">WCAG</abbr> 2.2 '
+        'title': 'Informe de conformidad de accesibilidad VPAT® 2.5 — edición WCAG',
+        'standards_section': 'Pautas/estándares aplicables',
+        'standard': ('<abbr lang="en" title="Web Content Accessibility Guidelines">WCAG</abbr> 2.2 '
                      '(niveles A y AA) — Recomendación W3C de octubre de 2023.'),
-        'producto': 'Nombre del producto', 'version': 'Versión',
-        'fecha': 'Fecha del informe', 'descripcion': 'Descripción del producto',
-        'contacto': 'Información de contacto', 'metodos': 'Métodos de evaluación utilizados',
-        'notas': 'Notas', 'credencial': 'Credencial',
-        'metodo_defecto': ('Cribado automatizado con a11y-toolkit (auditoría estática y, cuando '
+        'product': 'Nombre del producto', 'version': 'Versión',
+        'date': 'Fecha del informe', 'description': 'Descripción del producto',
+        'contact': 'Información de contacto', 'methods': 'Métodos de evaluación utilizados',
+        'notes': 'Notas', 'credential': 'Credencial',
+        'method_default': ('Cribado automatizado con a11y-toolkit (auditoría estática y, cuando '
                            'está disponible, renderizada con contraste computado y muestreo de '
                            'píxeles); revisión manual pendiente.'),
-        'leyenda_titulo': 'Definiciones de los niveles de conformidad (extracto del VPAT®)',
-        'leyenda': [
+        'legend_title': 'Definiciones de los niveles de conformidad (extracto del VPAT®)',
+        'legend': [
             ('Supports', 'El producto tiene al menos un método que cumple el criterio sin defectos conocidos.'),
             ('Partially Supports', 'Alguna funcionalidad del producto no cumple el criterio.'),
             ('Does Not Support', 'La mayor parte de la funcionalidad del producto no cumple el criterio.'),
             ('Not Applicable', 'El criterio no es relevante para el producto.'),
             ('Not Evaluated', 'El producto aún no ha sido evaluado frente al criterio; el nivel está pendiente de una persona cualificada.'),
         ],
-        'tabla_caption': 'Tabla 1: Criterios de conformidad WCAG 2.2 (A/AA)',
-        'col_criterio': 'Criterio', 'col_nivel': 'Nivel de conformidad',
-        'col_comentarios': 'Comentarios y explicaciones',
-        'firma_titulo': 'Firma y evidencia',
-        'firma': ('Este documento es un <strong>BORRADOR</strong> generado por cribado '
+        'table_caption': 'Tabla 1: Criterios de conformidad WCAG 2.2 (A/AA)',
+        'col_criteria': 'Criterio', 'col_level': 'Nivel de conformidad',
+        'col_remarks': 'Comentarios y explicaciones',
+        'signature_title': 'Firma y evidencia',
+        'signature': ('Este documento es un <strong>BORRADOR</strong> generado por cribado '
                   'automatizado. Los niveles marcados «No evaluado» deben ser fijados por una '
                   'persona cualificada tras la revisión; la declaración de firma debe '
                   'referenciar el hash del paquete de evidencia:'),
-        'firma_vacia': 'Bloque de firma sin completar: nombre, credencial y fecha pendientes.',
-        'nota_iti': ('VPAT® es una marca registrada del Information Technology Industry Council '
+        'signature_empty': 'Bloque de firma sin completar: nombre, credencial y fecha pendientes.',
+        'iti_note': ('VPAT® es una marca registrada del Information Technology Industry Council '
                      '(ITI). Este documento es un andamiaje de autodeclaración del proveedor, '
                      'generado por a11y-toolkit; no constituye certificación alguna.'),
-        'error_sin_pack': 'necesitas un pack (a11y_evidence) o reports (informes de auditoría)',
-        'error_nivel': 'nivel desconocido en overrides: {n} (usa supports, partially_supports, does_not_support, not_applicable, not_evaluated)',
+        'error_no_pack': 'necesitas un pack (a11y_evidence) o reports (informes de auditoría)',
+        'error_level': 'nivel desconocido en overrides: {n} (usa supports, partially_supports, does_not_support, not_applicable, not_evaluated)',
         'draft': 'BORRADOR — niveles pendientes de persona cualificada',
     },
     'en': {
-        'titulo': 'VPAT® 2.5 Accessibility Conformance Report — WCAG edition',
-        'seccion_estandar': 'Applicable Standards/Guidelines',
-        'estandar': ('<abbr title="Web Content Accessibility Guidelines">WCAG</abbr> 2.2 '
+        'title': 'VPAT® 2.5 Accessibility Conformance Report — WCAG edition',
+        'standards_section': 'Applicable Standards/Guidelines',
+        'standard': ('<abbr title="Web Content Accessibility Guidelines">WCAG</abbr> 2.2 '
                      '(Levels A and AA) — W3C Recommendation, October 2023.'),
-        'producto': 'Product name', 'version': 'Version',
-        'fecha': 'Report date', 'descripcion': 'Product description',
-        'contacto': 'Contact information', 'metodos': 'Evaluation methods used',
-        'notas': 'Notes', 'credencial': 'Credential',
-        'metodo_defecto': ('Automated screening with a11y-toolkit (static audit and, when '
+        'product': 'Product name', 'version': 'Version',
+        'date': 'Report date', 'description': 'Product description',
+        'contact': 'Contact information', 'methods': 'Evaluation methods used',
+        'notes': 'Notes', 'credential': 'Credential',
+        'method_default': ('Automated screening with a11y-toolkit (static audit and, when '
                            'available, rendered audit with computed contrast and pixel '
                            'sampling); manual review pending.'),
-        'leyenda_titulo': 'Conformance level definitions (excerpt from the VPAT®)',
-        'leyenda': [
+        'legend_title': 'Conformance level definitions (excerpt from the VPAT®)',
+        'legend': [
             ('Supports', 'The product has at least one method that meets the criterion without known defects.'),
             ('Partially Supports', 'Some functionality of the product does not meet the criterion.'),
             ('Does Not Support', 'The majority of product functionality does not meet the criterion.'),
             ('Not Applicable', 'The criterion is not relevant to the product.'),
             ('Not Evaluated', 'The product has not yet been evaluated against the criterion; the level is pending a qualified person.'),
         ],
-        'tabla_caption': 'Table 1: WCAG 2.2 (A/AA) conformance criteria',
-        'col_criterio': 'Criteria', 'col_nivel': 'Conformance level',
-        'col_comentarios': 'Remarks and explanations',
-        'firma_titulo': 'Signature and evidence',
-        'firma': ('This document is a <strong>DRAFT</strong> generated by automated '
+        'table_caption': 'Table 1: WCAG 2.2 (A/AA) conformance criteria',
+        'col_criteria': 'Criteria', 'col_level': 'Conformance level',
+        'col_remarks': 'Remarks and explanations',
+        'signature_title': 'Signature and evidence',
+        'signature': ('This document is a <strong>DRAFT</strong> generated by automated '
                   'screening. Levels marked "Not Evaluated" must be set by a qualified '
                   'person after review; the signature statement must reference the '
                   'evidence pack hash:'),
-        'firma_vacia': 'Empty signature block: name, credential and date pending.',
-        'nota_iti': ('VPAT® is a registered trademark of the Information Technology Industry '
+        'signature_empty': 'Empty signature block: name, credential and date pending.',
+        'iti_note': ('VPAT® is a registered trademark of the Information Technology Industry '
                      'Council (ITI). This document is a vendor self-declaration scaffold '
                      'generated by a11y-toolkit; it is not a certification.'),
-        'error_sin_pack': 'need a pack (a11y_evidence) or reports (audit report objects)',
-        'error_nivel': 'unknown level in overrides: {n} (use supports, partially_supports, does_not_support, not_applicable, not_evaluated)',
+        'error_no_pack': 'need a pack (a11y_evidence) or reports (audit report objects)',
+        'error_level': 'unknown level in overrides: {n} (use supports, partially_supports, does_not_support, not_applicable, not_evaluated)',
         'draft': 'DRAFT — levels pending a qualified person',
     },
 }
@@ -132,62 +132,62 @@ def _t(lang):
     return TXT.get(lang, TXT['en'])
 
 
-def _hallazgos_por_codigo(pack):
+def _findings_by_code(pack):
     """Código de criterio → primer hallazgo con issue+remediation (de los artefactos)."""
-    por_codigo = {}
+    by_code = {}
     for art in pack.get('artifacts', []):
         body = art.get('body') or {}
         for h in body.get('findings', []):
             code = (h.get('criterion') or '').split(' ')[0]
-            if code and code not in por_codigo:
-                por_codigo[code] = h
-    return por_codigo
+            if code and code not in by_code:
+                by_code[code] = h
+    return by_code
 
 
-def _comentario(t, fila, hallazgo, nivel, pack_sha):
+def _remarks(t, row, finding, level, pack_sha):
     """Remarks auto por fila: estado + valor medido + esfuerzo + hallazgo + hash."""
-    partes = []
-    estado = fila.get('status')
-    if estado == 'automated-fail':
-        partes.append(t['draft'] + ' — ' + 'automated-fail')
-    elif estado == 'automated-review':
-        partes.append('automated-review')
+    parts = []
+    state = row.get('status')
+    if state == 'automated-fail':
+        parts.append(t['draft'] + ' — ' + 'automated-fail')
+    elif state == 'automated-review':
+        parts.append('automated-review')
     else:
-        partes.append(estado)
-    nota = fila.get('note')
+        parts.append(state)
+    nota = row.get('note')
     if nota:
-        partes.append(nota)
-    val = fila.get('value')
+        parts.append(nota)
+    val = row.get('value')
     if val:
-        trozos = []
+        chunks = []
         if val.get('measured'):
-            trozos.append(f"measured {val['measured']}")
+            chunks.append(f"measured {val['measured']}")
         if val.get('example'):
-            trozos.append(f"e.g. {val['example']}")
-        if trozos:
-            partes.append('; '.join(trozos))
-    if hallazgo:
-        partes.append(f"issue: {hallazgo.get('issue', '')[:220]}")
-        if hallazgo.get('remediation'):
-            partes.append(f"remediation: {hallazgo['remediation'][:220]}")
-    ef = fila.get('effort')
+            chunks.append(f"e.g. {val['example']}")
+        if chunks:
+            parts.append('; '.join(chunks))
+    if finding:
+        parts.append(f"issue: {finding.get('issue', '')[:220]}")
+        if finding.get('remediation'):
+            parts.append(f"remediation: {finding['remediation'][:220]}")
+    ef = row.get('effort')
     if ef:
-        partes.append(f"remaining human effort: {ef['class']} ({ef['minutes']} min)")
-    partes.append(f"evidence pack sha256 {pack_sha}")
-    return ' | '.join(p for p in partes if p)
+        parts.append(f"remaining human effort: {ef['class']} ({ef['minutes']} min)")
+    parts.append(f"evidence pack sha256 {pack_sha}")
+    return ' | '.join(p for p in parts if p)
 
 
-def _orden_wcag(code):
+def _wcag_order(code):
     try:
         return tuple(int(p) for p in code.split('.'))
     except ValueError:
         return (99, 0, 0)
 
 
-def generar_vpat(pack=None, reports=None, producto='', version_producto=None,
-                 fecha=None, descripcion=None, contacto=None, metodos=None,
-                 notas=None, overrides=None, evaluador=None, lang='en',
-                 verificados=None, output_path=None):
+def generate_vpat(pack=None, reports=None, product='', product_version=None,
+                 report_date=None, description=None, contact=None, methods=None,
+                 notes=None, overrides=None, reviewer=None, lang='en',
+                 verified=None, output_path=None):
     """Pack (o informes) → HTML VPAT 2.5 accesible + resumen.
 
     overrides: {'1.1.1': 'supports', …} — niveles fijados por una persona
@@ -195,117 +195,117 @@ def generar_vpat(pack=None, reports=None, producto='', version_producto=None,
     t = _t(lang)
     if pack is None:
         if not reports:
-            return {'error': t['error_sin_pack']}
-        from .a11yevidence import empaquetar
-        pack = empaquetar(reports, verificados=verificados,
-                          evaluador=evaluador)
+            return {'error': t['error_no_pack']}
+        from .a11yevidence import build_pack
+        pack = build_pack(reports, verified=verified,
+                          reviewer=reviewer)
     if not isinstance(pack, dict) or 'criteria' not in pack:
-        return {'error': t['error_sin_pack']}
+        return {'error': t['error_no_pack']}
     overrides = overrides or {}
-    for code, nivel in overrides.items():
-        if nivel not in NIVELES[lang]:
-            return {'error': t['error_nivel'].format(n=nivel)}
+    for code, level in overrides.items():
+        if level not in LEVELS[lang]:
+            return {'error': t['error_level'].format(n=level)}
 
     from .a11ycrit import _C as _CAT
     pack_sha = pack.get('sha256', '')
-    por_codigo = _hallazgos_por_codigo(pack)
-    fecha = fecha or datetime.date.today().isoformat()
+    by_code = _findings_by_code(pack)
+    report_date = report_date or datetime.date.today().isoformat()
 
-    filas = []
-    resumen = {n: 0 for n in NIVELES[lang]}
-    for fila in sorted(pack['criteria'], key=lambda r: _orden_wcag(r['criterion'].split(' ')[0])):
-        code = fila['criterion'].split(' ')[0]
-        nivel = _ESTADO_A_NIVEL.get(fila.get('status'), 'not_evaluated')
-        nivel = overrides.get(code, nivel)
-        resumen[nivel] += 1
+    rows = []
+    summary = {n: 0 for n in LEVELS[lang]}
+    for row in sorted(pack['criteria'], key=lambda r: _wcag_order(r['criterion'].split(' ')[0])):
+        code = row['criterion'].split(' ')[0]
+        level = _STATUS_TO_LEVEL.get(row.get('status'), 'not_evaluated')
+        level = overrides.get(code, level)
+        summary[level] += 1
         cat = _CAT.get(code)
-        nombre = cat[1][lang][0] if cat else fila['criterion']
-        nivel_wcag = cat[0] if cat else ''
-        hallazgo = por_codigo.get(code)
-        filas.append({
-            'code': code, 'name': nombre, 'level': nivel_wcag,
-            'conformance': nivel,
-            'remarks': _comentario(t, fila, hallazgo, nivel, pack_sha),
+        name = cat[1][lang][0] if cat else row['criterion']
+        wcag_level = cat[0] if cat else ''
+        finding = by_code.get(code)
+        rows.append({
+            'code': code, 'name': name, 'level': wcag_level,
+            'conformance': level,
+            'remarks': _remarks(t, row, finding, level, pack_sha),
         })
 
     e = html.escape
-    metodos = metodos or t['metodo_defecto']
-    filas_html = []
-    for f in filas:
-        filas_html.append(
+    methods = methods or t['method_default']
+    rows_html = []
+    for f in rows:
+        rows_html.append(
             '<tr><th scope="row">' + e(f['code']) + ' ' + e(f['name'])
             + (' <span class="lvl">(Level ' + e(f['level']) + ')</span>' if f['level'] else '')
-            + '</th><td><strong>' + e(NIVELES[lang][f['conformance']]) + '</strong></td>'
+            + '</th><td><strong>' + e(LEVELS[lang][f['conformance']]) + '</strong></td>'
             + '<td>' + e(f['remarks']) + '</td></tr>')
-    leyenda = ''.join(f'<dt>{e(k)}</dt><dd>{e(v)}</dd>' for k, v in t['leyenda'])
+    legend = ''.join(f'<dt>{e(k)}</dt><dd>{e(v)}</dd>' for k, v in t['legend'])
 
     doc = (
         f'<!DOCTYPE html>\n<html lang="{lang}">\n<head>\n<meta charset="utf-8">\n'
         f'<meta name="viewport" content="width=device-width, initial-scale=1">\n'
-        f'<title>{e(t["titulo"])} — {e(producto)}</title>\n'
+        f'<title>{e(t["title"])} — {e(product)}</title>\n'
         '<style>body{max-width:60rem;margin:2rem auto;padding:0 1rem;'
         'font:1rem/1.6 system-ui,sans-serif} table{border-collapse:collapse;width:100%}'
         ' th,td{border:1px solid #888;padding:.5rem;vertical-align:top;text-align:left}'
         ' thead th{background:#f0f0f0} .lvl{color:#555;font-size:.85em}'
         ' code{background:#f5f5f5;padding:.1rem .3rem}</style>\n</head>\n<body>\n'
-        f'<h1>{e(t["titulo"])}</h1>\n'
-        f'<p><strong>{e(producto)}</strong>'
-        + (f' — {t["version"]}: {e(version_producto)}' if version_producto else '')
-        + f' — {t["fecha"]}: <time datetime="{e(fecha)}">{e(fecha)}</time></p>\n'
-        + (f'<p><strong>{t["descripcion"]}:</strong> {e(descripcion)}</p>\n' if descripcion else '')
-        + (f'<p><strong>{t["contacto"]}:</strong> {e(contacto)}</p>\n' if contacto else '')
-        + f'<h2>{t["seccion_estandar"]}</h2>\n<p>{t["estandar"]}</p>\n'
-        + f'<h2>{t["metodos"]}</h2>\n<p>{e(metodos)}</p>\n'
-        + (f'<h2>{t["notas"]}</h2>\n<p>{e(notas)}</p>\n' if notas else '')
-        + f'<details>\n<summary>{t["leyenda_titulo"]}</summary>\n<dl>{leyenda}</dl>\n</details>\n'
-        + f'<table>\n<caption>{t["tabla_caption"]}</caption>\n'
-        + '<thead><tr><th scope="col">' + t['col_criterio'] + '</th><th scope="col">'
-        + t['col_nivel'] + '</th><th scope="col">' + t['col_comentarios']
-        + '</th></tr></thead>\n<tbody>\n' + '\n'.join(filas_html) + '\n</tbody>\n</table>\n'
-        + f'<h2>{t["firma_titulo"]}</h2>\n<p>{t["firma"]} <code>{e(pack_sha)}</code></p>\n'
-        + '<p><em>' + t['firma_vacia'] + '</em></p>\n'
-        + (f'<p>{t["producto"]}: {e((evaluador or {}).get("name", "________________"))} — '
-           f'{t["credencial"]}: {e((evaluador or {}).get("credential", "________________"))} — '
-           f'{t["fecha"]}: {e((evaluador or {}).get("review_date", "________________"))}</p>\n'
-           if evaluador else '')
-        + f'<footer><p><small>{t["nota_iti"]}</small></p></footer>\n</body>\n</html>'
+        f'<h1>{e(t["title"])}</h1>\n'
+        f'<p><strong>{e(product)}</strong>'
+        + (f' — {t["version"]}: {e(product_version)}' if product_version else '')
+        + f' — {t["date"]}: <time datetime="{e(report_date)}">{e(report_date)}</time></p>\n'
+        + (f'<p><strong>{t["description"]}:</strong> {e(description)}</p>\n' if description else '')
+        + (f'<p><strong>{t["contact"]}:</strong> {e(contact)}</p>\n' if contact else '')
+        + f'<h2>{t["standards_section"]}</h2>\n<p>{t["standard"]}</p>\n'
+        + f'<h2>{t["methods"]}</h2>\n<p>{e(methods)}</p>\n'
+        + (f'<h2>{t["notes"]}</h2>\n<p>{e(notes)}</p>\n' if notes else '')
+        + f'<details>\n<summary>{t["legend_title"]}</summary>\n<dl>{legend}</dl>\n</details>\n'
+        + f'<table>\n<caption>{t["table_caption"]}</caption>\n'
+        + '<thead><tr><th scope="col">' + t['col_criteria'] + '</th><th scope="col">'
+        + t['col_level'] + '</th><th scope="col">' + t['col_remarks']
+        + '</th></tr></thead>\n<tbody>\n' + '\n'.join(rows_html) + '\n</tbody>\n</table>\n'
+        + f'<h2>{t["signature_title"]}</h2>\n<p>{t["signature"]} <code>{e(pack_sha)}</code></p>\n'
+        + '<p><em>' + t['signature_empty'] + '</em></p>\n'
+        + (f'<p>{t["product"]}: {e((reviewer or {}).get("name", "________________"))} — '
+           f'{t["credential"]}: {e((reviewer or {}).get("credential", "________________"))} — '
+           f'{t["date"]}: {e((reviewer or {}).get("review_date", "________________"))}</p>\n'
+           if reviewer else '')
+        + f'<footer><p><small>{t["iti_note"]}</small></p></footer>\n</body>\n</html>'
     )
-    res = {'html': doc, 'summary': resumen, 'levels': {f['code']: f['conformance'] for f in filas},
+    res = {'html': doc, 'summary': summary, 'levels': {f['code']: f['conformance'] for f in rows},
            'pack_sha256': pack_sha, 'draft': True, 'lang': lang}
     if output_path:
         with open(output_path, 'w', encoding='utf-8') as f:
             f.write(doc)
-        res['guardado_en'] = output_path
+        res['saved_to'] = output_path
     return res
 
 
 def main(argv):
     ap = argparse.ArgumentParser(description='VPAT 2.5 (WCAG edition) from an evidence pack')
     ap.add_argument('pack', nargs='?', help='evidence pack JSON (a11y_evidence output)')
-    ap.add_argument('--producto', required=True, help='product name')
-    ap.add_argument('--informes', nargs='+', help='audit report JSONs (builds the pack) instead of pack')
-    ap.add_argument('--fecha', help='report date (YYYY-MM-DD, default today)')
-    ap.add_argument('--descripcion', help='product description')
-    ap.add_argument('--contacto', help='contact information')
-    ap.add_argument('--metodos', help='evaluation methods used')
-    ap.add_argument('--notas', help='notes')
+    ap.add_argument('--product', required=True, help='product name')
+    ap.add_argument('--reports', nargs='+', help='audit report JSONs (builds the pack) instead of pack')
+    ap.add_argument('--report-date', help='report date (YYYY-MM-DD, default today)')
+    ap.add_argument('--description', help='product description')
+    ap.add_argument('--contact', help='contact information')
+    ap.add_argument('--methods', help='evaluation methods used')
+    ap.add_argument('--notes', help='notes')
     ap.add_argument('--overrides', help='JSON: {"1.1.1": "does_not_support", …}')
-    ap.add_argument('--evaluador', help='JSON: {"name":…, "credential":…, "review_date":…}')
+    ap.add_argument('--reviewer', help='JSON: {"name":…, "credential":…, "review_date":…}')
     ap.add_argument('--lang', default='en', choices=['en', 'es'])
     ap.add_argument('-o', '--out')
     a = ap.parse_args(argv)
     pack = json.load(open(a.pack, encoding='utf-8')) if a.pack else None
-    reports = [json.load(open(f, encoding='utf-8')) for f in a.informes] if a.informes else None
-    res = generar_vpat(pack=pack, reports=reports, producto=a.producto, fecha=a.fecha,
-                       descripcion=a.descripcion, contacto=a.contacto, metodos=a.metodos,
-                       notas=a.notas, overrides=json.loads(a.overrides) if a.overrides else None,
-                       evaluador=json.loads(a.evaluador) if a.evaluador else None,
+    reports = [json.load(open(f, encoding='utf-8')) for f in a.reports] if a.reports else None
+    res = generate_vpat(pack=pack, reports=reports, product=a.product, report_date=a.report_date,
+                       description=a.description, contact=a.contact, methods=a.methods,
+                       notes=a.notes, overrides=json.loads(a.overrides) if a.overrides else None,
+                       reviewer=json.loads(a.reviewer) if a.reviewer else None,
                        lang=a.lang, output_path=a.out)
     if 'error' in res:
         print(res['error'])
         return 1
     print(json.dumps({'summary': res['summary'], 'pack_sha256': res['pack_sha256'],
-                      'guardado_en': res.get('guardado_en'),
+                      'saved_to': res.get('saved_to'),
                       'draft': res['draft']}, ensure_ascii=False))
     return 0
 

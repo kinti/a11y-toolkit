@@ -46,30 +46,30 @@ _TOKEN_POR_PISTA = [
 
 _RE_FORM = re.compile(r'<form\b[^>]*>', re.I)
 _RE_TAG_Q = r'(?:[^>\"\']|\"[^\"]*\"|\'[^\']*\')*'
-_RE_CAMPO = re.compile(r'<input' + _RE_TAG_Q + r'>|<(select|textarea)' + _RE_TAG_Q + r'>.*?</\1\s*>', re.I | re.S)
+_RE_FIELD = re.compile(r'<input' + _RE_TAG_Q + r'>|<(select|textarea)' + _RE_TAG_Q + r'>.*?</\1\s*>', re.I | re.S)
 _RE_SCRIPTS = re.compile(r'<script\b.*?</script>', re.S | re.I)
-_RE_FORM_BLOQUE = re.compile(r'<form\b.*?</form>', re.S | re.I)
+_RE_FORM_BLOCK = re.compile(r'<form\b.*?</form>', re.S | re.I)
 
-_FRASES = {
+_PHRASES = {
     'es': {'req': 'Completa este campo.', 'email': 'Escribe un correo como nombre@ejemplo.com.',
            'url': 'Escribe una URL como https://ejemplo.com.', 'num': 'Escribe un número.',
-           'entre': 'Escribe un número entre %a y %b.', 'corto': 'Usa al menos %n caracteres.',
-           'patron': 'Sigue el formato esperado: %p.'},
+           'between': 'Escribe un número entre %a y %b.', 'short': 'Usa al menos %n caracteres.',
+           'pattern': 'Sigue el formato esperado: %p.'},
     'en': {'req': 'Fill in this field.', 'email': 'Enter an email like name@example.com.',
            'url': 'Enter a URL like https://example.com.', 'num': 'Enter a number.',
-           'entre': 'Enter a number between %a and %b.', 'corto': 'Use at least %n characters.',
-           'patron': 'Follow the expected format: %p.'},
+           'between': 'Enter a number between %a and %b.', 'short': 'Use at least %n characters.',
+           'pattern': 'Follow the expected format: %p.'},
 }
 
 _JS_FORMAS = """<script>
 (function(){
-  var F = {req:%(req)s,email:%(email)s,url:%(url)s,num:%(num)s,entre:%(entre)s,corto:%(corto)s,patron:%(patron)s};
+  var F = {req:%(req)s,email:%(email)s,url:%(url)s,num:%(num)s,between:%(between)s,short:%(short)s,pattern:%(pattern)s};
   function sug(el){var v=el.validity;if(!v)return '';
     if(v.valueMissing)return F.req;
     if(v.typeMismatch){if(el.type==='email')return F.email;if(el.type==='url')return F.url;if(el.type==='number')return F.num;}
-    if(v.rangeUnderflow||v.rangeOverflow)return F.entre.replace('%%a',el.min).replace('%%b',el.max);
-    if(v.tooShort)return F.corto.replace('%%n',el.minLength);
-    if(v.patternMismatch)return el.pattern?F.patron.replace('%%p',el.pattern):F.req;
+    if(v.rangeUnderflow||v.rangeOverflow)return F.between.replace('%%a',el.min).replace('%%b',el.max);
+    if(v.tooShort)return F.short.replace('%%n',el.minLength);
+    if(v.patternMismatch)return el.pattern?F.pattern.replace('%%p',el.pattern):F.req;
     return '';}
   document.querySelectorAll('form[data-a11yfx]').forEach(function(f){
     f.noValidate=true;
@@ -110,24 +110,24 @@ def _attrs(tag_html):
 
 
 def _viewport_limpio(content):
-    partes = [p.strip() for p in content.split(',') if p.strip()]
-    fuera = []
+    parts = [p.strip() for p in content.split(',') if p.strip()]
+    removed = []
     limpias = []
-    for p in partes:
+    for p in parts:
         if re.match(r'user-scalable\s*=\s*(no|0)', p, re.I):
-            fuera.append(p)
+            removed.append(p)
             continue
         m = re.match(r'maximum-scale\s*=\s*([\d.]+)', p, re.I)
         if m and float(m.group(1)) < 2:
-            fuera.append(p)
+            removed.append(p)
             continue
         limpias.append(p)
-    return ', '.join(limpias), fuera
+    return ', '.join(limpias), removed
 
 
 def autofix(html_text, lang=None, title=None, url='(html)', form_errors=True):
     """Aplica los arreglos seguros. Devuelve fixed_html + aplicados + no_aplicados."""
-    aplicados = []
+    applied = []
     fixed = html_text
 
     # 0. máscara REAL: el contenido de script/style/textarea y los comentarios
@@ -135,22 +135,22 @@ def autofix(html_text, lang=None, title=None, url='(html)', form_errors=True):
     #    paso, el "no toco scripts" era falso (revisión externa, ronda 2).
     _mascaras = []
 
-    def _enmascara(texto):
+    def _enmascara(text):
         def _pon(m):
             tok = '\x00A11YFXMASK%d\x00' % len(_mascaras)
             _mascaras.append((tok, m.group(0)))
             return tok
-        texto = re.sub(r'<script\b[^>]*>.*?</script\s*>', _pon, texto, flags=re.I | re.S)
-        texto = re.sub(r'<style\b[^>]*>.*?</style\s*>', _pon, texto, flags=re.I | re.S)
+        text = re.sub(r'<script\b[^>]*>.*?</script\s*>', _pon, text, flags=re.I | re.S)
+        text = re.sub(r'<style\b[^>]*>.*?</style\s*>', _pon, text, flags=re.I | re.S)
         # textarea NO se enmascara: la capa de error se inserta tras su cierre
         # (5.2.1) y el contenido queda intacto; ocultarlo quitaría el 3.3.1
-        texto = re.sub(r'<!--.*?-->', _pon, texto, flags=re.S)
-        return texto
+        text = re.sub(r'<!--.*?-->', _pon, text, flags=re.S)
+        return text
 
-    def _desenmascara(texto):
+    def _unmask(text):
         for tok, original in _mascaras:
-            texto = texto.replace(tok, original)
-        return texto
+            text = text.replace(tok, original)
+        return text
 
     fixed = _enmascara(fixed)
 
@@ -158,16 +158,16 @@ def autofix(html_text, lang=None, title=None, url='(html)', form_errors=True):
     m = _RE_VIEWPORT.search(fixed)
     if m and (re.search(r'user-scalable\s*=\s*(no|0)', m.group(2), re.I)
               or re.search(r'maximum-scale\s*=\s*([\d.]+)', m.group(2), re.I)):
-        limpio, fuera = _viewport_limpio(m.group(2))
-        if limpio:
-            fixed = fixed[:m.start()] + m.group(1) + limpio + m.group(3) + fixed[m.end():]
+        clean, removed = _viewport_limpio(m.group(2))
+        if clean:
+            fixed = fixed[:m.start()] + m.group(1) + clean + m.group(3) + fixed[m.end():]
         else:
             # eliminar el meta COMPLETO: escanear el final de etiqueta
             # respetando comillas (un `>` dentro de value= no cierra el tag)
-            fin = m.end()
+            end = m.end()
             q = None
-            while fin < len(fixed):
-                ch = fixed[fin]
+            while end < len(fixed):
+                ch = fixed[end]
                 if q:
                     if ch == q:
                         q = None
@@ -175,10 +175,10 @@ def autofix(html_text, lang=None, title=None, url='(html)', form_errors=True):
                     q = ch
                 elif ch == '>':
                     break
-                fin += 1
-            fixed = fixed[:m.start()] + (fixed[fin + 1:] if fin < len(fixed) else '')
-        aplicados.append({'signal': 'zoom_no',
-                          'hecho': f'viewport sin {", ".join(fuera)} (1.4.4: el zoom no se bloquea)'})
+                end += 1
+            fixed = fixed[:m.start()] + (fixed[end + 1:] if end < len(fixed) else '')
+        applied.append({'signal': 'zoom_no',
+                          'fix': f'viewport without {", ".join(removed)} (1.4.4: zoom no longer blocked)'})
 
     # 2. autocomplete determinista (1.3.5)
     n_ac = 0
@@ -189,11 +189,11 @@ def autofix(html_text, lang=None, title=None, url='(html)', form_errors=True):
         if 'autocomplete' in tag.lower():
             return tag
         a = _attrs(tag)
-        tipo = (a.get('type') or 'text').lower()
-        token = _TOKEN_POR_TYPE.get(tipo)
+        kind = (a.get('type') or 'text').lower()
+        token = _TOKEN_POR_TYPE.get(kind)
         if not token:
             pista = (a.get('name') or '') + ' ' + (a.get('id') or '')
-            if tipo in ('search', 'password'):
+            if kind in ('search', 'password'):
                 return tag
             for rx, tok in _TOKEN_POR_PISTA:
                 if rx.search(pista):
@@ -205,8 +205,8 @@ def autofix(html_text, lang=None, title=None, url='(html)', form_errors=True):
         return tag[:-1].rstrip() + f' autocomplete="{token}">'
     fixed = _RE_INPUT.sub(_input_fix, fixed)
     if n_ac:
-        aplicados.append({'signal': 'autocomplete',
-                          'hecho': f'{n_ac} inputs con su token autocomplete (1.3.5)'})
+        applied.append({'signal': 'autocomplete',
+                          'fix': f'{n_ac} inputs with their autocomplete token (1.3.5)'})
 
     # 3. lang de <html> (solo si falta y lo dan); BCP-47 validado y escapado:
     #    este toolkit ESCRIBE HTML, no puede ser vector de inyección
@@ -214,104 +214,104 @@ def autofix(html_text, lang=None, title=None, url='(html)', form_errors=True):
         m = _RE_HTML_TAG.search(fixed)
         if m and 'lang=' not in m.group(1).lower():
             fixed = fixed[:m.start()] + f'<html lang="{_html.escape(lang.strip())}"' + m.group(1) + '>' + fixed[m.end():]
-            aplicados.append({'signal': 'lang_missing',
-                              'hecho': f'<html lang="{lang.strip()}"> (3.1.1)'})
+            applied.append({'signal': 'lang_missing',
+                              'fix': f'<html lang="{lang.strip()}"> added (3.1.1)'})
 
     # 4. title (solo si vacío y lo dan); escapado por la misma razón
     if title and _RE_TITLE.search(fixed):
         fixed = _RE_TITLE.sub(lambda _m: f'<title>{_html.escape(title)}</title>', fixed, count=1)
-        aplicados.append({'signal': 'title_missing', 'hecho': '<title> añadido (2.4.2)'})
+        applied.append({'signal': 'title_missing', 'fix': '<title> added (2.4.2)'})
 
     # 4b. form errors: accessible error layer (3.3.1 + 3.3.3 from attributes)
     if form_errors and 'a11yfx' not in fixed:
         scripts = _RE_SCRIPTS.findall(fixed)
         if not any(('aria-invalid' in s or 'setCustomValidity' in s) for s in scripts):
             import json as _json
-            estado = {'forms': 0, 'campos': 0}
+            state = {'forms': 0, 'fields': 0}
 
-            def _tipo_de(tag):
+            def _input_type(tag):
                 m = re.search(r'type=["\']([\w-]+)', tag, re.I)
                 return m.group(1).lower() if m else ''
 
             def _validable(tag):
-                tipo = _tipo_de(tag)
+                kind = _input_type(tag)
                 if re.search(r'\b(required|pattern|minlength)\b|\bmin\s*=', tag, re.I):
                     return True
-                return tipo in ('email', 'url', 'number', 'tel', 'date', 'time',
+                return kind in ('email', 'url', 'number', 'tel', 'date', 'time',
                                 'datetime-local', 'month', 'week')
 
-            def _procesa_campo(elem):
+            def _process_field(elem):
                 if 'data-a11yfx-err' in elem or not _validable(elem):
                     return elem
-                estado['campos'] += 1
-                fid = "a11yfx-e-%d-%d" % (estado['forms'], estado['campos'])
-                apertura = re.match(r'<[a-zA-Z]+(?:[^>"\']|"[^"]*"|\'[^\']*\')*>', elem).group(0)
-                mdb = re.search(r'aria-describedby=["\']([^"\']*)["\']', apertura, re.I)
+                state['fields'] += 1
+                fid = "a11yfx-e-%d-%d" % (state['forms'], state['fields'])
+                opening = re.match(r'<[a-zA-Z]+(?:[^>"\']|"[^"]*"|\'[^\']*\')*>', elem).group(0)
+                mdb = re.search(r'aria-describedby=["\']([^"\']*)["\']', opening, re.I)
                 if mdb:  # merge, preserving the existing reference
-                    nueva = 'aria-describedby="%s %s"' % (mdb.group(1), fid)
-                    apertura = apertura[:mdb.start()] + nueva + apertura[mdb.end():]
-                    apertura = apertura[:-1] + ' data-a11yfx-err="%s">' % fid
+                    new = 'aria-describedby="%s %s"' % (mdb.group(1), fid)
+                    opening = opening[:mdb.start()] + new + opening[mdb.end():]
+                    opening = opening[:-1] + ' data-a11yfx-err="%s">' % fid
                 else:
-                    apertura = apertura[:-1] + ' data-a11yfx-err="%s" aria-describedby="%s">' % (fid, fid)
+                    opening = opening[:-1] + ' data-a11yfx-err="%s" aria-describedby="%s">' % (fid, fid)
                 capa = '\n<p class="a11yfx-err" id="%s" hidden></p>' % fid
-                if apertura.lower().startswith(('<textarea', '<select')):
+                if opening.lower().startswith(('<textarea', '<select')):
                     # content-bearing element: the layer goes AFTER the close,
                     # never inside (inside would become its value — a real
                     # data-corruption regression, caught in external review)
-                    return elem.replace(re.match(r'<[^>]*>', elem).group(0), apertura, 1) + capa
-                return apertura + capa
+                    return elem.replace(re.match(r'<[^>]*>', elem).group(0), opening, 1) + capa
+                return opening + capa
 
             def _manejo_propio(atrs_form):
                 m = re.search(r'onsubmit=["\']([^"\']*)', atrs_form, re.I)
                 if not m:
                     return False
-                cuerpo = m.group(1).strip().lower()
+                body = m.group(1).strip().lower()
                 # a pure navigation guard is NOT error handling — common fixture/SPA pattern
-                return cuerpo not in ('return false', 'return!1', 'return !1')
+                return body not in ('return false', 'return!1', 'return !1')
 
-            def _procesa_bloque(mb):
-                bloque = mb.group(0)
-                apertura = re.match(r'<form\b[^>]*>', bloque, re.I).group(0)
-                if 'data-a11yfx' in apertura or _manejo_propio(apertura):
-                    return bloque  # custom error handling present: never fight it
-                estado['forms'] += 1
-                resto = bloque[len(apertura):]
-                resto = _RE_CAMPO.sub(lambda mc: _procesa_campo(mc.group(0)), resto)
-                return apertura[:-1] + ' data-a11yfx>' + resto
+            def _process_block(mb):
+                block = mb.group(0)
+                opening = re.match(r'<form\b[^>]*>', block, re.I).group(0)
+                if 'data-a11yfx' in opening or _manejo_propio(opening):
+                    return block  # custom error handling present: never fight it
+                state['forms'] += 1
+                rest = block[len(opening):]
+                rest = _RE_FIELD.sub(lambda mc: _process_field(mc.group(0)), rest)
+                return opening[:-1] + ' data-a11yfx>' + rest
 
-            fixed = _RE_FORM_BLOQUE.sub(_procesa_bloque, fixed)
-            if estado['campos']:
-                fr = _FRASES.get(lang, _FRASES['en'])
+            fixed = _RE_FORM_BLOCK.sub(_process_block, fixed)
+            if state['fields']:
+                fr = _PHRASES.get(lang, _PHRASES['en'])
                 js = _JS_FORMAS % {k: _json.dumps(v) for k, v in fr.items()}
                 fixed = fixed.replace('</body>', js + '\n</body>', 1)
-                aplicados.append({'signal': 'form_error_missing',
-                                  'hecho': f"accessible error layer on {estado['forms']} form(s), "
-                                           f"{estado['campos']} field(s) — 3.3.1 identification + "
+                applied.append({'signal': 'form_error_missing',
+                                  'fix': f"accessible error layer on {state['forms']} form(s), "
+                                           f"{state['fields']} field(s) — 3.3.1 identification + "
                                            f"3.3.3 attribute-derived suggestions"})
 
     # 5. lo que NO se toca — honestidad operativa
-    informe = audit_html(html_text, url, lang='en')
-    no_toca = {
-        'imgs_alt': 'no sabemos si la imagen es decorativa: alt="" o descriptivo lo decide alguien',
-        'ctrl_name': 'el nombre accesible exige saber qué hace el control',
-        'field_label': 'el texto de la etiqueta lo dicta el contenido',
-        'contrast_fail': 'elegir el color nuevo es una decisión de diseño (usa a11y_suggest_color)',
-        'target_small': 'rediseño de layout',
-        'list_structure': 'rehacer el marcado exige entender la estructura',
+    report = audit_html(html_text, url, lang='en')
+    do_not_touch = {
+        'img_no_alt': 'we cannot know if the image is decorative: alt="" vs descriptive is a human call',
+        'ctrl_name': 'the accessible name requires knowing what the control does',
+        'field_label': 'the label text is dictated by the content',
+        'contrast_fail': 'picking the new color is a design decision (use a11y_suggest_color)',
+        'target_small': 'needs a layout redesign',
+        'list_structure': 'rebuilding the markup requires understanding the structure',
     }
-    ya = {a['signal'] for a in aplicados}
-    no_aplicados = []
-    vistos = set()
-    for h in informe.get('findings', []):
-        senal = h['signal']
-        if senal in no_toca and senal not in vistos and senal not in ya:
-            vistos.add(senal)
-            no_aplicados.append({'signal': senal, 'criterion': h['criterion'],
-                                 'por_que_no': no_toca[senal],
+    already = {a['signal'] for a in applied}
+    not_applied = []
+    seen = set()
+    for h in report.get('findings', []):
+        signal = h['signal']
+        if signal in do_not_touch and signal not in seen and signal not in already:
+            seen.add(signal)
+            not_applied.append({'signal': signal, 'criterion': h['criterion'],
+                                 'why_not': do_not_touch[signal],
                                  'remediation': h['remediation']})
 
-    fixed = _desenmascara(fixed)
-    return {'fixed_html': fixed, 'aplicados': aplicados, 'no_aplicados': no_aplicados}
+    fixed = _unmask(fixed)
+    return {'fixed_html': fixed, 'applied': applied, 'not_applied': not_applied}
 
 
 def main(argv):
@@ -327,8 +327,8 @@ def main(argv):
     if a.out:
         with open(a.out, 'w', encoding='utf-8') as f:
             f.write(res['fixed_html'])
-        print(json.dumps({'file': a.out, 'aplicados': res['aplicados'],
-                          'no_aplicados': res['no_aplicados']}, ensure_ascii=False, indent=1))
+        print(json.dumps({'file': a.out, 'applied': res['applied'],
+                          'not_applied': res['not_applied']}, ensure_ascii=False, indent=1))
     else:
         print(res['fixed_html'])
     return 0

@@ -10,7 +10,7 @@ Budget file (budget.json):
 
   {
     "url": "https://mysite",
-    "signals": ["imgs_alt", "field_label"],       // accepted baseline
+    "signals": ["img_no_alt", "field_label"],       // accepted baseline
     "blocking": ["high", "medium"],              // severities that block
     "max_new": 0,                               // how many new ones tolerated
     "review_date": "2026-12-07"                 // baseline expiry (optional)
@@ -26,54 +26,56 @@ Only stable keys ('signal') and severities are compared, never prose.
 import argparse
 import datetime
 import json
+
+from .a11yaudit import normalize_signal  # noqa: E402  (compat 5.10)
 import sys
 
 
-def init(auditoria):
+def init(audit):
     """Informe (o site) → fichero de presupuesto inicial."""
-    paginas = auditoria.get('reports') if 'reports' in auditoria else [auditoria]
-    senales = sorted({h['signal'] for pg in paginas for h in pg.get('findings', [])})
+    pages = audit.get('reports') if 'reports' in audit else [audit]
+    signals = sorted({normalize_signal(h.get('signal', '')) for pg in pages for h in pg.get('findings', [])})
     return {
-        'url': auditoria.get('url', ''),
-        'signals': senales,
+        'url': audit.get('url', ''),
+        'signals': signals,
         'blocking': ['high', 'medium'],
         'max_new': 0,
         'review_date': (datetime.date.today() + datetime.timedelta(days=90)).isoformat(),
     }
 
 
-def comparar(presupuesto, auditoria, hoy=None):
+def comparar(budget, audit, today=None):
     """Presupuesto vs informe actual → veredicto ok/bloqueado con el detalle."""
-    paginas = auditoria.get('reports') if 'reports' in auditoria else [auditoria]
-    base = set(presupuesto.get('signals', []))
-    bloqueantes = set(presupuesto.get('blocking', ['high', 'medium']))
+    pages = audit.get('reports') if 'reports' in audit else [audit]
+    base = {normalize_signal(s) for s in budget.get('signals', [])}
+    blocking = set(budget.get('blocking', ['high', 'medium']))
     actuales = {}
-    for pg in paginas:
+    for pg in pages:
         for h in pg.get('findings', []):
-            actuales.setdefault(h['signal'], []).append(h['severity'])
-    nuevos = sorted(s for s in actuales if s not in base)
+            actuales.setdefault(normalize_signal(h.get('signal', '')), []).append(h['severity'])
+    new = sorted(s for s in actuales if s not in base)
     resueltos = sorted(base - set(actuales))
-    nuevos_bloqueantes = [s for s in nuevos
-                          if any(sev in bloqueantes for sev in actuales[s])]
-    max_nuevos = int(presupuesto.get('max_new', 0))
-    ok = len(nuevos_bloqueantes) <= max_nuevos
-    caducada = False
-    fecha = presupuesto.get('review_date')
-    if fecha:
-        caducada = (hoy or datetime.date.today().isoformat()) > fecha
+    new_blocking = [s for s in new
+                          if any(sev in blocking for sev in actuales[s])]
+    max_new = int(budget.get('max_new', 0))
+    ok = len(new_blocking) <= max_new
+    expired = False
+    date = budget.get('review_date')
+    if date:
+        expired = (today or datetime.date.today().isoformat()) > date
     return {
-        'ok': ok and not caducada,
-        'url': auditoria.get('url', presupuesto.get('url', '')),
-        'new': nuevos,
-        'new_blocking': nuevos_bloqueantes,
+        'ok': ok and not expired,
+        'url': audit.get('url', budget.get('url', '')),
+        'new': new,
+        'new_blocking': new_blocking,
         'resolved': resueltos,
         'summary': {
             'baseline': len(base),
             'current': len(actuales),
-            'new': len(nuevos),
+            'new': len(new),
             'resolved': len(resueltos),
         },
-        'baseline_expired': caducada,
+        'baseline_expired': expired,
         'note': ('ok=false: there are new blocking findings (or the baseline expired). '
                  'ok=true: nothing new vs the accepted baseline — fix baseline items '
                  'and re-run --init to lower it.'),
@@ -104,14 +106,14 @@ def main(argv):
         print('necesito --audit informe.json o --url https://…')
         return 1
     with open(a.budget, encoding='utf-8') as f:
-        presupuesto = json.load(f)
+        budget = json.load(f)
     if a.audit:
         with open(a.audit, encoding='utf-8') as f:
-            informe = json.load(f)
+            report = json.load(f)
     else:
         from .a11yaudit import audit_url
-        informe = audit_url(a.url)
-    veredicto = comparar(presupuesto, informe)
+        report = audit_url(a.url)
+    veredicto = comparar(budget, report)
     print(json.dumps(veredicto, ensure_ascii=False, indent=1))
     return 0 if veredicto['ok'] else 2
 

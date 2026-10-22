@@ -118,7 +118,7 @@ Keyboard-trap detection (2.1.2) with REAL Tab walking in Chromium: up to 60 real
 
 - `lang` — one of ['es', 'en']: Output language (default en).
 
-- `max_pasos`: max real Tab presses (60 default).
+- `max_steps`: max real Tab presses (60 default).
 
 - `auth_state`: Path to a Playwright storage_state JSON (exported session) to Tab-walk behind login.
 
@@ -136,7 +136,7 @@ Infinite-scroll accessibility audit — the documented disaster nobody automates
 
 - `lang` — one of ['es', 'en']: Output language (default en).
 
-- `max_tandas`: scroll batches (5 default).
+- `max_batches`: scroll batches (5 default).
 
 - `auth_state`: Path to a Playwright storage_state JSON (exported session) to audit an authenticated feed.
 
@@ -241,7 +241,7 @@ Blindfold journey verdict — the capability no other accessibility tool has: th
 
 <sub>read-only</sub>
 
-DETERMINISTIC safe auto-fixes applied to HTML — the honest anti-overlay: a short closed list of fixes where the correct answer is unique (unblock viewport zoom 1.4.4, add the exact autocomplete token 1.3.5, fill missing html lang and empty title when provided). Everything requiring judgment (alt text, contrast, accessible names) is NOT touched — it returns no_aplicados with the reason and remediation instead. Returns fixed_html + aplicados + no_aplicados. — Only the closed allowlist of provably safe fixes; judgment fixes come back as no_aplicados with remediation. Returns JSON: {fixed_html, aplicados [{fix, …}], no_aplicados [{issue, remediation}]} — writes a file only when output_path is given.
+DETERMINISTIC safe auto-fixes applied to HTML — the honest anti-overlay: a short closed list of fixes where the correct answer is unique (unblock viewport zoom 1.4.4, add the exact autocomplete token 1.3.5, fill missing html lang and empty title when provided). Everything requiring judgment (alt text, contrast, accessible names) is NOT touched — it returns not_applied with the reason and remediation instead. Returns fixed_html + applied + not_applied. — Only the closed allowlist of provably safe fixes; judgment fixes come back as not_applied with remediation. Returns JSON: {fixed_html, applied [{fix, …}], not_applied [{issue, remediation}]} — writes a file only when output_path is given.
 
 
 **Arguments**
@@ -344,7 +344,7 @@ PDF accessibility screening — the space nobody automated (axe, pa11y, Lighthou
 
 <sub>read-only</sub>
 
-DOCX accessibility screening — the other half of enterprise paperwork. Zero-dep structural pass on a LOCAL .docx: images with no alt text (docPr without descr), fake headings (bold+big paragraphs with no Heading style — invisible to the navigation pane and TOC), document language, tables without marked header row. Returns JSON: {mode: "docx", idioma, images, tables, findings, summary, limits}.
+DOCX accessibility screening — the other half of enterprise paperwork. Zero-dep structural pass on a LOCAL .docx: images with no alt text (docPr without descr), fake headings (bold+big paragraphs with no Heading style — invisible to the navigation pane and TOC), document language, tables without marked header row. Returns JSON: {mode: "docx", language, images, tables, findings, summary, limits}.
 
 
 **Arguments**
@@ -425,23 +425,23 @@ Generates an Accessibility Statement in HTML: art. 10 RD 1112/2018 (Spanish publ
 
 - `url` *(required)*: Website URL the statement covers.
 
-- `status` *(required)* — one of ['plena', 'parcial', 'no_conforme']: Compliance state: plena | parcial | no_conforme (parcial is the honest default when findings exist).
+- `status` *(required)* — one of ['full', 'partial', 'not_conformant']: Compliance state (partial is the honest default when findings exist). The pre-5.11 values plena | parcial | no_conforme still work as aliases.
 
 - `inaccessible_content`: Non-accessible content list: one string per item, ideally criterion + reason + alternative.
 
-- `metodo`: How conformance was evaluated (e.g. "self-evaluation: a11y-toolkit screening + manual review").
+- `method`: How conformance was evaluated (e.g. "self-evaluation: a11y-toolkit screening + manual review").
 
-- `fecha_evaluacion`: ISO date of the last evaluation (YYYY-MM-DD).
+- `evaluation_date`: ISO date of the last evaluation (YYYY-MM-DD).
 
 - `review_date`: ISO date of the next scheduled review.
 
 - `feedback`: Contact channel for accessibility feedback (email or URL).
 
-- `reclamacion`: Claim/complaint procedure URL or address (legally required in several jurisdictions).
+- `complaints`: Claim/complaint procedure URL or address (legally required in several jurisdictions).
 
 - `framework` — one of ['rd1112', 'eaa']: Legal framework: rd1112 (Spanish public sector, art. 10) or eaa (European Accessibility Act / private sector).
 
-- `disponibilidad_alternativa`: Where to get the content in an alternative accessible format.
+- `alternative_format`: Where to get the content in an alternative accessible format.
 
 - `output_path`: save the HTML here (optional).
 
@@ -692,7 +692,7 @@ a11ytoolkit scroll https://medium.com/feed              # infinite scroll
 a11ytoolkit validate --url https://example.com          # W3C Nu
 a11ytoolkit hover https://mysite                        # tooltip dismissibility
 a11ytoolkit fix --file page.html -o fixed.html          # safe autofix
-a11ytoolkit declaration --entidad "Acme" --url https://… --estado parcial --marco eaa
+a11ytoolkit declaration --entity "Acme" --url https://… --status partial --framework eaa
 a11ytoolkit snapshot https://mysite --out before.json   # before deploy
 a11ytoolkit diff before.json after.json                 # after deploy
 a11ytoolkit evidence audit.json -o pack.json            # verifiable evidence pack
@@ -701,7 +701,7 @@ a11ytoolkit budget --budget budget.json --audit audit.json  # only NEW findings 
 a11ytoolkit sarif --from-audit audit.json -o a11y.sarif # GitHub code scanning
 a11ytoolkit badge --score 92 --out badge.svg            # honest SVG
 a11ytoolkit contrast-dom https://mysite --selector ".hero h1"  # auto-region pixel sampling
-a11ytoolkit vpat pack.json --producto "Acme" -o vpat.html      # VPAT 2.5 (WCAG) draft
+a11ytoolkit vpat pack.json --product "Acme" -o vpat.html      # VPAT 2.5 (WCAG) draft
 a11ytoolkit earl --from-audit audit.json -o earl.json          # ACT Rules / EARL export
 ```
 

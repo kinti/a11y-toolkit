@@ -5,15 +5,15 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from a11y_toolkit.a11yaudit import audit_html
 from a11y_toolkit.a11ycrit import RENDERED_ONLY
 
-# Página limpia: sin hallazgos (tiene <main> → 2.4.1 cubierto)
+# Página limpia: sin findings (tiene <main> → 2.4.1 covered)
 limpia = '''<!doctype html><html lang="es"><head><meta charset="utf-8"><title>Ok</title></head>
 <body><main><h1>Página de inicio</h1><p><img src="a.png" alt="descripción"></p>
-<a href="/x">Enlace con texto</a> <button>Botón</button>
+<a href="/x">Enlace con text</a> <button>Botón</button>
 <label>Nombre <input type="text" name="q"></label></main></body></html>'''
 r = audit_html(limpia)
 assert r['findings'] == [], [(h['criterion'], h['issue']) for h in r['findings']]
 
-# Página problemática: todos los fallos nuevos + antiguos, salida en inglés
+# Página problemática: todos los failures new + antiguos, output en inglés
 mala = '''<!doctype html><html><head><meta charset="utf-8">
 <meta http-equiv="refresh" content="30">
 <meta name="viewport" content="width=device-width, user-scalable=no">
@@ -38,14 +38,14 @@ for esperado in ['1.1.1', '1.2.2', '1.3.1', '1.4.4', '2.1.1', '2.2.1', '2.4.1', 
 assert all('remediation' in h and h['remediation'] for h in r2['findings'])
 assert r2['findings'][0]['criterion'].endswith('Non-text Content')  # alta primero, en inglés
 assert r2['summary']['high'] >= 6
-print('TESTS AUDITOR PASAN ✓ (13 criterios, remediación, orden por severidad, salida EN)')
+print('TESTS AUDITOR PASAN ✓ (13 criterios, remediación, order por severidad, output EN)')
 
-# Botón cuyo nombre es solo una imagen con alt (válido)
+# Botón cuyo name es solo una imagen con alt (válido)
 img_alt = '<html lang="es"><head><title>t</title></head><body><button><img src="i.png" alt="Buscar"></button></body></html>'
 r3 = audit_html(img_alt)
 assert not any(h['criterion'].startswith('4.1.2') for h in r3['findings'])
 
-# select y textarea SÍ se auditan ahora (antes solo input)
+# select y textarea SÍ se auditan now (before solo input)
 st = audit_html('<html lang="es"><head><title>t</title></head><body>'
                 '<select name="s"></select><textarea name="ta"></textarea></body></html>')
 assert any(h['criterion'].startswith('3.3.2') and '2' in h['issue'] for h in st['findings']), st['findings']
@@ -56,14 +56,14 @@ assert any('BCP-47' in h['issue'] for h in li['findings'])
 lv = audit_html('<html lang="pt-BR"><head><title>t</title></head><body><h1>Informe principal</h1><main></main></body></html>')
 assert not any(h['criterion'].startswith('3.1.1') for h in lv['findings'])
 
-# saltar contenido: con <main> ya no hay hallazgo 2.4.1; ancla interna con texto tampoco
+# saltar contenido: con <main> already no hay finding 2.4.1; ancla interna con text tampoco
 sk = audit_html('<html lang="es"><head><title>t</title></head><body>'
                 '<a href="#c">Saltar al contenido</a><h1>Informe principal</h1><div id="c"></div></body></html>')
 assert not any(h['criterion'].startswith('2.4.1') for h in sk['findings'])
 
-# target=_blank CON aviso: sin hallazgo 3.2.5
+# target=_blank CON aviso: sin finding 3.2.5
 tb = audit_html('<html lang="es"><head><title>t</title></head><body><h1>Informe principal</h1><main>'
-                '<a href="https://x" target="_blank">Docs (nueva ventana)</a></main></body></html>')
+                '<a href="https://x" target="_blank">Docs (new ventana)</a></main></body></html>')
 assert not any(h['criterion'].startswith('3.2.5') for h in tb['findings'])
 
 # FP bench gov.uk: aria-hidden con tabindex="-1" NO se reporta (no es tabulable)
@@ -81,7 +81,7 @@ g2 = audit_html('<html lang="es"><head><title>t</title></head><body><h1>Informe 
                 '<a href="/x">Más</a><a href="/y">leer más</a></main></body></html>')
 assert any(h['signal'] == 'generic_link' for h in g2['findings'])
 
-# v3.9: 2.5.3 label-in-name, 3.1.2 idioma de partes, 2.5.2 down-event, 3.3.8 captcha
+# v3.9: 2.5.3 label-in-name, 3.1.2 language de parts, 2.5.2 down-event, 3.3.8 captcha
 v39 = '''<html lang="es"><head><title>t</title></head><body><main><h1>Informe principal</h1>
 <a href="/x" aria-label="Más información promocional">Ver ofertas</a>
 <a href="/y" aria-label="Ver ofertas y más">Ver ofertas</a>
@@ -91,7 +91,7 @@ v39 = '''<html lang="es"><head><title>t</title></head><body><main><h1>Informe pr
 </main></body></html>'''
 rv39 = audit_html(v39, lang='en')
 sv39 = {x['signal'] for x in rv39['findings']}
-for esperada in ('label_in_name', 'lang_partes', 'down_event', 'captcha'):
+for esperada in ('label_in_name', 'element_lang_invalid', 'down_event', 'captcha'):
     assert esperada in sv39, f'falta {esperada}: {sorted(sv39)}'
 ok253 = audit_html('<html lang="es"><head><title>t</title></head><body><main><h1>Informe principal</h1>'
                    '<a href="/x" aria-label="Ver ofertas y más">Ver ofertas</a></main></body></html>')
@@ -127,9 +127,9 @@ va = audit_html('<html lang="es"><head><title>t</title></head><body><main><h1>In
 fv = [x for x in va['findings'] if x['signal'] == 'aria_value_invalid']
 assert fv and '2' in fv[0]['issue'] and 'aria-live' not in fv[0]['issue']
 assert 0 <= rv['score'] < 100 and 'score_note' in rv
-assert audit_html('<html lang="es"><head><title>t</title></head><body><main><h1>Informe de resultados Q3</h1></main></body></html>')['score'] == 100
+assert audit_html('<html lang="es"><head><title>t</title></head><body><main><h1>Informe de results Q3</h1></main></body></html>')['score'] == 100
 
-print('CASOS LIMITE AUDITOR OK ✓ (nombre por imagen, select/textarea, lang, skip, _blank avisado, label huérfano)')
+print('CASOS LIMITE AUDITOR OK ✓ (name por imagen, select/textarea, lang, skip, _blank avisado, label huérfano)')
 # v3.12: partial signals on previously manual-only criteria
 v312 = '''<html lang="es"><head><title>t</title></head><body><main><h1>Informe principal</h1>
 <marquee>oferta</marquee>
@@ -146,21 +146,21 @@ for esperada in ('motion_moving', 'gesture_no_click', 'motion_actuation',
 limpio312 = audit_html('<html lang="es"><head><title>t</title></head><body><main><h1>Informe principal</h1><p>x</p></main></body></html>', lang='en')
 assert not (sv312 & {x['signal'] for x in limpio312['findings']})
 # site-level: pure function separates consistent from drifting nav
-from a11y_toolkit.a11yaudit import _Auditor, evaluar_sitio
-paginas = ['<nav><a href="/">H</a><a href="/x">X</a></nav>' for _ in range(2)] + ['<nav><a href="/">H</a><a href="/y">Y</a></nav>']
+from a11y_toolkit.a11yaudit import _Auditor, evaluate_site
+pages = ['<nav><a href="/">H</a><a href="/x">X</a></nav>' for _ in range(2)] + ['<nav><a href="/">H</a><a href="/y">Y</a></nav>']
 parsers = []
-for cuerpo in paginas:
-    p = _Auditor(); p.feed(f'<html lang="en"><head><title>t</title></head><body>{cuerpo}<main><h1>Informe principal</h1></main></body></html>'); p.close(); parsers.append(p)
-sen_sitio = {f['signal'] for f in evaluar_sitio(parsers, lang='en')}
+for body in pages:
+    p = _Auditor(); p.feed(f'<html lang="en"><head><title>t</title></head><body>{body}<main><h1>Informe principal</h1></main></body></html>'); p.close(); parsers.append(p)
+sen_sitio = {f['signal'] for f in evaluate_site(parsers, lang='en')}
 assert {'nav_inconsistent', 'no_multiple_ways'} <= sen_sitio
 parsers_ok = [_p for _p in [(_Auditor()) for _ in range(3)]]
-for _p, cuerpo in zip(parsers_ok, ['<nav><a href="/">H</a></nav><input type="search">' for _ in range(3)]):
-    _p.feed(f'<html lang="en"><head><title>t</title></head><body>{cuerpo}<main><h1>Informe principal</h1></main></body></html>'); _p.close()
-assert evaluar_sitio(parsers_ok, lang='en') == []
+for _p, body in zip(parsers_ok, ['<nav><a href="/">H</a></nav><input type="search">' for _ in range(3)]):
+    _p.feed(f'<html lang="en"><head><title>t</title></head><body>{body}<main><h1>Informe principal</h1></main></body></html>'); _p.close()
+assert evaluate_site(parsers_ok, lang='en') == []
 
-# v3.9.2: pureza de idioma — la salida EN no contiene español
+# v3.9.2: pureza de language — la output EN no contiene español
 import re as _re
-_ES = _re.compile(r'\b(sobre|entero|número|revisar|elementos|enlaces|ventana|campos)\b')
+_ES = _re.compile(r'\b(sobre|entero|número|revisar|elementos|enlaces|ventana|fields)\b')
 kitchen = audit_html('''<html lang="es"><head><title>t</title></head><body><main><h1>Informe principal</h1>
 <div aria-level="cero">x</div><div aria-valuenow="height">y</div>
 <table><tr><td>a</td></tr></table></main></body></html>''', lang='en')
@@ -179,7 +179,7 @@ assert 'error' in _r2
 print('V3.1 OK ✓ (ARIA roto/desconocido, autocomplete 1.3.5, autoplay 1.4.2, enlaces 2.4.4, landmarks, accesskey, multi-label, score 0-100, valores ARIA)')
 
 
-# honradez estática: el informe declara lo que NO midió (crítica externa:
+# honradez estática: el report declara lo que NO midió (crítica externa:
 # un 100 estático se leía como "contraste bien" con CSS de clases invisible)
 r_nm = audit_html('<html><head><style>.btn{background:var(--g);color:#fff}</style></head>'
                   '<body><button class="btn">Buy</button></body></html>', lang='en')

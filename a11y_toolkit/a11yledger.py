@@ -29,6 +29,8 @@ from datetime import datetime, timezone
 
 import tempfile
 
+from .a11yaudit import normalize_signal  # noqa: E402  (compat 5.10)
+
 # lock por ruta: multi-hilo siempre; multi-proceso en POSIX (fcntl). El
 # SaaS programa auditorías mientras el panel escribe — sin esto, dos
 # escrituras simultáneas dejaban un JSON truncado (revisión externa 2026-10).
@@ -38,15 +40,15 @@ from contextlib import contextmanager
 
 
 @contextmanager
-def _lock(ruta):
+def _lock(path):
     import threading
-    lk = _LOCKS.setdefault(os.path.abspath(ruta), threading.Lock())
+    lk = _LOCKS.setdefault(os.path.abspath(path), threading.Lock())
     with lk:
         fd = None
         try:
             try:
                 import fcntl
-                fd = open(os.path.abspath(ruta) + '.lock', 'w')
+                fd = open(os.path.abspath(path) + '.lock', 'w')
                 fcntl.flock(fd, fcntl.LOCK_EX)
             except ImportError:
                 pass  # Windows: solo lock de hilo (documentado)
@@ -56,24 +58,30 @@ def _lock(ruta):
                 fd.close()  # libera el flock
 
 
-def _cargar(ruta='a11y-ledger.json'):
-    if os.path.exists(ruta):
+def _load(path='a11y-ledger.json'):
+    if os.path.exists(path):
         try:
-            with open(ruta, encoding='utf-8') as f:
-                return json.load(f)
+            with open(path, encoding='utf-8') as f:
+                ledger = json.load(f)
+            for e in ledger.get('entries', {}).values():
+                e['active_signals'] = sorted(normalize_signal(x) for x in e.get('active_signals', []))
+                e['resolved_signals'] = sorted(normalize_signal(x) for x in e.get('resolved_signals', []))
+            # renames de claves 5.11.0 (por si un proceso antiguo reescribe después)
+            e['last_audit'] = e.pop('ultimo_audit') if 'ultimo_audit' in e else e.get('last_audit')
+            return ledger
         except json.JSONDecodeError:
             # corrupto (crash a mitad de escritura de una versión anterior):
             # no arrastrar la corrupción — aislar y empezar limpio
-            os.replace(ruta, ruta + '.corrupto-' + datetime.now(timezone.utc)
+            os.replace(path, path + '.corrupto-' + datetime.now(timezone.utc)
                        .strftime('%Y%m%dT%H%M%SZ'))
             return {'version': 1, 'entries': {}, 'history': []}
     return {'version': 1, 'entries': {}, 'history': []}
 
 
-def _guardar(ledger, ruta='a11y-ledger.json'):
+def _save(ledger, path='a11y-ledger.json'):
     # escritura atómica: tempfile EN EL MISMO DIRECTORIO + os.replace —
     # un crash a mitad nunca deja el fichero a medias
-    d = os.path.dirname(os.path.abspath(ruta)) or '.'
+    d = os.path.dirname(os.path.abspath(path)) or '.'
     temporal = None
     try:
         with tempfile.NamedTemporaryFile('w', encoding='utf-8', dir=d,
@@ -82,93 +90,93 @@ def _guardar(ledger, ruta='a11y-ledger.json'):
             json.dump(ledger, f, ensure_ascii=False, indent=1)
             f.flush()
             os.fsync(f.fileno())
-        os.replace(temporal, ruta)
+        os.replace(temporal, path)
     except BaseException:
         if temporal and os.path.exists(temporal):
             os.unlink(temporal)
         raise
 
 
-def record(url, informe, ledger=None, ruta='a11y-ledger.json'):
+def record(url, report, ledger=None, path='a11y-ledger.json'):
     """Record an audit result in the ledger (thread/process safe)."""
-    with _lock(ruta):
-        return _record(url, informe, ledger=ledger, ruta=ruta)
+    with _lock(path):
+        return _record(url, report, ledger=ledger, path=path)
 
 
 def _hash_url(url):
     return hashlib.sha256(url.encode()).hexdigest()[:16]
 
 
-def _record(url, informe, ledger=None, ruta='a11y-ledger.json'):
+def _record(url, report, ledger=None, path='a11y-ledger.json'):
     if ledger is None:
-        ledger = _cargar(ruta)
-    ahora = datetime.now(timezone.utc).isoformat(timespec='seconds')
-    clave = _hash_url(url)
+        ledger = _load(path)
+    now = datetime.now(timezone.utc).isoformat(timespec='seconds')
+    entry_key = _hash_url(url)
 
     # señales activas y score
-    senales = sorted({h['signal'] for h in informe.get('findings', [])})
-    score = informe.get('score')
+    signals = sorted({normalize_signal(h.get('signal', '')) for h in report.get('findings', [])})
+    score = report.get('score')
 
-    entrada = {
+    entry = {
         'url': url,
-        'ultimo_audit': ahora,
+        'last_audit': now,
         'score': score,
-        'previous_score': ledger['entries'].get(clave, {}).get('score'),
-        'active_signals': senales,
+        'previous_score': ledger['entries'].get(entry_key, {}).get('score'),
+        'active_signals': signals,
         'resolved_signals': sorted(
-            set(ledger['entries'].get(clave, {}).get('active_signals', [])) - set(senales)
+            set(ledger['entries'].get(entry_key, {}).get('active_signals', [])) - set(signals)
         ),
-        'mode': informe.get('mode', 'static'),
-        'disprover': informe.get('disprover'),
+        'mode': report.get('mode', 'static'),
+        'disprover': report.get('disprover'),
     }
 
-    ledger['entries'][clave] = entrada
+    ledger['entries'][entry_key] = entry
     ledger['history'].append({
-        'ts': ahora, 'url': url, 'score': score,
-        'change': 'nuevo' if entrada['previous_score'] is None else
-                  f"{entrada['previous_score']}→{score}",
-        'resolved': len(entrada['resolved_signals']),
+        'ts': now, 'url': url, 'score': score,
+        'change': 'new' if entry['previous_score'] is None else
+                  f"{entry['previous_score']}→{score}",
+        'resolved': len(entry['resolved_signals']),
     })
-    _guardar(ledger, ruta)
-    return entrada
+    _save(ledger, path)
+    return entry
 
 
-def gaps(url, ledger=None, ruta='a11y-ledger.json'):
+def gaps(url, ledger=None, path='a11y-ledger.json'):
     """What has never been checked on this URL?"""
     if ledger is None:
-        ledger = _cargar(ruta)
+        ledger = _load(path)
     from .a11yaudit import CRIT
-    clave = _hash_url(url)
-    entrada = ledger['entries'].get(clave)
-    if not entrada:
-        return {'url': url, 'status': 'nunca_auditado',
+    entry_key = _hash_url(url)
+    entry = ledger['entries'].get(entry_key)
+    if not entry:
+        return {'url': url, 'status': 'never_audited',
                 'criteria_without_signal': len(CRIT['en'])}
-    auditadas = set(entrada.get('active_signals', []))
+    auditadas = set(entry.get('active_signals', []))
     return {
         'url': url,
-        'status': 'auditado',
-        'ultimo': entrada['ultimo_audit'],
-        'score': entrada['score'],
-        'resolved_signals': entrada['resolved_signals'],
+        'status': 'audited',
+        'last_audit': entry.get('last_audit') or entry.get('ultimo_audit'),
+        'score': entry['score'],
+        'resolved_signals': entry.get('resolved_signals', []),
         'note': ('re-audit this URL if its content changed since '
-                 + entrada['ultimo_audit']),
+                 + (entry.get('last_audit') or entry.get('ultimo_audit'))),
     }
 
 
-def summary(ledger=None, ruta='a11y-ledger.json'):
+def summary(ledger=None, path='a11y-ledger.json'):
     """Summary of the ledger."""
     if ledger is None:
-        ledger = _cargar(ruta)
-    entradas = ledger['entries']
-    if not entradas:
+        ledger = _load(path)
+    entries = ledger['entries']
+    if not entries:
         return {'total_urls': 0, 'note': 'ledger empty — run your first audit'}
-    scores = [e.get('score', 0) for e in entradas.values() if e.get('score') is not None]
+    scores = [e.get('score', 0) for e in entries.values() if e.get('score') is not None]
     return {
-        'total_urls': len(entradas),
+        'total_urls': len(entries),
         'mean_score': round(sum(scores) / len(scores)) if scores else None,
-        'score_peor': min(scores) if scores else None,
-        'score_mejor': max(scores) if scores else None,
-        'total_resueltas': sum(len(e.get('resolved_signals', [])) for e in entradas.values()),
+        'worst_score': min(scores) if scores else None,
+        'best_score': max(scores) if scores else None,
+        'total_resolved': sum(len(e.get('resolved_signals', [])) for e in entries.values()),
         'recent': ledger['history'][-5:],
     }
 
@@ -188,13 +196,13 @@ def main(argv):
     a = ap.parse_args(argv)
     if a.cmd == 'record':
         with open(a.audit, encoding='utf-8') as f:
-            informe = json.load(f)
-        r = record(a.url, informe, ruta=a.ledger)
+            report = json.load(f)
+        r = record(a.url, report, path=a.ledger)
         print(json.dumps(r, ensure_ascii=False, indent=1))
     elif a.cmd == 'gaps':
-        print(json.dumps(gaps(a.url, ruta=a.ledger), ensure_ascii=False, indent=1))
+        print(json.dumps(gaps(a.url, path=a.ledger), ensure_ascii=False, indent=1))
     elif a.cmd == 'summary':
-        print(json.dumps(summary(ruta=a.ledger), ensure_ascii=False, indent=1))
+        print(json.dumps(summary(path=a.ledger), ensure_ascii=False, indent=1))
     return 0
 
 

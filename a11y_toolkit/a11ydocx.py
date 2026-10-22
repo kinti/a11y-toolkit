@@ -26,12 +26,12 @@ T = {
     'es': {
         'docx_no_alt': '{n} imágenes sin texto alternativo (docPr sin descr o descr vacío): invisibles para el lector de pantalla (1.1.1).',
         'docx_no_alt_rem': 'Clic derecho en cada imagen → «Editar texto alternativo» y descríbela. Las decorativas: marca la casilla «decorativa».',
-        'docx_falsos_encabezados': '{n} párrafos con solo negrita/grande: parecen encabezados pero no lo son — el panel de navegación y el índice no los ven (1.3.1).',
-        'docx_falsos_encabezados_rem': 'Aplica estilo «Título 1/2» en vez de negrita manual: así existen en el panel de navegación y en el índice.',
-        'docx_sin_idioma': 'idioma del documento sin declarar: la voz sintética y el corrector no saben (3.1.1).',
-        'docx_sin_idioma_rem': 'Revisar → Idioma → establece el idioma del documento completo.',
-        'docx_sin_tabla_header': '{n} tablas sin fila de encabezado marcada: las celdas pierden su contexto de columna (1.3.1).',
-        'docx_sin_tabla_header_rem': 'Tabla → fila de encabezado marcada («Repetir filas de encabezado» en tablas multi-página).',
+        'docx_fake_headings': '{n} párrafos con solo negrita/grande: parecen encabezados pero no lo son — el panel de navegación y el índice no los ven (1.3.1).',
+        'docx_fake_headings_rem': 'Aplica estilo «Título 1/2» en vez de negrita manual: así existen en el panel de navegación y en el índice.',
+        'docx_no_lang': 'idioma del documento sin declarar: la voz sintética y el corrector no saben (3.1.1).',
+        'docx_no_lang_rem': 'Revisar → Idioma → establece el idioma del documento completo.',
+        'docx_table_no_header': '{n} tablas sin fila de encabezado marcada: las celdas pierden su contexto de columna (1.3.1).',
+        'docx_table_no_header_rem': 'Tabla → fila de encabezado marcada («Repetir filas de encabezado» en tablas multi-página).',
         'limits': ('Cribado estructural del XML: no sustituye la revisión humana '
                    '(orden de lectura de tablas complejas, significado de imágenes '
                    'con alt insuficiente, gráficos incrustados).'),
@@ -39,12 +39,12 @@ T = {
     'en': {
         'docx_no_alt': '{n} images with no alternative text (docPr without descr, or empty): invisible to screen readers (1.1.1).',
         'docx_no_alt_rem': 'Right-click each image → "Edit Alt Text" and describe it. Decorative ones: tick "decorative".',
-        'docx_falsos_encabezados': '{n} paragraphs with just bold/large text: they LOOK like headings but are not — navigation pane and auto-TOC cannot see them (1.3.1).',
-        'docx_falsos_encabezados_rem': 'Apply the "Heading 1/2" style instead of manual bold: then they exist in the navigation pane and the TOC.',
-        'docx_sin_idioma': 'document language not declared: synthetic voice and spellcheck cannot pick (3.1.1).',
-        'docx_sin_idioma_rem': 'Review → Language → set the whole-document language.',
-        'docx_sin_tabla_header': '{n} tables with no marked header row: cells lose their column context (1.3.1).',
-        'docx_sin_tabla_header_rem': 'Table → mark the header row ("Repeat header rows" for multi-page tables).',
+        'docx_fake_headings': '{n} paragraphs with just bold/large text: they LOOK like headings but are not — navigation pane and auto-TOC cannot see them (1.3.1).',
+        'docx_fake_headings_rem': 'Apply the "Heading 1/2" style instead of manual bold: then they exist in the navigation pane and the TOC.',
+        'docx_no_lang': 'document language not declared: synthetic voice and spellcheck cannot pick (3.1.1).',
+        'docx_no_lang_rem': 'Review → Language → set the whole-document language.',
+        'docx_table_no_header': '{n} tables with no marked header row: cells lose their column context (1.3.1).',
+        'docx_table_no_header_rem': 'Table → mark the header row ("Repeat header rows" for multi-page tables).',
         'limits': ('Structural XML screening: not a substitute for human review '
                    '(reading order of complex tables, meaning of under-described '
                    'images, embedded charts).'),
@@ -52,8 +52,8 @@ T = {
 }
 
 _CRIT = {
-    'docx_no_alt': ('1.1.1', 'high'), 'docx_falsos_encabezados': ('1.3.1', 'medium'),
-    'docx_sin_idioma': ('3.1.1', 'medium'), 'docx_sin_tabla_header': ('1.3.1', 'low'),
+    'docx_no_alt': ('1.1.1', 'high'), 'docx_fake_headings': ('1.3.1', 'medium'),
+    'docx_no_lang': ('3.1.1', 'medium'), 'docx_table_no_header': ('1.3.1', 'low'),
 }
 
 
@@ -70,63 +70,63 @@ def docx_screen(path, lang='en'):
     if 'word/document.xml' not in z.namelist():
         return {'error': 'ZIP sin word/document.xml (¿es un .docx de verdad?)'}
 
-    cuerpo = z.read('word/document.xml').decode('utf-8', errors='replace')
+    body = z.read('word/document.xml').decode('utf-8', errors='replace')
 
-    hallazgos = []
+    findings = []
 
     def add(key):
         crit, sev = _CRIT[key]
-        hallazgos.append({'severity': sev, 'criterion': f'{crit} (DOCX)',
+        findings.append({'severity': sev, 'criterion': f'{crit} (DOCX)',
                           'signal': key, 'issue': _t(lang, key),
                           'remediation': _t(lang, key + '_rem')})
 
     # imágenes: cada <wp:docPr> es una imagen/gráfico; descr = alt text
-    docprs = re.findall(r'<wp:docPr\b[^>]*>', cuerpo)
-    sin_alt = [d for d in docprs
+    docprs = re.findall(r'<wp:docPr\b[^>]*>', body)
+    no_alt = [d for d in docprs
                if 'descr=' not in d or re.search(r'descr="\s*"', d)]
-    if docprs and sin_alt:
-        n = len(sin_alt)
-        hallazgos.append({'severity': 'high', 'criterion': '1.1.1 (DOCX)',
+    if docprs and no_alt:
+        n = len(no_alt)
+        findings.append({'severity': 'high', 'criterion': '1.1.1 (DOCX)',
                           'signal': 'docx_no_alt',
                           'issue': _t(lang, 'docx_no_alt').format(n=n),
                           'remediation': _t(lang, 'docx_no_alt_rem')})
 
     # idioma: w:lang en styles.xml (default del documento)
-    idioma = None
+    language = None
     try:
         estilos = z.read('word/styles.xml').decode('utf-8', errors='replace')
         m = re.search(r'<w:lang[^>]*w:val="([^"]+)"', estilos)
-        idioma = m.group(1) if m else None
+        language = m.group(1) if m else None
     except KeyError:
         pass
-    if not idioma:
-        add('docx_sin_idioma')
+    if not language:
+        add('docx_no_lang')
 
     # tablas sin fila de encabezado (tblHeader)
-    n_tablas = len(re.findall(r'<w:tbl>', cuerpo))
-    n_tblheader = len(re.findall(r'<w:tblHeader\s*/?>', cuerpo))
-    if n_tablas and not n_tblheader:
-        add('docx_sin_tabla_header')
+    n_tables = len(re.findall(r'<w:tbl>', body))
+    n_tblheader = len(re.findall(r'<w:tblHeader\s*/?>', body))
+    if n_tables and not n_tblheader:
+        add('docx_table_no_header')
 
     # falsos encabezados: párrafo todo-bold + tamaño grande sin estilo Heading
-    falsos = 0
-    for para in re.findall(r'<w:p\b.*?</w:p>', cuerpo, re.S):
+    fake = 0
+    for para in re.findall(r'<w:p\b.*?</w:p>', body, re.S):
         if 'w:val="Heading' in para:
             continue
         tiene_bold = '<w:b/>' in para or '<w:b ' in para
         m_sz = re.search(r'<w:sz w:val="(\d+)"', para)
-        grande = bool(m_sz) and int(m_sz.group(1)) >= 28
-        texto = ''.join(re.findall(r'<w:t[^>]*>([^<]*)</w:t>', para)).strip()
-        if tiene_bold and grande and 2 < len(texto) < 120:
-            falsos += 1
-    if falsos:
-        hallazgos.append({'severity': 'medium', 'criterion': '1.3.1 (DOCX)',
-                          'signal': 'docx_falsos_encabezados',
-                          'issue': _t(lang, 'docx_falsos_encabezados').format(n=falsos),
-                          'remediation': _t(lang, 'docx_falsos_encabezados_rem')})
+        large = bool(m_sz) and int(m_sz.group(1)) >= 28
+        text = ''.join(re.findall(r'<w:t[^>]*>([^<]*)</w:t>', para)).strip()
+        if tiene_bold and large and 2 < len(text) < 120:
+            fake += 1
+    if fake:
+        findings.append({'severity': 'medium', 'criterion': '1.3.1 (DOCX)',
+                          'signal': 'docx_fake_headings',
+                          'issue': _t(lang, 'docx_fake_headings').format(n=fake),
+                          'remediation': _t(lang, 'docx_fake_headings_rem')})
 
-    orden = {'high': 0, 'medium': 1, 'low': 2}
-    hallazgos.sort(key=lambda h: orden[h['severity']])
+    order = {'high': 0, 'medium': 1, 'low': 2}
+    findings.sort(key=lambda h: order[h['severity']])
 
     def score(hs):
         return max(0, 100 - 25 * sum(1 for h in hs if h['severity'] == 'high')
@@ -135,11 +135,11 @@ def docx_screen(path, lang='en'):
 
     return {
         'mode': 'docx', 'file': str(path).rsplit('/', 1)[-1],
-        'idioma': idioma, 'images': len(docprs),
-        'tables': n_tablas, 'tables_with_header': n_tblheader,
-        'score': score(hallazgos),
-        'findings': hallazgos,
-        'summary': {s2: sum(1 for h in hallazgos if h['severity'] == s2)
+        'language': language, 'images': len(docprs),
+        'tables': n_tables, 'tables_with_header': n_tblheader,
+        'score': score(findings),
+        'findings': findings,
+        'summary': {s2: sum(1 for h in findings if h['severity'] == s2)
                     for s2 in ('high', 'medium', 'low')},
         'limits': _t(lang, 'limits'),
     }

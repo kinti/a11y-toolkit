@@ -17,7 +17,7 @@ Tools:
   - a11y_diff_urls(url_a, url_b)                  staging vs production in one call
   - a11y_aria_live_snippet(lang?)                 injectable live-region monitor
   - a11y_criterion(code, lang?)                   WCAG 2.2 criterion explained
-  - a11y_badge(score, lang?, fecha?)              honest SVG badge (score+date+scope)
+  - a11y_badge(score, lang?, date?)               honest SVG badge (score+date+scope)
   - a11y_autofix(html, lang?, title?)             deterministic safe fixes
   - a11y_reflow(url, …)                           320px reflow check (1.4.10)
   - a11y_keyboard(url, …)                         keyboard-trap detection (2.1.2)
@@ -28,16 +28,13 @@ Tools:
   - a11y_journey_verdict(task, steps, outcome)    blindfold task verdict: friction log → scored evidence
   - a11y_vtt_check(url, …)                         caption CONTENT quality (1.2.2)
   - a11y_audit_pdf(path)                           PDF structural screening — nobody automated it
-  - a11ydocx.py(path)                              DOCX structural screening (alt, fake headings, lang, table headers)
-  - a11y_docx_screen(path)                         DOCX screening tool — same engine as a11ydocx.py
+  - a11y_docx_screen(path)                         DOCX structural screening (alt, fake headings, lang, table headers)
   - a11y_reduced_motion(url)                       does the site honor prefers-reduced-motion? (2.2.2)
   - a11y_forced_colors(url)                        SVG hardcoded fills vs forced-colors (Windows HCM)
-  - audit_reduced_motion(url)                      does the site honor prefers-reduced-motion? (2.2.2)
-  - audit_forced_colors(url)                       SVG hardcoded fills vs forced-colors / Windows HCM
   - a11y_generate_vpat(product, pack|reports, …)  VPAT 2.5 (WCAG) draft from the evidence pack
   - a11y_contrast_dom(url, selector, …)           real text-over-anything contrast (auto-region sampling)
-  - a11y_disprove(url, informe?, …)                re-verify findings → confirmed/rejected
-  - a11y_ledger(action, url?, informe?, …)          persistent coverage ledger
+  - a11y_disprove(url, report?, …)                re-verify findings → confirmed/rejected
+  - a11y_ledger(action, url?, report?, …)          persistent coverage ledger
   - a11y_html_validate(url|html, …)                W3C Nu parser view
   - a11y_evidence(reports, …)                   verifiable evidence pack
 
@@ -53,19 +50,19 @@ import json
 import os
 import sys
 
-AQUI = os.path.dirname(os.path.abspath(__file__))
+HERE = os.path.dirname(os.path.abspath(__file__))
 
-from .contrast import pair as pair_fn, image_contrast, sugerir, parse_color  # noqa: E402
-from .declaracion import generar as declaracion_fn  # noqa: E402
+from .contrast import pair as pair_fn, image_contrast, suggest, parse_color  # noqa: E402
+from .a11ystatement import generate as statement_fn  # noqa: E402
 from .a11yaudit import audit_url as audit_url_fn, audit_html as audit_html_fn  # noqa: E402
 from .a11ydom import audit_dom_url, audit_reflow, audit_keyboard, audit_forms, audit_hover, sr_transcript  # noqa: E402
 from .a11yfix import autofix as autofix_fn  # noqa: E402
 from .a11yscroll import audit_scroll  # noqa: E402
-from .a11yvalidate import validar_url, validar_html  # noqa: E402
-from .a11yevidence import empaquetar as empaquetar_fn  # noqa: E402
+from .a11yvalidate import validate_url, validate_html  # noqa: E402
+from .a11yevidence import build_pack as build_pack_fn  # noqa: E402
 from .a11ydiff import snapshot as snapshot_fn, diff as diff_fn  # noqa: E402
-from .a11ycrit import criterio as criterio_fn  # noqa: E402
-from .a11yjourney import verdictar as journey_verdict_fn  # noqa: E402
+from .a11ycrit import criterion as criterion_fn  # noqa: E402
+from .a11yjourney import verdict as journey_verdict_fn  # noqa: E402
 from .a11yvtt import vtt_check as vtt_check_fn  # noqa: E402
 from .a11ypdf import pdf_screen as pdf_screen_fn  # noqa: E402
 from .a11ydocx import docx_screen as docx_screen_fn  # noqa: E402
@@ -74,7 +71,7 @@ from .a11ydisprove import disprove as disprove_fn  # noqa: E402
 from .a11yledger import record as ledger_record, gaps as ledger_gaps, summary as ledger_summary  # noqa: E402
 from .a11ybadge import badge as badge_fn  # noqa: E402
 from .a11yaudit import audit_site as audit_site_fn  # noqa: E402
-from .a11yvpat import generar_vpat as vpat_fn  # noqa: E402
+from .a11yvpat import generate_vpat as vpat_fn  # noqa: E402
 from .a11ydom import contrast_dom as contrast_dom_fn  # noqa: E402
 
 try:
@@ -82,7 +79,18 @@ try:
 except ImportError:
     ARIALIVE_JS = None  # repo checkout: read the file
 
-VERSION = '5.10.2'
+VERSION = '5.11.0'
+
+# Params renombrados a inglés en 5.11.0; se aceptan los nombres previos.
+PARAM_ALIASES = {
+    'metodo': 'method',
+    'fecha_evaluacion': 'evaluation_date',
+    'reclamacion': 'complaints',
+    'disponibilidad_alternativa': 'alternative_format',
+    'fecha': 'date',
+    'max_pasos': 'max_steps',
+    'max_tandas': 'max_batches',
+}
 
 INSTRUCTIONS = (
     'Accessibility toolkit (WCAG 2.2), multilanguage es/en. '
@@ -166,7 +174,7 @@ TOOLS = [
         'name': 'a11y_contrast_image',
         'description': ('TEXT OVER IMAGE contrast: pixel-level sampling of the real background '
                         'behind the text box → worst/median/p95 ratio, % of area passing AA, '
-                        'and automatic hostile-zone detection on a 3×3 grid (zona_peor). What '
+                        'and automatic hostile-zone detection on a 3×3 grid (worst_zone). What '
                         'pair-only checkers cannot do. region="x,y,w,h" recommended.'),
         'inputSchema': {'type': 'object', 'properties': {
             'path': {'type': 'string'}, 'text_color': {'type': 'string'},
@@ -188,21 +196,25 @@ TOOLS = [
     {
         'name': 'a11y_generate_declaration',
         'description': ('Generates an Accessibility Statement in HTML: art. 10 RD 1112/2018 '
-                        '(Spanish public sector, marco="rd1112") or European Accessibility Act '
-                        'wording (Directive (EU) 2019/882 / Ley 11/2023, marco="eaa"; EN output '
+                        '(Spanish public sector, framework="rd1112") or European Accessibility Act '
+                        'wording (Directive (EU) 2019/882 / Ley 11/2023, framework="eaa"; EN output '
                         'uses Directive (EU) 2016/2102 / EAA wording). The generated document '
                         'is itself accessible. Saves to output_path when given.'),
         'inputSchema': {'type': 'object', 'properties': {
-            'entity': {'type': 'string'}, 'url': {'type': 'string'},
-            'status': {'type': 'string', 'enum': ['plena', 'parcial', 'no_conforme']},
-            'inaccessible_content': {'type': 'array', 'items': {'type': 'string'}},
-            'metodo': {'type': 'string'},
-            'fecha_evaluacion': {'type': 'string'},
-            'review_date': {'type': 'string'},
-            'feedback': {'type': 'string'},
-            'reclamacion': {'type': 'string'},
-            'framework': {'type': 'string', 'enum': ['rd1112', 'eaa']},
-            'disponibilidad_alternativa': {'type': 'string'},
+            'entity': {'type': 'string', 'description': 'Legal entity name as it should appear in the statement'},
+            'url': {'type': 'string', 'description': 'Website URL the statement covers'},
+            'status': {'type': 'string', 'enum': ['full', 'partial', 'not_conformant'],
+                       'description': 'Compliance state: full | partial | not_conformant (plena | parcial | no_conforme, pre-5.11, still accepted as aliases)'},
+            'inaccessible_content': {'type': 'array', 'items': {'type': 'string'},
+                                     'description': 'Non-accessible content list: one string per item, ideally criterion + reason + alternative'},
+            'method': {'type': 'string', 'description': 'How conformance was evaluated (e.g. "self-evaluation: a11y-toolkit screening + manual review")'},
+            'evaluation_date': {'type': 'string', 'description': 'ISO date of the last evaluation (YYYY-MM-DD)'},
+            'review_date': {'type': 'string', 'description': 'ISO date of the next scheduled review'},
+            'feedback': {'type': 'string', 'description': 'Contact channel for accessibility feedback (email or URL)'},
+            'complaints': {'type': 'string', 'description': 'Claim/complaint procedure URL or address (legally required in several jurisdictions)'},
+            'framework': {'type': 'string', 'enum': ['rd1112', 'eaa'],
+                          'description': 'rd1112 (Spanish public sector, art. 10) or eaa (European Accessibility Act / private sector)'},
+            'alternative_format': {'type': 'string', 'description': 'Where to get the content in an alternative accessible format'},
             'output_path': {'type': 'string', 'description': 'save the HTML here (optional)'},
             'lang': {'type': 'string', 'enum': ['es', 'en']},
         }, 'required': ['entity', 'url', 'status']},
@@ -257,7 +269,7 @@ TOOLS = [
                         'seal. Embed it in audited sites or statements.'),
         'inputSchema': {'type': 'object', 'properties': {
             'score': {'type': 'number', 'description': '0-100 (from an audit result)'},
-            'fecha': {'type': 'string', 'description': 'ISO date (today by default)'},
+            'date': {'type': 'string', 'description': 'ISO date (today by default)'},
             'lang': {'type': 'string', 'enum': ['es', 'en']},
         }, 'required': ['score']},
     },
@@ -269,8 +281,8 @@ TOOLS = [
                         'autocomplete token 1.3.5, fill missing html lang and empty title '
                         'when provided). Everything requiring judgment (alt text, '
                         'contrast, accessible names) is NOT touched — it returns '
-                        'no_aplicados with the reason and remediation instead. Returns '
-                        'fixed_html + aplicados + no_aplicados.'),
+                        'not_applied with the reason and remediation instead. Returns '
+                        'fixed_html + applied + not_applied.'),
         'inputSchema': {'type': 'object', 'properties': {
             'html': {'type': 'string', 'description': 'raw HTML to fix'},
             'url': {'type': 'string', 'description': 'URL context for the report metadata (default: "(html)")'},
@@ -308,7 +320,7 @@ TOOLS = [
         'inputSchema': {'type': 'object', 'properties': {
             'url': {'type': 'string'},
             'lang': {'type': 'string', 'enum': ['es', 'en']},
-            'max_pasos': {'type': 'integer', 'description': 'max real Tab presses (60 default)'},
+            'max_steps': {'type': 'integer', 'description': 'max real Tab presses (60 default)'},
             'auth_state': {'type': 'string', 'description': 'Path to a Playwright storage_state JSON (exported session) to Tab-walk behind login'},
             'browser': {'type': 'string', 'enum': ['auto', 'chromium', 'firefox', 'webkit', 'chrome', 'msedge'], 'description': 'Browser engine (auto = detect the first available)'},
         },
@@ -329,7 +341,7 @@ TOOLS = [
         'inputSchema': {'type': 'object', 'properties': {
             'url': {'type': 'string'},
             'lang': {'type': 'string', 'enum': ['es', 'en']},
-            'max_tandas': {'type': 'integer', 'description': 'scroll batches (5 default)'},
+            'max_batches': {'type': 'integer', 'description': 'scroll batches (5 default)'},
             'auth_state': {'type': 'string', 'description': 'Path to a Playwright storage_state JSON (exported session) to audit an authenticated feed'},
         },
 'required': ['url']},
@@ -572,7 +584,7 @@ TOOLS = [
                         '(docPr without descr), fake headings (bold+big paragraphs with no Heading '
                         'style — invisible to navigation pane and TOC), document language, tables '
                         'without marked header row. Full review needs a human; this finds what '
-                        'makes it pointless. Returns JSON: {mode: "docx", idioma, images, tables, '
+                        'makes it pointless. Returns JSON: {mode: "docx", language, images, tables, '
                         'findings, summary, limits}.'),
         'inputSchema': {'type': 'object', 'properties': {
             'path': {'type': 'string', 'description': 'local .docx file path'},
@@ -676,7 +688,7 @@ _PROMPTS = [
 ]
 
 
-def _prompt(nombre, args):
+def _prompt(name, args):
     L = (args.get('language') or 'en').lower()
     if L not in ('es', 'en'):
         L = 'en'
@@ -729,12 +741,12 @@ def _prompt(nombre, args):
             'en': f"Run the WCAG-EM conformance ladder for {args.get('url','the site')} (tier: {args.get('tier','express')}):\n"
                   "1. EXPRESS (always): a11y_audit_url on the root and the 4-5 key pages (use pages parameter / crawl). Report scores and findings by severity.\n"
                   "2. GUIDED: pick a WCAG-EM sample — structured pages (home, contact, login, a content page, a form flow) plus a random pick from the crawl. On each sample page, run a11y_audit_dom if Playwright is available, then verify the manual checklist yourself (keyboard walk, focus visibility, zoom 200%, error announcement on one form). Mark each item verified-by-agent vs automated-only.\n"
-                  "3. CONFORMANCE: only with a human in the loop — compile the evidence (sample, pages, results, dates) into WCAG-EM report structure, state the scope honestly (sample-based evaluation, not a certification), and feed contenido_no_accesible into a11y_generate_declaration.\n"
+                  "3. CONFORMANCE: only with a human in the loop — compile the evidence (sample, pages, results, dates) into WCAG-EM report structure, state the scope honestly (sample-based evaluation, not a certification), and feed inaccessible_content into a11y_generate_declaration.\n"
                   "Escalate one tier at a time; never present tier 1 or 2 as conformance.",
             'es': f"Ejecuta la escalera de conformidad WCAG-EM para {args.get('url','el sitio')} (nivel: {args.get('tier','express')})\u003a\n"
                   "1. EXPRESS (siempre): a11y_audit_url en la raíz y las 4-5 páginas clave (parámetro pages). Informa puntuaciones y hallazgos por severidad.\n"
                   "2. GUIDED: elige una muestra WCAG-EM — páginas estructurales (inicio, contacto, login, una de contenido, un flujo de formulario) más una aleatoria del rastreo. En cada una, a11y_audit_dom si hay Playwright, y verifica tú el checklist manual (recorrido de teclado, foco visible, zoom 200%, anuncio de errores en un formulario). Marca cada punto como verificado-por-agente o solo-automático.\n"
-                  "3. CONFORMANCE: solo con humana en el bucle — recopila la evidencia (muestra, páginas, resultados, fechas) en la estructura del informe WCAG-EM, declara el alcance con honestidad (evaluación por muestreo, no certificación) y alimenta contenido_no_accesible en a11y_generate_declaration.\n"
+                  "3. CONFORMANCE: solo con humana en el bucle — recopila la evidencia (muestra, páginas, resultados, fechas) en la estructura del informe WCAG-EM, declara el alcance con honestidad (evaluación por muestreo, no certificación) y alimenta inaccessible_content en a11y_generate_declaration.\n"
                   "Escala un nivel cada vez; nunca presentes el nivel 1 o 2 como conformidad.",
         },
         'declaration-eaa': {
@@ -742,14 +754,14 @@ def _prompt(nombre, args):
                   "1. Establish the compliance state with a11y_audit_url (parcial is the honest default when findings exist).\n"
                   f"2. Current estado argument: {args.get('status','(missing)')}. If missing, infer from the audit and confirm with the user.\n"
                   "3. Collect what is missing: feedback contact, claim procedure (reclamación), evaluation method and dates. Ask the user only for what you cannot infer.\n"
-                  "4. List contenido_no_accesible from the audit findings with reasons and alternatives.\n"
+                  "4. List inaccessible_content from the audit findings with reasons and alternatives.\n"
                   "5. Call a11y_generate_declaration (marco='eaa' for private sector / EAA; 'rd1112' for Spanish public sector), lang matching the site, and save with output_path.\n"
                   "6. Remind: the statement must be linked from every page (typically the footer) and reviewed after significant changes.",
             'es': f"Genera la declaración de accesibilidad de {args.get('entity','la entidad')} ({args.get('url','URL')}):\n"
                   "1. Establece el estado de conformidad con a11y_audit_url (parcial es lo honesto por defecto si hay hallazgos).\n"
                   f"2. Argumento estado actual: {args.get('status','(falta)')}. Si falta, infiérelo de la auditoría y confírmalo con la persona usuaria.\n"
                   "3. Recoge lo que falte: contacto de feedback, procedimiento de reclamación, método y fechas de evaluación. Pregunta solo lo que no puedas inferir.\n"
-                  "4. Enumera contenido_no_accesible a partir de los hallazgos, con razón y alternativa.\n"
+                  "4. Enumera inaccessible_content a partir de los hallazgos, con razón y alternativa.\n"
                   "5. Llama a a11y_generate_declaration (marco='eaa' para sector privado / EAA; 'rd1112' para sector público español), lang del sitio, y guarda con output_path.\n"
                   "6. Recuerda: la declaración debe enlazarse desde todas las páginas (típico en el pie) y revisarse tras cambios significativos.",
         },
@@ -768,8 +780,8 @@ def _prompt(nombre, args):
                   "5. CIERRA con a11y_journey_verdict (task, steps, outcome). Comunica veredicto + score + fricción con criterio y remediation, agrupado por severidad, y el score_note: evidencia de usabilidad, nunca conformidad.",
         },
     }
-    txt = t[nombre][L]
-    return {'description': next(p['description'] for p in _PROMPTS if p['name'] == nombre),
+    txt = t[name][L]
+    return {'description': next(p['description'] for p in _PROMPTS if p['name'] == name),
             'messages': [{'role': 'user', 'content': {'type': 'text', 'text': txt}}]}
 
 
@@ -839,10 +851,10 @@ _PARAM_DOCS = {
  ('a11y_reflow', 'lang'): 'Output language (default en)',
  ('a11y_keyboard', 'url'): 'Page URL to Tab-walk (http/https or file://)',
  ('a11y_keyboard', 'lang'): 'Output language (default en)',
- ('a11y_keyboard', 'max_pasos'): 'Maximum real Tab presses before giving up (default 60)',
+ ('a11y_keyboard', 'max_steps'): 'Maximum real Tab presses before giving up (default 60)',
  ('a11y_scroll', 'url'): 'Feed URL to audit (best on feeds you own or can authenticate into)',
  ('a11y_scroll', 'lang'): 'Output language (default en)',
- ('a11y_scroll', 'max_tandas'): 'Scroll batches to load and evaluate (default 5)',
+ ('a11y_scroll', 'max_batches'): 'Scroll batches to load and evaluate (default 5)',
  ('a11y_contrast_pair', 'fg'): 'Foreground/text color: #hex, rgb(), hsl() or a CSS color name; alpha composites over bg',
  ('a11y_contrast_pair', 'bg'): 'Background color: same formats; alpha composites over white',
  ('a11y_contrast_image', 'path'): 'Local path to the screenshot/image the text sits on (PNG/JPG/PPM)',
@@ -855,15 +867,11 @@ _PARAM_DOCS = {
  ('a11y_suggest_color', 'target'): 'Ratio to reach: 4.5 normal text, 3.0 large text/UI, 7.0 AAA (default 4.5)',
  ('a11y_generate_declaration', 'entity'): 'Legal entity name as it should appear in the statement (company, body…)',
  ('a11y_generate_declaration', 'url'): 'Website URL the statement covers',
- ('a11y_generate_declaration', 'status'): 'Compliance state: plena | parcial | no_conforme (parcial is the honest default when findings exist)',
+ ('a11y_generate_declaration', 'status'): 'Compliance state: full | partial | not_conformant (partial is the honest default when findings exist)',
  ('a11y_generate_declaration', 'inaccessible_content'): 'Non-accessible content list: one string per item, ideally criterion + reason + alternative',
- ('a11y_generate_declaration', 'metodo'): 'How conformance was evaluated (e.g. "self-evaluation: a11y-toolkit screening + manual review")',
- ('a11y_generate_declaration', 'fecha_evaluacion'): 'ISO date of the last evaluation (YYYY-MM-DD)',
  ('a11y_generate_declaration', 'review_date'): 'ISO date of the next scheduled review',
  ('a11y_generate_declaration', 'feedback'): 'Contact channel for accessibility feedback (email or URL)',
- ('a11y_generate_declaration', 'reclamacion'): 'Claim/complaint procedure URL or address (legally required in several jurisdictions)',
  ('a11y_generate_declaration', 'framework'): 'Legal framework: rd1112 (Spanish public sector, art. 10) or eaa (European Accessibility Act / private sector)',
- ('a11y_generate_declaration', 'disponibilidad_alternativa'): 'Where to get the content in an alternative accessible format',
  ('a11y_generate_declaration', 'output_path'): 'Local path to save the statement HTML (omit to receive it inline)',
  ('a11y_generate_declaration', 'lang'): 'Statement language (default en; es uses the Spanish legal wording)',
  ('a11y_snapshot', 'url'): 'Page URL to snapshot (http/https or file://)',
@@ -875,7 +883,7 @@ _PARAM_DOCS = {
  ('a11y_autofix', 'lang'): 'BCP-47 language to set on <html> ONLY if it is missing (e.g. "es")',
  ('a11y_autofix', 'title'): 'Page title to set ONLY if <title> is empty',
  ('a11y_badge', 'score'): '0-100 score from an audit result (int/float)',
- ('a11y_badge', 'fecha'): 'ISO date shown on the badge (today by default)',
+ ('a11y_badge', 'date'): 'ISO date shown on the badge (today by default)',
  ('a11y_badge', 'lang'): 'Badge language (default en)',
  ('a11y_criterion', 'code'): 'WCAG criterion number, e.g. "1.4.3", "2.5.8"',
  ('a11y_criterion', 'lang'): 'Explanation language (default en)',
@@ -918,12 +926,12 @@ _ROUTING = {
  'a11y_snapshot': 'Capture half of the watch loop; compare with a11y_diff (or a11y_diff_urls for two live URLs).',
  'a11y_diff': 'Compares two existing snapshots; a11y_diff_urls snapshots both for you.',
  'a11y_diff_urls': 'Convenience for staging-vs-production; manual control is snapshot + a11y_diff.',
- 'a11y_autofix': 'Only the closed allowlist of provably safe fixes; judgment fixes come back as no_aplicados with remediation.',
+ 'a11y_autofix': 'Only the closed allowlist of provably safe fixes; judgment fixes come back as not_applied with remediation.',
  'a11y_badge': 'Scope: the honest SVG seal for audited sites; the machine-readable bundle is a11y_evidence.',
  'a11y_criterion': 'Knowledge lookup; does not fetch or audit anything.',
  'a11y_evidence': 'The tier-3 handoff object; feed it every audit report you have.',
  'a11y_aria_live_snippet': 'Diagnostics aid to inject in a browser; not an audit by itself.',
- 'a11y_generate_declaration': 'Legal statement generator; drive contenido_no_accesible from audit findings and a11y_evidence.',
+ 'a11y_generate_declaration': 'Legal statement generator; drive inaccessible_content from audit findings and a11y_evidence.',
  'a11y_generate_vpat': 'The US/ADA counterpart of a11y_generate_declaration; feed it the a11y_evidence pack — levels stay Not Evaluated until a qualified human sets them.',
  'a11y_contrast_dom': 'Use instead of a11y_contrast_image when the text lives in a live page (captures and measures it automatically); for flat pairs use a11y_contrast_pair.',
 }
@@ -988,7 +996,7 @@ _RETURNS = {
     'a11y_diff_urls': 'Returns the same diff shape as a11y_diff, for two live URLs.',
     'a11y_aria_live_snippet': 'Returns the injectable JavaScript as text (bookmarklet or page.evaluate).',
     'a11y_badge': 'Returns the honest SVG badge; writes a file only when output_path is given.',
-    'a11y_autofix': 'Returns JSON: {fixed_html, aplicados [{fix, …}], no_aplicados [{issue, remediation}]} — writes a file only when output_path is given.',
+    'a11y_autofix': 'Returns JSON: {fixed_html, applied [{fix, …}], not_applied [{issue, remediation}]} — writes a file only when output_path is given.',
     'a11y_reflow': 'Returns JSON: {url, viewport, horizontal_scroll, offenders [{selector, width}]}.',
     'a11y_keyboard': 'Returns JSON: {tab_stops, trap_detected, escape_releases, findings}.',
     'a11y_scroll': 'Returns JSON: {mode, url, score, findings [{criterion, severity, signal, issue, remediation}], summary} — same shape as the audits.',
@@ -1015,12 +1023,12 @@ _USAGE = {
     'a11y_generate_vpat': 'Run after the audits you trust; a qualified human must set the final levels (overrides) and sign before publishing — the machine fills Remarks, never the claim.',
 }
 for _t in TOOLS:
-    _titulo, _ro, _ow = _ANN[_t['name']]
-    _titulo_ro = _RO_OVERRIDE.get(_t['name'], _ro)
-    _titulo_idem = _IDEM_OVERRIDE.get(_t['name'], True)
-    _t['title'] = 'a11y-toolkit: ' + _titulo
-    _t['annotations'] = {'readOnlyHint': _titulo_ro, 'destructiveHint': not _titulo_ro,
-                         'idempotentHint': _titulo_idem, 'openWorldHint': _ow}
+    _title, _ro, _ow = _ANN[_t['name']]
+    _title_ro = _RO_OVERRIDE.get(_t['name'], _ro)
+    _title_same = _IDEM_OVERRIDE.get(_t['name'], True)
+    _t['title'] = 'a11y-toolkit: ' + _title
+    _t['annotations'] = {'readOnlyHint': _title_ro, 'destructiveHint': not _title_ro,
+                         'idempotentHint': _title_same, 'openWorldHint': _ow}
     if _t['name'] in _RETURNS:
         _t['description'] += ' ' + _RETURNS[_t['name']]
     if _t['name'] in _USAGE:
@@ -1028,57 +1036,58 @@ for _t in TOOLS:
 
 
 
-def _texto(obj):
+def _content(obj):
     r = {'content': [{'type': 'text', 'text': json.dumps(obj, ensure_ascii=False, indent=1)}]}
     if isinstance(obj, dict) and 'error' in obj:
         r['isError'] = True
     return r
 
 
-def llamar(nombre, args):
-    if nombre == 'a11y_contrast_pair':
-        return _texto(pair_fn(args['fg'], args['bg'], lang=args.get('lang', 'en')))
-    if nombre == 'a11y_contrast_image':
-        return _texto(image_contrast(args['path'], args['text_color'],
+def invoke(name, args):
+    args = {PARAM_ALIASES.get(k, k): v for k, v in (args or {}).items()}
+    if name == 'a11y_contrast_pair':
+        return _content(pair_fn(args['fg'], args['bg'], lang=args.get('lang', 'en')))
+    if name == 'a11y_contrast_image':
+        return _content(image_contrast(args['path'], args['text_color'],
                                      region=args.get('region'), sample=args.get('sample', 4), lang=args.get('lang', 'en')))
-    if nombre == 'a11y_suggest_color':
+    if name == 'a11y_suggest_color':
         fg, bg = parse_color(args['fg']), parse_color(args['bg'])
         if not fg or not bg:
-            return _texto({'error': 'invalid color'})
-        return _texto(sugerir(fg, bg, float(args.get('target', 4.5)), args.get('lang', 'en')) or {'resultado': None})
-    if nombre == 'a11y_generate_declaration':
-        res = declaracion_fn(
+            return _content({'error': 'invalid color'})
+        return _content(suggest(fg, bg, float(args.get('target', 4.5)), args.get('lang', 'en')) or {'result': None})
+    if name == 'a11y_generate_declaration':
+        res = statement_fn(
             args['entity'], args['url'], args['status'],
-            contenido_no_accesible=args.get('inaccessible_content'),
-            metodo=args.get('metodo'), fecha_evaluacion=args.get('fecha_evaluacion'),
-            fecha_revision=args.get('review_date'), feedback=args.get('feedback'),
-            reclamacion=args.get('reclamacion'), marco=args.get('framework', 'rd1112'),
-            disponibilidad_alternativa=args.get('disponibilidad_alternativa'),
+            inaccessible_content=args.get('inaccessible_content'),
+            method=args.get('method'), evaluation_date=args.get('evaluation_date'),
+            review_date=args.get('review_date'), feedback=args.get('feedback'),
+            complaints=args.get('complaints'), framework=args.get('framework', 'rd1112'),
+            alternative_format=args.get('alternative_format'),
             lang=args.get('lang', 'en'))
         if 'error' in res:
             return {'content': [{'type': 'text', 'text': res['error']}], 'isError': True}
-        salida = args.get('output_path')
-        if salida:
-            with open(salida, 'w', encoding='utf-8') as f:
+        output = args.get('output_path')
+        if output:
+            with open(output, 'w', encoding='utf-8') as f:
                 f.write(res['html'])
-            return _texto({'guardado_en': salida, 'summary': res['summary']})
+            return _content({'saved_to': output, 'summary': res['summary']})
         return {'content': [{'type': 'text', 'text': res['html']}]}
-    if nombre == 'a11y_audit_url':
+    if name == 'a11y_audit_url':
         try:
             if args.get('html'):
-                return _texto(audit_html_fn(args['html'], args.get('url') or '(html)',
+                return _content(audit_html_fn(args['html'], args.get('url') or '(html)',
                                             lang=args.get('lang', 'en')))
             if args.get('pages', 1) > 1:
-                return _texto(audit_site_fn(args['url'], max_pages=args['pages'],
+                return _content(audit_site_fn(args['url'], max_pages=args['pages'],
                                             timeout=args.get('timeout', 30),
                                             lang=args.get('lang', 'en')))
-            return _texto(audit_url_fn(args['url'], timeout=args.get('timeout', 30),
+            return _content(audit_url_fn(args['url'], timeout=args.get('timeout', 30),
                                        lang=args.get('lang', 'en')))
         except Exception as e:  # noqa: BLE001
             return {'content': [{'type': 'text', 'text': f'error: {e}'}], 'isError': True}
-    if nombre == 'a11y_audit_dom':
+    if name == 'a11y_audit_dom':
         try:
-            return _texto(audit_dom_url(args['url'], timeout=args.get('timeout', 45),
+            return _content(audit_dom_url(args['url'], timeout=args.get('timeout', 45),
                                         lang=args.get('lang', 'en'),
                                         auth_state=args.get('auth_state'),
                                         browser=args.get('browser', 'auto'),
@@ -1089,29 +1098,29 @@ def llamar(nombre, args):
                     'isError': True}
         except Exception as e:  # noqa: BLE001
             return {'content': [{'type': 'text', 'text': f'error: {e}'}], 'isError': True}
-    if nombre == 'a11y_snapshot':
+    if name == 'a11y_snapshot':
         try:
-            return _texto(snapshot_fn(args['url'], auth_state=args.get('auth_state')))
+            return _content(snapshot_fn(args['url'], auth_state=args.get('auth_state')))
         except ImportError:
             return {'content': [{'type': 'text',
                                  'text': 'Playwright not installed: pip install playwright && playwright install chromium'}],
                     'isError': True}
         except Exception as e:  # noqa: BLE001
             return {'content': [{'type': 'text', 'text': f'error: {e}'}], 'isError': True}
-    if nombre == 'a11y_diff':
-        def _carga(v):
+    if name == 'a11y_diff':
+        def _load(v):
             v = v.strip()
             if v.startswith('{'):
                 return json.loads(v)
             with open(v, encoding='utf-8') as f:
                 return json.load(f)
         try:
-            return _texto(diff_fn(_carga(args['a']), _carga(args['b'])))
+            return _content(diff_fn(_load(args['a']), _load(args['b'])))
         except Exception as e:  # noqa: BLE001
             return {'content': [{'type': 'text', 'text': f'error: {e}'}], 'isError': True}
-    if nombre == 'a11y_diff_urls':
+    if name == 'a11y_diff_urls':
         try:
-            return _texto(diff_fn(snapshot_fn(args['url_a'], auth_state=args.get('auth_state')),
+            return _content(diff_fn(snapshot_fn(args['url_a'], auth_state=args.get('auth_state')),
                                   snapshot_fn(args['url_b'], auth_state=args.get('auth_state'))))
         except ImportError:
             return {'content': [{'type': 'text',
@@ -1119,9 +1128,9 @@ def llamar(nombre, args):
                     'isError': True}
         except Exception as e:  # noqa: BLE001
             return {'content': [{'type': 'text', 'text': f'error: {e}'}], 'isError': True}
-    if nombre == 'a11y_scroll':
+    if name == 'a11y_scroll':
         try:
-            return _texto(audit_scroll(args['url'], max_tandas=args.get('max_tandas', 5),
+            return _content(audit_scroll(args['url'], max_batches=args.get('max_batches', 5),
                                        lang=args.get('lang', 'en'),
                                        auth_state=args.get('auth_state')))
         except ImportError:
@@ -1130,9 +1139,9 @@ def llamar(nombre, args):
                     'isError': True}
         except Exception as e:  # noqa: BLE001
             return {'content': [{'type': 'text', 'text': f'error: {e}'}], 'isError': True}
-    if nombre == 'a11y_keyboard':
+    if name == 'a11y_keyboard':
         try:
-            return _texto(audit_keyboard(args['url'], max_pasos=args.get('max_pasos', 60),
+            return _content(audit_keyboard(args['url'], max_steps=args.get('max_steps', 60),
                                          lang=args.get('lang', 'en'),
                                          auth_state=args.get('auth_state'),
                                          browser=args.get('browser', 'auto')))
@@ -1142,9 +1151,9 @@ def llamar(nombre, args):
                     'isError': True}
         except Exception as e:  # noqa: BLE001
             return {'content': [{'type': 'text', 'text': f'error: {e}'}], 'isError': True}
-    if nombre == 'a11y_forms':
+    if name == 'a11y_forms':
         try:
-            return _texto(audit_forms(args['url'], timeout=args.get('timeout', 45),
+            return _content(audit_forms(args['url'], timeout=args.get('timeout', 45),
                                       lang=args.get('lang', 'en'),
                                       auth_state=args.get('auth_state')))
         except ImportError:
@@ -1153,20 +1162,20 @@ def llamar(nombre, args):
                     'isError': True}
         except Exception as e:  # noqa: BLE001
             return {'content': [{'type': 'text', 'text': f'error: {e}'}], 'isError': True}
-    if nombre == 'a11y_evidence':
+    if name == 'a11y_evidence':
         try:
-            return _texto(empaquetar_fn(args['reports'], snapshot=args.get('snapshot'),
-                                        evaluador=args.get('reviewer'),
-                                        verificados=args.get('verified')))
+            return _content(build_pack_fn(args['reports'], snapshot=args.get('snapshot'),
+                                        reviewer=args.get('reviewer'),
+                                        verified=args.get('verified')))
         except Exception as e:  # noqa: BLE001
             return {'content': [{'type': 'text', 'text': f'error: {e}'}], 'isError': True}
-    if nombre == 'a11y_autofix':
-        return _texto(autofix_fn(args['html'], lang=args.get('lang'),
+    if name == 'a11y_autofix':
+        return _content(autofix_fn(args['html'], lang=args.get('lang'),
                                  title=args.get('title'), url=args.get('url') or '(html)',
                                  form_errors=args.get('form_errors', True)))
-    if nombre == 'a11y_reflow':
+    if name == 'a11y_reflow':
         try:
-            return _texto(audit_reflow(args['url'], timeout=args.get('timeout', 45),
+            return _content(audit_reflow(args['url'], timeout=args.get('timeout', 45),
                                        lang=args.get('lang', 'en'),
                                        auth_state=args.get('auth_state'),
                                        browser=args.get('browser', 'auto')))
@@ -1176,27 +1185,27 @@ def llamar(nombre, args):
                     'isError': True}
         except Exception as e:  # noqa: BLE001
             return {'content': [{'type': 'text', 'text': f'error: {e}'}], 'isError': True}
-    if nombre == 'a11y_html_validate':
+    if name == 'a11y_html_validate':
         try:
             if args.get('html'):
-                return _texto(validar_html(args['html'], lang=args.get('lang', 'en'),
+                return _content(validate_html(args['html'], lang=args.get('lang', 'en'),
                                            base_url=args.get('base_url')))
-            return _texto(validar_url(args['url'], lang=args.get('lang', 'en'),
+            return _content(validate_url(args['url'], lang=args.get('lang', 'en'),
                                       base_url=args.get('base_url')))
         except Exception as e:  # noqa: BLE001
             return {'content': [{'type': 'text', 'text': f'error: {e}'}], 'isError': True}
-    if nombre == 'a11y_hover':
+    if name == 'a11y_hover':
         try:
-            return _texto(audit_hover(args['url'], timeout=args.get('timeout', 45),
+            return _content(audit_hover(args['url'], timeout=args.get('timeout', 45),
                                        lang=args.get('lang', 'en'),
                                        auth_state=args.get('auth_state')))
         except ImportError:
             return {'content': [{'type': 'text', 'text': 'Playwright not installed'}], 'isError': True}
         except Exception as e:
             return {'content': [{'type': 'text', 'text': f'error: {e}'}], 'isError': True}
-    if nombre == 'a11y_sr_transcript':
+    if name == 'a11y_sr_transcript':
         try:
-            return _texto(sr_transcript(args['url'], timeout=args.get('timeout', 45),
+            return _content(sr_transcript(args['url'], timeout=args.get('timeout', 45),
                                         lang=args.get('lang', 'en'),
                                         auth_state=args.get('auth_state'),
                                         browser=args.get('browser', 'auto')))
@@ -1204,58 +1213,58 @@ def llamar(nombre, args):
             return {'content': [{'type': 'text', 'text': 'Playwright not installed'}], 'isError': True}
         except Exception as e:
             return {'content': [{'type': 'text', 'text': f'error: {e}'}], 'isError': True}
-    if nombre == 'a11y_disprove':
+    if name == 'a11y_disprove':
         try:
-            return _texto(disprove_fn(args['url'], report=args.get('report'),
+            return _content(disprove_fn(args['url'], report=args.get('report'),
                                        timeout=args.get('timeout', 30),
                                        lang=args.get('lang', 'en')))
         except Exception as e:
             return {'content': [{'type': 'text', 'text': f'error: {e}'}], 'isError': True}
-    if nombre == 'a11y_ledger':
+    if name == 'a11y_ledger':
         try:
-            ruta = args.get('ledger_path', 'a11y-ledger.json')
-            accion = args['action']
-            if accion == 'record':
+            path = args.get('ledger_path', 'a11y-ledger.json')
+            action = args['action']
+            if action == 'record':
                 if not args.get('url') or not args.get('report'):
-                    return _texto({'error': 'record requires url + informe'})
+                    return _content({'error': 'record requires url + report'})
                 from .a11yledger import record as _rec
-                return _texto(_rec(args['url'], args['report'], ruta=ruta))
-            if accion == 'gaps':
+                return _content(_rec(args['url'], args['report'], path=path))
+            if action == 'gaps':
                 if not args.get('url'):
-                    return _texto({'error': 'gaps requires url'})
+                    return _content({'error': 'gaps requires url'})
                 from .a11yledger import gaps as _gaps
-                return _texto(_gaps(args['url'], ruta=ruta))
-            if accion == 'summary':
+                return _content(_gaps(args['url'], path=path))
+            if action == 'summary':
                 from .a11yledger import summary as _sum
-                return _texto(_sum(ruta=ruta))
+                return _content(_sum(path=path))
         except Exception as e:
             return {'content': [{'type': 'text', 'text': f'error: {e}'}], 'isError': True}
-    if nombre == 'a11y_criterion':
-        return _texto(criterio_fn(args['code'], lang=args.get('lang', 'en')))
-    if nombre == 'a11y_journey_verdict':
+    if name == 'a11y_criterion':
+        return _content(criterion_fn(args['code'], lang=args.get('lang', 'en')))
+    if name == 'a11y_journey_verdict':
         res = journey_verdict_fn(args['task'], args['steps'], args['outcome'],
                                  url=args.get('url', ''), lang=args.get('lang', 'en'))
         if args.get('output_path') and 'error' not in res:
             with open(args['output_path'], 'w', encoding='utf-8') as f:
                 f.write(json.dumps(res, ensure_ascii=False, indent=1) + '\n')
-            return _texto({'out': args['output_path'], 'verdict': res['verdict'],
+            return _content({'out': args['output_path'], 'verdict': res['verdict'],
                            'score': res['score'], 'high': res['summary']['high'],
                            'medium': res['summary']['medium'], 'low': res['summary']['low']})
-        return _texto(res)
-    if nombre == 'a11y_vtt_check':
+        return _content(res)
+    if name == 'a11y_vtt_check':
         try:
-            return _texto(vtt_check_fn(args['url'], duration=args.get('duration'),
+            return _content(vtt_check_fn(args['url'], duration=args.get('duration'),
                                        lang=args.get('lang', 'en')))
         except Exception as e:
             return {'content': [{'type': 'text', 'text': f'error: {e}'}], 'isError': True}
-    if nombre == 'a11y_docx_screen':
+    if name == 'a11y_docx_screen':
         try:
-            return _texto(docx_screen_fn(args['path'], lang=args.get('lang', 'en')))
+            return _content(docx_screen_fn(args['path'], lang=args.get('lang', 'en')))
         except Exception as e:
             return {'content': [{'type': 'text', 'text': f'error: {e}'}], 'isError': True}
-    if nombre == 'a11y_reduced_motion':
+    if name == 'a11y_reduced_motion':
         try:
-            return _texto(reduced_motion_fn(args['url'], timeout=args.get('timeout', 45),
+            return _content(reduced_motion_fn(args['url'], timeout=args.get('timeout', 45),
                                             lang=args.get('lang', 'en'),
                                             auth_state=args.get('auth_state'),
                                             browser=args.get('browser', 'auto')))
@@ -1263,9 +1272,9 @@ def llamar(nombre, args):
             return {'content': [{'type': 'text', 'text': 'Playwright not installed'}], 'isError': True}
         except Exception as e:
             return {'content': [{'type': 'text', 'text': f'error: {e}'}], 'isError': True}
-    if nombre == 'a11y_forced_colors':
+    if name == 'a11y_forced_colors':
         try:
-            return _texto(forced_colors_fn(args['url'], timeout=args.get('timeout', 45),
+            return _content(forced_colors_fn(args['url'], timeout=args.get('timeout', 45),
                                            lang=args.get('lang', 'en'),
                                            auth_state=args.get('auth_state'),
                                            browser=args.get('browser', 'auto')))
@@ -1273,32 +1282,32 @@ def llamar(nombre, args):
             return {'content': [{'type': 'text', 'text': 'Playwright not installed'}], 'isError': True}
         except Exception as e:
             return {'content': [{'type': 'text', 'text': f'error: {e}'}], 'isError': True}
-    if nombre == 'a11y_audit_pdf':
+    if name == 'a11y_audit_pdf':
         try:
-            return _texto(pdf_screen_fn(args['path'], lang=args.get('lang', 'en')))
+            return _content(pdf_screen_fn(args['path'], lang=args.get('lang', 'en')))
         except Exception as e:
             return {'content': [{'type': 'text', 'text': f'error: {e}'}], 'isError': True}
-    if nombre == 'a11y_generate_vpat':
+    if name == 'a11y_generate_vpat':
         try:
             res = vpat_fn(pack=args.get('pack'), reports=args.get('reports'),
-                          producto=args['product'], fecha=args.get('report_date'),
-                          descripcion=args.get('product_description'),
-                          contacto=args.get('contact'), metodos=args.get('methods'),
-                          notas=args.get('notes'), overrides=args.get('overrides'),
-                          evaluador=args.get('reviewer'), lang=args.get('lang', 'en'),
+                          product=args['product'], report_date=args.get('report_date'),
+                          description=args.get('product_description'),
+                          contact=args.get('contact'), methods=args.get('methods'),
+                          notes=args.get('notes'), overrides=args.get('overrides'),
+                          reviewer=args.get('reviewer'), lang=args.get('lang', 'en'),
                           output_path=args.get('output_path'))
             if 'error' in res:
                 return {'content': [{'type': 'text', 'text': res['error']}], 'isError': True}
             if args.get('output_path'):
-                return _texto({'guardado_en': args['output_path'],
+                return _content({'saved_to': args['output_path'],
                                'summary': res['summary'],
                                'pack_sha256': res['pack_sha256'], 'draft': True})
             return {'content': [{'type': 'text', 'text': res['html']}]}
         except Exception as e:  # noqa: BLE001
             return {'content': [{'type': 'text', 'text': f'error: {e}'}], 'isError': True}
-    if nombre == 'a11y_contrast_dom':
+    if name == 'a11y_contrast_dom':
         try:
-            return _texto(contrast_dom_fn(args['url'], args['selector'],
+            return _content(contrast_dom_fn(args['url'], args['selector'],
                                           text_color=args.get('text_color'),
                                           sample=args.get('sample', 4),
                                           lang=args.get('lang', 'en'),
@@ -1311,29 +1320,29 @@ def llamar(nombre, args):
                     'isError': True}
         except Exception as e:  # noqa: BLE001
             return {'content': [{'type': 'text', 'text': f'error: {e}'}], 'isError': True}
-    if nombre == 'a11y_badge':
-        svg = badge_fn(args['score'], fecha=args.get('fecha'),
+    if name == 'a11y_badge':
+        svg = badge_fn(args['score'], date=args.get('date'),
                        lang=args.get('lang', 'en'))
         return {'content': [{'type': 'text', 'text': svg}]}
-    if nombre == 'a11y_aria_live_snippet':
+    if name == 'a11y_aria_live_snippet':
         if ARIALIVE_JS is not None:
             js = ARIALIVE_JS
         else:
-            with open(os.path.join(AQUI, 'arialive.js'), encoding='utf-8') as f:
+            with open(os.path.join(HERE, 'arialive.js'), encoding='utf-8') as f:
                 js = f.read()
         if args.get('lang') == 'en':
             js = "window.ALM_LANG='en';\n" + js
         return {'content': [{'type': 'text', 'text': js}]}
-    raise ValueError(f'unknown tool: {nombre}')
+    raise ValueError(f'unknown tool: {name}')
 
 
 def main():
-    for linea in sys.stdin:
-        linea = linea.strip()
-        if not linea:
+    for line in sys.stdin:
+        line = line.strip()
+        if not line:
             continue
         try:
-            msg = json.loads(linea)
+            msg = json.loads(line)
         except json.JSONDecodeError:
             # JSON-RPC 2.0: parse error con id null (nunca silencio)
             print(json.dumps({'jsonrpc': '2.0', 'id': None,
@@ -1343,33 +1352,33 @@ def main():
             print(json.dumps({'jsonrpc': '2.0', 'id': None,
                               'error': {'code': -32600, 'message': 'Invalid Request'}}), flush=True)
             continue
-        metodo = msg.get('method', '')
+        method = msg.get('method', '')
         mid = msg.get('id')
         if mid is None:
             continue  # notificación: sin respuesta
         try:
-            if metodo == 'initialize':
+            if method == 'initialize':
                 resp = {'jsonrpc': '2.0', 'id': mid, 'result': {
                     'protocolVersion': msg.get('params', {}).get('protocolVersion', '2024-11-05'),
                     'capabilities': {'tools': {}, 'prompts': {}},
                     'serverInfo': {'name': 'a11y-toolkit', 'version': VERSION},
                     'instructions': INSTRUCTIONS,
                 }}
-            elif metodo == 'ping':
+            elif method == 'ping':
                 resp = {'jsonrpc': '2.0', 'id': mid, 'result': {}}
-            elif metodo == 'tools/list':
+            elif method == 'tools/list':
                 resp = {'jsonrpc': '2.0', 'id': mid, 'result': {'tools': TOOLS}}
-            elif metodo == 'tools/call':
+            elif method == 'tools/call':
                 p = msg.get('params', {})
-                resp = {'jsonrpc': '2.0', 'id': mid, 'result': llamar(p.get('name'), p.get('arguments') or {})}
-            elif metodo == 'prompts/list':
+                resp = {'jsonrpc': '2.0', 'id': mid, 'result': invoke(p.get('name'), p.get('arguments') or {})}
+            elif method == 'prompts/list':
                 resp = {'jsonrpc': '2.0', 'id': mid, 'result': {'prompts': _PROMPTS}}
-            elif metodo in ('prompts/get', 'prompts/call'):  # get = spec method (2024-11-05); call kept as alias
+            elif method in ('prompts/get', 'prompts/call'):  # get = spec method (2024-11-05); call kept as alias
                 p = msg.get('params', {})
                 resp = {'jsonrpc': '2.0', 'id': mid, 'result': _prompt(p.get('name'), p.get('arguments') or {})}
             else:
                 resp = {'jsonrpc': '2.0', 'id': mid,
-                        'error': {'code': -32601, 'message': f'unknown method: {metodo}'}}
+                        'error': {'code': -32601, 'message': f'unknown method: {method}'}}
         except Exception as e:  # noqa: BLE001
             resp = {'jsonrpc': '2.0', 'id': mid, 'result': {
                 'content': [{'type': 'text', 'text': f'error: {e}'}], 'isError': True}}

@@ -18,18 +18,18 @@ What it measures, with real focus and a live-region observer:
 Requires local Playwright. A filter with honest judgment, not a verdict.
 
 CLI:
-  a11yscroll.py https://medium.com/section [--tandas 5] [--lang es]
+  a11yscroll.py https://medium.com/section [--max-batches 5] [--lang es]
 """
 
 import argparse
 import json
 import sys
 
-from .a11yaudit import CRIT, T, calcular_score
+from .a11yaudit import CRIT, T, compute_score
 
 _TD = {
     'es': {
-        'scroll_focus': 'El elemento con foco {destino} tras cargar una tanda ({detalle}). Fallo documentado del scroll infinito: quien navega con teclado pierde su punto de lectura (2.4.3).',
+        'scroll_focus': 'El elemento con foco {where} tras cargar una tanda ({detail}). Fallo documentado del scroll infinito: quien navega con teclado pierde su punto de lectura (2.4.3).',
         'scroll_focus_rem': 'No re-renderices el contenedor del feed: AÑADE nodos al final (appendChild/insertAdjacentHTML). Si el foco cae en contenido eliminado, devuélvelo al equivalente nuevo.',
         'scroll_no_announce': '{n} tandas cargadas sin ningún anuncio: no hay región aria-live/status que reciba texto durante la carga ni role="feed" en el contenedor (4.1.3).',
         'scroll_no_announce_rem': 'Añade una región role="status" con texto «Cargando más…»/«10 elementos nuevos» y marca el contenedor como role="feed" con aria-busy durante la carga.',
@@ -42,7 +42,7 @@ _TD = {
                     'screen reader en el feed real.'),
     },
     'en': {
-        'scroll_focus': 'The focused element {destino} after loading a batch ({detalle}). Documented infinite-scroll failure: keyboard users lose their reading point (2.4.3).',
+        'scroll_focus': 'The focused element {where} after loading a batch ({detail}). Documented infinite-scroll failure: keyboard users lose their reading point (2.4.3).',
         'scroll_focus_rem': 'Do not re-render the feed container: APPEND nodes at the end (appendChild/insertAdjacentHTML). If focus lands on removed content, move it to the new equivalent.',
         'scroll_no_announce': '{n} batches loaded with zero announcements: no aria-live/status region receives text during loading and the container lacks role="feed" (4.1.3).',
         'scroll_no_announce_rem': 'Add a role="status" region with "Loading more…"/"10 new items" text and mark the container role="feed" with aria-busy while loading.',
@@ -57,11 +57,11 @@ _TD = {
 }
 
 _MON = r"""() => {
-  window.__a11yscroll = { eventos: [], n: 0 };
+  window.__a11yscroll = { events: [], n: 0 };
   const esViva = el => el.closest && el.closest('[aria-live], [role="status"], [role="alert"], [role="log"], [role="feed"]');
   const anota = (tipo, texto) => {
-    if (window.__a11yscroll.eventos.length < 50)
-      window.__a11yscroll.eventos.push({ tipo, texto: (texto || '').trim().slice(0, 80) });
+    if (window.__a11yscroll.events.length < 50)
+      window.__a11yscroll.events.push({ type: tipo, text: (texto || '').trim().slice(0, 80) });
   };
   new MutationObserver(muts => {
     for (const m of muts) {
@@ -76,7 +76,7 @@ _MON = r"""() => {
   }).observe(document.body, { subtree: true, childList: true, characterData: true });
 }"""
 
-_ESTADO = r"""() => {
+_STATE = r"""() => {
   const items = document.querySelectorAll('article, [role="article"]').length
     || document.querySelectorAll('main li').length;
   const feed = document.querySelector('[role="feed"]');
@@ -87,24 +87,24 @@ _ESTADO = r"""() => {
     : false;
   const mas = [...document.querySelectorAll('button, a')]
     .some(b => /más|more|cargar|load/i.test((b.innerText || '').trim()) && b.offsetParent);
-  return { items, hayFeed: !!feed, hayFooter: !!document.querySelector('footer, [role="contentinfo"]'),
+  return { items, hasFeed: !!feed, hasFooter: !!document.querySelector('footer, [role="contentinfo"]'),
            focus: activo && activo !== document.body
              ? (activo.tagName.toLowerCase() + (activo.id ? '#' + activo.id : '')) : null,
-           focus_offscreen: !!fuera, hayMas: mas,
+           focus_offscreen: !!fuera, hasMore: mas,
            scroll: document.documentElement.scrollHeight,
-           eventos: window.__a11yscroll ? window.__a11yscroll.eventos : [] };
+           events: window.__a11yscroll ? window.__a11yscroll.events : [] };
 }"""
 
 
-def _agrega(hallazgos, lang, sev, code, key, **fmt):
-    hallazgos.append({
+def _add(findings, lang, sev, code, key, **fmt):
+    findings.append({
         'severity': sev, 'criterion': CRIT.get(lang, CRIT['es']).get(code, code),
         'signal': key, 'issue': _TD.get(lang, _TD['es'])[key].format(**fmt),
         'remediation': _TD.get(lang, _TD['es'])[key + '_rem'].format(**fmt),
     })
 
 
-def audit_scroll(url, max_tandas=5, lang='en', timeout=45, auth_state=None):
+def audit_scroll(url, max_batches=5, lang='en', timeout=45, auth_state=None):
     from playwright.sync_api import sync_playwright
     with sync_playwright() as p:
         nav = p.chromium.launch()
@@ -121,20 +121,20 @@ def audit_scroll(url, max_tandas=5, lang='en', timeout=45, auth_state=None):
         page.evaluate("(() => { const c = document.querySelector("
                       "  'article a[href], [role=article] a[href], main li a[href]');"
                       " if (c) c.focus(); })()")
-        antes = page.evaluate(_ESTADO)
-        foco_inicial = antes['focus']
+        before = page.evaluate(_STATE)
+        initial_focus = before['focus']
 
-        tandas = []
-        fin_alcanzado = False
+        batches = []
+        end_reached = False
         via_clic = False
-        for _t in range(max_tandas):
+        for _t in range(max_batches):
             page.evaluate("window.scrollTo(0, document.documentElement.scrollHeight)")
             crecio = False
             for _espera in range(6):   # hasta ~3 s esperando nueva tanda
                 page.wait_for_timeout(500)
-                e = page.evaluate(_ESTADO)
-                if e['items'] > (tandas[-1]['items'] if tandas else antes['items']) \
-                        or e['scroll'] > (tandas[-1]['scroll'] if tandas else antes['scroll']):
+                e = page.evaluate(_STATE)
+                if e['items'] > (batches[-1]['items'] if batches else before['items']) \
+                        or e['scroll'] > (batches[-1]['scroll'] if batches else before['scroll']):
                     crecio = True
                     break
             if not crecio and not via_clic:
@@ -149,81 +149,84 @@ def audit_scroll(url, max_tandas=5, lang='en', timeout=45, auth_state=None):
                         " if (b) b.click(); }")
                     for _espera in range(6):
                         page.wait_for_timeout(500)
-                        e2 = page.evaluate(_ESTADO)
-                        if e2['items'] > (tandas[-1]['items'] if tandas else antes['items']):
+                        e2 = page.evaluate(_STATE)
+                        if e2['items'] > (batches[-1]['items'] if batches else before['items']):
                             crecio = True
                             break
-            e = page.evaluate(_ESTADO)
-            tandas.append(e)
+            e = page.evaluate(_STATE)
+            batches.append(e)
             if not crecio:
-                fin_alcanzado = True
+                end_reached = True
                 break
 
         nav.close()
 
-    hallazgos = []
-    ultimo = tandas[-1] if tandas else antes
+    findings = []
+    last = batches[-1] if batches else before
 
     # 1. foco (2.4.3): desaparecido o fuera de pantalla tras las tandas
-    if foco_inicial:
-        if ultimo['focus'] is None:
-            _agrega(hallazgos, lang, 'high', '2.4.3', 'scroll_focus',
-                    destino='desapareció', detalle=f'estaba en {foco_inicial}')
-        elif ultimo['focus_offscreen']:
-            _agrega(hallazgos, lang, 'medium', '2.4.3', 'scroll_focus',
-                    destino='quedó fuera de pantalla', detalle=foco_inicial)
+    if initial_focus:
+        if last['focus'] is None:
+            _add(findings, lang, 'high', '2.4.3', 'scroll_focus',
+                    where='disappeared', detail=f'was on {initial_focus}')
+        elif last['focus_offscreen']:
+            _add(findings, lang, 'medium', '2.4.3', 'scroll_focus',
+                    where='went offscreen', detail=initial_focus)
 
     # Guardián de honestidad: sin ítems detectados no hay feed que auditar
-    hay_feed_real = antes['items'] > 0 or ultimo['items'] > antes['items']
+    hay_feed_real = before['items'] > 0 or last['items'] > before['items']
     nota = None
     if not hay_feed_real:
-        nota = ('no se detectaron ítems con los selectores estándar (article, role=article, '
+        nota = ('no standard items detected (article, role=article, li in main): the feed is '
+                'behind a login/bot wall or uses non-standard markup. Announcement/end signals '
+                'are skipped; audit feeds you own with known markup.' if lang == 'en' else
+                'no se detectaron ítems con los selectores estándar (article, role=article, '
                 'li en main): o el feed está tras login/muro de bots, o usa marcado no estándar. '
                 'Las señales de anuncios/fin se omiten; valida feeds propios con marcado conocido.')
 
     # 2. anuncios (4.1.3) — solo si hubo feed real
-    if hay_feed_real and tandas and not ultimo['hayFeed'] and not ultimo['eventos']:
-        _agrega(hallazgos, lang, 'medium', '4.1.3', 'scroll_no_announce',
-                n=len(tandas))
+    if hay_feed_real and batches and not last['hasFeed'] and not last['events']:
+        _add(findings, lang, 'medium', '4.1.3', 'scroll_no_announce',
+                n=len(batches))
 
     # 3. fin/alternativa — solo si hubo feed real
-    if hay_feed_real and not fin_alcanzado and not ultimo['hayMas']:
-        _agrega(hallazgos, lang, 'medium', '2.2.2', 'scroll_no_end', n=len(tandas))
+    if hay_feed_real and not end_reached and not last['hasMore']:
+        _add(findings, lang, 'medium', '2.2.2', 'scroll_no_end', n=len(batches))
 
     # 4. patrón APG
-    if not ultimo['hayFeed']:
-        _agrega(hallazgos, lang, 'low', '1.3.1', 'scroll_no_feed')
+    if not last['hasFeed']:
+        _add(findings, lang, 'low', '1.3.1', 'scroll_no_feed')
 
-    orden = {'high': 0, 'medium': 1, 'low': 2}
-    hallazgos.sort(key=lambda h: orden[h['severity']])
+    order = {'high': 0, 'medium': 1, 'low': 2}
+    findings.sort(key=lambda h: order[h['severity']])
     return {
         'url': url,
         'mode': 'scroll',
-        'score': calcular_score(hallazgos),
-        'summary': {s_: sum(1 for h in hallazgos if h['severity'] == s_)
+        'score': compute_score(findings),
+        'summary': {s_: sum(1 for h in findings if h['severity'] == s_)
                     for s_ in ('high', 'medium', 'low')},
-        'items': {'before': antes['items'], 'after': ultimo['items']},
-        'tandas': len(tandas),
-        'fin_alcanzado': fin_alcanzado,
-        'anuncios_vivos': [e['texto'] for e in ultimo['eventos'][:5]],
-        'focus': {'inicial': foco_inicial, 'final': ultimo['focus'],
-                 'fuera_de_pantalla': ultimo['focus_offscreen']},
-        'alternativa_cargar_mas': ultimo['hayMas'],
+        'items': {'before': before['items'], 'after': last['items']},
+        'batches': len(batches),
+        'end_reached': end_reached,
+        'live_announcements': [e['text'] for e in last['events'][:5]],
+        'focus': {'initial': initial_focus, 'final': last['focus'],
+                 'offscreen': last['focus_offscreen']},
+        'load_more_alternative': last['hasMore'],
         'note': nota,
-        'findings': hallazgos,
-        'limits': _TD.get(lang, _TD['es'])['limits'].format(n=len(tandas)),
+        'findings': findings,
+        'limits': _TD.get(lang, _TD['es'])['limits'].format(n=len(batches)),
     }
 
 
 def main(argv):
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument('url')
-    ap.add_argument('--tandas', type=int, default=5)
+    ap.add_argument('--max-batches', type=int, default=5)
     ap.add_argument('--lang', default='en', choices=['en', 'es'])
     ap.add_argument('--timeout', type=int, default=45)
     a = ap.parse_args(argv)
     try:
-        res = audit_scroll(a.url, max_tandas=a.tandas, lang=a.lang, timeout=a.timeout)
+        res = audit_scroll(a.url, max_batches=a.max_batches, lang=a.lang, timeout=a.timeout)
     except ImportError:
         print(json.dumps({'error': 'Playwright no instalado'}))
         return 1

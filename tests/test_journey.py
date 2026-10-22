@@ -10,15 +10,15 @@ import sys
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
-from a11y_toolkit.a11yjourney import verdictar, _J  # noqa: E402
-from a11y_toolkit.a11yevidence import empaquetar  # noqa: E402
+from a11y_toolkit.a11yjourney import verdict, _J  # noqa: E402
+from a11y_toolkit.a11yevidence import build_pack  # noqa: E402
 
 TAREA = {'goal': 'sign up for the newsletter', 'kind': 'sign-up'}
 URL = 'https://shop.example'
 
 
 # 1. clean pass: completed, no friction, no workaround
-r = verdictar(TAREA, [
+r = verdict(TAREA, [
     {'action': 'click', 'target': 'Subscribe', 'perceived': 'button, "Subscribe"'},
     {'action': 'type', 'target': 'Email', 'perceived': 'textbox, "Email"'},
 ], {'completed': True}, url=URL)
@@ -26,7 +26,7 @@ assert r['verdict'] == 'pass' and r['score'] == 100 and not r['findings'], r
 print('1. pase limpio 100/100 ✓')
 
 # 2. unnamed control (high) → partial even completed
-r2 = verdictar(TAREA, [
+r2 = verdict(TAREA, [
     {'action': 'click', 'target': 'button', 'perceived': 'button',
      'friction': {'pattern': 'journey_unnamed_control'}},
 ], {'completed': True}, url=URL)
@@ -34,10 +34,10 @@ assert r2['verdict'] == 'partial' and r2['score'] == 75, r2
 assert r2['findings'][0]['criterion'] == '4.1.2'
 assert r2['findings'][0]['severity'] == 'high'
 assert r2['summary'] == {'high': 1, 'medium': 0, 'low': 0}
-print('2. control sin nombre → parcial 75 ✓')
+print('2. control sin name → parcial 75 ✓')
 
 # 3. gave_up → blocked (aun con score alto)
-r3 = verdictar(TAREA, [
+r3 = verdict(TAREA, [
     {'action': 'read', 'perceived': 'nothing announces the form',
      'friction': {'pattern': 'journey_hidden_in_tree'}},
 ], {'completed': False, 'gave_up': True}, url=URL)
@@ -45,7 +45,7 @@ assert r3['verdict'] == 'blocked' and r3['outcome']['gave_up'] is True, r3
 print('3. gave_up → blocked ✓')
 
 # 4. not completed sin gave_up → fail
-r4 = verdictar(TAREA, [
+r4 = verdict(TAREA, [
     {'action': 'click', 'target': 'Submit', 'perceived': 'nothing happened',
      'friction': {'pattern': 'journey_error_silent'}},
 ], {'completed': False}, url=URL)
@@ -53,24 +53,24 @@ assert r4['verdict'] == 'fail' and r4['score'] == 75, r4
 print('4. no completada → fail ✓')
 
 # 5. workaround penaliza y tira del pass al partial
-base = verdictar(TAREA, [], {'completed': True})
-rw = verdictar(TAREA, [], {'completed': True, 'workaround_used': True})
+base = verdict(TAREA, [], {'completed': True})
+rw = verdict(TAREA, [], {'completed': True, 'workaround_used': True})
 assert base['verdict'] == 'pass' and rw['verdict'] == 'partial' and rw['score'] == 85
 assert 'workaround_penalty' in rw['rules']
 print('5. workaround → parcial 85 ✓')
 
-# 6. criterios fuera del conjunto A/AA rechazados; severidad inválida rechazada
-bad = verdictar(TAREA, [
+# 6. criterios removed del conjunto A/AA rechazados; severidad inválida rechazada
+bad = verdict(TAREA, [
     {'action': 'x', 'friction': {'criterion': '2.3.2', 'severity': 'high', 'issue': 'x'}},
     {'action': 'y', 'friction': {'criterion': '1.4.3', 'severity': 'muy', 'issue': 'x'}},
     {'action': 'z', 'friction': {'pattern': 'no_existe'}},
 ], {'completed': True}, url=URL)
-assert 'error' in bad and len(bad['detalles']) == 3, bad
-assert 'fuera del conjunto A/AA' in bad['detalles'][0]
-print('6. validación de criterio/severidad/patrón ✓')
+assert 'error' in bad and len(bad['details']) == 3, bad
+assert 'fuera del conjunto A/AA' in bad['details'][0]
+print('6. validación de criterion/severidad/patrón ✓')
 
-# 7. patrón de catálogo: criterio+issue+remediation coherentes bilingüe
-r7 = verdictar(TAREA, [
+# 7. patrón de catálogo: criterion+issue+remediation coherentes bilingüe
+r7 = verdict(TAREA, [
     {'action': 'key', 'perceived': 'dialog', 'friction': {'pattern': 'journey_dialog_trap'}},
 ], {'completed': True, 'notes': 'escaped eventually'}, url=URL)
 f = r7['findings'][0]
@@ -80,19 +80,19 @@ assert f['step'] == 0 and 'dialog' in (f.get('perceived') or '')
 print('7. catálogo journey_dialog_trap ✓')
 
 # 8. integración con el evidence pack: report:journey + matrix fail
-pack = empaquetar([r2])
+pack = build_pack([r2])
 arts = [a['type'] for a in pack['artifacts']]
 assert 'report:journey' in arts, arts
 row = next(m for m in pack['criteria'] if m['criterion'].startswith('4.1.2'))
 assert row['status'] == 'automated-fail', row
 print('8. evidence pack integra report:journey ✓ (4.1.2 → automated-fail)')
 
-# 9. paridad es/en del catálogo J: mismas claves, mismo criterio y severidad
+# 9. paridad es/en del catálogo J: mismas claves, mismo criterion y severidad
 es, en = _J['es'], _J['en']
 assert set(es) == set(en), f'catálogo J desparejo: {sorted(set(es) ^ set(en))}'
 for k in es:
-    assert es[k][0] == en[k][0] and es[k][1] == en[k][1], f'{k}: criterio/severidad divergen'
-    assert es[k][2] and en[k][2] and es[k][3] and en[k][3], f'{k}: texto vacío'
+    assert es[k][0] == en[k][0] and es[k][1] == en[k][1], f'{k}: criterion/severidad divergen'
+    assert es[k][2] and en[k][2] and es[k][3] and en[k][3], f'{k}: text vacío'
 assert all(k.startswith('journey_') for k in es)
 assert {'journey_heading_nav_broken', 'journey_landmark_missing', 'journey_mode_confusion',
         'journey_duplicate_targets', 'journey_dynamic_stale'} <= set(en), 'faltan patrones SR-nativos'
@@ -124,25 +124,25 @@ print('JOURNEY OK ✓ (scoring determinista, catálogo parejo, criterios validad
 # ── presupuesto de journeys: solo la fricción NUEVA bloquea (5.6.0) ──
 from a11y_toolkit.a11yjourney import budget_init, budget_compare  # noqa: E402
 
-vb = verdictar(TAREA, [{'friction': {'pattern': 'journey_status_silent'}}], {'completed': True}, url=URL)
+vb = verdict(TAREA, [{'friction': {'pattern': 'journey_status_silent'}}], {'completed': True}, url=URL)
 bb = budget_init(vb)
 assert bb['format'] == 'a11y-journey-budget/1'
 assert bb['friction'] == ['4.1.3:journey_status_silent']
 assert budget_compare(bb, vb)['verdict'] == 'GO'
 
-v_alta = verdictar(TAREA, [{'friction': {'pattern': 'journey_status_silent'}},
+v_alta = verdict(TAREA, [{'friction': {'pattern': 'journey_status_silent'}},
                            {'friction': {'pattern': 'journey_unnamed_control'}}], {'completed': True}, url=URL)
 r_alta = budget_compare(bb, v_alta)
 assert r_alta['verdict'] == 'NO-GO' and '4.1.2:journey_unnamed_control' in r_alta['new_blocking']
 
-v_degrada = verdictar(TAREA, [{'friction': {'pattern': 'journey_status_silent'}}],
+v_degrada = verdict(TAREA, [{'friction': {'pattern': 'journey_status_silent'}}],
                       {'completed': False, 'gave_up': True}, url=URL)
 assert budget_compare(bb, v_degrada)['degraded'] is True
 
-v_media = verdictar(TAREA, [{'friction': {'pattern': 'journey_generic_link'}}], {'completed': True}, url=URL)
+v_media = verdict(TAREA, [{'friction': {'pattern': 'journey_generic_link'}}], {'completed': True}, url=URL)
 r_media = budget_compare(bb, v_media)
 assert r_media['verdict'] == 'GO' and r_media['new_friction'] and r_media['resolved']
 
-otra = verdictar({'goal': 'checkout', 'kind': 'checkout'}, [], {'completed': True})
+otra = verdict({'goal': 'checkout', 'kind': 'checkout'}, [], {'completed': True})
 assert 'error' in budget_compare(bb, otra)
 print('11. journey budget: GO/NO-GO/degradación/resueltas/otra-tarea ✓')

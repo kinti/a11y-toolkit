@@ -83,22 +83,22 @@ def _t(lang, key):
     return T.get(lang, T['en'])[key]
 
 
-def _flujos_descomprimidos(datos, limite=60):
+def _flujos_descomprimidos(data, limit=60):
     """Los streams FlateDecode, descomprimidos (zlib es stdlib) — ahí viven
     el XMP, el contenido y buena parte de la estructura."""
     out = []
-    for m in re.finditer(rb'stream\r?\n', datos):
-        ini = m.end()
-        fin = datos.find(b'endstream', ini)
-        if fin == -1:
+    for m in re.finditer(rb'stream\r?\n', data):
+        start = m.end()
+        end = data.find(b'endstream', start)
+        if end == -1:
             continue
-        trozo = datos[ini:fin].rstrip(b'\r\n')
+        trozo = data[start:end].rstrip(b'\r\n')
         try:
             d = zlib.decompressobj()
             out.append(d.decompress(trozo, 20_000_000))  # bomba: techo por stream
         except Exception:  # noqa: BLE001
             continue
-        if len(out) >= limite:
+        if len(out) >= limit:
             break
     return out
 
@@ -106,26 +106,26 @@ def _flujos_descomprimidos(datos, limite=60):
 def pdf_screen(path_or_bytes, lang='en'):
     """Cribado estructural de accesibilidad de un PDF (fichero local)."""
     if isinstance(path_or_bytes, (bytes, bytearray)):
-        datos = bytes(path_or_bytes)
-        nombre = '(bytes)'
+        data = bytes(path_or_bytes)
+        name = '(bytes)'
         truncado = False
     else:
         tam = os.path.getsize(path_or_bytes)
         with open(path_or_bytes, 'rb') as f:
-            datos = f.read(30_000_000)  # techo duro: 30 MB
-        truncado = tam > len(datos)
-        nombre = str(path_or_bytes).rsplit('/', 1)[-1]
+            data = f.read(30_000_000)  # techo duro: 30 MB
+        truncado = tam > len(data)
+        name = str(path_or_bytes).rsplit('/', 1)[-1]
 
-    if not datos.startswith(b'%PDF-'):
+    if not data.startswith(b'%PDF-'):
         return {'error': 'no es un PDF (sin marca %PDF-)'}
 
-    flujos = _flujos_descomprimidos(datos)
-    todo = datos + b'\n'.join(flujos[:40])
+    flujos = _flujos_descomprimidos(data)
+    todo = data + b'\n'.join(flujos[:40])
 
     def tiene(pat):
         return re.search(pat, todo) is not None
 
-    cifrado = b'/Encrypt' in datos  # el trailer vive al FINAL del fichero
+    cifrado = b'/Encrypt' in data  # el trailer vive al FINAL del fichero
     tagged = tiene(rb'/StructTreeRoot\s+\d+\s+0\s+R') or tiene(rb'/StructTreeRoot')
     marked = tiene(rb'/Marked\s+true')
     lang_doc = re.search(rb'/Lang\s*\(([^)]{2,20})\)', todo)
@@ -139,10 +139,10 @@ def pdf_screen(path_or_bytes, lang='en'):
     # capa de texto: operadores Tj/TJ en TODA la muestra — streams Flate
     # descomprimidos Y bytes crudos (contenido sin comprimir es legítimo;
     # contar solo Flate acusaba en falso de 'escaneo' a PDFs reales)
-    n_texto = sum(len(re.findall(rb'\)\s*Tj|\]\s*TJ|\(\s*[A-Za-z0-9]', f)) for f in flujos)
-    n_texto += len(re.findall(rb'\)\s*Tj|\]\s*TJ', datos))
+    n_text = sum(len(re.findall(rb'\)\s*Tj|\]\s*TJ|\(\s*[A-Za-z0-9]', f)) for f in flujos)
+    n_text += len(re.findall(rb'\)\s*Tj|\]\s*TJ', data))
 
-    hallazgos = []
+    findings = []
 
     # ── 1.4.3 en PDF: contraste del texto contra el fondo efectivo ──
     # Parseo de la secuencia: `rg` cambia el color de relleno de texto,
@@ -163,42 +163,42 @@ def pdf_screen(path_or_bytes, lang='en'):
     blanc = _l(255, 255, 255)
     bajos = []
     for flujo in flujos:
-        texto = flujo.decode('latin-1', 'replace')
-        texto_color = (0, 0, 0)
-        fondo_color = (255, 255, 255)   # el PDF no pinta fondo por defecto
-        fondo_pintado = False
+        text = flujo.decode('latin-1', 'replace')
+        text_color = (0, 0, 0)
+        bg_color = (255, 255, 255)   # el PDF no pinta fondo por defecto
+        painted_bg = False
         for m in re.finditer(
                 r'([\d.]+)\s+([\d.]+)\s+([\d.]+)\s+(rg|re)\b'
                 r'|\b(f)\b'
                 r'|\((?:[^()\\]|\\.)*\)\s*(Tj|TJ)'
-                , texto):
+                , text):
             op = m.group(4) or m.group(5) or m.group(6)
             if op in ('rg', 're'):
                 try:
-                    texto_color = tuple(
+                    text_color = tuple(
                         max(0, min(255, round(float(x) * 255)))
                         for x in m.groups()[:3])
                 except ValueError:
                     pass
                 if op == 're':
                     # el rect se pinta con el fill actual: es el FONDO
-                    fondo_color = texto_color
+                    bg_color = text_color
             elif op == 'f':
                 pass  # el f pinta con el fill ya establecido (fondo ya guardado)
             else:  # Tj / TJ
-                lt = _l(*texto_color)
-                lb = _l(*fondo_color)
+                lt = _l(*text_color)
+                lb = _l(*bg_color)
                 ratio = _ratio(lt, lb)
                 if ratio < 4.5:
-                    ej = (f'rgb({texto_color[0]},{texto_color[1]},{texto_color[2]})'
-                          f' sobre rgb({fondo_color[0]},{fondo_color[1]},{fondo_color[2]})'
+                    ej = (f'rgb({text_color[0]},{text_color[1]},{text_color[2]})'
+                          f' sobre rgb({bg_color[0]},{bg_color[1]},{bg_color[2]})'
                           f' \u2192 {ratio:.2f}:1')
                     if ej not in [x.split(' \u2014 ')[0] for x in bajos]:
                         bajos.append(ej)
         if len(bajos) >= 4:
             break
     if bajos:
-        hallazgos.append({
+        findings.append({
             'severity': 'medium', 'criterion': '1.4.3 (PDF)',
             'signal': 'pdf_low_contrast',
             'issue': _t(lang, 'pdf_low_contrast').format(n=len(bajos), ej='; '.join(bajos[:3])),
@@ -206,18 +206,18 @@ def pdf_screen(path_or_bytes, lang='en'):
 
     # ── 2.4.4 en PDF: falso affordance de enlace ──
     # texto azulado sin /Annot URI en la misma página
-    azules, n_uri = [], len(re.findall(rb'/S\s*/URI', datos))
+    azules, n_uri = [], len(re.findall(rb'/S\s*/URI', data))
     for flujo in flujos:
-        texto = flujo.decode('latin-1', 'replace')
+        text = flujo.decode('latin-1', 'replace')
         for m in re.finditer(
-                r'0\s+0\s+1\s+rg\s*(?:\n|.)*?\(([^)]{4,80})\)\s*Tj', texto):
+                r'0\s+0\s+1\s+rg\s*(?:\n|.)*?\(([^)]{4,80})\)\s*Tj', text):
             azules.append(m.group(1)[:40])
             if len(azules) >= 3:
                 break
         if len(azules) >= 3:
             break
     if azules and n_uri == 0:
-        hallazgos.append({
+        findings.append({
             'severity': 'medium', 'criterion': '2.4.4 (PDF)',
             'signal': 'pdf_fake_link',
             'issue': _t(lang, 'pdf_fake_link').format(n=len(azules)),
@@ -226,7 +226,7 @@ def pdf_screen(path_or_bytes, lang='en'):
 
     def add(key):
         crit, sev = _CRIT[key]
-        hallazgos.append({'severity': sev, 'criterion': f'{crit} (PDF)',
+        findings.append({'severity': sev, 'criterion': f'{crit} (PDF)',
                           'signal': key, 'issue': _t(lang, key),
                           'remediation': _t(lang, key + '_rem')})
 
@@ -243,18 +243,18 @@ def pdf_screen(path_or_bytes, lang='en'):
         add('pdf_no_lang')
     if n_pages > 8 and not n_outline:
         add('pdf_no_outline')
-    if n_texto == 0 and n_imgs > 0 and n_pages > 0:
+    if n_text == 0 and n_imgs > 0 and n_pages > 0:
         # sin texto Y con imágenes: patrón de escaneo. Sin imágenes no hay
         # base para acusar (vector puro, formularios vacíos…)
         add('pdf_scanned')
     elif tagged and n_imgs > 0 and n_alt == 0 and n_actual == 0:
         add('pdf_no_alt')
 
-    from .a11yaudit import calcular_score
-    orden = {'high': 0, 'medium': 1, 'low': 2}
-    hallazgos.sort(key=lambda h: orden[h['severity']])
+    from .a11yaudit import compute_score
+    order = {'high': 0, 'medium': 1, 'low': 2}
+    findings.sort(key=lambda h: order[h['severity']])
     return {
-        'mode': 'pdf', 'file': nombre,
+        'mode': 'pdf', 'file': name,
         'pages': n_pages or None,
         'tagged': bool(tagged and marked),
         'encrypted': cifrado,
@@ -262,11 +262,11 @@ def pdf_screen(path_or_bytes, lang='en'):
         'title': (title_meta.group(1).decode('utf-8', 'replace').strip()[:200]
                   if title_meta else None),
         'images': n_imgs, 'alt_entries': n_alt, 'actual_text': n_actual,
-        'text_operators': n_texto,
+        'text_operators': n_text,
         'truncated': truncado,
-        'score': calcular_score(hallazgos),
-        'findings': hallazgos,
-        'summary': {s: sum(1 for h in hallazgos if h['severity'] == s)
+        'score': compute_score(findings),
+        'findings': findings,
+        'summary': {s: sum(1 for h in findings if h['severity'] == s)
                     for s in ('high', 'medium', 'low')},
         'limits': _t(lang, 'limits'),
     }

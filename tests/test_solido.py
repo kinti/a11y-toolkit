@@ -3,8 +3,8 @@
 
 Nació del análisis de fragilidad (2026-09): tres clases de bug se repitieron
 porque nada obligaba a que fueran falsas. Aquí quedan clavadas:
-  1. Catálogo de mensajes: es/en parejos, todo hallazgo con _rem, CRIT parejo.
-     (El KeyError 'input_img_alt_rem' ya ocurrió una vez.)
+  1. Catálogo de mensajes: es/en parejos, todo finding con _rem, CRIT parejo.
+     (El KeyError 'input_img_alt_rem' already ocurrió una vez.)
   2. Versiones: pyproject == server.VERSION == server.json. (Derivaron a mano
      durante 10 releases.)
   3. Conteos: README/GIF dicen las tools y prompts que hay de verdad.
@@ -18,8 +18,8 @@ import re
 import subprocess
 import sys
 
-AQUI = os.path.dirname(os.path.abspath(__file__))
-ROOT = os.path.dirname(AQUI)
+HERE = os.path.dirname(os.path.abspath(__file__))
+ROOT = os.path.dirname(HERE)
 sys.path.insert(0, ROOT)
 
 # ---------- 1. catálogo ----------
@@ -30,15 +30,15 @@ es, en = set(T['es']), set(T['en'])
 assert es == en, f"catálogo desparejo: solo es={sorted(es-en)[:3]} solo en={sorted(en-es)[:3]}"
 _hallazgo = {k for k in es
              if not k.endswith(('_rem', '_nota')) and k not in
-             ('limits', 'interp', 'criteria', 'score_note', 'aclarar', 'oscurecer',
-              'sin_copia', 'color_invalido', 'region_invalida', 'region_fuera',
-              'sin_pixeles', 'carga_error', 'texto_opaco', 'descarga_error')}
+             ('limits', 'interp', 'criteria', 'score_note', 'lightening', 'darkening',
+              'no_post_copy', 'invalid_color', 'invalid_region', 'region_outside',
+              'no_pixels', 'load_error', 'opaque_text', 'fetch_error')}
 sin_rem = sorted(k for k in _hallazgo if f'{k}_rem' not in es)
-assert not sin_rem, f"hallazgos sin _rem (KeyError al emitir): {sin_rem}"
+assert not sin_rem, f"findings sin _rem (KeyError al emitir): {sin_rem}"
 assert set(CRIT['es']) == set(CRIT['en']), 'CRIT desparejo es/en'
 # lo mismo para el catálogo del modo renderizado
 for lang in ('es', 'en'):
-    pass  # _TD comparte claves por diseño; la paridad de T ya lo cubre
+    pass  # _TD comparte claves por diseño; la paridad de T already lo cubre
 assert set(_TD['es']) == set(_TD['en']), 'catálogo DOM desparejo'
 
 # ---------- 2. versiones ----------
@@ -72,7 +72,7 @@ for _t in server.TOOLS:
 
 # ---------- 3c. conteos normativos WCAG 2.2 (fijados contra deriva) ----------
 from a11y_toolkit.a11ycrit import _C as _CAT, _EFFORT, effort  # noqa: E402
-from a11y_toolkit.a11yevidence import MANUAL_AA, empaquetar  # noqa: E402
+from a11y_toolkit.a11yevidence import MANUAL_AA, build_pack  # noqa: E402
 from a11y_toolkit.a11yjourney import _J  # noqa: E402
 
 # el conjunto A/AA normativo (w3.org/TR/WCAG22; 4.1.1 retirado; 3.2.6 y 3.3.7 son A)
@@ -89,25 +89,25 @@ _aa = {k for k, v in _CAT.items() if v[0] in ('A', 'AA')}
 assert _aa == _NORM, f'catálogo A/AA ≠ normativo: {sorted(_aa ^ _NORM)}'
 _nivel_mal = {k: (_CAT[k][0], 'AA' if k in _NORM_AA else 'A') for k in _NORM
               if _CAT[k][0] != ('AA' if k in _NORM_AA else 'A')}
-assert not _nivel_mal, f'niveles ≠ normativo: {_nivel_mal}'
-assert not ({m.split(' ')[0] for m in MANUAL_AA} - _NORM), 'MANUAL_AA fuera del conjunto A/AA'
+assert not _nivel_mal, f'levels ≠ normativo: {_nivel_mal}'
+assert not ({m.split(' ')[0] for m in MANUAL_AA} - _NORM), 'MANUAL_AA removed del conjunto A/AA'
 assert set(_EFFORT) == _NORM, 'la tabla de esfuerzo debe cubrir exactamente los 55 A/AA'
 assert effort('1.4.3')['class'] == 'MAX' and effort('9.9.9') is None
 assert set(_J['es']) == set(_J['en']), 'catálogo journey desparejo'
-assert all(_J['es'][k][0] == _J['en'][k][0] and _J['es'][k][1] == _J['en'][k][1] for k in _J['en']), 'journey: criterio/severidad divergen'
+assert all(_J['es'][k][0] == _J['en'][k][0] and _J['es'][k][1] == _J['en'][k][1] for k in _J['en']), 'journey: criterion/severidad divergen'
 from collections import Counter  # noqa: E402
 _dist = Counter(c for c, _ in _EFFORT.values())
 assert _dist == Counter({'MIN': 23, 'MED': 19, 'MAX': 13}), f'distribución de esfuerzo derivó: {dict(_dist)}'
 assert '51 of 55 A/AA criteria carry automated signals (93%)' in readme, 'claim de cobertura en README'
 _faltan_tools = [t['name'] for t in server.TOOLS if f'#### `{t["name"]}`' not in readme]
-assert not _faltan_tools, f'tools sin entrada completa en README: {_faltan_tools}'
+assert not _faltan_tools, f'tools sin entry completa en README: {_faltan_tools}'
 _faltan_prompts = [p2['name'] for p2 in server._PROMPTS if f'`{p2["name"]}`' not in readme]
-assert not _faltan_prompts, f'prompts sin entrada en README: {_faltan_prompts}'
+assert not _faltan_prompts, f'prompts sin entry en README: {_faltan_prompts}'
 assert 'of 54' not in readme and '94%' not in readme, 'quedan restos del conteo antiguo en README'
-# pack de evidencia: exactamente 55 filas, todas con esfuerzo, totales del seed
-_pack = empaquetar([{'mode': 'static', 'url': 'https://t', 'score': 90, 'findings': []}])
-assert len(_pack['criteria']) == 55, f'matriz del pack: {len(_pack["criteria"])} filas'
-assert all('effort' in m for m in _pack['criteria']), 'fila del pack sin esfuerzo'
+# pack de evidencia: exactamente 55 rows, todas con esfuerzo, totales del seed
+_pack = build_pack([{'mode': 'static', 'url': 'https://t', 'score': 90, 'findings': []}])
+assert len(_pack['criteria']) == 55, f'matriz del pack: {len(_pack["criteria"])} rows'
+assert all('effort' in m for m in _pack['criteria']), 'row del pack sin esfuerzo'
 assert _pack['effort_pending']['total_minutes'] == [313, 649], \
     f"totales derivados: {_pack['effort_pending']['total_minutes']}"
 

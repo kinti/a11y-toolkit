@@ -19,14 +19,14 @@ import sys
 import urllib.parse
 import urllib.request
 
-from .a11yaudit import calcular_score
+from .a11yaudit import compute_score
 
 BASE = 'https://validator.w3.org/nu/'
 UA = 'a11y-toolkit/3.16 (WCAG audit; github.com/kinti/a11y-toolkit)'
 
 # known Nu messages → WCAG criteria (the honest subset; the rest are
 # plain HTML validity findings, reported under their own label)
-_MAPEO = (
+_MAPPING = (
     ('must have an "alt" attribute', '1.1.1'),
     ('"lang" attribute', '3.1.1'),
     ('Bad value' and 'role', None),  # placeholder, refined below
@@ -34,8 +34,8 @@ _MAPEO = (
 )
 
 
-def _criterio_de(mensaje):
-    m = mensaje.lower()
+def _criterio_de(message):
+    m = message.lower()
     if 'alt' in m and 'img' in m:
         return '1.1.1'
     if 'lang' in m and ('html' in m or 'language' in m):
@@ -60,31 +60,31 @@ def _llamar(data=None, url=None, timeout=60, base_url=None):
         return json.load(r)
 
 
-def _procesar(resp, origen, lang='en'):
-    hallazgos = []
+def _process(resp, origin, lang='en'):
+    findings = []
     for m in resp.get('messages', []):
-        tipo = m.get('type', 'info')
-        if tipo == 'info':
+        kind = m.get('type', 'info')
+        if kind == 'info':
             continue
         crit = _criterio_de(m.get('message', ''))
-        hallazgos.append({
-            'severity': 'medium' if tipo == 'error' else 'low',
+        findings.append({
+            'severity': 'medium' if kind == 'error' else 'low',
             'criterion': crit or 'HTML validity (W3C Nu)',
             'signal': 'html_invalid',
             'issue': (m.get('message', '') or '')[:220],
             'remediation': 'Fix the HTML error reported by the W3C validator'
                            if lang == 'en' else 'Corrige el error HTML reportado por el validador W3C',
-            'linea': m.get('lastLine'),
+            'line': m.get('lastLine'),
         })
-    orden = {'high': 0, 'medium': 1, 'low': 2}
-    hallazgos.sort(key=lambda h: orden[h['severity']])
+    order = {'high': 0, 'medium': 1, 'low': 2}
+    findings.sort(key=lambda h: order[h['severity']])
     return {
-        'url': origen,
+        'url': origin,
         'mode': 'w3c-nu',
-        'score': calcular_score(hallazgos),
-        'summary': {s_: sum(1 for h in hallazgos if h['severity'] == s_)
+        'score': compute_score(findings),
+        'summary': {s_: sum(1 for h in findings if h['severity'] == s_)
                     for s_ in ('high', 'medium', 'low')},
-        'findings': hallazgos,
+        'findings': findings,
         'notice': ('Report from the W3C Nu validator (validator.w3.org/nu). Complements the '
                   'toolkit audits with the W3C parser view: doctype, encoding, structural '
                   'validity. HTML validity is not WCAG by itself; mapped criteria where they '
@@ -92,14 +92,14 @@ def _procesar(resp, origen, lang='en'):
     }
 
 
-def validar_url(url, timeout=60, lang='en', base_url=None):
+def validate_url(url, timeout=60, lang='en', base_url=None):
     resp = _llamar(url=url, timeout=timeout, base_url=base_url)
-    return _procesar(resp, url, lang)
+    return _process(resp, url, lang)
 
 
-def validar_html(html_text, timeout=60, lang='en', base_url=None):
+def validate_html(html_text, timeout=60, lang='en', base_url=None):
     resp = _llamar(data=html_text, timeout=timeout, base_url=base_url)
-    return _procesar(resp, '(html posted)', lang)
+    return _process(resp, '(html posted)', lang)
 
 
 def main(argv):
@@ -112,10 +112,10 @@ def main(argv):
     a = ap.parse_args(argv)
     try:
         if a.url:
-            res = validar_url(a.url, lang=a.lang, base_url=a.self_hosted)
+            res = validate_url(a.url, lang=a.lang, base_url=a.self_hosted)
         else:
             with open(a.file, encoding='utf-8', errors='replace') as f:
-                res = validar_html(f.read(), lang=a.lang, base_url=a.self_hosted)
+                res = validate_html(f.read(), lang=a.lang, base_url=a.self_hosted)
     except Exception as e:  # noqa: BLE001
         print(json.dumps({'error': f'validator call failed: {e}'}))
         return 1

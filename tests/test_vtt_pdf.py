@@ -23,7 +23,7 @@ Hola mundo
 
 2
 00:00:04.000 --> 00:00:04.500
-Supercalifragilisticexpialidocious texto largo imposible de leer a esta velocidad
+Supercalifragilisticexpialidocious text largo imposible de leer a esta velocidad
 
 3
 00:00:05.000 --> 00:00:08.000
@@ -38,23 +38,23 @@ Final
 """
 
 # 1-5. VTT: los seis juicios sobre contenido
-_orig = audit_mod._descarga
-audit_mod._descarga = lambda url, **kw: VTT
+_orig = audit_mod._fetch
+audit_mod._fetch = lambda url, **kw: VTT
 try:
     r = vtt_check('https://x/c.vtt', duration=15, lang='en')
 finally:
-    audit_mod._descarga = _orig
+    audit_mod._fetch = _orig
 sig = {h['signal'] for h in r['findings']}
 assert {'vtt_empty_cue', 'vtt_too_fast', 'vtt_overlap', 'vtt_coverage'} <= sig, sig
 assert r['cues'] == 5 and r['mode'] == 'vtt'
 print('1. VTT: vacío + rápido + solape + cobertura ✓')
 
 
-def mini_pdf(tagged=True, title=True, lang=True, texto=True, pages=3, img=False):
+def mini_pdf(tagged=True, title=True, lang=True, text=True, pages=3, img=False):
     objs = [b'1 0 obj\n<< /Type /Catalog /Pages 2 0 R' +
             (b' /StructTreeRoot 5 0 R' if tagged else b'') +
             (b' /Lang (es-ES)' if lang else b'') + b' >>\nendobj\n']
-    contenido = (b'BT (Hola documento) Tj ET\n' if texto else b'') * 4
+    contenido = (b'BT (Hola documento) Tj ET\n' if text else b'') * 4
     objs.append(b'2 0 obj\n<< /Type /Pages /Kids [' +
                 b' '.join(b'%d 0 R' % (10 + i) for i in range(pages)) + b'] /Count ' +
                 str(pages).encode() + b' >>\nendobj\n')
@@ -80,7 +80,7 @@ def mini_pdf(tagged=True, title=True, lang=True, texto=True, pages=3, img=False)
 b = pdf_screen(mini_pdf(), lang='es')
 assert b['tagged'] and b['lang'] == 'es-ES' and b['title'] == 'Informe' and not b['findings']
 print('6. PDF bueno: 100 sin señales ✓')
-m = pdf_screen(mini_pdf(tagged=False, title=False, lang=False, texto=False, img=True), lang='es')
+m = pdf_screen(mini_pdf(tagged=False, title=False, lang=False, text=False, img=True), lang='es')
 assert {'pdf_untagged', 'pdf_no_title', 'pdf_no_lang', 'pdf_scanned'} <= {h['signal'] for h in m['findings']}
 assert not pdf_screen(b'no-pdf').get('tagged', False) and 'error' in pdf_screen(b'no-pdf')
 print('7. PDF malo: 4 señales raíz ✓  8. no-PDF rechazado ✓')
@@ -88,7 +88,7 @@ print('7. PDF malo: 4 señales raíz ✓  8. no-PDF rechazado ✓')
 # 9. CLI real de ambos
 ruta_pdf = os.path.join('/tmp', 'mini.pdf')
 with open(ruta_pdf, 'wb') as f:
-    f.write(mini_pdf(tagged=False, title=False, lang=False, texto=False))
+    f.write(mini_pdf(tagged=False, title=False, lang=False, text=False))
 out = subprocess.run([sys.executable, '-m', 'a11y_toolkit.a11ypdf', ruta_pdf, '--lang', 'en'],
                      capture_output=True, text=True, cwd=ROOT, timeout=30)
 d = json.loads(out.stdout)
@@ -97,24 +97,24 @@ print('9. CLI pdf ✓')
 
 print('VTT+PDF OK ✓')
 
-# 10. sin texto PERO sin imágenes: no hay base para acusar escaneo
-solo_estructura = pdf_screen(mini_pdf(tagged=False, title=False, lang=False, texto=False), lang='es')
+# 10. sin text PERO sin imágenes: no hay base para acusar escaneo
+solo_estructura = pdf_screen(mini_pdf(tagged=False, title=False, lang=False, text=False), lang='es')
 assert 'pdf_scanned' not in {h['signal'] for h in solo_estructura['findings']}
-print('10. escaneo solo con patrón (img+sin texto) ✓')
+print('10. escaneo solo con patrón (img+sin text) ✓')
 
 
 # ── DOCX screening (5.9-c) ──
 from a11y_toolkit.a11ydocx import docx_screen  # noqa: E402
 W_NS = 'xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"'
 
-def docx_tmp(cuerpo, estilos=None, name='t.docx'):
-    ruta = os.path.join('/tmp', name)
-    z = zipfile.ZipFile(ruta, 'w')
+def docx_tmp(body, estilos=None, name='t.docx'):
+    path = os.path.join('/tmp', name)
+    z = zipfile.ZipFile(path, 'w')
     z.writestr('[Content_Types].xml', '<?xml version="1.0"?><Types/>')
-    z.writestr('word/document.xml', '<?xml version="1.0"?>' + cuerpo)
+    z.writestr('word/document.xml', '<?xml version="1.0"?>' + body)
     z.writestr('word/styles.xml', estilos or f'<?xml version="1.0"?><w:styles {W_NS}></w:styles>')
     z.close()
-    return ruta
+    return path
 
 cuerpo_malo = f'<w:document {W_NS}><w:body>' \
     + '<w:p><w:r><w:rPr><w:b/><w:sz w:val="36"/></w:rPr><w:t>Sección principal</w:t></w:r></w:p>' \
@@ -123,7 +123,7 @@ cuerpo_malo = f'<w:document {W_NS}><w:body>' \
     + '</w:body></w:document>'
 m = docx_screen(docx_tmp(cuerpo_malo, name='malo.docx'), lang='en')
 sig_m = {h['signal'] for h in m['findings']}
-assert {'docx_no_alt', 'docx_sin_idioma', 'docx_sin_tabla_header', 'docx_falsos_encabezados'} <= sig_m, sig_m
+assert {'docx_no_alt', 'docx_no_lang', 'docx_table_no_header', 'docx_fake_headings'} <= sig_m, sig_m
 print('11. DOCX malo: 4 señales raíz ✓')
 
 estilos_bien = (f'<?xml version="1.0"?><w:styles {W_NS}><w:docDefaults><w:rPrDefault>'
@@ -134,8 +134,8 @@ cuerpo_bien = (f'<w:document {W_NS}><w:body>'
                + '<w:p><w:r><w:drawing><wp:docPr id="1" name="i" descr="Gráfico de ventas"/></wp:drawing></w:r></w:p>'
                + '</w:body></w:document>')
 b = docx_screen(docx_tmp(cuerpo_bien, estilos_bien, 'bien.docx'), lang='en')
-assert not b['findings'] and b['idioma'] == 'es-ES', (b['findings'], b['idioma'])
-print('12. DOCX bueno: sin señales, idioma detectado ✓')
+assert not b['findings'] and b['language'] == 'es-ES', (b['findings'], b['language'])
+print('12. DOCX bueno: sin señales, language detectado ✓')
 
 assert 'error' in docx_screen('/tmp', lang='en')
 print('13. no-docx rechazado ✓')

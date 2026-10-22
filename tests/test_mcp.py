@@ -5,8 +5,8 @@ import os
 import subprocess
 import sys
 
-AQUI = os.path.dirname(os.path.abspath(__file__))
-ROOT = os.path.dirname(AQUI)
+HERE = os.path.dirname(os.path.abspath(__file__))
+ROOT = os.path.dirname(HERE)
 sys.path.insert(0, ROOT)
 from a11y_toolkit import server  # noqa: E402
 REQ = [
@@ -21,7 +21,7 @@ REQ = [
     {'jsonrpc': '2.0', 'id': 4, 'method': 'tools/call',
      'params': {'name': 'a11y_generate_declaration',
                 'arguments': {'entity': 'T', 'url': 'https://t.example',
-                              'status': 'parcial',
+                              'status': 'partial',
                               'inaccessible_content': ['Un vídeo sin subtítulos']}}},
     {'jsonrpc': '2.0', 'id': 5, 'method': 'tools/call',
      'params': {'name': 'a11y_aria_live_snippet', 'arguments': {}}},
@@ -44,7 +44,7 @@ REQ = [
      'params': {'name': 'a11y_evidence',
                 'arguments': {'reports': [{'url': 'https://t.example', 'score': 88,
                                              'findings': [{'criterion': '1.1.1 Non-text Content',
-                                                            'severity': 'high', 'signal': 'imgs_alt',
+                                                            'severity': 'high', 'signal': 'img_no_alt',
                                                             'issue': 'x', 'remediation': 'y'}]}],
                               'verified': ['1.4.1', '1.1.1']}}},
     {'jsonrpc': '2.0', 'id': 15, 'method': 'tools/call',
@@ -87,29 +87,30 @@ aud = json.loads(por_id[9]['result']['content'][0]['text'])
 crit = {h['criterion'] for h in aud['findings']}
 assert any(c.startswith('1.1.1') for c in crit), crit   # img sin alt vía html inline
 assert any(c.startswith('2.1.1') for c in crit), crit   # onclick en <p>
-assert '1.1.1 Non-text Content' in crit, sorted(crit)  # el criterio completo, no solo el código
+assert '1.1.1 Non-text Content' in crit, sorted(crit)  # el criterion completo, no solo el código
 
 fx = json.loads(por_id[16]['result']['content'][0]['text'])
-fxs = sorted(a['signal'] for a in fx['aplicados'])
+fxs = sorted(a['signal'] for a in fx['applied'])
 assert fxs == ['autocomplete', 'lang_missing', 'title_missing', 'zoom_no'], fxs
 assert 'user-scalable' not in fx['fixed_html'] and 'autocomplete="email"' in fx['fixed_html']
 ev = json.loads(por_id[17]['result']['content'][0]['text'])
-estados = {m['criterion'].split(' ')[0]: m['status'] for m in ev['criteria']}
-assert estados['1.4.1'] == 'agent-verified', f"dispatch no pasa verificados: {estados['1.4.1']}"
-assert estados['1.1.1'] == 'automated-fail'
+states = {m['criterion'].split(' ')[0]: m['status'] for m in ev['criteria']}
+assert states['1.4.1'] == 'agent-verified', f"dispatch no pasa verificados: {states['1.4.1']}"
+assert states['1.1.1'] == 'automated-fail'
 b15 = por_id[15]['result']['content'][0]['text']
 assert b15.startswith('<svg') and '92/100' in b15 and 'role="img"' in b15
 c14 = json.loads(por_id[14]['result']['content'][0]['text'])
 assert c14['criterion'].startswith('2.5.8') and '24×24' in c14['requires'] and c14['level'] == 'AA'
 d2 = json.loads(por_id[10]['result']['content'][0]['text'])
-assert d2['text'] == '#999999' and abs(d2['ratio'] - 2.85) < 0.02  # hsl + nombre CSS
+assert d2['text'] == '#999999' and abs(d2['ratio'] - 2.85) < 0.02  # hsl + name CSS
 
 print('TESTS MCP PASAN ✓ (handshake+instructions, 19 tools EN, 5 prompts, criterion 2.5.8, audit html inline, hsl/nombres)')
 
 REQ2 = [
     {'jsonrpc': '2.0', 'id': 10, 'method': 'initialize', 'params': {'protocolVersion': '2024-11-05', 'capabilities': {}, 'clientInfo': {'name': 't'}}},
     {'jsonrpc': '2.0', 'id': 11, 'method': 'tools/call', 'params': {'name': 'a11y_contrast_pair', 'arguments': {'fg': '#999999', 'bg': '#ffffff', 'lang': 'en'}}},
-    {'jsonrpc': '2.0', 'id': 12, 'method': 'tools/call', 'params': {'name': 'a11y_generate_declaration', 'arguments': {'entity': 'Acme', 'url': 'https://acme.eu', 'status': 'parcial', 'inaccessible_content': ['Old videos without captions'], 'framework': 'eaa', 'lang': 'en'}}},
+    {'jsonrpc': '2.0', 'id': 12, 'method': 'tools/call', 'params': {'name': 'a11y_generate_declaration', 'arguments': {'entity': 'Acme', 'url': 'https://acme.eu', 'status': 'parcial',  # alias pre-5.11: el dispatcher lo acepta
+                             'inaccessible_content': ['Old videos without captions'], 'framework': 'eaa', 'lang': 'en'}}},
     {'jsonrpc': '2.0', 'id': 13, 'method': 'prompts/call', 'params': {'name': 'declaration-eaa', 'arguments': {'entity': 'Acme', 'url': 'https://acme.eu', 'language': 'es'}}},
 ]
 p2 = subprocess.run([sys.executable, '-m', 'a11y_toolkit.server'], cwd=ROOT,

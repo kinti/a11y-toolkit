@@ -26,7 +26,7 @@ from html.parser import HTMLParser
 MAX_HTML = 3_000_000
 
 # Campos de formulario que necesitan etiqueta visible o nombre accesible
-_CAMPOS = {'text', 'email', 'tel', 'url', 'search', 'password', 'number',
+_FIELDS = {'text', 'email', 'tel', 'url', 'search', 'password', 'number',
            'date', 'time', 'datetime-local', 'month', 'week', 'checkbox',
            'radio', 'file', 'range', 'color'}
 _CONTROLES = ('a', 'button', 'summary')
@@ -36,7 +36,7 @@ _LANG_CODES = set('''af am ar az be bg bn bs ca cs cy da de el en es et eu fa fi
 gu he hi hr hu hy id is it ja ka kk km kn ko ky lo lt lv mk ml mn mr ms my ne nl or pa
 pl ps pt ro ru rw si sk sl sq sr sv sw ta te tg th ti tk tr uk ur uz vi zh'''.split())
 
-_REGIONES = set('''af ax al dz as ad ao ai aq ag ar am aw au at az bs bh bd bb by be bz
+_REGIONS = set('''af ax al dz as ad ao ai aq ag ar am aw au at az bs bh bd bb by be bz
 bm bt bo bq ba bw bv io br io bn bg bf bi cv kh cm ca ky cf td cl cn cx cc co km cg cd
 ck cr ci hr cu cw cy cz dj dk dm do ec eg sv gq er ee et fk fo fj fi fr gf pf tf ga gm
 ge de gh gi gr gl gd gp gu gt gn gw gy ht hm hn hk hu is in id ir iq ie im il it jm je
@@ -58,7 +58,7 @@ switch tab table tablist tabpanel term textbox time timer toolbar tooltip tree t
 treeitem'''.split())
 
 # Texto de enlace sin propósito (2.4.4), es + en
-_TEXTO_GENERICO = {'more', 'read more', 'learn more', 'click here', 'here', 'this',
+_GENERIC_TEXT = {'more', 'read more', 'learn more', 'click here', 'here', 'this',
                    'this link', 'link', 'details', 'view', 'see more', 'continue',
                    'más', 'leer más', 'saber más', 'pincha aquí', 'aquí', 'ver más',
                    'seguir leyendo', 'detalle', 'detalles', 'enlace', 'continuar', 'ver'}
@@ -98,7 +98,7 @@ _AUTOFILL_TOKENS = {
     'cc-additional-name', 'tel-extension', 'webauthn',
 }
 # sección-*: comodín del estándar (section-main, section-top…)
-_SECCION = __import__('re').compile(r'^section-[a-z0-9-]+$')
+_SECTION = __import__('re').compile(r'^section-[a-z0-9-]+$')
 
 # Validación de VALORES aria-* (estilo axe aria-valid-attr-value)
 _ARIA_BOOL = {'aria-hidden', 'aria-expanded', 'aria-selected', 'aria-pressed',
@@ -233,9 +233,9 @@ CRIT = {
 
 T = {
     'es': {
-        'descarga_error': 'no se pudo descargar: {e}',
-        'imgs_alt': '{n} <img> sin atributo alt (ni siquiera alt="").',
-        'imgs_alt_rem': 'Añade alt a cada <img>: texto descriptivo si aporta información, alt="" si es decorativa. En <input type="image"> y <area> es igual de obligatorio.',
+        'fetch_error': 'no se pudo descargar: {e}',
+        'img_no_alt': '{n} <img> sin atributo alt (ni siquiera alt="").',
+        'img_no_alt_rem': 'Añade alt a cada <img>: texto descriptivo si aporta información, alt="" si es decorativa. En <input type="image"> y <area> es igual de obligatorio.',
         'autocomplete_invalid': '{n} valores de autocomplete no válidos: {ej}. El token debe ser uno del estándar HTML (§7.5 autofill), o el lector no identificará el propósito (1.3.5).',
         'autocomplete_invalid_rem': 'Usa tokens del estándar: email, tel, name, postal-code, one-time-code… (lista completa en la herramienta).',
         'input_img_alt': '<input type="image"> sin alt (botón gráfico sin nombre).',
@@ -255,8 +255,8 @@ T = {
         'video_captions': '{n} <video> sin <track kind="captions">.',
         'video_captions_rem': 'Publica subtítulos para el audio del vídeo (1.2.2). Si es decorativo y sin audio, márcalo como tal.',
         'lang_missing': 'El elemento <html> no declara lang.',
-        'lang_region_invalida': 'lang «{l}»: la subetiqueta de región no existe (ISO 3166). Usa el idioma solo («es») o una región real («es-AR»).',
-        'lang_region_invalida_rem': 'Valida la región en el IANA Language Subtag Registry: «es» a secas o «es-AR» con región real.',
+        'lang_region_invalid': 'lang «{l}»: la subetiqueta de región no existe (ISO 3166). Usa el idioma solo («es») o una región real («es-AR»).',
+        'lang_region_invalid_rem': 'Valida la región en el IANA Language Subtag Registry: «es» a secas o «es-AR» con región real.',
         'lang_missing_rem': 'Añade lang="es" (o el idioma real) a <html>: lectores de pantalla eligen la voz sintética por él.',
         'lang_invalid': 'lang="{lang}" no es un código de idioma válido (BCP-47).',
         'lang_invalid_rem': 'Usa el subtag principal ISO 639 correcto (es, en, pt…).',
@@ -322,8 +322,8 @@ T = {
         'images_of_text_rem': 'Salvo logotipos, presenta el texto como texto real (1.4.5): se re escala, se re-fluye y se traduce; una imagen no.',
         'label_in_name': '{n} controles cuyo aria-label no contiene el texto visible («{ej}»): quien dicta por voz dice lo que ve (2.5.3).',
         'label_in_name_rem': 'El nombre accesible debe CONTENER la etiqueta visible: «Ofertas de verano (abre en ventana nueva)», no «Más info». Sustituye el aria-label por texto visible + sufijo.',
-        'lang_partes': '{n} atributos lang en elementos no válidos (BCP-47): {ej}.',
-        'lang_partes_rem': 'Los fragmentos en otro idioma llevan lang con código válido (3.1.2): <blockquote lang="en">…</blockquote>.',
+        'element_lang_invalid': '{n} atributos lang en elementos no válidos (BCP-47): {ej}.',
+        'element_lang_invalid_rem': 'Los fragmentos en otro idioma llevan lang con código válido (3.1.2): <blockquote lang="en">…</blockquote>.',
         'down_event': '{n} manejadores en down-event (onmousedown/ontouchstart/onpointerdown): {ej}. Revisar (2.5.2).',
         'down_event_rem': 'Activa en el UP-event (onclick/onmouseup): permite abortar arrastrando fuera — la regla de 2.5.2.',
         'captcha': 'Detectado captcha ({ej}): 3.3.8 exige alternativa sin test cognitivo para el acceso.',
@@ -380,9 +380,9 @@ T = {
                     'auditoría).'),
     },
     'en': {
-        'descarga_error': 'could not download: {e}',
-        'imgs_alt': '{n} <img> without an alt attribute (not even alt="").',
-        'imgs_alt_rem': 'Add alt to every <img>: descriptive text when it conveys information, alt="" when decorative. Same requirement for <input type="image"> and <area>.',
+        'fetch_error': 'could not download: {e}',
+        'img_no_alt': '{n} <img> without an alt attribute (not even alt="").',
+        'img_no_alt_rem': 'Add alt to every <img>: descriptive text when it conveys information, alt="" when decorative. Same requirement for <input type="image"> and <area>.',
                 'autocomplete_invalid': '{n} invalid autocomplete token values: {ej}. Tokens must come from the HTML autofill standard (§7.5) or assistive tech cannot identify the purpose (1.3.5).',
         'autocomplete_invalid_rem': 'Use standard tokens: email, tel, name, postal-code, one-time-code… (full list in the tool).',
 'input_img_alt': '<input type="image"> without alt (image button with no name).',
@@ -402,8 +402,8 @@ T = {
         'video_captions': '{n} <video> without <track kind="captions">.',
         'video_captions_rem': 'Publish captions for the video audio track (1.2.2). If decorative and silent, mark it as such.',
         'lang_missing': 'The <html> element does not declare lang.',
-        'lang_region_invalida': 'lang “{l}”: the region subtag does not exist (ISO 3166). Use the language alone (“en”) or a real region (“en-GB”).',
-        'lang_region_invalida_rem': 'Validate the region against the IANA Language Subtag Registry: “en” alone or “en-GB” with a real region.',
+        'lang_region_invalid': 'lang “{l}”: the region subtag does not exist (ISO 3166). Use the language alone (“en”) or a real region (“en-GB”).',
+        'lang_region_invalid_rem': 'Validate the region against the IANA Language Subtag Registry: “en” alone or “en-GB” with a real region.',
         'lang_missing_rem': 'Add lang="en" (the real language) to <html>: screen readers pick the synthetic voice from it.',
         'lang_invalid': 'lang="{lang}" is not a valid BCP-47 language code.',
         'lang_invalid_rem': 'Use the correct ISO 639 primary subtag (en, es, pt…).',
@@ -469,8 +469,8 @@ T = {
         'images_of_text_rem': 'Except for logotypes, present text as real text (1.4.5): it rescales, reflows and translates; an image does not.',
         'label_in_name': '{n} controls whose aria-label does not contain the visible text («{ej}»): voice-input users say what they see (2.5.3).',
         'label_in_name_rem': 'The accessible name must CONTAIN the visible label: "Summer offers (opens in new window)", not "More info". Use visible text + suffix.',
-        'lang_partes': '{n} invalid lang attributes on elements (BCP-47): {ej}.',
-        'lang_partes_rem': 'Foreign-language fragments carry lang with a valid code (3.1.2): <blockquote lang="en">…</blockquote>.',
+        'element_lang_invalid': '{n} invalid lang attributes on elements (BCP-47): {ej}.',
+        'element_lang_invalid_rem': 'Foreign-language fragments carry lang with a valid code (3.1.2): <blockquote lang="en">…</blockquote>.',
         'down_event': '{n} down-event handlers (onmousedown/ontouchstart/onpointerdown): {ej}. Review (2.5.2).',
         'down_event_rem': 'Activate on the UP event (onclick/onmouseup): dragging away can abort — that is rule 2.5.2.',
         'captcha': 'Captcha detected ({ej}): 3.3.8 requires a non-cognitive-test alternative for access.',
@@ -542,24 +542,24 @@ def _crit(lang, code):
 class _Auditor(HTMLParser):
     def __init__(self):
         super().__init__(convert_charrefs=True)
-        self.imgs_sin_alt = []
+        self.imgs_no_alt = []
         self.sitios = {}          # tag → lista de atributos de controles sin nombre
-        self.campos_sin_label = []
-        self.iframes_sin_title = []
+        self.fields_no_label = []
+        self.iframes_no_title = []
         self.lang = None
-        self.lang_region_invalida = None
+        self.lang_region_invalid = None
         self.title = ''
-        self._en_title = False
-        self._en_script = False
-        self._en_estilo = False
+        self._in_title = False
+        self._in_script = False
+        self._in_style = False
         self.headings = []        # (nivel, texto)
-        self._nivel_h = None
-        self._texto_h = []
-        self._texto_visible = []
-        self._texto_h = []
+        self._heading_level = None
+        self._heading_text = []
+        self._visible_text = []
+        self._heading_text = []
         self.tabindex_positivos = []
         self.viewport = None
-        self.elementos = 0
+        self.elements = 0
         # Pila de controles interactivos (a/button/summary) para recoger su
         # texto interno, que es la fuente más habitual de nombre accesible.
         self._ctrl = []
@@ -572,62 +572,62 @@ class _Auditor(HTMLParser):
         self.click_sueltos = []           # tags no interactivos con onclick
         self.meta_refresh = None
         self.videos = 0
-        self.videos_con_subs = 0
-        self._en_video = False
-        self.tablas = 0
-        self.tablas_con_th = 0
-        self._en_tabla = False
-        self._th_en_tabla = False
-        self.blank_sin_aviso = 0
+        self.videos_with_captions = 0
+        self._in_video = False
+        self.tables = 0
+        self.tables_with_th = 0
+        self._in_table = False
+        self._th_in_table = False
+        self.blank_no_warning = 0
         self.blank_total = 0
         self.hay_main = False
         self.hay_skip = False
         self.h1s = 0
         self.vacios_h = 0
         self.ids = {}
-        self.input_img_sin_alt = 0
+        self.input_img_no_alt = 0
         # v3.1: validez ARIA, autocomplete, enlaces, landmarks, accesskey, autoplay
         self.aria_refs = []       # (attr, id) referenciados por aria-labelledby/describedby
-        self.aria_valores = []    # valores aria-* inválidos
+        self.aria_values = []    # valores aria-* inválidos
         self.roles_desconocidos = []
-        self.roles_sin_estado = []   # widgets con role que exige aria-valuenow
+        self.roles_without_state = []   # widgets con role que exige aria-valuenow
         self.landmarks = {}       # tipo → [con_etiqueta, total]
-        self.accesos = {}         # accesskey → tag
+        self.accesskeys = {}         # accesskey → tag
         self.autocomplete_faltan = []
-        self.autocomplete_invalidos = []
-        self.enlaces = {}         # nombre normalizado → set de hrefs
+        self.autocomplete_invalid = []
+        self.links = {}         # nombre normalizado → set de hrefs
         self.genericos = 0
         self.labels_for_dups = {}  # id → n labels (los >1, varios)
-        self.medios_autoplay = 0
-        self._lista_prof = 0
-        self._li_prof = 0
-        self._lista_malos = 0
+        self.media_autoplay = 0
+        self._list_depth = 0
+        self._li_depth = 0
+        self._bad_list = 0
         self.label_no_name = []     # (texto visible, aria-label) 2.5.3
-        self.langs_partes = []      # lang inválidos en elementos no-html
+        self.lang_parts_invalid = []      # lang inválidos en elementos no-html
         self.down_events = []       # onmousedown/ontouchstart/onpointerdown
         self.captchas = []          # detección 3.3.8
         self.moviles = []           # marquee/blink/inline infinite animation (2.2.2)
         self.nav_hrefs = set()      # hrefs inside <nav> (site-level 3.2.3 signature)
         self.help_hrefs = set()     # help/contact links (site-level 3.2.6 signature)
-        self.imagenes_texto = []
+        self.images_of_text = []
         self.headings_vagos = []
         self.char_shortcuts = []
         self.drag_handlers = []
         self.status_regions = 0
         self.placeholder_only = []     # 3.3.2: placeholder sin label
-        self.required_sin_indicio = [] # 3.3.2: required sin * ni "obligatorio"
+        self.required_no_indication = [] # 3.3.2: required sin * ni "obligatorio"
         self.fieldsets_faltan = 0      # 1.3.1: radio/check groups sin fieldset
         self._radio_group = {}
-        self._radio_en_fieldset = {}         # name → count (para detectar grupos)
+        self._radio_in_fieldset = {}         # name → count (para detectar grupos)
         self.labels_vagos = []         # 2.4.6: label quality
-        self.financieros_sin_conf = 0  # 3.3.4: financial form no confirm
+        self.financial_no_confirm = 0  # 3.3.4: financial form no confirm
         self._form_financiero = False
         self._form_confirma = False    # 1.4.5 suspicion: img inside heading or very long alt
-        self._en_nav = 0
-        self._en_fieldset = False
+        self._in_nav = 0
+        self._in_fieldset = False
         self.tiene_busqueda = False
         self.tiene_sitemap = False
-        self.gestos = []            # touchmove/drag handlers (2.5.1)
+        self.gestures = []            # touchmove/drag handlers (2.5.1)
         self.motions = []           # deviceorientation/devicemotion (2.5.4)
         self.orientation_locks = [] # screen.orientation.lock / orientation MQ (1.3.4)
         self.videos_descriptions = 0   # videos WITH descriptions track
@@ -642,54 +642,54 @@ class _Auditor(HTMLParser):
             return
         self._ctrl.pop()
         a = c['attrs']
-        texto = ' '.join(c['texto']).strip()
-        if not (texto or a.get('aria-label') or a.get('aria-labelledby')
+        text = ' '.join(c['text']).strip()
+        if not (text or a.get('aria-label') or a.get('aria-labelledby')
                 or a.get('title') or a.get('alt')):
             # el nombre del control puede venir también de una imagen interna
             if not c.get('img_interna'):
                 self.sitios.setdefault(tag, []).append(a)
         if tag == 'a':
-            visible = ' '.join(texto.lower().split())
+            visible = ' '.join(text.lower().split())
             al = ' '.join((a.get('aria-label') or '').lower().split())
             if visible and al and visible not in al:
-                self.label_no_name.append((texto[:40], a.get('aria-label')[:60]))
+                self.label_no_name.append((text[:40], a.get('aria-label')[:60]))
             if (a.get('target') or '').lower() == '_blank':
                 self.blank_total += 1
-                if not _BLANK_HINT.search(texto) and not _BLANK_HINT.search(a.get('aria-label') or '') \
+                if not _BLANK_HINT.search(text) and not _BLANK_HINT.search(a.get('aria-label') or '') \
                         and not _BLANK_HINT.search(a.get('title') or ''):
-                    self.blank_sin_aviso += 1
-            elif (a.get('href') or '').strip().startswith('#') and texto:
+                    self.blank_no_warning += 1
+            elif (a.get('href') or '').strip().startswith('#') and text:
                 self.hay_skip = True  # ancla interna con texto: candidato a skip link
-            nombre = (texto or a.get('aria-label') or a.get('title') or '').strip()
+            name = (text or a.get('aria-label') or a.get('title') or '').strip()
             href = (a.get('href') or '').strip()
-            if nombre and href:
-                clave = ' '.join(nombre.lower().split())[:60]
-                self.enlaces.setdefault(clave, set()).add(href)
-                if clave in _TEXTO_GENERICO:
+            if name and href:
+                entry_key = ' '.join(name.lower().split())[:60]
+                self.links.setdefault(entry_key, set()).add(href)
+                if entry_key in _GENERIC_TEXT:
                     self.genericos += 1
 
-    def _nota_campo(self):
+    def _field_note(self):
         """El elemento que acaba de abrirse es un campo: marca su <label> ancestro."""
         if self._labels_stack:
             self._labels_stack[-1] = True
 
     def handle_starttag(self, tag, attrs):
         a = dict(attrs)
-        self.elementos += 1
+        self.elements += 1
         if a.get('id'):
             self.ids[a['id']] = self.ids.get(a['id'], 0) + 1
         if tag == 'html':
             self.lang = (a.get('lang') or '').strip()
-            partes = self.lang.split('-')
-            if len(partes) == 2 and partes[1] and partes[1].isalpha() \
-                    and partes[1].lower() not in _REGIONES:
-                self.lang_region_invalida = self.lang
+            parts = self.lang.split('-')
+            if len(parts) == 2 and parts[1] and parts[1].isalpha() \
+                    and parts[1].lower() not in _REGIONS:
+                self.lang_region_invalid = self.lang
         elif tag == 'title':
-            self._en_title = True
+            self._in_title = True
         elif tag == 'script':
-            self._en_script = True
+            self._in_script = True
         elif tag == 'style':
-            self._en_estilo = True
+            self._in_style = True
         elif tag == 'meta':
             if a.get('name', '').lower() == 'viewport':
                 self.viewport = a.get('content', '')
@@ -697,26 +697,26 @@ class _Auditor(HTMLParser):
                 self.meta_refresh = a.get('content', '')
         elif tag == 'img':
             if 'alt' not in a:
-                self.imgs_sin_alt.append(a.get('src', '')[:100])
+                self.imgs_no_alt.append(a.get('src', '')[:100])
             alt = (a.get('alt') or '').strip()
             if self._ctrl and alt:
                 self._ctrl[-1]['img_interna'] = True
-            if self._nivel_h is not None or len(alt) > 120:
-                self.imagenes_texto.append('imagen dentro de encabezado' if self._nivel_h is not None
+            if self._heading_level is not None or len(alt) > 120:
+                self.images_of_text.append('imagen dentro de encabezado' if self._heading_level is not None
                                            else f'alt de {len(alt)} caracteres')
         elif tag == 'iframe':
             if not (a.get('title') or a.get('aria-label')):
-                self.iframes_sin_title.append((a.get('src') or '')[:100])
+                self.iframes_no_title.append((a.get('src') or '')[:100])
         elif tag == 'nav':
-            self._en_nav += 1
+            self._in_nav += 1
         elif tag in _CONTROLES:
             # Enlace no interactivo (ancla pura sin href): no se audita.
             if tag == 'a' and not (a.get('href') or '').strip():
                 pass
             else:
-                self._ctrl.append({'tag': tag, 'attrs': a, 'texto': [], 'img_interna': False})
+                self._ctrl.append({'tag': tag, 'attrs': a, 'text': [], 'inner_img': False})
                 href = (a.get('href') or '').strip()
-                if self._en_nav and href and not href.startswith('#'):
+                if self._in_nav and href and not href.startswith('#'):
                     self.nav_hrefs.add(href.split('#')[0].rstrip('/'))
                 if href and re.search(r'help|contact|support|ayuda|contacto|soporte|asistencia',
                                       href, re.I):
@@ -724,38 +724,38 @@ class _Auditor(HTMLParser):
                 if href and re.search(r'sitemap|site-map|mapa-del-sitio|mapa_web|mapaweb', href, re.I):
                     self.tiene_sitemap = True
         elif tag == 'input':
-            self._nota_campo()
-            tipo = (a.get('type') or 'text').lower()
-            if tipo == 'image':
+            self._field_note()
+            kind = (a.get('type') or 'text').lower()
+            if kind == 'image':
                 if not (a.get('alt') or a.get('aria-label') or a.get('title')):
-                    self.input_img_sin_alt += 1
-            elif tipo in ('submit', 'button', 'reset'):
+                    self.input_img_no_alt += 1
+            elif kind in ('submit', 'button', 'reset'):
                 if not (a.get('value') or a.get('aria-label') or a.get('alt')):
-                    self.sitios.setdefault('input:' + tipo, []).append(a)
-            if tipo == 'search' or re.search(r'search|busqueda|b[uú]squeda', (a.get('name') or '') + (a.get('id') or ''), re.I):
+                    self.sitios.setdefault('input:' + kind, []).append(a)
+            if kind == 'search' or re.search(r'search|busqueda|b[uú]squeda', (a.get('name') or '') + (a.get('id') or ''), re.I):
                 self.tiene_busqueda = True
-            elif tipo in _CAMPOS:
-                tiene_nombre = a.get('aria-label') or a.get('aria-labelledby') or a.get('title')
-                if not tiene_nombre and self._label_depth == 0:
-                    self.campos_sin_label.append((tipo, a.get('name', '')[:60], a.get('id')))
-                if 'autocomplete' not in a and tipo != 'search' and (
-                        tipo in ('email', 'tel')
+            elif kind in _FIELDS:
+                has_name = a.get('aria-label') or a.get('aria-labelledby') or a.get('title')
+                if not has_name and self._label_depth == 0:
+                    self.fields_no_label.append((kind, a.get('name', '')[:60], a.get('id')))
+                if 'autocomplete' not in a and kind != 'search' and (
+                        kind in ('email', 'tel')
                         or _DATO_PERSONAL.search((a.get('name') or '') + ' ' + (a.get('id') or ''))):
-                    self.autocomplete_faltan.append(f'input type={tipo} name={a.get("name") or "?"}'[:44])
+                    self.autocomplete_faltan.append(f'input type={kind} name={a.get("name") or "?"}'[:44])
         if tag == 'input' and 'autocomplete' in a:
             for tok in (a['autocomplete'] or '').split():
                 if tok and tok not in ('on', 'off') and tok.split(':')[-1] not in _AUTOFILL_TOKENS \
-                        and tok not in ('shipping', 'billing') and not _SECCION.match(tok):
-                    self.autocomplete_invalidos.append(
+                        and tok not in ('shipping', 'billing') and not _SECTION.match(tok):
+                    self.autocomplete_invalid.append(
                         f'{tok} (input name={a.get("name") or "?"})'[:60])
         elif tag in ('select', 'textarea'):
-            self._nota_campo()
-            tiene_nombre = a.get('aria-label') or a.get('aria-labelledby') or a.get('title')
-            if not tiene_nombre and self._label_depth == 0:
-                self.campos_sin_label.append((tag, a.get('name', '')[:60], a.get('id')))
+            self._field_note()
+            has_name = a.get('aria-label') or a.get('aria-labelledby') or a.get('title')
+            if not has_name and self._label_depth == 0:
+                self.fields_no_label.append((tag, a.get('name', '')[:60], a.get('id')))
         elif tag == 'label':
             self._label_depth += 1
-            self._label_texto_actual = []
+            self._label_text_current = []
             self._labels_stack.append(False)
             if a.get('for'):
                 self._labels_for[a['for']] = self._labels_for.get(a['for'], 0) + 1
@@ -771,23 +771,23 @@ class _Auditor(HTMLParser):
             if kind == 'descriptions':
                 self.videos_descriptions += 1
             elif kind in ('captions', 'subtitles'):
-                self.videos_con_subs += 1
+                self.videos_with_captions += 1
         elif tag in ('video', 'audio'):
             if tag == 'video':
                 self.videos += 1
-                self._en_video = True
+                self._in_video = True
             if 'autoplay' in a:
-                self.medios_autoplay += 1
+                self.media_autoplay += 1
         elif tag in ('ul', 'ol'):
-            self._lista_prof += 1
+            self._list_depth += 1
         elif tag == 'li':
-            self._li_prof += 1
+            self._li_depth += 1
         elif tag == 'table':
-            self.tablas += 1
-            self._en_tabla = True
-            self._th_en_tabla = False
+            self.tables += 1
+            self._in_table = True
+            self._th_in_table = False
         elif tag == 'th':
-            self._th_en_tabla = True
+            self._th_in_table = True
         elif tag == 'main' or (a.get('role') or '').lower() == 'main':
             self.hay_main = True
         elif tag not in _CONTROLES + ('input', 'select', 'textarea', 'label', 'option',
@@ -798,7 +798,7 @@ class _Auditor(HTMLParser):
         if tag != 'html' and a.get('lang'):
             prim = a['lang'].strip().lower().split('-')[0]
             if prim and prim not in _LANG_CODES:
-                self.langs_partes.append(f'{tag} lang="{a["lang"]}"')
+                self.lang_parts_invalid.append(f'{tag} lang="{a["lang"]}"')
         # v3.9: 2.5.2 sospecha de activación en down-event
         for _de in ('onmousedown', 'ontouchstart', 'onpointerdown'):
             if a.get(_de):
@@ -811,7 +811,7 @@ class _Auditor(HTMLParser):
         # v3.12: 2.5.1 gesture without click alternative (attribute-level hint)
         if a.get('ontouchmove') or a.get('ondrag'):
             if not (a.get('onclick') or tag in ('input', 'button', 'a')):
-                self.gestos.append(f'{tag}[{list(a)[0] if a else ""}]')
+                self.gestures.append(f'{tag}[{list(a)[0] if a else ""}]')
         # forms: placeholder-only, required sin indicio, financial
         if tag == 'form':
             self._form_financiero = False
@@ -828,14 +828,14 @@ class _Auditor(HTMLParser):
                 ph = (a.get('placeholder') or '').lower()
                 title_ = (a.get('title') or '').lower()
                 if not re.search(r'\*|requerid|obligator|required|necesari|precisa', ph + title_):
-                    self.required_sin_indicio.append(
+                    self.required_no_indication.append(
                         f'{tag}[name={a.get("name","?")}]')
             if tag == 'input' and a.get('type') == 'radio':
                 nm = a.get('name') or '_sin_nombre'
                 self._radio_group[nm] = self._radio_group.get(nm, 0) + 1
-                self._radio_en_fieldset[nm] = self._en_fieldset
+                self._radio_in_fieldset[nm] = self._in_fieldset
         if tag == 'fieldset':
-            self._en_fieldset = True
+            self._in_fieldset = True
         if tag in ('button', 'input'):
             val = (a.get('value') or a.get('data-action') or '').lower()
             if re.search(r'confirm|verificar|review|revisar|accept|aceptar', val):
@@ -877,24 +877,24 @@ class _Auditor(HTMLParser):
                 continue
             _val = (_val or '').strip().lower()
             if _ar in _ARIA_BOOL and _val not in ('true', 'false', 'undefined'):
-                self.aria_valores.append({'attr': _ar, 'val': _val, 'type': 'bool'})
+                self.aria_values.append({'attr': _ar, 'val': _val, 'type': 'bool'})
             elif _ar in _ARIA_INT and not _val.isdigit():
-                self.aria_valores.append({'attr': _ar, 'val': _val, 'type': 'int'})
+                self.aria_values.append({'attr': _ar, 'val': _val, 'type': 'int'})
             elif _ar in _ARIA_NUM:
                 try:
                     float(_val)
                 except ValueError:
-                    self.aria_valores.append({'attr': _ar, 'val': _val, 'type': 'num'})
+                    self.aria_values.append({'attr': _ar, 'val': _val, 'type': 'num'})
             elif _ar in _ARIA_TOKENS and _val not in _ARIA_TOKENS[_ar]:
-                self.aria_valores.append({'attr': _ar, 'val': _val,
+                self.aria_values.append({'attr': _ar, 'val': _val,
                                           'type': 'tokens',
-                                          'lista': '/'.join(sorted(v for v in _ARIA_TOKENS[_ar] if v))})
+                                          'valid_tokens': '/'.join(sorted(v for v in _ARIA_TOKENS[_ar] if v))})
         if a.get('role'):
             rol = a['role'].strip().split()[0].lower()
             if rol not in _ROLES_ARIA and not rol.startswith('doc-'):
                 self.roles_desconocidos.append(rol)
             if rol in ('slider', 'spinbutton') and 'aria-valuenow' not in a:
-                self.roles_sin_estado.append(f'{tag}[role={rol}]')
+                self.roles_without_state.append(f'{tag}[role={rol}]')
         rol_landmark = a.get('role', '').lower() if a.get('role') in (
             'banner', 'contentinfo', 'navigation', 'complementary', 'main', 'form', 'search', 'region') else None
         lm = tag if tag in ('header', 'footer', 'nav', 'aside', 'main', 'search') else rol_landmark
@@ -906,10 +906,10 @@ class _Auditor(HTMLParser):
             self.landmarks.setdefault(lm, [0, 0])[1] += 1
         if a.get('accesskey'):
             k = a['accesskey'].strip().lower()
-            self.accesos[k] = self.accesos.get(k, 0) + 1
-        if self._lista_prof > 0 and self._li_prof == 0 \
+            self.accesskeys[k] = self.accesskeys.get(k, 0) + 1
+        if self._list_depth > 0 and self._li_depth == 0 \
                 and tag not in ('li', 'script', 'template', 'ul', 'ol'):
-            self._lista_malos += 1
+            self._bad_list += 1
         aria_hidden = (a.get('aria-hidden') or '').lower() == 'true'
         ti_raw = (a.get('tabindex') or '').strip()
         if aria_hidden and ti_raw != '-1' and (
@@ -917,69 +917,69 @@ class _Auditor(HTMLParser):
                 or a.get('onclick')):
             self.aria_hidden_focusable.append(tag)
         if tag in ('h1', 'h2', 'h3', 'h4', 'h5', 'h6'):
-            self._nivel_h = int(tag[1])
-            self._texto_h = []
+            self._heading_level = int(tag[1])
+            self._heading_text = []
         ti = a.get('tabindex')
         if ti and ti.isdigit() and int(ti) > 0:
             self.tabindex_positivos.append((tag, int(ti)))
 
     def handle_endtag(self, tag):
         if tag == 'title':
-            self._en_title = False
+            self._in_title = False
         elif tag == 'script':
-            self._en_script = False
+            self._in_script = False
         elif tag == 'style':
-            self._en_estilo = False
+            self._in_style = False
         elif tag == 'label':
             self._label_depth = max(0, self._label_depth - 1)
-            if hasattr(self, '_label_texto_actual'):
-                txt = ' '.join(self._label_texto_actual).strip()
-                bajo = txt.lower()
+            if hasattr(self, '_label_text_current'):
+                txt = ' '.join(self._label_text_current).strip()
+                lowered = txt.lower()
                 if txt and (len(txt) < 2 or re.fullmatch(
-                    r'(campo|field|input|texto|text|dato|value|entrada|box|caja)[\s\d]*', bajo)):
+                    r'(campo|field|input|texto|text|dato|value|entrada|box|caja)[\s\d]*', lowered)):
                     self.labels_vagos.append(f'"{txt[:30]}"')
             if self._labels_stack and not self._labels_stack.pop():
                 self.labels_huerfanos += 1
         elif tag == 'fieldset':
-            self._en_fieldset = False
+            self._in_fieldset = False
         elif tag == 'form':
             if self._form_financiero and not self._form_confirma:
-                self.financieros_sin_conf += 1
+                self.financial_no_confirm += 1
         elif tag == 'nav':
-            self._en_nav = max(0, self._en_nav - 1)
+            self._in_nav = max(0, self._in_nav - 1)
         elif tag == 'li':
-            self._li_prof = max(0, self._li_prof - 1)
+            self._li_depth = max(0, self._li_depth - 1)
         elif tag in ('ul', 'ol'):
-            self._lista_prof = max(0, self._lista_prof - 1)
+            self._list_depth = max(0, self._list_depth - 1)
         elif tag in _CONTROLES:
             self._cierra_control(tag)
         elif tag == 'video':
-            self._en_video = False
+            self._in_video = False
         elif tag == 'table':
-            if self._en_tabla:
-                if not self._th_en_tabla:
+            if self._in_table:
+                if not self._th_in_table:
                     pass  # se contabiliza abajo
                 else:
-                    self.tablas_con_th += 1
-            self._en_tabla = False
+                    self.tables_with_th += 1
+            self._in_table = False
         elif tag == 'th':
             pass
-        elif tag in ('h1', 'h2', 'h3', 'h4', 'h5', 'h6') and self._nivel_h:
-            texto = ' '.join(self._texto_h).strip()
-            if not texto:
+        elif tag in ('h1', 'h2', 'h3', 'h4', 'h5', 'h6') and self._heading_level:
+            text = ' '.join(self._heading_text).strip()
+            if not text:
                 self.vacios_h += 1
             else:
-                self.headings.append((self._nivel_h, texto[:80]))
-                if self._nivel_h == 1:
+                self.headings.append((self._heading_level, text[:80]))
+                if self._heading_level == 1:
                     self.h1s += 1
-                bajo = texto.lower().strip()
-                if len(texto) < 4 or len(texto) > 120:
-                    self.headings_vagos.append(f'h{self._nivel_h} "{texto[:40]}"')
-                elif re.fullmatch(r'(secci[oó]n|section|chapter|cap[ií]tulo|m[aá]s|more|info|informaci[oó]n|information|details|detalle|click|ver|see|leer|read|continue|seguir)[\s\d.]*', bajo):
-                    self.headings_vagos.append(f'h{self._nivel_h} "{texto[:40]}"')
-                elif re.fullmatch(r'[\d.\s]+', bajo):
-                    self.headings_vagos.append(f'h{self._nivel_h} "{texto[:40]}"')
-            self._nivel_h = None
+                lowered = text.lower().strip()
+                if len(text) < 4 or len(text) > 120:
+                    self.headings_vagos.append(f'h{self._heading_level} "{text[:40]}"')
+                elif re.fullmatch(r'(secci[oó]n|section|chapter|cap[ií]tulo|m[aá]s|more|info|informaci[oó]n|information|details|detalle|click|ver|see|leer|read|continue|seguir)[\s\d.]*', lowered):
+                    self.headings_vagos.append(f'h{self._heading_level} "{text[:40]}"')
+                elif re.fullmatch(r'[\d.\s]+', lowered):
+                    self.headings_vagos.append(f'h{self._heading_level} "{text[:40]}"')
+            self._heading_level = None
 
     _RE_CHAR_KEY = re.compile(r'key(?:Code)?\s*===?\s*["\']([a-zA-Z0-9])["\']', re.S)
 
@@ -999,68 +999,101 @@ class _Auditor(HTMLParser):
                 self.motions.append(_ma.split('(')[1].strip('\'"'))
 
     def handle_data(self, data):
-        en_codigo = getattr(self, '_en_script', False) or getattr(self, '_en_estilo', False)
-        if data.strip() and not en_codigo and not self._en_title:
-            self._texto_visible.append(data)  # prosa visible: ni JS, ni CSS, ni título
-        if self._en_title:
+        in_code = getattr(self, '_in_script', False) or getattr(self, '_in_style', False)
+        if data.strip() and not in_code and not self._in_title:
+            self._visible_text.append(data)  # prosa visible: ni JS, ni CSS, ni título
+        if self._in_title:
             self.title += data
-        elif getattr(self, '_en_script', False):
+        elif getattr(self, '_in_script', False):
             self.handle_script_espera(data)
         else:
             # Un texto puede pertenecer a la vez a un enlace dentro de un
             # encabezado (<h2><a>Guías</a></h2>): alimenta a ambos.
-            if self._label_depth > 0 and hasattr(self, '_label_texto_actual'):
-                self._label_texto_actual.append(data)
+            if self._label_depth > 0 and hasattr(self, '_label_text_current'):
+                self._label_text_current.append(data)
             if self._ctrl:
-                self._ctrl[-1]['texto'].append(data)
-            if self._nivel_h is not None:
-                self._texto_h.append(data)
+                self._ctrl[-1]['text'].append(data)
+            if self._heading_level is not None:
+                self._heading_text.append(data)
             m = _SENSORIAL.search(data)
             if m and len(self.sensory) < 6:
                 self.sensory.append(m.group(0).strip()[:60])
 
 
-def calcular_score(hallazgos):
+
+# Señales renombradas en 5.11.0 (superficie pública 100% inglesa).
+# Los informes y ledgers guardados antes del rename siguen siendo válidos:
+# toda ingesta pasa por normalize_signal().
+SIGNAL_ALIASES = {
+    'imgs_alt': 'img_no_alt',
+    'descarga_error': 'fetch_error',
+    'lang_partes': 'element_lang_invalid',
+    'lang_region_invalida': 'lang_region_invalid',
+    'docx_falsos_encabezados': 'docx_fake_headings',
+    'docx_sin_idioma': 'docx_no_lang',
+    'docx_sin_tabla_header': 'docx_table_no_header',
+}
+
+
+def normalize_signal(signal):
+    """Nombre canónico de una señal (acepta las formas españolas previas a 5.11.0)."""
+    return SIGNAL_ALIASES.get(signal, signal)
+
+
+def normalize_report(report):
+    """Informe con señales normalizadas (no muta el original)."""
+    if not isinstance(report, dict):
+        return report
+    findings = report.get('findings')
+    if not findings:
+        return report
+    out = dict(report)
+    out['findings'] = [dict(h, signal=normalize_signal(h.get('signal', '')))
+                       for h in findings]
+    return out
+
+
+def compute_score(findings):
     """Puntuación 0-100: penalización ponderada por hallazgo (alta 12, media 6, baja 2)."""
     pesos = {'high': 12, 'medium': 6, 'low': 2}
-    penal = sum(pesos[h['severity']] for h in hallazgos)
+    penal = sum(pesos[h['severity']] for h in findings)
     return max(0, 100 - penal)
 
 
 _VOCAL = re.compile(r'[aeiouyáéíóúàèìòùäëïöü]+', re.I)
 
 
-def _silabas(palabra):
+def _silabas(word):
     """Heurística de sílabas por grupos vocálicos (suficiente para índices)."""
-    return max(1, len(_VOCAL.findall(palabra)))
+    return max(1, len(_VOCAL.findall(word)))
 
 
-def _nivel_lectura(texto, lang='en'):
+def _reading_level(text, lang='en'):
     """Flesch Reading Ease (en) / Fernández-Huerta (es) — 3.1.5 cognitivo.
 
     Informativo (AAA): se reporta, no penaliza el score. 100 = muy fácil;
     <50 = difícil (nivel universitario)."""
-    limpio = re.sub(r'<[^>]+>', ' ', texto)
-    palabras = re.findall(r"[\wáéíóúñü'-]{2,}", limpio, re.UNICODE)
-    frases = [f for f in re.split(r'[.!?;:]+', limpio) if f.strip()]
-    if len(palabras) < 40 or not frases:
+    clean = re.sub(r'<[^>]+>', ' ', text)
+    words = re.findall(r"[\wáéíóúñü'-]{2,}", clean, re.UNICODE)
+    phrases = [f for f in re.split(r'[.!?;:]+', clean) if f.strip()]
+    if len(words) < 40 or not phrases:
         return None  # muestra insuficiente: no inventar un índice
-    sil = sum(_silabas(w) for w in palabras)
-    ppf = len(palabras) / len(frases)   # palabras por frase
-    spf = sil / len(palabras) * 100     # sílabas por 100 palabras
+    sil = sum(_silabas(w) for w in words)
+    ppf = len(words) / len(phrases)   # palabras por frase
+    spf = sil / len(words) * 100     # sílabas por 100 palabras
     if lang == 'es':
         # Fernández-Huerta: L = 206.84 − 0.60·P − 1.02·F
         # (P = sílabas por 100 palabras, F = palabras por frase)
-        indice = 206.84 - 0.60 * spf - 1.02 * ppf
-        escala = ('muy fácil', 'fácil', 'estándar', 'difícil', 'muy difícil')
+        index = 206.84 - 0.60 * spf - 1.02 * ppf
+        scale = ('muy fácil', 'fácil', 'estándar', 'difícil', 'muy difícil')
     else:
-        indice = 206.835 - 1.015 * ppf - 84.6 * (sil / len(palabras))
-        escala = ('very easy', 'easy', 'standard', 'difficult', 'very difficult')
-    indice = round(max(0, min(100, indice)), 1)
-    nivel = escala[0] if indice >= 90 else escala[1] if indice >= 70 else \
-        escala[2] if indice >= 50 else escala[3] if indice >= 30 else escala[4]
-    return {'index': indice, 'level': nivel, 'scale': 'fernandez-huerta' if lang == 'es' else 'flesch-reading-ease',
-            'words': len(palabras), 'sentences': len(frases),
+        index = 206.835 - 1.015 * ppf - 84.6 * (sil / len(words))
+        scale = ('very easy', 'easy', 'standard', 'difficult', 'very difficult')
+    index = round(max(0, min(100, index)), 1)
+    level = scale[0] if index >= 90 else scale[1] if index >= 70 else \
+        scale[2] if index >= 50 else scale[3] if index >= 30 else scale[4]
+    return {'index': index, 'level': level, 'scale': 'fernandez-huerta' if lang == 'es' else 'flesch-reading-ease',
+            'words': len(words), 'sentences': len(phrases),
             'note': 'informational (3.1.5 is level AAA): reported, never scored'}
 
 
@@ -1092,50 +1125,50 @@ def audit_html(html_text, url='(html)', lang='en'):
 
     # 1.3.1: grupos de radio (name compartido, ≥2) sin fieldset
     for nm, count in p._radio_group.items():
-        if count >= 2 and not p._radio_en_fieldset.get(nm, False):
+        if count >= 2 and not p._radio_in_fieldset.get(nm, False):
             p.fieldsets_faltan += 1
 
     # Campos cuyo id sí tiene un <label for> explícito en otro punto: fuera.
-    p.campos_sin_label = [c for c in p.campos_sin_label if c[2] not in p._labels_for]
+    p.fields_no_label = [c for c in p.fields_no_label if c[2] not in p._labels_for]
 
-    hallazgos = []
+    findings = []
 
     def add(severidad, code, key_msg, **fmt):
         h = {'severity': severidad, 'criterion': _crit(lang, code), 'signal': key_msg,
              'issue': _t(lang, key_msg).format(**fmt)}
         h['remediation'] = _t(lang, key_msg + '_rem').format(**fmt)
-        hallazgos.append(h)
+        findings.append(h)
 
-    def add_ej(severidad, code, key_msg, ejemplos, **fmt):
+    def add_ej(severidad, code, key_msg, examples, **fmt):
         add(severidad, code, key_msg, **fmt)
-        hallazgos[-1]['examples'] = ejemplos[:5]
+        findings[-1]['examples'] = examples[:5]
 
-    if p.imgs_sin_alt:
-        add_ej('high', '1.1.1', 'imgs_alt', p.imgs_sin_alt, n=len(p.imgs_sin_alt))
-    if p.input_img_sin_alt:
-        add('high', '1.1.1', 'input_img_alt', n=p.input_img_sin_alt)
+    if p.imgs_no_alt:
+        add_ej('high', '1.1.1', 'img_no_alt', p.imgs_no_alt, n=len(p.imgs_no_alt))
+    if p.input_img_no_alt:
+        add('high', '1.1.1', 'input_img_alt', n=p.input_img_no_alt)
     for tag, controles in p.sitios.items():
         add('high', '4.1.2', 'ctrl_name', n=len(controles), tag=tag)
     if p.aria_hidden_focusable:
         add('high', '4.1.2', 'aria_hidden_focusable',
             n=len(p.aria_hidden_focusable), tag=p.aria_hidden_focusable[0])
-    if p.campos_sin_label:
+    if p.fields_no_label:
         add_ej('high', '3.3.2', 'field_label',
-               [f'{t} name={n or "(sin name)"}' for t, n, _i in p.campos_sin_label],
-               n=len(p.campos_sin_label))
+               [f'{t} name={n or "(sin name)"}' for t, n, _i in p.fields_no_label],
+               n=len(p.fields_no_label))
     if p.click_sueltos:
         add('high', '2.1.1', 'click_nonfocusable',
             n=len(p.click_sueltos), tag=p.click_sueltos[0])
     if p.labels_huerfanos:
         add('low', '3.3.2', 'label_orphan', n=p.labels_huerfanos)
-    if p._lista_malos:
-        add('medium', '1.3.1', 'list_structure', n=p._lista_malos)
+    if p._bad_list:
+        add('medium', '1.3.1', 'list_structure', n=p._bad_list)
     if not p.lang:
         add('medium', '3.1.1', 'lang_missing')
     elif p.lang.lower().split('-')[0] not in _LANG_CODES:
         add('medium', '3.1.1', 'lang_invalid', lang=p.lang)
-    elif p.lang_region_invalida:
-        add('low', '3.1.1', 'lang_region_invalida', l=p.lang_region_invalida)
+    elif p.lang_region_invalid:
+        add('low', '3.1.1', 'lang_region_invalid', l=p.lang_region_invalid)
     t_limpio = (p.title or '').strip().lower()
     if not t_limpio:
         add('medium', '2.4.2', 'title_missing')
@@ -1143,10 +1176,10 @@ def audit_html(html_text, url='(html)', lang='en'):
                       'home', 'inicio', 'page 1', 'new page', 'página 1',
                       'untitled document', 'sin nombre', 'document'):
         add('low', '2.4.2', 'title_generic', t=t_limpio)
-    if p.iframes_sin_title:
-        add_ej('medium', '4.1.2', 'iframe_title', p.iframes_sin_title, n=len(p.iframes_sin_title))
-    if p.videos and p.videos_con_subs < p.videos:
-        add('medium', '1.2.2', 'video_captions', n=p.videos - p.videos_con_subs)
+    if p.iframes_no_title:
+        add_ej('medium', '4.1.2', 'iframe_title', p.iframes_no_title, n=len(p.iframes_no_title))
+    if p.videos and p.videos_with_captions < p.videos:
+        add('medium', '1.2.2', 'video_captions', n=p.videos - p.videos_with_captions)
     if p.viewport and re.search(r'user-scalable\s*=\s*(no|0)', p.viewport, re.I):
         add('high', '1.4.4', 'zoom_no')
     elif p.viewport and (m := re.search(r'maximum-scale\s*=\s*([\d.]+)', p.viewport, re.I)) \
@@ -1163,15 +1196,15 @@ def audit_html(html_text, url='(html)', lang='en'):
     if not (p.hay_main or p.hay_skip):
         add('medium', '2.4.1', 'no_bypass')
 
-    niveles = [n for n, _ in p.headings]
-    if niveles:
+    levels = [n for n, _ in p.headings]
+    if levels:
         if p.h1s == 0:
             add('medium', '1.3.1', 'no_h1')
         elif p.h1s > 1:
             add('low', '1.3.1', 'multi_h1', n=p.h1s)
         prev = 0
         saltos = []
-        for n in niveles:
+        for n in levels:
             if prev and n > prev + 1:
                 saltos.append(f'h{prev}→h{n}')
             prev = n
@@ -1181,10 +1214,10 @@ def audit_html(html_text, url='(html)', lang='en'):
         add('medium', '1.3.1', 'no_headings')
     if p.vacios_h:
         add('low', '1.3.1', 'empty_heading', n=p.vacios_h)
-    if p.tablas and p.tablas_con_th < p.tablas:
-        add('medium', '1.3.1', 'table_no_th', n=p.tablas - p.tablas_con_th)
-    if p.blank_sin_aviso:
-        add('low', '3.2.5', 'blank_no_warning', n=p.blank_sin_aviso)
+    if p.tables and p.tables_with_th < p.tables:
+        add('medium', '1.3.1', 'table_no_th', n=p.tables - p.tables_with_th)
+    if p.blank_no_warning:
+        add('low', '3.2.5', 'blank_no_warning', n=p.blank_no_warning)
     dups = sum(1 for _c, k in p.ids.items() if k > 1)
     if dups:
         add('low', '4.1.2', 'dup_ids', n=dups)
@@ -1194,36 +1227,36 @@ def audit_html(html_text, url='(html)', lang='en'):
     if refs_rotas:
         add_ej('high', '4.1.2', 'aria_ref_missing', refs_rotas, n=len(refs_rotas),
                ej=refs_rotas[0])
-    if p.aria_valores:
-        _eti = {'es': {'bool': 'true/false', 'int': 'entero', 'num': 'número', 'tokens': 'valores'},
+    if p.aria_values:
+        _labels = {'es': {'bool': 'true/false', 'int': 'entero', 'num': 'número', 'tokens': 'valores'},
                 'en': {'bool': 'true/false', 'int': 'integer', 'num': 'number', 'tokens': 'one of'}}
-        ejes = [f"{v['attr']}=\"{v['val']}\" ({v['lista'] if v['type'] == 'tokens' else _eti[lang][v['type']]})"
-                for v in p.aria_valores]
+        ejes = [f"{v['attr']}=\"{v['val']}\" ({v['valid_tokens'] if v['type'] == 'tokens' else _labels[lang][v['type']]})"
+                for v in p.aria_values]
         add_ej('medium', '4.1.2', 'aria_value_invalid', ejes,
-               n=len(p.aria_valores), ej=', '.join(ejes[:4]))
+               n=len(p.aria_values), ej=', '.join(ejes[:4]))
     if p.roles_desconocidos:
         add_ej('medium', '4.1.2', 'role_unknown',
                sorted(set(p.roles_desconocidos)), n=len(p.roles_desconocidos),
                ej=', '.join(f'"{r}"' for r in sorted(set(p.roles_desconocidos))[:4]))
-    if p.roles_sin_estado:
-        add_ej('medium', '4.1.2', 'role_required_attr', p.roles_sin_estado,
-               n=len(p.roles_sin_estado), ej=', '.join(p.roles_sin_estado[:4]))
+    if p.roles_without_state:
+        add_ej('medium', '4.1.2', 'role_required_attr', p.roles_without_state,
+               n=len(p.roles_without_state), ej=', '.join(p.roles_without_state[:4]))
     if p.autocomplete_faltan:
         add_ej('medium', '1.3.5', 'autocomplete', p.autocomplete_faltan,
                n=len(p.autocomplete_faltan), ej=', '.join(p.autocomplete_faltan[:4]))
-    if p.autocomplete_invalidos:
-        add_ej('medium', '1.3.5', 'autocomplete_invalid', p.autocomplete_invalidos,
-               n=len(p.autocomplete_invalidos), ej=', '.join(p.autocomplete_invalidos[:4]))
-    if p.medios_autoplay:
-        add('medium', '1.4.2', 'video_autoplay', n=p.medios_autoplay)
+    if p.autocomplete_invalid:
+        add_ej('medium', '1.3.5', 'autocomplete_invalid', p.autocomplete_invalid,
+               n=len(p.autocomplete_invalid), ej=', '.join(p.autocomplete_invalid[:4]))
+    if p.media_autoplay:
+        add('medium', '1.4.2', 'video_autoplay', n=p.media_autoplay)
     if p.label_no_name:
         _ln = p.label_no_name[0]
         add_ej('medium', '2.5.3', 'label_in_name',
                [f'«{t}» vs aria-label «{al}»' for t, al in p.label_no_name],
                n=len(p.label_no_name), ej=f'{_ln[0]} ≠ {_ln[1]}')
-    if p.langs_partes:
-        add_ej('medium', '3.1.2', 'lang_partes', p.langs_partes,
-               n=len(p.langs_partes), ej=', '.join(p.langs_partes[:4]))
+    if p.lang_parts_invalid:
+        add_ej('medium', '3.1.2', 'element_lang_invalid', p.lang_parts_invalid,
+               n=len(p.lang_parts_invalid), ej=', '.join(p.lang_parts_invalid[:4]))
     if p.down_events:
         add_ej('medium', '2.5.2', 'down_event', p.down_events,
                n=len(p.down_events), ej=', '.join(p.down_events[:4]))
@@ -1231,16 +1264,16 @@ def audit_html(html_text, url='(html)', lang='en'):
     if p.placeholder_only:
         add_ej('high', '3.3.2', 'placeholder_only', p.placeholder_only,
                n=len(p.placeholder_only), ej=', '.join(p.placeholder_only[:3]))
-    if p.required_sin_indicio:
-        add_ej('low', '3.3.2', 'required_no_indication', p.required_sin_indicio,
-               n=len(p.required_sin_indicio), ej=', '.join(p.required_sin_indicio[:3]))
+    if p.required_no_indication:
+        add_ej('low', '3.3.2', 'required_no_indication', p.required_no_indication,
+               n=len(p.required_no_indication), ej=', '.join(p.required_no_indication[:3]))
     if p.fieldsets_faltan:
         add('medium', '1.3.1', 'fieldset_missing', n=p.fieldsets_faltan)
     if p.labels_vagos:
         add_ej('low', '2.4.6', 'label_vague', p.labels_vagos,
                n=len(p.labels_vagos), ej=', '.join(p.labels_vagos[:3]))
-    if p.financieros_sin_conf:
-        add('medium', '3.3.4', 'financial_no_confirm', n=p.financieros_sin_conf)
+    if p.financial_no_confirm:
+        add('medium', '3.3.4', 'financial_no_confirm', n=p.financial_no_confirm)
     if p.headings_vagos:
         add_ej('low', '2.4.6', 'heading_quality', p.headings_vagos,
                n=len(p.headings_vagos), ej=', '.join(p.headings_vagos[:3]))
@@ -1251,12 +1284,12 @@ def audit_html(html_text, url='(html)', lang='en'):
         add_ej('low', '2.5.7', 'drag_no_alt', p.drag_handlers,
                n=len(p.drag_handlers), ej=', '.join(p.drag_handlers[:3]))
     # 4.1.3: solo si hay evidencia de dinamismo (scripts con eventos, forms, fetch/XHR)
-    dinamico = bool(p.click_sueltos or p._en_script or p.char_shortcuts or p.drag_handlers or p.campos_sin_label)
+    dinamico = bool(p.click_sueltos or p._in_script or p.char_shortcuts or p.drag_handlers or p.fields_no_label)
     if dinamico and p.status_regions == 0:
         add('medium', '4.1.3', 'no_status_regions')
-    if p.imagenes_texto:
-        add_ej('low', '1.4.5', 'images_of_text', p.imagenes_texto,
-               n=len(p.imagenes_texto), ej2='')
+    if p.images_of_text:
+        add_ej('low', '1.4.5', 'images_of_text', p.images_of_text,
+               n=len(p.images_of_text), ej2='')
     if p.captchas:
         add_ej('medium', '3.3.8', 'captcha', p.captchas,
                n=len(p.captchas), ej=', '.join(p.captchas[:2]))
@@ -1264,9 +1297,9 @@ def audit_html(html_text, url='(html)', lang='en'):
     if p.moviles:
         add_ej('low', '2.2.2', 'motion_moving', p.moviles,
                n=len(p.moviles), ej=', '.join(p.moviles[:3]))
-    if p.gestos:
-        add_ej('low', '2.5.1', 'gesture_no_click', p.gestos,
-               n=len(p.gestos), ej=', '.join(p.gestos[:3]))
+    if p.gestures:
+        add_ej('low', '2.5.1', 'gesture_no_click', p.gestures,
+               n=len(p.gestures), ej=', '.join(p.gestures[:3]))
     if p.motions:
         add_ej('low', '2.5.4', 'motion_actuation', p.motions,
                n=len(p.motions), ej=', '.join(p.motions[:3]))
@@ -1282,40 +1315,40 @@ def audit_html(html_text, url='(html)', lang='en'):
     if lm_dups:
         add('low', '1.3.1', 'landmark_dup', n=len(lm_dups), ej=', '.join(lm_dups[:4]))
     if p.genericos >= 2:   # un enlace genérico único suele desambiguarse por contexto
-        gen = [f'«{k}»' for k in p.enlaces if k in _TEXTO_GENERICO][:4]
+        gen = [f'«{k}»' for k in p.links if k in _GENERIC_TEXT][:4]
         add('low', '2.4.4', 'generic_link', n=p.genericos, ej=', '.join(gen))
-    mismos = sum(1 for _k, hrefs in p.enlaces.items() if len(hrefs) > 1)
+    mismos = sum(1 for _k, hrefs in p.links.items() if len(hrefs) > 1)
     if mismos:
         add('low', '2.4.4', 'same_name_links', n=mismos)
-    ak_dups = [f'"{k}" ×{v}' for k, v in p.accesos.items() if v > 1]
+    ak_dups = [f'"{k}" ×{v}' for k, v in p.accesskeys.items() if v > 1]
     if ak_dups:
         add('low', '2.1.1', 'accesskey_dup', n=len(ak_dups), ej=', '.join(ak_dups[:4]))
     if p.labels_for_dups:
         add('low', '3.3.2', 'multi_label', n=len(p.labels_for_dups))
 
-    severidad_orden = {'high': 0, 'medium': 1, 'low': 2}
-    hallazgos.sort(key=lambda h: severidad_orden[h['severity']])
-    resumen = {s: sum(1 for h in hallazgos if h['severity'] == s)
+    severity_order = {'high': 0, 'medium': 1, 'low': 2}
+    findings.sort(key=lambda h: severity_order[h['severity']])
+    summary = {s: sum(1 for h in findings if h['severity'] == s)
                for s in ('high', 'medium', 'low')}
-    idioma_pagina = (p.lang or '').split('-')[0].lower() if getattr(p, 'lang', None) else ''
-    reading = _nivel_lectura(' '.join(p._texto_visible),
-                             idioma_pagina if idioma_pagina in ('es', 'en') else lang)
+    page_lang = (p.lang or '').split('-')[0].lower() if getattr(p, 'lang', None) else ''
+    reading = _reading_level(' '.join(p._visible_text),
+                             page_lang if page_lang in ('es', 'en') else lang)
 
     return {
         'mode': 'static',
         'url': url,
         'reading_level': reading,
-        'score': calcular_score(hallazgos),
+        'score': compute_score(findings),
         'score_note': _t(lang, 'score_note'),
         'not_measured': _not_measured(lang),
-        'elements_scanned': p.elementos,
-        'summary': resumen,
-        'findings': hallazgos,
+        'elements_scanned': p.elements,
+        'summary': summary,
+        'findings': findings,
         'limits': _t(lang, 'limits'),
     }
 
 
-def _descarga(url, timeout=30, truncar_en=None, aceptar_ct=()):
+def _fetch(url, timeout=30, truncate_at=None, aceptar_ct=()):
     esquema = url.split(':', 1)[0].lower() if ':' in url else ''
     if esquema not in ('http', 'https'):
         # política única para TODAS las rutas de descarga (audit_url la
@@ -1327,29 +1360,29 @@ def _descarga(url, timeout=30, truncar_en=None, aceptar_ct=()):
         'Accept-Encoding': 'gzip',
     })
     with urllib.request.urlopen(req, timeout=timeout) as r:
-        techo = truncar_en or MAX_HTML
-        datos = r.read(techo + 1)
-        if len(datos) > techo and truncar_en is None:
+        techo = truncate_at or MAX_HTML
+        data = r.read(techo + 1)
+        if len(data) > techo and truncate_at is None:
             raise ValueError(f'HTML > {MAX_HTML // 1000000} MB, demasiado grande')
-        if (r.headers.get('Content-Encoding') or '').lower() == 'gzip' or datos[:2] == b'\x1f\x8b':
+        if (r.headers.get('Content-Encoding') or '').lower() == 'gzip' or data[:2] == b'\x1f\x8b':
             import zlib
             d = zlib.decompressobj(16 + zlib.MAX_WBITS)
-            datos = d.decompress(datos, techo)   # techo duro también al descomprimir
+            data = d.decompress(data, techo)   # techo duro también al descomprimir
             if d.unconsumed_tail:
-                datos = datos[:techo]            # bomba gzip: truncado, no OOM
+                data = data[:techo]            # bomba gzip: truncado, no OOM
         ctype = (r.headers.get('Content-Type') or '').lower()
         base = ctype.split(';')[0].strip()
         extra_ok = any(base == p or base.startswith(p + '/') for p in aceptar_ct)
         if ctype and not extra_ok and 'html' not in ctype and 'xml' not in ctype and base:
             raise ValueError(f'la URL no devuelve HTML (Content-Type: {base})')
         charset = 'utf-8'
-        m = re.search(rb'charset=["\']?([\w-]+)', datos[:2048])
+        m = re.search(rb'charset=["\']?([\w-]+)', data[:2048])
         if m:
             charset = m.group(1).decode('ascii', 'ignore')
         try:
-            return datos.decode(charset, 'replace')
+            return data.decode(charset, 'replace')
         except LookupError:
-            return datos.decode('utf-8', 'replace')
+            return data.decode('utf-8', 'replace')
 
 
 _T_ESQUEMA = {
@@ -1362,11 +1395,11 @@ def audit_url(url, timeout=30, lang='en'):
     if url.split(':')[0].lower() not in ('http', 'https'):
         return {'error': _T_ESQUEMA.get(lang, _T_ESQUEMA['es'])}
     try:
-        html_text = _descarga(url, timeout=timeout)
+        html_text = _fetch(url, timeout=timeout)
     except ValueError as e:
         return {'error': str(e)}
     except Exception as e:  # noqa: BLE001
-        return {'error': _t(lang, 'descarga_error').format(e=e)}
+        return {'error': _t(lang, 'fetch_error').format(e=e)}
     return audit_html(html_text, url, lang=lang)
 
 
@@ -1379,57 +1412,57 @@ def _urls_sitemap(url, timeout=30):
     one level). Zero dependencies, bounded."""
     from urllib.parse import urlsplit, urljoin
     host = urlsplit(url).netloc
-    vistos, paginas = set(), []
-    cola = [urljoin(url, '/sitemap.xml')]
-    while cola and len(paginas) < _SITEMAP_MAX:
-        sm = cola.pop(0)
-        if sm in vistos:
+    seen, pages = set(), []
+    queue = [urljoin(url, '/sitemap.xml')]
+    while queue and len(pages) < _SITEMAP_MAX:
+        sm = queue.pop(0)
+        if sm in seen:
             continue
-        vistos.add(sm)
+        seen.add(sm)
         try:
-            datos = _descarga(sm, timeout=timeout, truncar_en=2_000_000)
+            data = _fetch(sm, timeout=timeout, truncate_at=2_000_000)
         except Exception:  # noqa: BLE001
             continue
-        if not datos.lstrip().startswith('<'):
+        if not data.lstrip().startswith('<'):
             continue
-        for loc in _LOC.findall(datos)[:_SITEMAP_MAX]:
-            partes = urlsplit(loc)
-            if partes.scheme not in ('http', 'https') or partes.netloc != host:
+        for loc in _LOC.findall(data)[:_SITEMAP_MAX]:
+            parts = urlsplit(loc)
+            if parts.scheme not in ('http', 'https') or parts.netloc != host:
                 continue
-            limpio = loc.split('#')[0].rstrip('/')
-            if limpio.endswith('.xml'):                     # nested sitemap
-                if len(cola) < 8:
-                    cola.append(limpio)
+            clean = loc.split('#')[0].rstrip('/')
+            if clean.endswith('.xml'):                     # nested sitemap
+                if len(queue) < 8:
+                    queue.append(clean)
                 continue
-            if _NO_RASTREAR.search(partes.path):
+            if _NO_RASTREAR.search(parts.path):
                 continue
-            if limpio not in paginas:
-                paginas.append(limpio)
-    return paginas
+            if clean not in pages:
+                pages.append(clean)
+    return pages
 
 
 _HREF = re.compile(r'<a\s[^>]*?href=["\']([^"\']+)["\']', re.I)
 _NO_RASTREAR = re.compile(r'\.(pdf|jpg|jpeg|png|gif|webp|svg|zip|mp3|mp4|docx?|xlsx?|pptx?|xml|json|rss)(\?|$)', re.I)
 
 
-def _enlaces_internos(html_text, base_url, origen):
+def _internal_links(html_text, base_url, origin):
     from urllib.parse import urljoin, urlsplit
-    host = urlsplit(origen).netloc
+    host = urlsplit(origin).netloc
     out = []
     for href in _HREF.findall(html_text):
         if href.startswith(('#', 'mailto:', 'tel:', 'javascript:')):
             continue
         absoluta = urljoin(base_url, href.strip()).split('#')[0].rstrip('/')
-        partes = urlsplit(absoluta)
-        if partes.scheme not in ('http', 'https') or partes.netloc != host:
+        parts = urlsplit(absoluta)
+        if parts.scheme not in ('http', 'https') or parts.netloc != host:
             continue
-        if _NO_RASTREAR.search(partes.path):
+        if _NO_RASTREAR.search(parts.path):
             continue
         out.append(absoluta)
     return out
 
 
-def evaluar_sitio(parsers, lang='en'):
+def evaluate_site(parsers, lang='en'):
     """Site-level criteria over the crawled parsers: 3.2.3/3.2.4 consistency,
     2.4.5 multiple ways. Pure function so tests need no network."""
     out = []
@@ -1457,61 +1490,61 @@ def evaluar_sitio(parsers, lang='en'):
     return out
 
 
-def audit_site(url, max_pages=5, timeout=30, lang='en', desde_sitemap=True):
+def audit_site(url, max_pages=5, timeout=30, lang='en', from_sitemap=True):
     """Audita la URL y hasta max_pages-1 páginas más del mismo dominio
     (descubrimiento por enlaces). Igual de cero-dependencias que el resto."""
     max_pages = max(1, min(20, int(max_pages)))
     try:
-        html_text = _descarga(url, timeout=timeout)
+        html_text = _fetch(url, timeout=timeout)
     except ValueError as e:
         return {'error': str(e)}
     except Exception as e:  # noqa: BLE001
-        return {'error': _t(lang, 'descarga_error').format(e=e)}
+        return {'error': _t(lang, 'fetch_error').format(e=e)}
     p0 = _Auditor()
     p0.feed(html_text[:MAX_HTML]); p0.close()
-    informes = [audit_html(html_text, url, lang=lang)]
+    reports = [audit_html(html_text, url, lang=lang)]
     parsers = [p0]
-    vistos = {url.split('#')[0].rstrip('/')}
+    seen = {url.split('#')[0].rstrip('/')}
     # discovery: sitemap first (WCAG-EM's own enumeration), links as fallback
-    urls_sm = _urls_sitemap(url, timeout=timeout) if desde_sitemap else []
-    cola = urls_sm or _enlaces_internos(html_text, url, url)
-    while cola and len(informes) < max_pages:
-        siguiente = cola.pop(0)
-        if siguiente in vistos:
+    urls_sm = _urls_sitemap(url, timeout=timeout) if from_sitemap else []
+    queue = urls_sm or _internal_links(html_text, url, url)
+    while queue and len(reports) < max_pages:
+        next = queue.pop(0)
+        if next in seen:
             continue
-        vistos.add(siguiente)
+        seen.add(next)
         try:
-            html_pg = _descarga(siguiente, timeout=timeout)
+            html_pg = _fetch(next, timeout=timeout)
         except Exception:  # noqa: BLE001
             continue
-        informes.append(audit_html(html_pg, siguiente, lang=lang))
+        reports.append(audit_html(html_pg, next, lang=lang))
         pg = _Auditor()
         pg.feed(html_pg[:MAX_HTML]); pg.close()
         parsers.append(pg)
-        if len(informes) < max_pages and not desde_sitemap:
-            for nuevo in _enlaces_internos(html_pg, siguiente, url):
-                if nuevo not in vistos:
-                    cola.append(nuevo)
-    hallazgos_sitio = evaluar_sitio(parsers, lang=lang)
-    for h in hallazgos_sitio:
-        for inf in informes[:1]:
+        if len(reports) < max_pages and not from_sitemap:
+            for new in _internal_links(html_pg, next, url):
+                if new not in seen:
+                    queue.append(new)
+    site_findings = evaluate_site(parsers, lang=lang)
+    for h in site_findings:
+        for inf in reports[:1]:
             inf.setdefault('findings', []).append(h)
-            inf['score'] = calcular_score(inf['findings'])
-    scores = [pg['score'] for pg in informes if 'score' in pg]
-    hallazgos_por_senal = {}
-    for pg in informes:
+            inf['score'] = compute_score(inf['findings'])
+    scores = [pg['score'] for pg in reports if 'score' in pg]
+    findings_by_signal = {}
+    for pg in reports:
         for h in pg.get('findings', []):
-            hallazgos_por_senal[h['signal']] = hallazgos_por_senal.get(h['signal'], 0) + 1
+            findings_by_signal[h['signal']] = findings_by_signal.get(h['signal'], 0) + 1
     return {
         'url': url,
         'mode': 'site',
         'not_measured': _not_measured(lang),
-        'descubrimiento': 'sitemap' if urls_sm else 'links',
-        'paginas': len(informes),
+        'discovery': 'sitemap' if urls_sm else 'links',
+        'pages': len(reports),
         'mean_score': round(sum(scores) / len(scores)) if scores else None,
-        'score_peor': min(scores) if scores else None,
-        'senales_recurrentes': sorted(hallazgos_por_senal, key=hallazgos_por_senal.get, reverse=True)[:8],
-        'reports': informes,
+        'worst_score': min(scores) if scores else None,
+        'recurring_signals': sorted(findings_by_signal, key=findings_by_signal.get, reverse=True)[:8],
+        'reports': reports,
         'limits': _t(lang, 'limits'),
     }
 
@@ -1530,7 +1563,7 @@ def main(argv):
     if a.url:
         try:
             res = (audit_site(a.url, max_pages=a.pages, lang=a.lang,
-                              desde_sitemap=not a.no_sitemap)
+                              from_sitemap=not a.no_sitemap)
                    if a.pages > 1 else audit_url(a.url, lang=a.lang))
         except Exception as e:  # noqa: BLE001
             print(json.dumps({'error': f'no se pudo descargar: {e}'}))
