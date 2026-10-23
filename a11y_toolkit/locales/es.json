@@ -425,6 +425,7 @@
   "l_method": "Método de evaluación",
   "l_review": "Última revisión de la declaración",
   "method_default": "Pendiente de completar: declara aquí el método de evaluación real (revisión manual, herramientas y pruebas realizadas), con fechas y responsable. Esta declaración es un BORRADOR NO VALIDADO mientras este campo no se complete.",
+  "standard_note": "La norma EN 301 549 v4.1.1 (septiembre de 2026) adopta WCAG 2.2 como referencia para la web, los documentos y el software, y añade un anexo de correspondencia con el Acta Europea de Accesibilidad. Aún no está citada en el Diario Oficial de la Unión Europea: hasta esa cita formal, la presunción de conformidad sigue ligada a la versión ya citada (v3.2.1, basada en WCAG 2.1 AA).",
   "title": {
    "eaa": "Información de accesibilidad del servicio",
    "rd1112": "Declaración de Accesibilidad"
@@ -499,5 +500,12 @@
   "vtt_overlap_rem": "Los cues no deben solaparse: algunos lectores muestran ambos a la vez.",
   "vtt_too_fast": "{n} cues por encima de 21 caracteres/segundo: {ej}.",
   "vtt_too_fast_rem": "Divide el cue o alarga su tiempo: >21 cps es ilegible (estándar BBC/Netflix)."
+ },
+ "wcag3": {
+  "disclaimer": "Vista previa basada en el Working Draft de WCAG 3 del 10 de septiembre de 2026. WCAG 3 no es un estándar terminado, no sustituye a WCAG 2.2 y no puede sustentar ninguna declaración de conformidad. Esta vista previa solo reagrupa hallazgos WCAG 2.2 existentes bajo los outcomes del borrador.",
+  "mapping_note": "El mapeo de criterio a outcome está curado por a11y-toolkit: el W3C no ha publicado un mapeo oficial de WCAG 2 a WCAG 3 (los materiales de transición están planificados). Trata cada agrupación como una aproximación.",
+  "model_tags": "Etiquetas de los requisitos core del borrador: physical harm, risk, barrier y friction (según la introducción del W3C; califican requisitos, no hallazgos).",
+  "model_tiers": "Tiers de reporte 1-6, donde el tier 3 corresponde a la conformidad. Recuentos y umbrales están aún por determinar por el W3C.",
+  "no_score": "No se produce puntuación, tier ni nivel de conformidad a propósito: los umbrales de los tiers del borrador están aún por determinar por el W3C."
  }
 }

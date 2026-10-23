@@ -1,5 +1,34 @@
 # Changelog
 
+## 5.14.0 — pendiente — "WCAG 3 preview + EN 301 549 v4.1.1"
+
+- **a11y_wcag3_preview (tool 32) — the WCAG 3 demo nobody ships**: takes any
+  audit report and re-groups its WCAG 2.2 findings under the 46 outcomes of
+  the WCAG 3 Working Draft (10 September 2026), with the draft's exact
+  outcome names. Honest by construction: NO score, NO tier, NO conformance
+  claim (the draft's tier thresholds are explicitly TBD); the criterion→
+  outcome map is curated by a11y-toolkit and labeled as such — the W3C has
+  published no official WCAG 2 → WCAG 3 mapping (transition materials are
+  planned). The output carries the Working-Draft disclaimer in es/en, the
+  conformance-model summary (single level, core-requirement tags physical
+  harm/risk/barrier/friction, reporting tiers 1–6 with tier 3 = conformance,
+  per the W3C introduction) and an honest `unmapped` list. Signal-reachable
+  criteria are 100% covered (pinned by tests/test_wcag3.py). Re-baseline on
+  each W3C draft publication (roughly March/September). CLI:
+  `a11ytoolkit wcag3 --from-audit audit.json`.
+- **EN 301 549 v4.1.1 status note in every generated statement**: v4.1.1
+  (published September 2026) adopts WCAG 2.2 as the web/documents/software
+  benchmark, adds six 2.2 requirements, drops obsolete 4.1.1, and is the
+  first version built for the EAA (new EAA mapping annex). It is NOT yet
+  cited in the Official Journal: presumption of conformity stays with the
+  already cited v3.2.1 (WCAG 2.1 AA) until that citation — the note says
+  exactly that, in es/en, in both rd1112 and eaa frameworks. Sourced from
+  the AccessibleEU Centre (European Commission) announcement.
+- Docs sweep: removed a byte-identical duplicate of the a11y_audit_pdf
+  entry in README (paste error), and fixed two stale pre-5.11 Spanish
+  param names in README/skill (`contenido_no_accesible`, `marco=` →
+  `inaccessible_content`, `framework=`).
+
 ## 5.13.0 — pendiente — "locale packs + dictionary-verified English"
 
 - **Community locale packs (the i18n system)**: every user-facing message

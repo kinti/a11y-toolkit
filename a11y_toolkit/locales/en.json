@@ -425,6 +425,7 @@
   "l_method": "Assessment method",
   "l_review": "Last revision of the declaration",
   "method_default": "To be completed: state the actual assessment method (manual review, tools used and testing performed), with dates and a responsible party. This declaration remains an UNVALIDATED DRAFT until this field is filled.",
+  "standard_note": "EN 301 549 v4.1.1 (September 2026) adopts WCAG 2.2 as the benchmark for the web, documents and software, and adds a European Accessibility Act mapping. It is not yet cited in the Official Journal of the European Union: until that formal citation, presumption of conformity remains attached to the already cited version (v3.2.1, based on WCAG 2.1 AA).",
   "title": {
    "eaa": "Service accessibility information",
    "rd1112": "Accessibility Declaration"
@@ -499,5 +500,12 @@
   "vtt_overlap_rem": "Cues must not overlap: some players show both at once.",
   "vtt_too_fast": "{n} cues above 21 characters/second: {ej}.",
   "vtt_too_fast_rem": "Split the cue or extend its time: >21 cps is unreadable (BBC/Netflix standard)."
+ },
+ "wcag3": {
+  "disclaimer": "Preview based on the WCAG 3 Working Draft of 10 September 2026. WCAG 3 is not a completed standard, does not replace WCAG 2.2 and cannot ground any conformance claim. This preview only re-groups existing WCAG 2.2 findings under the draft's outcomes.",
+  "mapping_note": "The criterion-to-outcome mapping is curated by a11y-toolkit: the W3C has not published an official WCAG 2 to WCAG 3 mapping (transition materials are planned). Treat every grouping as an approximation.",
+  "model_tags": "Core requirement tags in the draft: physical harm, risk, barrier and friction (per the W3C introduction; they qualify requirements, not findings).",
+  "model_tiers": "Reporting tiers 1-6, where tier 3 corresponds to conformance. Counts and thresholds are still to be determined by the W3C.",
+  "no_score": "No score, tier or conformance level is produced on purpose: the draft's tier thresholds are still to be determined by the W3C."
  }
 }

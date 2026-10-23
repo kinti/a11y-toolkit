@@ -7,7 +7,7 @@ read this. Every claim here that can be pinned by a test IS pinned by
 ## What this is
 
 a11y-toolkit is the machine half of WCAG 2.2 conformance work: an MCP server
-(31 tools + 6 prompts) and a CLI (`a11ytoolkit`) that audit, fix, document,
+(32 tools + 6 prompts) and a CLI (`a11ytoolkit`) that audit, fix, document,
 watch and hand off accessibility findings. The human half is priced, not
 guessed. Zero dependencies at the core; Playwright/Pillow optional behind
 import guards. Output es/en; wire keys English (`a11y-evidence-pack/2`).
@@ -27,6 +27,7 @@ import guards. Output es/en; wire keys English (`a11y-evidence-pack/2`).
 | `a11yi18n.py` | Locale-pack loader: community `locales/<lang>.json` catalogs, English fallback, CLDR plurals, product overlays. |
 | `a11yinit.py` | `a11ytoolkit init` — installs the AGENTS.md agent hook in user projects. |
 | `a11yact.py` | ACT Rules interop: curated signal → ACT rule map (`ACT_MAP`, partial by design) + EARL 1.0 JSON-LD export (failures only, never asserts pass). |
+| `a11ywcag3.py` | WCAG 3 preview: re-groups 2.2 findings under the Sept-2026 draft's 46 outcomes (`_OUTCOMES`, exact names) via a curated criterion→outcome map — no score, no tier, no conformance claim (W3C has no official cross-map). |
 | `a11yvtt.py` | WebVTT caption quality (1.2.2): parses the real .vtt — malformed/empty/overlapping/too-fast cues (>21 cps), coverage vs duration. |
 | `a11ydocx.py` | DOCX structural screening (zip+XML): images w/o alt, fake headings (bold+big without Heading style), document language, header rows. |
 | `a11ypdf.py` | PDF structural screening: tagged tree, title, /Lang, outline, /Alt, text layer (scans), encryption — zero-dep, the space nobody automated. |

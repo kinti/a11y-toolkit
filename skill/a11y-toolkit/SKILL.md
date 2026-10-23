@@ -86,10 +86,10 @@ the text (`worst_zone` tells you where).
 
 ## 3. Document (EU law)
 
-`a11y_generate_declaration`: `marco="eaa"` for the European Accessibility Act /
-Ley 11/2023 (private sector), `marco="rd1112"` for art. 10 RD 1112/2018 (Spanish
+`a11y_generate_declaration`: `framework="eaa"` for the European Accessibility Act /
+Ley 11/2023 (private sector), `framework="rd1112"` for art. 10 RD 1112/2018 (Spanish
 public sector). Collect missing legal fields (feedback contact, claim procedure,
-evaluation method/dates) before generating; derive `contenido_no_accesible` from
+evaluation method/dates) before generating; derive `inaccessible_content` from
 audit findings. The statement must be linked from every page.
 
 ## 4. Watch regressions

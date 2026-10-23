@@ -8,7 +8,7 @@
 [![MCP](https://img.shields.io/badge/Model%20Context%20Protocol-server-purple)](https://modelcontextprotocol.io)
 [![Sponsor](https://img.shields.io/badge/Sponsor-%E2%9D%A4-pink)](https://github.com/sponsors/kinti)
 
-31 MCP tools, 6 prompts and a skill covering the whole WCAG 2.2 loop: audit, fix,
+32 MCP tools, 6 prompts and a skill covering the whole WCAG 2.2 loop: audit, fix,
 document, watch, hand off — and now blindfold usability testing, where the agent
 attempts real tasks perceiving only what a screen reader exposes. 51 of 55 A/AA criteria carry automated signals (93%), every
 finding ships with a concrete remediation your agent can apply, and the rendered tools
@@ -43,7 +43,7 @@ the human signs.
 | An evidence pack a human can sign — hashes, matrix, empty signature block | ✗ | ✓ |
 | Runs with zero dependencies at core, speaks es/en, any browser you have | heavy runtimes | ✓ |
 
-## The tools (31)
+## The tools (32)
 
 Every tool, complete — description, arguments, and behavior annotations, generated from the server itself (`server.TOOLS` is the source of truth). All tools accept `lang` (`en`|`es`) unless noted; output is JSON unless noted.
 
@@ -382,19 +382,6 @@ Does content survive forced-colors: active (Windows High Contrast)? Flags SVGs w
 - `auth_state`, `browser`, `lang`, `timeout`: as a11y_reduced_motion.
 
 
-#### `a11y_audit_pdf`
-
-<sub>read-only</sub>
-
-PDF accessibility screening — the space nobody automated (axe, pa11y, Lighthouse: HTML only). Zero-dep structural first pass on a LOCAL file: tagged tree (/StructTreeRoot — the root failure), title, language, outline, /Alt entries, text layer (scanned detection), encryption. Full PDF/UA conformance needs a spec validator (veraPDF); this finds the failures that make full validation pointless. Use for enterprise document pipelines and PDFs linked from the audited site. Returns JSON: {mode: "pdf", pages, tagged, lang, title, images, alt_entries, findings, summary, limits}.
-
-
-**Arguments**
-
-- `path` *(required)*: local PDF file path (never fetched remotely — download it yourself first).
-- `lang` — one of ['en', 'es']: output language.
-
-
 #### `a11y_suggest_color`
 
 <sub>read-only</sub>
@@ -418,7 +405,7 @@ Nearest opaque color (RGB distance) to fg that reaches the target ratio against 
 
 <sub>mutates state</sub>
 
-Generates an Accessibility Statement in HTML: art. 10 RD 1112/2018 (Spanish public sector, marco="rd1112") or European Accessibility Act wording (Directive (EU) 2019/882 / Ley 11/2023, marco="eaa"; EN output uses Directive (EU) 2016/2102 / EAA wording). The generated document is itself accessible. Saves to output_path when given. — Legal statement generator; drive contenido_no_accesible from audit findings and a11y_evidence. Returns {html, summary} — the accessible legal statement; writes a file only when output_path is given.
+Generates an Accessibility Statement in HTML: art. 10 RD 1112/2018 (Spanish public sector, marco="rd1112") or European Accessibility Act wording (Directive (EU) 2019/882 / Ley 11/2023, marco="eaa"; EN output uses Directive (EU) 2016/2102 / EAA wording). Every statement carries the EN 301 549 status note: v4.1.1 (September 2026) adopts WCAG 2.2 as the benchmark and adds the EAA mapping, but is not yet cited in the Official Journal — presumption of conformity stays with the already cited version (v3.2.1, WCAG 2.1 AA) until that citation. The generated document is itself accessible. Saves to output_path when given. — Legal statement generator; drive inaccessible_content from audit findings and a11y_evidence. Returns {html, summary} — the accessible legal statement; writes a file only when output_path is given.
 
 
 **Arguments**
@@ -629,6 +616,19 @@ Coverage ledger (from Cloudflare's security-audit-skill): persistent record of w
 
 - `ledger_path`: ledger file path (default: a11y-ledger.json).
 
+#### `a11y_wcag3_preview`
+
+<sub>read-only</sub>
+
+WCAG 3 demo — the view layer nobody ships: takes an audit report and re-groups its WCAG 2.2 findings under the outcomes of the WCAG 3 Working Draft (10 September 2026). Informative only: WCAG 3 is not a completed standard, the W3C has published no official WCAG 2 to WCAG 3 mapping (this one is curated and labeled as such), and NO score, tier or conformance claim is produced — the draft's tier thresholds are still TBD. Use it to show teams where today's 2.2 findings will land tomorrow; keep auditing against WCAG 2.2. Returns JSON: {mode, draft, disclaimer, mapping_note, no_score, conformance_model, outcomes [{outcome, draft_url, findings, severity, signals, criteria_22}], counts, unmapped} — never a score. Run after any audit when the team asks "what about WCAG 3?"; re-baseline on each W3C draft publication (roughly March/September).
+
+
+**Arguments**
+
+- `report` *(required)*: audit report object with a findings list (from a11y_audit_url, a11y_audit_dom, a11y_disprove, …).
+
+- `lang` — one of ['es', 'en']: Output language (en default).
+
 
 ### The 6 prompts
 
@@ -735,6 +735,7 @@ a11ytoolkit badge --score 92 --out badge.svg            # honest SVG
 a11ytoolkit contrast-dom https://mysite --selector ".hero h1"  # auto-region pixel sampling
 a11ytoolkit vpat pack.json --product "Acme" -o vpat.html      # VPAT 2.5 (WCAG) draft
 a11ytoolkit earl --from-audit audit.json -o earl.json          # ACT Rules / EARL export
+a11ytoolkit wcag3 --from-audit audit.json                      # WCAG 3 draft preview (no score)
 ```
 
 ## Coverage: 51 of 55 WCAG 2.2 A/AA criteria (93%)

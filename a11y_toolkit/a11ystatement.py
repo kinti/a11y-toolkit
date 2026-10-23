@@ -87,7 +87,8 @@ def generate(entity, url, status, inaccessible_content=None, method=None,
 <body>
 <main>
 <h1>{doc_title} · {e(entity)}</h1>
-<p>{t['intro'][framework].format(e=e(entity), u=e(url))}</p>
+  <p>{t['intro'][framework].format(e=e(entity), u=e(url))}</p>
+  <p>{t['standard_note']}</p>
 
   <h2>{t['h_status']} · {status_title}</h2>
   <p>{status_text}</p>

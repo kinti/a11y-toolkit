@@ -46,7 +46,7 @@ DEMO_FIX = DEMO_HTML.replace('<img src="hero.png">', '<img src="hero.png" alt="H
     .replace('class="mini"', 'class="mini" aria-label="OK"')
 informe2 = audit_html(DEMO_FIX, 'https://demo.site', lang='en')
 score_despues = informe2['score']
-svg_insignia = badge(score_despues, fecha='2026-09-07', lang='en')
+svg_insignia = badge(score_despues, date='2026-09-07', lang='en')
 print(f'real: score {score_antes} → {score_despues}, sugerido {sugerido}')
 
 # --------------------------------------------------------------- estilos ----
@@ -132,7 +132,7 @@ h1 .dot{{color:#3fb950}}
 
     snap('<span class="p">$</span>', 500)
     escribe('claude mcp add a11y-toolkit -- uvx --from a11y-toolkit a11y-toolkit-mcp',
-            '<span class="ok">✓ a11y-toolkit registered</span>  <span class="c">(31 tools · 6 prompts)</span>',
+            '<span class="ok">✓ a11y-toolkit registered</span>  <span class="c">(32 tools · 6 prompts)</span>',
             hold=1100)
     salida_audit = (f'<span class="warn">score: {score_antes}/100</span>   '
                     f'<span class="bad">high: {summary["high"]}</span>  '

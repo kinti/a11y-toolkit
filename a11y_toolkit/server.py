@@ -37,6 +37,8 @@ Tools:
   - a11y_ledger(action, url?, report?, …)          persistent coverage ledger
   - a11y_html_validate(url|html, …)                W3C Nu parser view
   - a11y_evidence(reports, …)                   verifiable evidence pack
+  - a11y_wcag3_preview(report, lang?)           re-group findings under the WCAG 3
+                                                  Working Draft outcomes (no score)
 
 Prompts: audit-page, fix-contrast, pre-deploy-check, declaration-eaa.
 
@@ -73,13 +75,14 @@ from .a11ybadge import badge as badge_fn  # noqa: E402
 from .a11yaudit import audit_site as audit_site_fn  # noqa: E402
 from .a11yvpat import generate_vpat as vpat_fn  # noqa: E402
 from .a11ydom import contrast_dom as contrast_dom_fn  # noqa: E402
+from .a11ywcag3 import preview as wcag3_preview_fn  # noqa: E402
 
 try:
     from .arialive_js import ARIALIVE_JS  # installed as a module (pip)
 except ImportError:
     ARIALIVE_JS = None  # repo checkout: read the file
 
-VERSION = '5.13.0'
+VERSION = '5.14.0'
 
 # Params renombrados a inglés en 5.11.0; se aceptan los nombres previos.
 PARAM_ALIASES = {
@@ -106,6 +109,8 @@ INSTRUCTIONS = (
          'a11y_evidence records verified codes as agent-verified (automated-fail stays fail). '
     'a11y_criterion explains what any criterion means. Every tool returns es/en '
     'findings with concrete remediation. '
+    'a11y_wcag3_preview re-groups audit findings under the WCAG 3 Working Draft '
+    'outcomes (demo only, no score: WCAG 2.2 remains the audit target). '
     'Automation covers about one third of WCAG: pair audits with the manual checklist '
     'in the audit-page prompt (keyboard, screen reader, zoom). '
     'The evidence pack (a11y_evidence) is vendor-neutral and locally verifiable '
@@ -629,6 +634,21 @@ TOOLS = [
             'timeout': {'type': 'number', 'description': 'page load timeout seconds (45 default)'},
         }, 'required': ['url']},
     },
+    {
+        'name': 'a11y_wcag3_preview',
+        'description': ('WCAG 3 demo — the view layer nobody ships: takes an audit report '
+                        'and re-groups its WCAG 2.2 findings under the outcomes of the WCAG 3 '
+                        'Working Draft (10 September 2026). Informative only: WCAG 3 is not a '
+                        'completed standard, the W3C has published no official WCAG 2 to WCAG 3 '
+                        'mapping (this one is curated and labeled as such), and NO score, tier '
+                        'or conformance claim is produced — the draft\'s tier thresholds are '
+                        'still TBD. Use it to show teams where today\'s 2.2 findings will land '
+                        'tomorrow; keep auditing against WCAG 2.2.'),
+        'inputSchema': {'type': 'object', 'properties': {
+            'report': {'type': 'object', 'description': 'audit report object with a findings list (from a11y_audit_url, a11y_audit_dom, a11y_disprove, …)'},
+            'lang': {'type': 'string', 'enum': ['es', 'en'], 'description': 'Output language (en default)'},
+        }, 'required': ['report']},
+    },
 ]
 
 _PROMPTS = [
@@ -983,6 +1003,7 @@ _ANN = {
     'a11y_docx_screen':      ('DOCX accessibility screening', True, False),
     'a11y_reduced_motion':   ('prefers-reduced-motion honored?', True, True),
     'a11y_forced_colors':    ('forced-colors survival heuristic', True, True),
+    'a11y_wcag3_preview':    ('WCAG 3 draft preview (no score)', True, True),
 }
 # TDQS hygiene: annotations must match reality, and every description states
 # its return shape and when (not) to use the tool. a11y_ledger.record mutates
@@ -1017,6 +1038,7 @@ _RETURNS = {
     'a11y_generate_declaration': 'Returns {html, summary} — the accessible legal statement; writes a file only when output_path is given.',
     'a11y_generate_vpat': 'Returns {html, summary {level: count}, levels {code: level}, pack_sha256, draft} — the VPAT draft; writes a file only when output_path is given.',
     'a11y_contrast_dom': 'Returns JSON: {url, selector, text_color, worst_ratio, median_ratio, p95_ratio, area_passes_aa_normal_text_4_5, worst_zone?, sampled_pixels, interpretation}.',
+    'a11y_wcag3_preview': 'Returns JSON: {mode, draft, disclaimer, mapping_note, no_score, conformance_model, outcomes [{outcome, draft_url, findings, severity, signals, criteria_22}], counts, unmapped} — never a score.',
 }
 _USAGE = {
     'a11y_forms': 'Use on test/staging forms, or forms you own: invalid data is REALLY submitted. Do not run against production forms that trigger real emails, orders or leads.',
@@ -1026,6 +1048,7 @@ _USAGE = {
     'a11y_journey_verdict': 'Run only after a real blindfold attempt (the blindfold-task prompt): the verdict prices the walk, it does not replace it.',
     'a11y_evidence': 'Run after the audits you trust, and pass verified codes from the manual checklist — agent-verified never erases an automated-fail.',
     'a11y_generate_vpat': 'Run after the audits you trust; a qualified human must set the final levels (overrides) and sign before publishing — the machine fills Remarks, never the claim.',
+    'a11y_wcag3_preview': 'Run after any audit when the team asks "what about WCAG 3?"; re-baseline on each W3C draft publication (roughly March/September).',
 }
 for _t in TOOLS:
     _title, _ro, _ow = _ANN[_t['name']]
@@ -1328,6 +1351,11 @@ def invoke(name, args):
                     'isError': True}
         except Exception as e:  # noqa: BLE001
             return {'content': [{'type': 'text', 'text': f'error: {e}'}], 'isError': True}
+    if name == 'a11y_wcag3_preview':
+        if not isinstance(args.get('report'), dict):
+            return _content({'error': 'report must be an audit report object '
+                                      '(from a11y_audit_url, a11y_audit_dom, …)'})
+        return _content(wcag3_preview_fn(args['report'], lang=args.get('lang', 'en')))
     if name == 'a11y_badge':
         svg = badge_fn(args['score'], date=args.get('date'),
                        lang=args.get('lang', 'en'))
