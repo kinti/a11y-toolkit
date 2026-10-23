@@ -124,4 +124,16 @@ assert 'European Accessibility Act' in decl_en and '<html lang="en">' in decl_en
 assert 'Old videos without captions' in decl_en
 prompt_es = r2[13]['result']['messages'][0]['content']['text']
 assert prompt_es.startswith('Genera la declaración')
+# 5.12: modo señal de a11y_criterion (criterio + reglas ACT con URL oficial)
+_req_sig = {'jsonrpc': '2.0', 'id': 99, 'method': 'tools/call',
+            'params': {'name': 'a11y_criterion',
+                       'arguments': {'signal': 'ctrl_name', 'lang': 'en'}}}
+_psig = subprocess.run([sys.executable, '-m', 'a11y_toolkit.server'], cwd=ROOT,
+                       input=json.dumps(_req_sig), capture_output=True, text=True, timeout=60)
+_rline = [json.loads(l) for l in _psig.stdout.splitlines() if l.strip()][-1]
+_sig = json.loads(_rline['result']['content'][0]['text'])
+assert _sig['criterion'].startswith('4.1.2') and len(_sig['act_rules']) == 2, _sig
+assert all(r['url'].startswith('https://www.w3.org/WAI/standards-guidelines/act/rules/') for r in _sig['act_rules'])
+assert _sig['understanding'].startswith('https://www.w3.org/WAI/WCAG22/Understanding/name-role-value')
+print('A11Y_CRITERION SIGNAL MODE OK ✓ (criterio + 2 reglas ACT + URLs w3.org)')
 print('MULTILINGUE MCP OK ✓ (EN pair + EN/EAA declaration + prompt ES)')

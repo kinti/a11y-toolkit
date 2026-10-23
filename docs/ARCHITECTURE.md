@@ -24,6 +24,7 @@ import guards. Output es/en; wire keys English (`a11y-evidence-pack/2`).
 | `a11yevidence.py` | Evidence pack builder (`a11y-evidence-pack/2`): 55-criterion matrix, effort per row, SHA-256 chain, embedded bodies. |
 | `a11ycrit.py` | Knowledge catalog: `_C` (56 criteria, es/en), `_EFFORT` (55 A/AA effort classes), `effort()`. |
 | `a11yvpat.py` | VPAT 2.5 (WCAG edition) generator: pack → accessible HTML VPAT, machine fills Remarks, human sets levels (overrides), signature references pack sha256. |
+| `a11yinit.py` | `a11ytoolkit init` — installs the AGENTS.md agent hook in user projects. |
 | `a11yact.py` | ACT Rules interop: curated signal → ACT rule map (`ACT_MAP`, partial by design) + EARL 1.0 JSON-LD export (failures only, never asserts pass). |
 | `a11yvtt.py` | WebVTT caption quality (1.2.2): parses the real .vtt — malformed/empty/overlapping/too-fast cues (>21 cps), coverage vs duration. |
 | `a11ydocx.py` | DOCX structural screening (zip+XML): images w/o alt, fake headings (bold+big without Heading style), document language, header rows. |

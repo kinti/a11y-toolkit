@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Internal documents never reach the public repo — block at commit time.
 set -euo pipefail
-PATRONES=(drafts/ internal/ a11y-drafts/ .draft.md .local.md)
+PATRONES=(drafts/ internal/ a11y-drafts/ .draft.md .local.md competencia competitor backlog estrategia)
 STAGED=$(git diff --cached --name-only || true)
 for f in $STAGED; do
   low=$(echo "$f" | tr 'A-Z' 'a-z')

@@ -18,6 +18,7 @@ CLI:
 
 import argparse
 import json
+import os
 import re
 import sys
 import urllib.request
@@ -372,7 +373,8 @@ T = {
         'video_autoplay_rem': 'Quita autoplay o añade muted + control visible de pausa/parada (1.4.2): el audio que arranca solo desordena a quien usa lector de pantalla.',
         'score_note': ('Puntuación ponderada: alta −12, media −6, baja −2 desde 100. Mide solo lo '
                        'automatizable (≈1/3 de WCAG): sirve para seguir tendencias entre versiones, '
-                       'no como conformidad. ESTE pase estático NO midió contraste (1.4.3), tamaño '
+                       'no como conformidad (método de muestreo y alcance al estilo WCAG-EM, no sustituye '
+                       'la evaluación de conformidad). ESTE pase estático NO midió contraste (1.4.3), tamaño '
                        'de objetivo ni los demás criterios de not_measured: un 100 aquí no es '
                        '"contraste bien" — usa la auditoría renderizada.'),
         'limits': ('Automatización ≈ un tercio de WCAG: esto es un filtro exprés, no sustituye '
@@ -519,7 +521,8 @@ T = {
         'video_autoplay_rem': 'Remove autoplay or add muted + a visible pause/stop control (1.4.2): audio that starts on its own disrupts screen-reader users.',
         'score_note': ('Weighted score: high −12, medium −6, low −2 from 100. It measures only '
                        'what is automatable (≈1/3 of WCAG): use it to track trends between '
-                       'releases, not as conformance. THIS static pass did NOT measure contrast '
+                       'releases, not as conformance (WCAG-EM-style sampling and scope; not a conformance '
+                        'evaluation). THIS static pass did NOT measure contrast '
                        '(1.4.3), target size or the criteria in not_measured: a 100 here is not '
                        '"contrast is fine" — run the rendered audit.'),
         'limits': ('Automation ≈ one third of WCAG: this is an express filter, not a substitute '
@@ -1549,17 +1552,98 @@ def audit_site(url, max_pages=5, timeout=30, lang='en', from_sitemap=True):
     }
 
 
+# extensiones que no son HTML auditable pero sí "web tocado" — se listan, no se audita
+_WEB_TOUCHED = {'.css', '.js', '.jsx', '.ts', '.tsx', '.vue', '.svelte', '.astro',
+                '.php', '.erb', '.twig', '.liquid', '.hbs', '.ejs', '.md', '.svg'}
+_AUDITABLE = {'.html', '.htm'}
+
+
+def audit_changed(base='HEAD', lang='en', cwd='.'):
+    """Audit ONLY what changed since `base` — the CI gate.
+
+    HEAD (default) covers staged+unstaged work; a ref like origin/main covers
+    a branch (three-dot diff). HTML files are audited; other web-touched files
+    are listed as not auditable (the honest boundary: without the build there
+    is no HTML to audit). Deleted files are skipped.
+    """
+    import subprocess
+    spec = ['git', 'diff', '--name-only', '--diff-filter=d',
+            base if base == 'HEAD' else f'{base}...HEAD']
+    try:
+        out = subprocess.run(spec, cwd=cwd, capture_output=True, text=True, timeout=30)
+    except FileNotFoundError:
+        return {'error': 'git not available'}
+    if out.returncode != 0:
+        return {'error': f'git diff failed: {out.stderr.strip()[:200]}'}
+    changed = [f for f in out.stdout.splitlines() if f.strip()]
+    # los NUEVOS sin trackear no salen en git diff — entran también:
+    # una página recién creada no puede escaparse del gate local
+    untracked = subprocess.run(['git', 'ls-files', '--others', '--exclude-standard'],
+                               cwd=cwd, capture_output=True, text=True, timeout=30)
+    if untracked.returncode == 0:
+        changed += [f for f in untracked.stdout.splitlines() if f.strip() and f not in changed]
+    auditables, web_touched = [], []
+    for f in changed:
+        ext = os.path.splitext(f)[1].lower()
+        if ext in _AUDITABLE:
+            auditables.append(f)
+        elif ext in _WEB_TOUCHED:
+            web_touched.append(f)
+
+    reports = []
+    for f in auditables:
+        filepath = os.path.join(cwd, f)
+        if not os.path.exists(filepath):
+            continue  # renombrado/eliminado entre el diff y ahora
+        with open(filepath, encoding='utf-8', errors='replace') as fh:
+            reports.append(audit_html(fh.read(), f, lang=lang))
+
+    findings = [h for r in reports for h in r.get('findings', [])]
+    scores = [r['score'] for r in reports if r.get('score') is not None]
+    blocking = sum(1 for h in findings if h['severity'] in ('high', 'medium'))
+    return {
+        'mode': 'changed', 'base': base, 'lang': lang,
+        'files': {'changed': len(changed), 'audited': len(reports),
+                  'web_touched_not_auditable': sorted(web_touched)},
+        'reports': reports,
+        'score': round(sum(scores) / len(scores)) if scores else None,
+        'worst_score': min(scores) if scores else None,
+        'summary': {sev: sum(1 for h in findings if h['severity'] == sev)
+                    for sev in ('high', 'medium', 'low')},
+        'blocking': blocking,
+        'note': ('exit code 2 = high/medium findings in changed files (CI gate; '
+                 'untracked new files included); web-touched non-HTML files are '
+                 'listed, not audited — audit the built/deployed output for those.'
+                 if lang == 'en' else
+                 'código de salida 2 = hallazgos high/medium en lo tocado (gate CI; '
+                 'los nuevos sin trackear también entran); los ficheros web no-HTML '
+                 'se listan sin auditar — audita la salida compilada/desplegada '
+                 'para esos.'),
+    }
+
+
 def main(argv):
     ap = argparse.ArgumentParser(description=__doc__)
     g = ap.add_mutually_exclusive_group(required=True)
     g.add_argument('--url')
     g.add_argument('--file')
+    g.add_argument('--changed', action='store_true',
+                   help='audit ONLY files changed since --base (default HEAD) — CI gate')
+    ap.add_argument('--base', default='HEAD',
+                    help='git ref for --changed (default HEAD; e.g. origin/main)')
     ap.add_argument('--lang', default='en', choices=['en', 'es'])
     ap.add_argument('--pages', type=int, default=1,
                     help='crawl ligero mismo dominio (1 = solo la página)')
     ap.add_argument('--no-sitemap', action='store_true',
                     help='descubre por enlaces, sin leer el sitemap')
     a = ap.parse_args(argv)
+    if a.changed:
+        res = audit_changed(base=a.base, lang=a.lang)
+        if 'error' in res:
+            print(json.dumps(res))
+            return 1
+        print(json.dumps(res, ensure_ascii=False, indent=1))
+        return 2 if res.get('blocking') else 0
     if a.url:
         try:
             res = (audit_site(a.url, max_pages=a.pages, lang=a.lang,

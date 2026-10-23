@@ -16,7 +16,7 @@ Tools:
   - a11y_diff(a, b)                               regression diff between snapshots
   - a11y_diff_urls(url_a, url_b)                  staging vs production in one call
   - a11y_aria_live_snippet(lang?)                 injectable live-region monitor
-  - a11y_criterion(code, lang?)                   WCAG 2.2 criterion explained
+  - a11y_criterion(code|signal, lang?)            criterion OR signal explained (+ACT rules)
   - a11y_badge(score, lang?, date?)               honest SVG badge (score+date+scope)
   - a11y_autofix(html, lang?, title?)             deterministic safe fixes
   - a11y_reflow(url, …)                           320px reflow check (1.4.10)
@@ -79,7 +79,7 @@ try:
 except ImportError:
     ARIALIVE_JS = None  # repo checkout: read the file
 
-VERSION = '5.11.0'
+VERSION = '5.12.0'
 
 # Params renombrados a inglés en 5.11.0; se aceptan los nombres previos.
 PARAM_ALIASES = {
@@ -469,12 +469,16 @@ TOOLS = [
         'description': ('Explains a WCAG 2.2 success criterion in plain language (es/en): '
                         'what it requires, typical failures, and how to verify it with this '
                         'toolkit (which tool automates which part). Codes like "1.4.3", '
-                        '"2.5.8", "4.1.2". Use it whenever you need to explain WHY a finding '
-                        'matters or what the criterion actually says.'),
+                        '"2.5.8", "4.1.2". Give a finding SIGNAL instead (e.g. img_no_alt, '
+                        'kbd_trap — the id in every audit finding) and it resolves to its '
+                        'criterion AND its published ACT rule(s) with official w3.org links. '
+                        'Use it whenever you need to explain WHY a finding matters or what '
+                        'the criterion actually says.'),
         'inputSchema': {'type': 'object', 'properties': {
-            'code': {'type': 'string', 'description': 'criterion number, e.g. 1.4.3'},
+            'code': {'type': 'string', 'description': 'criterion number, e.g. 1.4.3 (or give signal)'},
+            'signal': {'type': 'string', 'description': 'engine signal id from a finding (e.g. img_no_alt, kbd_trap) — resolves criterion + ACT rules with w3.org links'},
             'lang': {'type': 'string', 'enum': ['es', 'en']},
-        }, 'required': ['code']},
+        }, 'required': []},
     },
     {
         'name': 'a11y_journey_verdict',
@@ -885,7 +889,8 @@ _PARAM_DOCS = {
  ('a11y_badge', 'score'): '0-100 score from an audit result (int/float)',
  ('a11y_badge', 'date'): 'ISO date shown on the badge (today by default)',
  ('a11y_badge', 'lang'): 'Badge language (default en)',
- ('a11y_criterion', 'code'): 'WCAG criterion number, e.g. "1.4.3", "2.5.8"',
+ ('a11y_criterion', 'code'): 'WCAG criterion number, e.g. "1.4.3", "2.5.8" — or pass signal instead',
+ ('a11y_criterion', 'signal'): 'Signal id from any finding (e.g. img_no_alt): resolves its criterion and published ACT rules with w3.org links',
  ('a11y_criterion', 'lang'): 'Explanation language (default en)',
  ('a11y_evidence', 'reports'): 'Audit report objects to bundle (any mode: static, rendered, reflow, keyboard, scroll)',
  ('a11y_evidence', 'snapshot'): 'Optional a11y_snapshot output to include as an artifact',
@@ -928,7 +933,7 @@ _ROUTING = {
  'a11y_diff_urls': 'Convenience for staging-vs-production; manual control is snapshot + a11y_diff.',
  'a11y_autofix': 'Only the closed allowlist of provably safe fixes; judgment fixes come back as not_applied with remediation.',
  'a11y_badge': 'Scope: the honest SVG seal for audited sites; the machine-readable bundle is a11y_evidence.',
- 'a11y_criterion': 'Knowledge lookup; does not fetch or audit anything.',
+ 'a11y_criterion': 'Knowledge lookup; does not fetch or audit anything — includes the official Understanding WCAG 2.2 link for the criterion.',
  'a11y_evidence': 'The tier-3 handoff object; feed it every audit report you have.',
  'a11y_aria_live_snippet': 'Diagnostics aid to inject in a browser; not an audit by itself.',
  'a11y_generate_declaration': 'Legal statement generator; drive inaccessible_content from audit findings and a11y_evidence.',
@@ -1006,7 +1011,7 @@ _RETURNS = {
     'a11y_sr_transcript': 'Returns JSON: {url, total, announcements [{time, politeness, role, text}] — the linearized reading order}.',
     'a11y_disprove': 'Returns JSON: {confirmed, rejected, score} — a fresh score over confirmed findings only.',
     'a11y_ledger': 'record returns the stored entry; gaps returns criteria never checked; summary returns {entries, active_signals, resolved, mean_score}.',
-    'a11y_criterion': 'Returns JSON: {criterion, level, requires, typical_failures, how_to_check} or {error, available} for unknown codes.',
+    'a11y_criterion': 'Returns JSON: {criterion, level, understanding, toolkit_signals, requires, typical_failures, how_to_check} — signal mode adds {signal, act_rules [{id, name, status, url}]}; {error, …} for unknown codes.',
     'a11y_evidence': 'Returns the pack JSON (a11y-evidence-pack/2); writes a file only when output_path is given.',
     'a11y_journey_verdict': 'Returns JSON: {verdict pass|partial|fail|blocked, score 0-100, findings [{criterion, severity, signal, issue, remediation, step}], summary, rules} — writes a file only when output_path is given.',
     'a11y_generate_declaration': 'Returns {html, summary} — the accessible legal statement; writes a file only when output_path is given.',
@@ -1240,7 +1245,10 @@ def invoke(name, args):
         except Exception as e:
             return {'content': [{'type': 'text', 'text': f'error: {e}'}], 'isError': True}
     if name == 'a11y_criterion':
-        return _content(criterion_fn(args['code'], lang=args.get('lang', 'en')))
+        if not args.get('code') and not args.get('signal'):
+            return _content({'error': 'give a criterion code or a finding signal'})
+        return _content(criterion_fn(args.get('code'), lang=args.get('lang', 'en'),
+                                     signal=args.get('signal')))
     if name == 'a11y_journey_verdict':
         res = journey_verdict_fn(args['task'], args['steps'], args['outcome'],
                                  url=args.get('url', ''), lang=args.get('lang', 'en'))

@@ -47,7 +47,7 @@ assert len(res['@graph']) == 2, res['@graph']  # img_no_alt failed + meta_refres
 outcomes = {a['earl:result']['outcome'] for a in res['@graph']}
 assert outcomes == {'earl:failed', 'earl:cantTell'}, outcomes
 a0 = res['@graph'][0]
-assert a0['earl:test']['url'].startswith('https://act-rules.github.io/rules/23a2a8/')
+assert a0['earl:test']['url'].startswith('https://www.w3.org/WAI/standards-guidelines/act/rules/23a2a8/')
 assert a0['earl:subject']['url'] == 'https://example.com'
 assert a0['earl:mode'] == 'earl:automatic'
 # la ausencia de findings nunca se afirma como pass

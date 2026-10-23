@@ -23,6 +23,7 @@
   a11ytoolkit contrast-dom https://web --selector ".hero h1"   # auto-region pixel sampling
   a11ytoolkit vpat pack.json --product "App" -o vpat.html    # VPAT 2.5 (WCAG) draft
   a11ytoolkit earl --from-audit audit.json -o earl.json       # ACT Rules / EARL export
+  a11ytoolkit init [path]                                  # agent hook: AGENTS.md + MCP config
 """
 
 import sys
@@ -47,6 +48,7 @@ from . import a11yvtt
 from . import a11ypdf
 from . import a11yvpat
 from . import a11yact
+from . import a11yinit
 
 SUBCOMANDOS = {
     'pair': (contrast, 'pair'),
@@ -75,6 +77,7 @@ SUBCOMANDOS = {
     'contrast-dom': (a11ydom, 'contrast_dom_main'),
     'vpat': (a11yvpat, None),
     'earl': (a11yact, None),
+    'init': (a11yinit, 'init_main'),
 }
 
 

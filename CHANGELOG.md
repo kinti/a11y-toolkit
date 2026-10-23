@@ -1,5 +1,45 @@
 # Changelog
 
+## 5.12.0 — pendiente — "official sources"
+
+- **a11y_criterion now cites the source**: every criterion explanation
+  includes `understanding` — the official W3C Understanding WCAG 2.2
+  document URL for that criterion (87-entry map extracted from the w3.org
+  index). Agents and users get the authoritative text one link away; an
+  invariant in test_solido pins that no catalog criterion ever ships
+  without its link.
+- **a11y_criterion understands signals**: pass `signal=kbd_trap` (the id in
+  every finding) instead of a code and it resolves the criterion AND the
+  published ACT rule(s) behind it — with official w3.org rule URLs and an
+  honest published/proposed status. Criterion answers also list the
+  toolkit signals that feed them (`toolkit_signals`). The signal→criterion
+  map (115 entries) is derived empirically from the emission points and
+  pinned: a new signal without its criterion fails the suite.
+- **ACT map verified against the canonical w3c/wcag-act-rules repo**
+  (94 rules parsed): all 21 cited rules exist; 6 titles realigned with the
+  canonical wording; 5 rules are AG-WG "proposed" (now labeled as such,
+  never cited as published). 17 published rules touching our criteria
+  remain unmapped — curated candidates analyzed for a future release.
+- **WCAG-EM cited in every audit score note** (es/en): the score is
+  explicitly framed as WCAG-EM-style sampling, never as a conformance
+  evaluation.
+- **`a11ytoolkit init` — the agent hook**: writes (or merges, idempotently)
+  an AGENTS.md block into any project telling coding agents the rule that
+  matters — after any UI change, re-audit before calling the work done —
+  with the exact uvx commands, how to act on findings (judgment fixes are
+  human calls) and the pre-deploy snapshot+diff loop. Prints the MCP config
+  and the optional skill install. `--check` is CI-friendly (exit 1 when the
+  hook is missing). The repo itself gains a root AGENTS.md with the
+  contribution invariants.
+- **README**: the free-analyzer section now points at a11y.es only (single
+  brand for the service); stale-reference sweep clean.
+- **`a11ytoolkit audit --changed` — the CI gate**: audits ONLY what changed
+  since HEAD (or `--base origin/main` for a branch). HTML files audited;
+  untracked new files included (a fresh page cannot escape the local gate);
+  deleted files skipped; other web-touched files (.css/.jsx/.vue/…) listed
+  as not auditable with the reason — the honest boundary: no build, no HTML.
+  Exit contract: 0 clean, 2 when high/medium findings in changed files.
+
 ## 5.11.0 — 2026-10-22 — "English-only, all the way down" (naming, evidence-driven)
 
 The TDQS registry score (2026-10-17) flagged Naming Consistency 2/5. The

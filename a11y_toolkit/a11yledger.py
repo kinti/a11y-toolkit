@@ -31,9 +31,9 @@ import tempfile
 
 from .a11yaudit import normalize_signal  # noqa: E402  (compat 5.10)
 
-# lock por ruta: multi-hilo siempre; multi-proceso en POSIX (fcntl). El
-# SaaS programa auditorías mientras el panel escribe — sin esto, dos
-# escrituras simultáneas dejaban un JSON truncado (revisión externa 2026-10).
+# per-path lock: always multi-thread; multi-process on POSIX (fcntl).
+# Without it, two concurrent writes left a truncated JSON (external review
+# 2026-10) — schedulers and interactive writers coexist here.
 _LOCKS = {}
 
 from contextlib import contextmanager

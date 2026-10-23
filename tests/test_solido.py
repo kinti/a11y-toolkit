@@ -36,6 +36,52 @@ _hallazgo = {k for k in es
 sin_rem = sorted(k for k in _hallazgo if f'{k}_rem' not in es)
 assert not sin_rem, f"findings sin _rem (KeyError al emitir): {sin_rem}"
 assert set(CRIT['es']) == set(CRIT['en']), 'CRIT desparejo es/en'
+# enlace oficial Understanding por criterio (5.12): el catálogo nunca queda
+# con un criterio sin su fuente en w3.org
+from a11y_toolkit.a11ycrit import _UNDERSTANDING, _C, _SIGNAL_CRIT, criterion as _crit  # noqa: E402
+_sin_link = [c for c in _C if c not in _UNDERSTANDING]
+assert not _sin_link, f'criterios sin enlace Understanding: {_sin_link}'
+_r = _crit('1.4.3', 'en')
+assert _r['understanding'].startswith('https://www.w3.org/WAI/WCAG22/Understanding/') and _r['understanding'].endswith('.html')
+
+# 5.12: mapa señal→criterio sincronizado con los puntos de emisión que el regex
+# alcanza (llamadas add() y dicts literales) — una señal así emitida sin entrada
+# (o con criterio cambiado) rompe la suite. Emisiones multi-línea o de clave
+# variable (target_small, vtt_*) se mantienen manualmente y se listan abajo.
+import glob as _glob
+import re as _re
+_CODE = _re.compile(r"(?:\.get\('|'criterion':\s*'|,\s*')([\d]\.[\d]{1,2}\.[\d]{1,2})")
+_derivado = {}
+for _f in _glob.glob(os.path.join(ROOT, 'a11y_toolkit', '*.py')):
+    _lineas = open(_f, encoding='utf-8').read().splitlines()
+    for _i, _l in enumerate(_lineas):
+        for _m in _re.finditer(r"(?:_add_ej|_add|add_ej|add|_agrega|agrega)\(\s*(?:findings|hallazgos)?\s*,?\s*(?:lang\s*,\s*)?[^,]*,\s*'([\d.]+)'\s*,\s*'([a-z0-9_]+)'", _l):
+            _derivado[_m.group(2)] = _m.group(1)
+        for _m in _re.finditer(r"'signal':\s*'([a-z0-9_]+)'", _l):
+            _antes = _CODE.findall(' '.join(_lineas[max(0, _i-4):_i]) + ' ' + _l[:_m.start()])
+            _despues = _CODE.findall(_l[_m.end():] + ' ' + ' '.join(_lineas[_i+1:_i+3]))
+            if _antes:
+                _derivado[_m.group(1)] = _antes[-1]
+            elif _despues:
+                _derivado[_m.group(1)] = _despues[0]
+        for _m in _re.finditer(r"'([a-z0-9_]{5,45})':\s*\('([\d.]+)',\s*'(?:high|medium|low)'", _l):
+            _derivado[_m.group(1)] = _m.group(2)
+assert set(_derivado) <= set(_SIGNAL_CRIT), (
+    f'señales emitidas fuera del mapa: {sorted(set(_derivado) - set(_SIGNAL_CRIT))[:5]}')
+_div = [(k, _derivado[k], _SIGNAL_CRIT[k]) for k in _derivado if _SIGNAL_CRIT[k] != _derivado[k]]
+assert not _div, f'señal→criterio divergente entre código y mapa: {_div[:5]}'
+# emisiones no derivables por regex (multi-línea/clave variable) — mantenimiento manual
+for _manual in ('target_small', 'vtt_malformed', 'vtt_overlap', 'vtt_too_fast'):
+    assert _manual in _SIGNAL_CRIT, f'señal manual {_manual} perdida del mapa'
+# toda señal con regla ACT tiene criterio, y las URLs/status son honestos
+from a11y_toolkit.a11yact import ACT_MAP, act_rules_for
+_sin = sorted(set(ACT_MAP) - set(_SIGNAL_CRIT))
+assert not _sin, f'señales ACT sin criterio: {_sin}'
+for _senal in ACT_MAP:
+    for _r in act_rules_for(_senal):
+        assert _r['url'].startswith('https://www.w3.org/WAI/standards-guidelines/act/rules/') and _r['url'].endswith('/')
+        assert _r['status'] in ('published', 'proposed')
+
 # lo mismo para el catálogo del modo renderizado
 for lang in ('es', 'en'):
     pass  # _TD comparte claves por diseño; la paridad de T already lo cubre

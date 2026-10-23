@@ -8,12 +8,106 @@ finding and actually understanding the criterion.
 
 CLI:
   a11ycrit.py 2.5.8 [--lang es]
+  a11ycrit.py --signal kbd_trap [--lang en]
   a11ycrit.py --list
 """
 
 import argparse
 import json
 import sys
+
+
+# Enlace oficial Understanding WCAG 2.2 por criterio (w3.org, índice 2026-10).
+# Fuente: https://www.w3.org/WAI/WCAG22/Understanding/ — los 86 criterios.
+_UNDERSTANDING = {
+    '1.1.1': 'non-text-content',
+    '1.2.1': 'audio-only-and-video-only-prerecorded',
+    '1.2.2': 'captions-prerecorded',
+    '1.2.3': 'audio-description-or-media-alternative-prerecorded',
+    '1.2.4': 'captions-live',
+    '1.2.5': 'audio-description-prerecorded',
+    '1.2.6': 'sign-language-prerecorded',
+    '1.2.7': 'extended-audio-description-prerecorded',
+    '1.2.8': 'media-alternative-prerecorded',
+    '1.2.9': 'audio-only-live',
+    '1.3.1': 'info-and-relationships',
+    '1.3.2': 'meaningful-sequence',
+    '1.3.3': 'sensory-characteristics',
+    '1.3.4': 'orientation',
+    '1.3.5': 'identify-input-purpose',
+    '1.3.6': 'identify-purpose',
+    '1.4.1': 'use-of-color',
+    '1.4.2': 'audio-control',
+    '1.4.3': 'contrast-minimum',
+    '1.4.4': 'resize-text',
+    '1.4.5': 'images-of-text',
+    '1.4.6': 'contrast-enhanced',
+    '1.4.7': 'low-or-no-background-audio',
+    '1.4.8': 'visual-presentation',
+    '1.4.9': 'images-of-text-no-exception',
+    '1.4.10': 'reflow',
+    '1.4.11': 'non-text-contrast',
+    '1.4.12': 'text-spacing',
+    '1.4.13': 'content-on-hover-or-focus',
+    '2.1.1': 'keyboard',
+    '2.1.2': 'no-keyboard-trap',
+    '2.1.3': 'keyboard-no-exception',
+    '2.1.4': 'character-key-shortcuts',
+    '2.2.1': 'timing-adjustable',
+    '2.2.2': 'pause-stop-hide',
+    '2.2.3': 'no-timing',
+    '2.2.4': 'interruptions',
+    '2.2.5': 're-authenticating',
+    '2.2.6': 'timeouts',
+    '2.3.1': 'three-flashes-or-below-threshold',
+    '2.3.2': 'three-flashes',
+    '2.3.3': 'animation-from-interactions',
+    '2.4.1': 'bypass-blocks',
+    '2.4.2': 'page-titled',
+    '2.4.3': 'focus-order',
+    '2.4.4': 'link-purpose-in-context',
+    '2.4.5': 'multiple-ways',
+    '2.4.6': 'headings-and-labels',
+    '2.4.7': 'focus-visible',
+    '2.4.8': 'location',
+    '2.4.9': 'link-purpose-link-only',
+    '2.4.10': 'section-headings',
+    '2.4.11': 'focus-not-obscured-minimum',
+    '2.4.12': 'focus-not-obscured-enhanced',
+    '2.4.13': 'focus-appearance',
+    '2.5.1': 'pointer-gestures',
+    '2.5.2': 'pointer-cancellation',
+    '2.5.3': 'label-in-name',
+    '2.5.4': 'motion-actuation',
+    '2.5.5': 'target-size-enhanced',
+    '2.5.6': 'concurrent-input-mechanisms',
+    '2.5.7': 'dragging-movements',
+    '2.5.8': 'target-size-minimum',
+    '3.1.1': 'language-of-page',
+    '3.1.2': 'language-of-parts',
+    '3.1.3': 'unusual-words',
+    '3.1.4': 'abbreviations',
+    '3.1.5': 'reading-level',
+    '3.1.6': 'pronunciation',
+    '3.2.1': 'on-focus',
+    '3.2.2': 'on-input',
+    '3.2.3': 'consistent-navigation',
+    '3.2.4': 'consistent-identification',
+    '3.2.5': 'change-on-request',
+    '3.2.6': 'consistent-help',
+    '3.3.1': 'error-identification',
+    '3.3.2': 'labels-or-instructions',
+    '3.3.3': 'error-suggestion',
+    '3.3.4': 'error-prevention-legal-financial-data',
+    '3.3.5': 'help',
+    '3.3.6': 'error-prevention-all',
+    '3.3.7': 'redundant-entry',
+    '3.3.8': 'accessible-authentication-minimum',
+    '3.3.9': 'accessible-authentication-enhanced',
+    '4.1.1': 'parsing',
+    '4.1.2': 'name-role-value',
+    '4.1.3': 'status-messages'
+}
 
 # code → (nivel, {es: (nombre, exige, fallos, prueba)}, {en: ...})
 _C = {
@@ -289,7 +383,7 @@ _C = {
                '<marquee>, looping CSS animations, auto-updating tickers with no pause control.',
                'a11y_audit_url / a11y_audit_dom (detection); you verify a pause control actually exists and works.'),
         'en': ('Pause, Stop, Hide',
-               'Moving, blinking or auto-updating content that starts automatically and lasts >5s can be paused, stopped or hi',
+               'Moving, blinking or auto-updating content that starts automatically and lasts >5s can be paused, stopped or hidden',
                '<marquee>, looping CSS animations, auto-updating tickers with no pause control.',
                'a11y_audit_url / a11y_audit_dom (detection); you verify a pause control actually exists and works.'),
     }),
@@ -607,16 +701,161 @@ RENDERED_ONLY = frozenset({
 })
 
 
-def criterion(code, lang='en'):
+
+# Señal del motor → criterio WCAG que alimenta. Derivado empíricamente de los
+# puntos de emisión (add/_add/_agrega y dicts _CRIT) — el test de invariantes
+# re-deriva este mapa del código y compara: una señal nueva sin entrada falla.
+_SIGNAL_CRIT = {
+    # — emisiones no derivables por regex (llamada multi-línea / clave variable) —
+    'target_small': '2.5.8',
+    'vtt_malformed': '1.2.2', 'vtt_no_cues': '1.2.2', 'vtt_empty_cue': '1.2.2',
+    'vtt_overlap': '1.2.2', 'vtt_too_fast': '1.2.2', 'vtt_coverage': '1.2.2',
+    'accesskey_dup': '2.1.1',
+    'aria_hidden_focusable': '4.1.2',
+    'aria_ref_missing': '4.1.2',
+    'aria_value_invalid': '4.1.2',
+    'audio_desc_missing': '1.2.3',
+    'autocomplete': '1.3.5',
+    'autocomplete_invalid': '1.3.5',
+    'blank_no_warning': '3.2.5',
+    'captcha': '3.3.8',
+    'char_shortcut': '2.1.4',
+    'click_nonfocusable': '2.1.1',
+    'color_only_link': '1.4.1',
+    'contrast_fail': '1.4.3',
+    'contrast_image_fail': '1.4.3',
+    'contrast_review': '1.4.3',
+    'ctrl_name': '4.1.2',
+    'docx_fake_headings': '1.3.1',
+    'docx_no_alt': '1.1.1',
+    'docx_no_lang': '3.1.1',
+    'docx_table_no_header': '1.3.1',
+    'dom_visual_order': '1.3.2',
+    'down_event': '2.5.2',
+    'drag_no_alt': '2.5.7',
+    'dup_ids': '4.1.2',
+    'element_lang_invalid': '3.1.2',
+    'empty_heading': '1.3.1',
+    'field_label': '3.3.2',
+    'fieldset_missing': '1.3.1',
+    'financial_no_confirm': '3.3.4',
+    'focus_invisible': '2.4.7',
+    'focus_navigates': '3.2.1',
+    'focus_not_focusable': '2.4.7',
+    'focus_obscured': '2.4.11',
+    'forced_colors_svg': '1.4.3',
+    'form_error_missing': '3.3.1',
+    'form_error_no_suggestion': '3.3.3',
+    'form_navigated': '3.3.1',
+    'generic_link': '2.4.4',
+    'gesture_no_click': '2.5.1',
+    'heading_quality': '2.4.6',
+    'heading_skips': '1.3.1',
+    'help_inconsistent': '3.2.6',
+    'hover_not_dismissible': '1.4.13',
+    'iframe_title': '4.1.2',
+    'images_of_text': '1.4.5',
+    'img_no_alt': '1.1.1',
+    'input_img_alt': '1.1.1',
+    'input_navigates': '3.2.2',
+    'journey_dialog_trap': '2.1.2',
+    'journey_duplicate_targets': '4.1.2',
+    'journey_dynamic_stale': '4.1.3',
+    'journey_error_silent': '3.3.1',
+    'journey_focus_lost': '2.4.3',
+    'journey_generic_link': '2.4.4',
+    'journey_heading_nav_broken': '2.4.6',
+    'journey_hidden_in_tree': '1.3.1',
+    'journey_landmark_missing': '2.4.1',
+    'journey_mode_confusion': '4.1.2',
+    'journey_no_instruction': '3.3.2',
+    'journey_reach_fail': '2.1.1',
+    'journey_status_silent': '4.1.3',
+    'journey_timeout_confusion': '2.2.1',
+    'journey_unnamed_control': '4.1.2',
+    'kbd_trap': '2.1.2',
+    'label_in_name': '2.5.3',
+    'label_orphan': '3.3.2',
+    'label_vague': '2.4.6',
+    'landmark_dup': '1.3.1',
+    'lang_invalid': '3.1.1',
+    'lang_missing': '3.1.1',
+    'lang_region_invalid': '3.1.1',
+    'list_structure': '1.3.1',
+    'meta_refresh': '2.2.1',
+    'motion_actuation': '2.5.4',
+    'motion_moving': '2.2.2',
+    'multi_h1': '1.3.1',
+    'multi_label': '3.3.2',
+    'nav_inconsistent': '3.2.3',
+    'no_bypass': '2.4.1',
+    'no_h1': '1.3.1',
+    'no_headings': '1.3.1',
+    'no_multiple_ways': '2.4.5',
+    'no_status_regions': '4.1.3',
+    'orientation_lock': '1.3.4',
+    'pdf_encrypted': '1.1.1',
+    'pdf_fake_link': '2.4.4',
+    'pdf_low_contrast': '1.4.3',
+    'pdf_no_alt': '1.1.1',
+    'pdf_no_lang': '3.1.1',
+    'pdf_no_outline': '1.3.1',
+    'pdf_no_title': '2.4.2',
+    'pdf_scanned': '1.1.1',
+    'pdf_untagged': '1.3.1',
+    'placeholder_only': '3.3.2',
+    'reduced_motion_ignored': '2.2.2',
+    'reflow_fail': '1.4.10',
+    'required_no_indication': '3.3.2',
+    'role_required_attr': '4.1.2',
+    'role_unknown': '4.1.2',
+    'same_name_links': '2.4.4',
+    'scroll_focus': '2.4.3',
+    'scroll_no_announce': '4.1.3',
+    'scroll_no_end': '2.2.2',
+    'scroll_no_feed': '1.3.1',
+    'sensory_text': '1.3.3',
+    'state_contrast': '1.4.3',
+    'tabindex_pos': '2.4.3',
+    'table_no_th': '1.3.1',
+    'text_spacing_clip': '1.4.12',
+    'title_generic': '2.4.2',
+    'title_missing': '2.4.2',
+    'video_autoplay': '1.4.2',
+    'video_captions': '1.2.2',
+    'zoom_max': '1.4.4',
+    'zoom_no': '1.4.4'
+}
+
+def criterion(code=None, lang='en', signal=None):
+    from .a11yact import act_rules_for
+    if signal:
+        from .a11yaudit import normalize_signal
+        signal = normalize_signal(signal.strip())
+        if signal in _SIGNAL_CRIT:
+            code = _SIGNAL_CRIT[signal]
+        else:
+            return {'error': f'señal desconocida: {signal}',
+                    'known_signals': len(_SIGNAL_CRIT),
+                    'hint': 'signal ids appear in every audit finding'}
     code = code.strip()
     if code not in _C:
         return {'error': f'criterio desconocido: {code}',
                 'available': sorted(_C)}
     level, languages = _C[code]
     name, requires, failures, how_to_check = languages.get(lang) or languages['es']
-    return {
+    out = {
         'criterion': f'{code} {name}',
         'level': _LEVEL[level],
+        'understanding': (f'https://www.w3.org/WAI/WCAG22/Understanding/'
+                          f'{_UNDERSTANDING[code]}.html') if code in _UNDERSTANDING else None,
+        'toolkit_signals': sorted(s for s, c in _SIGNAL_CRIT.items() if c == code),
+    }
+    if signal:
+        out['signal'] = signal
+        out['act_rules'] = act_rules_for(signal)
+        return out
+    out.update({
         'requires': requires,
         'typical_failures': failures,
         'how_to_check': how_to_check,
@@ -624,7 +863,8 @@ def criterion(code, lang='en'):
                  'https://www.w3.org/TR/WCAG22/#' if lang == 'es' else
                  'This summarizes the criterion; the official text at '
                  'https://www.w3.org/TR/WCAG22/# governs.'),
-    }
+    })
+    return out
 
 
 def effort(code):
@@ -638,13 +878,14 @@ def effort(code):
 def main(argv):
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument('code', nargs='?')
+    ap.add_argument('--signal', help='engine signal id (e.g. kbd_trap) instead of a criterion code')
     ap.add_argument('--lang', default='en', choices=['en', 'es'])
     ap.add_argument('--list', action='store_true')
     a = ap.parse_args(argv)
-    if a.list or not a.code:
+    if a.list or not (a.code or a.signal):
         print(json.dumps({'available_criteria': sorted(_C)}, indent=1))
         return 0
-    print(json.dumps(criterion(a.code, a.lang), ensure_ascii=False, indent=1))
+    print(json.dumps(criterion(a.code, a.lang, signal=a.signal), ensure_ascii=False, indent=1))
     return 0
 
 

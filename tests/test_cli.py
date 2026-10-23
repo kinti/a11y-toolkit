@@ -18,9 +18,11 @@ FIX = os.path.join('/tmp', 'a11ycli_ok.html')
 FIX_MAL = os.path.join('/tmp', 'a11ycli_mal.html')
 
 
-def run(*args, stdin=None):
-    return subprocess.run([sys.executable, '-m', 'a11y_toolkit.a11y', *args], cwd=ROOT, capture_output=True,
-                          text=True, timeout=180, input=stdin)
+def run(*args, stdin=None, cwd=ROOT):
+    # fuera de ROOT, el paquete del repo debe ganar al instalado en site-packages
+    env = None if cwd == ROOT else dict(os.environ, PYTHONPATH=ROOT)
+    return subprocess.run([sys.executable, '-m', 'a11y_toolkit.a11y', *args], cwd=cwd,
+                          capture_output=True, text=True, timeout=180, input=stdin, env=env)
 
 
 with open(FIX, 'w', encoding='utf-8') as f:
@@ -42,6 +44,44 @@ signals = {h['signal'] for h in json.loads(r.stdout)['findings']}
 assert {'img_no_alt', 'zoom_no', 'autocomplete', 'title_missing'} <= signals, signals
 r = run('criterion', '2.5.8', '--lang', 'en')
 assert r.returncode == 0 and 'Target Size' in r.stdout
+r = run('criterion', '--signal', 'kbd_trap')
+assert r.returncode == 0 and '2.1.2' in r.stdout and 'no-keyboard-trap' in r.stdout, r.stderr[-200:]
+import tempfile
+_d = tempfile.mkdtemp()
+open(os.path.join(_d, 'AGENTS.md'), 'w').write('# My project\n\nSome rules.\n')
+r = run('init', _d)
+assert r.returncode == 0 and 'agent hook' in r.stdout, r.stderr[-200:]
+_agents = open(os.path.join(_d, 'AGENTS.md')).read()
+assert _agents.startswith('# My project') and 'Accessibility guardrails' in _agents
+run('init', _d)
+assert open(os.path.join(_d, 'AGENTS.md')).read().count('BEGIN a11y-toolkit') == 1
+r = run('init', _d, '--check')
+assert r.returncode == 0 and json.loads(r.stdout)['hook_present'] is True
+print('INIT (AGENTS.md hook, merge, idempotente, --check) + criterion --signal ✓')
+
+# 5.12: --changed (gate CI) — repo git temporal con modificada + nueva + css
+import subprocess as _sp, tempfile as _tf
+_d = _tf.mkdtemp()
+def _git(*args):
+    _sp.run(['git', '-C', _d] + list(args), capture_output=True, check=True)
+_git('init', '-q'); _git('config', 'user.email', 't@t'); _git('config', 'user.name', 't')
+open(os.path.join(_d, 'good.html'), 'w').write('<!doctype html><html lang="en"><head><title>G</title></head><body><main><h1>OK</h1></main></body></html>')
+open(os.path.join(_d, 'bad.html'), 'w').write('<!doctype html><html><head><title>t</title></head><body><main><h1>B</h1></main></body></html>')
+_git('add', '-A'); _git('commit', '-qm', 'init')
+open(os.path.join(_d, 'bad.html'), 'a').write('<img src="x.png">')              # tracked modificada (sin alt)
+open(os.path.join(_d, 'new.html'), 'w').write('<!doctype html><html><head><title>n</title></head><body><main><h1>N</h1><img src="n.png"></main></body></html>')  # untracked
+open(os.path.join(_d, 'style.css'), 'w').write('body{}')                        # web-touched no auditable
+r = run('audit', '--changed', '--lang', 'en', cwd=_d)
+assert r.returncode == 2, (r.returncode, r.stdout[-300:])
+_ch = json.loads(r.stdout)
+assert _ch['files']['audited'] == 2 and _ch['files']['web_touched_not_auditable'] == ['style.css'], _ch['files']
+assert _ch['blocking'] >= 2 and 'good.html' not in ' '.join(x['url'] for x in _ch['reports'])
+# arreglado → exit 0
+open(os.path.join(_d, 'bad.html'), 'w').write('<!doctype html><html lang="en"><head><title>t</title></head><body><main><h1>B</h1><img src="x.png" alt=""></main></body></html>')
+open(os.path.join(_d, 'new.html'), 'w').write('<!doctype html><html lang="en"><head><title>n</title></head><body><main><h1>N</h1><img src="n.png" alt=""></main></body></html>')
+r = run('audit', '--changed', '--lang', 'en', cwd=_d)
+assert r.returncode == 0 and json.loads(r.stdout)['blocking'] == 0, r.stdout[-300:]
+print('AUDIT --changed (CI gate: exit 2/0, untracked cubiertos, css listado) ✓')
 r = run('badge', '--score', '90', '--lang', 'en')
 assert r.returncode == 0 and r.stdout.startswith('<svg') and '90/100' in r.stdout
 r = run('fix', '--file', FIX_MAL, '--lang', 'es', '--title', 'T', '-o', os.path.join('/tmp', 'cli_fixed.html'))

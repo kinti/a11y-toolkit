@@ -20,6 +20,8 @@ the human signs.
 
 > **This engine is in production at [a11y.es](https://a11y.es)** — continuous WCAG 2.2
 > monitoring with hash-verifiable evidence packs and human-signed reports. En español.
+> The service layer —panel, scheduling, the signing workflow, client operations— is
+> NOT in this repository: cloning this engine is not cloning a11y.es.
 
 <p align="center">
   <img src="docs/demo.gif" alt="a11y-toolkit in action: audit (score 64), nearest passing color, re-audit (94) — real tool output" width="720">
@@ -502,12 +504,14 @@ Returns an HONEST accessibility badge as accessible SVG: score, date and scope (
 
 <sub>read-only</sub>
 
-Explains a WCAG 2.2 success criterion in plain language (es/en): what it requires, typical failures, and how to verify it with this toolkit (which tool automates which part). Codes like "1.4.3", "2.5.8", "4.1.2". Use it whenever you need to explain WHY a finding matters or what the criterion actually says. — Knowledge lookup; does not fetch or audit anything. Returns JSON: {criterion, level, requires, typical_failures, how_to_check} or {error, available} for unknown codes.
+Explains a WCAG 2.2 success criterion in plain language (es/en): what it requires, typical failures, and how to verify it with this toolkit (which tool automates which part). Codes like "1.4.3", "2.5.8", "4.1.2". Give a finding SIGNAL instead (e.g. img_no_alt, kbd_trap — the id in every audit finding) and it resolves to its criterion AND its published ACT rule(s) with official w3.org links. Use it whenever you need to explain WHY a finding matters or what the criterion actually says. — Knowledge lookup; does not fetch or audit anything. Returns JSON: {criterion, level, understanding, toolkit_signals, requires, typical_failures, how_to_check} or, in signal mode, adds {signal, act_rules [{id, name, status, url}]}; {error, …} for unknown codes.
 
 
 **Arguments**
 
-- `code` *(required)*: criterion number, e.g. 1.4.3.
+- `code`: criterion number, e.g. 1.4.3 — or pass `signal` instead.
+
+- `signal`: engine signal id from any finding (e.g. `kbd_trap`): resolves its criterion and its published ACT rule(s) with w3.org links (proposed rules are labeled as such).
 
 - `lang` — one of ['es', 'en']: Explanation language (default en).
 
@@ -679,9 +683,25 @@ git clone https://github.com/kinti/a11y-toolkit && cd a11y-toolkit
 ./skill/install-skill.sh     # → ~/.zcode/skills and ~/.claude/skills
 ```
 
+## Agent hook — `a11ytoolkit init`
+
+Agents that read `AGENTS.md` on their own get the
+rule that matters — *after any UI change, re-audit before calling the work
+done* — with the exact commands:
+
+```bash
+cd your-project
+uvx --from a11y-toolkit a11ytoolkit init     # writes/merges the AGENTS.md hook (idempotent)
+```
+
+It also prints the MCP config block and the optional skill install step.
+`--check` reports whether the hook is present (exit 1 if not — CI-friendly).
+
 ## CLI — same engine, one command
 
 ```bash
+a11ytoolkit audit --changed                     # ONLY what changed since HEAD (CI gate)
+a11ytoolkit audit --changed --base origin/main  # a branch's changes — exit 2 on high/medium
 a11ytoolkit audit --url https://example.com --pages 5   # sitemap-first crawl
 a11ytoolkit pair "#1f2328" "#fbfaf7"                    # contrast
 a11ytoolkit image hero.jpg --text "#fff" --region 120,40,420,90
@@ -714,11 +734,12 @@ a11ytoolkit earl --from-audit audit.json -o earl.json          # ACT Rules / EAR
 The 4 manual-only criteria each have a knowledge entry (`a11y_criterion`) telling the
 agent exactly how to verify them by hand. The boundary is printed on every report.
 
-## Free online analyzer
+## a11y.es — the engine in production
 
-I also run **[a11y.jquin.net](https://a11y.jquin.net)**, a free online analyzer with
-the same engine — full report, badge, evidence-pack download. Every report ends at the
-exact boundary where a qualified human begins, which is the point.
+**[a11y.es](https://a11y.es)** runs this engine in production: continuous WCAG 2.2
+monitoring with hash-verifiable evidence packs and human-signed reports, in Spanish,
+built for the European Accessibility Act / RD 1112/2012 market. Every report ends at
+the exact boundary where a qualified human begins — that boundary is the product.
 
 ## Validated against real pages
 

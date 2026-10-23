@@ -33,8 +33,8 @@ ACT_MAP = {
     'placeholder_only': [('e086e5', 'Form field has non-empty accessible name')],
     'label_in_name': [('2ee8b8', 'Visible label is part of accessible name')],
     'empty_heading': [('ffd0e9', 'Heading has non-empty accessible name')],
-    'iframe_title': [('cae760', 'iframe element has non-empty accessible name')],
-    'aria_hidden_focusable': [('6cfa84', 'Element with aria-hidden has no focusable content')],
+    'iframe_title': [('cae760', 'Iframe element has non-empty accessible name')],
+    'aria_hidden_focusable': [('6cfa84', 'Element with aria-hidden has no content in sequential focus navigation')],
     'aria_value_invalid': [('6a7281', 'ARIA state or property has valid value')],
     'role_unknown': [('674b10', 'Role attribute has valid value')],
     'lang_missing': [('b5c3f8', 'HTML page has lang attribute')],
@@ -42,13 +42,30 @@ ACT_MAP = {
     'element_lang_invalid': [('de46e4', 'Element with lang attribute has valid language tag')],
     'title_missing': [('2779a5', 'HTML page has non-empty title')],
     'meta_refresh': [('bc659a', 'Meta element has no refresh delay')],
-    'zoom_max': [('b4f0c3', 'Meta viewport does not prevent zoom')],
-    'zoom_no': [('b4f0c3', 'Meta viewport does not prevent zoom')],
+    'zoom_max': [('b4f0c3', 'Meta viewport allows for zoom')],
+    'zoom_no': [('b4f0c3', 'Meta viewport allows for zoom')],
     'no_bypass': [('3e12e1', 'Block of repeated content is collapsible')],
-    'dup_ids': [('3ea0c8', 'id attribute value is unique')],
-    'autocomplete': [('73f2c2', 'autocomplete attribute has valid value')],
+    'dup_ids': [('3ea0c8', 'Id attribute value is unique')],
+    'autocomplete': [('73f2c2', 'Autocomplete attribute has valid value')],
     'contrast_fail': [('afw4f7', 'Text has minimum contrast')],
 }
+
+# Reglas con estado "proposed" (no aún publicadas por el AG WG) en el canónico
+# w3c/wcag-act-rules — verificado 23/10/2026. Se citan con su estado, nunca como
+# publicadas: la honestidad del toolkit incluye la del ecosistema que cita.
+ACT_PROPOSED = {'2ee8b8', '3e12e1', '3ea0c8', 'cae760', 'ffd0e9'}
+
+_ACT_URL = 'https://www.w3.org/WAI/standards-guidelines/act/rules/{rid}/'
+
+
+def act_rules_for(signal):
+    """Señal → reglas ACT con id, título canónico, estado y URL oficial."""
+    signal = normalize_signal(signal)
+    return [{'id': rid, 'name': name,
+             'status': 'proposed' if rid in ACT_PROPOSED else 'published',
+             'url': _ACT_URL.format(rid=rid)}
+            for rid, name in ACT_MAP.get(signal, [])]
+
 
 # Notas de honestidad por señal (solapes aproximados declarados)
 ACT_NOTES = {
@@ -94,7 +111,7 @@ def earl(report, url=None):
                 'earl:subject': {'@type': 'earl:TestSubject',
                                  'url': url or report.get('url', '')},
                 'earl:test': {'@type': 'earl:TestCase',
-                              'url': f'https://act-rules.github.io/rules/{rid}/',
+                              'url': _ACT_URL.format(rid=rid),
                               'title': name},
                 'earl:result': {'@type': 'earl:TestResult',
                                 'outcome': outcome,
