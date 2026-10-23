@@ -17,44 +17,12 @@ import argparse
 import json
 import re
 import sys
+from . import a11yi18n
 
-_RE_TiEMPO = re.compile(
+_RE_TIME = re.compile(
     r'(?:(\d{2,}):)?(\d{2}):(\d{2})[.,](\d{3})\s*-->\s*(?:(\d{2,}):)?(\d{2}):(\d{2})[.,](\d{3})')
 
-T = {
-    'es': {
-        'vtt_malformed': '{n} bloques con línea de tiempos malformada: {ej}.',
-        'vtt_malformed_rem': 'Corrige el formato «HH:MM:SS.mmm --> HH:MM:SS.mmm»; un cue roto puede saltarse entero en el lector.',
-        'vtt_empty_cue': '{n} cues sin texto: tiempo consumido sin subtítulo.',
-        'vtt_empty_cue_rem': 'Elimina los cues vacíos o dales el texto que falta.',
-        'vtt_overlap': '{n} solapamientos de tiempo entre cues consecutivos.',
-        'vtt_overlap_rem': 'Los cues no deben solaparse: algunos lectores muestran ambos a la vez.',
-        'vtt_too_fast': '{n} cues por encima de 21 caracteres/segundo: {ej}.',
-        'vtt_too_fast_rem': 'Divide el cue o alarga su tiempo: >21 cps es ilegible (estándar BBC/Netflix).',
-        'vtt_no_cues': 'el archivo declara WebVTT pero no contiene cues.',
-        'vtt_no_cues_rem': 'Subtitula de verdad: un track vacío no cumple 1.2.2.',
-        'vtt_coverage': 'cobertura {pct}% de los {dur}s de media — hay tramos sin subtítulos.',
-        'vtt_coverage_rem': 'Subtitula los tramos faltantes o declara el tramo como música/idioma extranjero si aplica.',
-        'limits': ('Cribado del CONTENIDO de los subtítulos (1.2.2): no sustituye '
-                   'la revisión humana de precisión, identificación de hablantes ni audiodescripción.'),
-    },
-    'en': {
-        'vtt_malformed': '{n} blocks with malformed timing lines: {ej}.',
-        'vtt_malformed_rem': 'Fix the "HH:MM:SS.mmm --> HH:MM:SS.mmm" format; a broken cue can be skipped whole by the player.',
-        'vtt_empty_cue': '{n} cues with no text: time spent with no caption.',
-        'vtt_empty_cue_rem': 'Remove empty cues or add their missing text.',
-        'vtt_overlap': '{n} timing overlaps between consecutive cues.',
-        'vtt_overlap_rem': 'Cues must not overlap: some players show both at once.',
-        'vtt_too_fast': '{n} cues above 21 characters/second: {ej}.',
-        'vtt_too_fast_rem': 'Split the cue or extend its time: >21 cps is unreadable (BBC/Netflix standard).',
-        'vtt_no_cues': 'the file declares WebVTT but contains no cues.',
-        'vtt_no_cues_rem': 'Caption for real: an empty track does not satisfy 1.2.2.',
-        'vtt_coverage': '{pct}% coverage of the {dur}s of media — stretches without captions.',
-        'vtt_coverage_rem': 'Caption the missing stretches (or mark them as music/foreign language when true).',
-        'limits': ('Screening of caption CONTENT (1.2.2): not a substitute for '
-                   'human review of accuracy, speaker identification or audio description.'),
-    },
-}
+T = a11yi18n.pair('vtt')  # locales/<lang>.json — community-editable
 
 
 def _t(lang, key):
@@ -93,7 +61,7 @@ def vtt_check(url, duration=None, lang='en'):
         lines = [l for l in b.splitlines() if l.strip()]
         m = None
         for i, l in enumerate(lines):
-            m = _RE_TiEMPO.search(l)
+            m = _RE_TIME.search(l)
             if m:
                 body = '\n'.join(lines[i + 1:]).strip()
                 break
@@ -111,9 +79,9 @@ def vtt_check(url, duration=None, lang='en'):
         add('high', 'vtt_no_cues')
         return _report(url, findings, 0, 0, lang, duration, cues)
 
-    vacios = [c for c in cues if not c['text']]
-    if vacios:
-        add('medium', 'vtt_empty_cue', n=len(vacios))
+    empties = [c for c in cues if not c['text']]
+    if empties:
+        add('medium', 'vtt_empty_cue', n=len(empties))
 
     overlaps = sum(1 for a, b in zip(cues, cues[1:]) if b['start'] < a['end'])
     if overlaps:

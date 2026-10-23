@@ -40,7 +40,7 @@ a = _attrs('<input value="" required>')
 assert a['value'] == ''  # el valor vacío se conserva (before: StopIteration)
 print('3. _attrs con value="" ✓')
 
-# 4. parse_color: sintaxis moderna con '/' y canales negativos acotados
+# 4. parse_color: sintaxis moderna con '/' y channels negativos acotados
 c = contrast.parse_color('rgb(0 0 0 / 50%)')
 assert c == {'r': 0, 'g': 0, 'b': 0, 'a': 0.5}, c
 c2 = contrast.parse_color('rgba(-5, 0, 0, 1)')
@@ -60,7 +60,7 @@ inf = {'mode': 'static', 'url': 'x', 'score': 9, 'findings': [
 p6 = build_pack([inf])
 row = next(m for m in p6['criteria'] if m['criterion'].startswith('1.4.3'))
 assert row['status'] != 'automated-fail'
-print('6. evidence respeta rejected ✓ (1.4.3 →', row['status'] + ')')
+print('6. evidence respects rejected ✓ (1.4.3 →', row['status'] + ')')
 
 # 7. declaracion: el método por defecto no atribuye evaluaciones no realizadas
 d7 = declaracion.generate(entity='X', url='https://x.example', status='partial')
@@ -90,7 +90,7 @@ a10 = _attrs("<input type='email' required>")
 assert a10.get('type') == 'email', a10
 print('10. _attrs lee comillas simples ✓')
 
-# 11. viewport: eliminar el meta respeta comillas al buscar el cierre
+# 11. viewport: eliminar el meta respects comillas al buscar el cierre
 r11 = autofix('<html><head><meta name="viewport" content="user-scalable=no" '
               'data-note="a>b"></head><body>x</body></html>', lang='en')
 assert '<head></head>' in r11['fixed_html'] and '<head>>' not in r11['fixed_html']

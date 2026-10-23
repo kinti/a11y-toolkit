@@ -73,7 +73,7 @@ assert not _div, f'señal→criterio divergente entre código y mapa: {_div[:5]}
 # emisiones no derivables por regex (multi-línea/clave variable) — mantenimiento manual
 for _manual in ('target_small', 'vtt_malformed', 'vtt_overlap', 'vtt_too_fast'):
     assert _manual in _SIGNAL_CRIT, f'señal manual {_manual} perdida del mapa'
-# toda señal con regla ACT tiene criterio, y las URLs/status son honestos
+# toda señal con regla ACT present criterio, y las URLs/status son honestos
 from a11y_toolkit.a11yact import ACT_MAP, act_rules_for
 _sin = sorted(set(ACT_MAP) - set(_SIGNAL_CRIT))
 assert not _sin, f'señales ACT sin criterio: {_sin}'

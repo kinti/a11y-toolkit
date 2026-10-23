@@ -21,35 +21,9 @@ import json
 import re
 import sys
 import zipfile
+from . import a11yi18n
 
-T = {
-    'es': {
-        'docx_no_alt': '{n} imágenes sin texto alternativo (docPr sin descr o descr vacío): invisibles para el lector de pantalla (1.1.1).',
-        'docx_no_alt_rem': 'Clic derecho en cada imagen → «Editar texto alternativo» y descríbela. Las decorativas: marca la casilla «decorativa».',
-        'docx_fake_headings': '{n} párrafos con solo negrita/grande: parecen encabezados pero no lo son — el panel de navegación y el índice no los ven (1.3.1).',
-        'docx_fake_headings_rem': 'Aplica estilo «Título 1/2» en vez de negrita manual: así existen en el panel de navegación y en el índice.',
-        'docx_no_lang': 'idioma del documento sin declarar: la voz sintética y el corrector no saben (3.1.1).',
-        'docx_no_lang_rem': 'Revisar → Idioma → establece el idioma del documento completo.',
-        'docx_table_no_header': '{n} tablas sin fila de encabezado marcada: las celdas pierden su contexto de columna (1.3.1).',
-        'docx_table_no_header_rem': 'Tabla → fila de encabezado marcada («Repetir filas de encabezado» en tablas multi-página).',
-        'limits': ('Cribado estructural del XML: no sustituye la revisión humana '
-                   '(orden de lectura de tablas complejas, significado de imágenes '
-                   'con alt insuficiente, gráficos incrustados).'),
-    },
-    'en': {
-        'docx_no_alt': '{n} images with no alternative text (docPr without descr, or empty): invisible to screen readers (1.1.1).',
-        'docx_no_alt_rem': 'Right-click each image → "Edit Alt Text" and describe it. Decorative ones: tick "decorative".',
-        'docx_fake_headings': '{n} paragraphs with just bold/large text: they LOOK like headings but are not — navigation pane and auto-TOC cannot see them (1.3.1).',
-        'docx_fake_headings_rem': 'Apply the "Heading 1/2" style instead of manual bold: then they exist in the navigation pane and the TOC.',
-        'docx_no_lang': 'document language not declared: synthetic voice and spellcheck cannot pick (3.1.1).',
-        'docx_no_lang_rem': 'Review → Language → set the whole-document language.',
-        'docx_table_no_header': '{n} tables with no marked header row: cells lose their column context (1.3.1).',
-        'docx_table_no_header_rem': 'Table → mark the header row ("Repeat header rows" for multi-page tables).',
-        'limits': ('Structural XML screening: not a substitute for human review '
-                   '(reading order of complex tables, meaning of under-described '
-                   'images, embedded charts).'),
-    },
-}
+T = a11yi18n.pair('docx')  # locales/<lang>.json — community-editable
 
 _CRIT = {
     'docx_no_alt': ('1.1.1', 'high'), 'docx_fake_headings': ('1.3.1', 'medium'),
@@ -94,8 +68,8 @@ def docx_screen(path, lang='en'):
     # idioma: w:lang en styles.xml (default del documento)
     language = None
     try:
-        estilos = z.read('word/styles.xml').decode('utf-8', errors='replace')
-        m = re.search(r'<w:lang[^>]*w:val="([^"]+)"', estilos)
+        styles = z.read('word/styles.xml').decode('utf-8', errors='replace')
+        m = re.search(r'<w:lang[^>]*w:val="([^"]+)"', styles)
         language = m.group(1) if m else None
     except KeyError:
         pass
@@ -113,11 +87,11 @@ def docx_screen(path, lang='en'):
     for para in re.findall(r'<w:p\b.*?</w:p>', body, re.S):
         if 'w:val="Heading' in para:
             continue
-        tiene_bold = '<w:b/>' in para or '<w:b ' in para
+        has_bold = '<w:b/>' in para or '<w:b ' in para
         m_sz = re.search(r'<w:sz w:val="(\d+)"', para)
         large = bool(m_sz) and int(m_sz.group(1)) >= 28
         text = ''.join(re.findall(r'<w:t[^>]*>([^<]*)</w:t>', para)).strip()
-        if tiene_bold and large and 2 < len(text) < 120:
+        if has_bold and large and 2 < len(text) < 120:
             fake += 1
     if fake:
         findings.append({'severity': 'medium', 'criterion': '1.3.1 (DOCX)',

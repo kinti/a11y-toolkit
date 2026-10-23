@@ -1,0 +1,503 @@
+{
+ "_meta": {
+  "dir": "ltr",
+  "name": "English",
+  "native": "English",
+  "plural": "n == 1"
+ },
+ "audit": {
+  "accesskey_dup": "{n} duplicated accesskey values: {ej}.",
+  "accesskey_dup_rem": "Duplicated accesskeys trigger the wrong control and clash with browser shortcuts; remove or make unique.",
+  "aria_hidden_focusable": "{n} interactive elements (<{tag}>) with aria-hidden=\"true\": hidden from the screen reader yet still focusable.",
+  "aria_hidden_focusable_rem": "Remove aria-hidden from the focusable element, or add tabindex=\"-1\" if it must stay out of interaction.",
+  "aria_ref_missing": "{n} aria-labelledby/describedby references point to ids that do not exist: {ej}.",
+  "aria_ref_missing_rem": "Fix or remove the reference: a broken aria-labelledby leaves the control with no accessible name.",
+  "aria_value_invalid": "{n} invalid ARIA attribute values: {ej}. Assistive tech ignores them.",
+  "aria_value_invalid_rem": "Boolean aria-* only accept true/false/undefined, position ones integers, token ones their closed list (4.1.2). Fix or drop the attribute.",
+  "audio_desc_missing": "{n} <video> without audio-description track (1.2.3/1.2.5): pending human judgment.",
+  "audio_desc_missing_rem": "If the video carries essential visual information not narrated, publish audio description (track kind=\"descriptions\" or alternative) — a person watching the video decides.",
+  "autocomplete": "{n} fields collecting user information without an autocomplete attribute: {ej}.",
+  "autocomplete_invalid": "{n} invalid autocomplete token values: {ej}. Tokens must come from the HTML autofill standard (§7.5) or assistive tech cannot identify the purpose (1.3.5).",
+  "autocomplete_invalid_rem": "Use standard tokens: email, tel, name, postal-code, one-time-code… (full list in the tool).",
+  "autocomplete_rem": "Add autocomplete with the right token (email, tel, name, postal-code…, 1.3.5): free accessibility and autofill at zero cost.",
+  "blank_no_warning": "{n} links with target=\"_blank\" that do not warn they open a new window.",
+  "blank_no_warning_rem": "Add a text hint (or title/aria-label): \"(opens in a new window)\", or let the user decide.",
+  "captcha": "Captcha detected ({ej}): 3.3.8 requires a non-cognitive-test alternative for access.",
+  "captcha_rem": "Offer alternatives: magic links, OAuth, human support. A CAPTCHA without an alternative excludes (3.3.8, new in WCAG 2.2 AA).",
+  "char_shortcut": "{n} single-character keyboard shortcuts detected: {ej}. Review (2.1.4).",
+  "char_shortcut_rem": "Single-key shortcuts must be disablable, remappable, or active only on focus (2.1.4): voice-dictation users trigger every letter.",
+  "click_nonfocusable": "{n} non-interactive elements (<{tag}>) with onclick, no role, no tabindex and no keyboard handling.",
+  "click_nonfocusable_rem": "Use a real <button>; if impossible, add role=\"button\", tabindex=\"0\" and Enter/Space handling (2.1.1).",
+  "color_only_link": "Links distinguishable only by color detected in the rendered pass (1.4.1).",
+  "color_only_link_rem": "A link inside text needs underline or another cue, or ≥3:1 contrast against surrounding text (1.4.1).",
+  "ctrl_name": "{n} <{tag}> with no accessible name (no text, aria-label or title).",
+  "ctrl_name_rem": "The accessible name comes from inner text, aria-label, title, or an inner image with alt. An empty control is invisible to screen readers.",
+  "dom_visual_order": "DOM order differs from visual order in {n} text blocks: review with keyboard (1.3.2).",
+  "dom_visual_order_rem": "Programmatic reading order must match visual order: check flex order, grid placement and position absolute (1.3.2).",
+  "down_event": "{n} down-event handlers (onmousedown/ontouchstart/onpointerdown): {ej}. Review (2.5.2).",
+  "down_event_rem": "Activate on the UP event (onclick/onmouseup): dragging away can abort — that is rule 2.5.2.",
+  "drag_no_alt": "{n} drag handlers with no visible click/button alternative: {ej}. Review (2.5.7).",
+  "drag_no_alt_rem": "Every drag action needs a non-dragging alternative: up/down buttons, context menu, arrows (2.5.7).",
+  "dup_ids": "{n} duplicated ids; they can break label-for and aria-labelledby associations.",
+  "dup_ids_rem": "Make ids unique: <label for> and aria-labelledby only point at the first match.",
+  "element_lang_invalid": "{n} invalid lang attributes on elements (BCP-47): {ej}.",
+  "element_lang_invalid_rem": "Foreign-language fragments carry lang with a valid code (3.1.2): <blockquote lang=\"en\">…</blockquote>.",
+  "empty_heading": "{n} empty headings (<h*> with no text).",
+  "empty_heading_rem": "Remove empty headings or give them text: they show up as gaps in the reader's index.",
+  "fetch_error": "could not download: {e}",
+  "field_label": "{n} form fields with no associated <label> and no accessible name.",
+  "field_label_rem": "Associate <label for=\"id\"> (or wrap the field), or use aria-label. Applies to input, select and textarea.",
+  "fieldset_missing": "{n} radio/checkbox groups without <fieldset><legend>: screen readers do not announce the common question (1.3.1).",
+  "fieldset_missing_rem": "Wrap groups in <fieldset><legend>Common question</legend>…</fieldset> (1.3.1): without it, each radio is announced without context.",
+  "financial_no_confirm": "{n} financial/legal form(s) without a detectable confirmation step (3.3.4).",
+  "financial_no_confirm_rem": "Submissions with legal/financial consequences must be reversible, checked, or confirmed (3.3.4): terms checkbox, \"Review and confirm\" button, or review step.",
+  "forced_colors_svg": "{n} SVGs with hardcoded colored fill: under forced-colors (Windows High Contrast) the fill falls back to inherited and the icon can turn invisible.",
+  "forced_colors_svg_rem": "Use fill=\"currentColor\" (inherits text color, which the system already adjusts) or the system keywords (CanvasText).",
+  "generic_link": "{n} links with generic text (\"more\", \"here\", \"read more\"): {ej}.",
+  "generic_link_rem": "Describe the destination in the link text (2.4.4): people listing links jump between them with no context.",
+  "gesture_no_click": "{n} gesture/drag handlers with no visible click alternative: {ej}. Review (2.5.1).",
+  "gesture_no_click_rem": "Every gesture function (swipe/drag) needs a non-gesture alternative: prev/next button or plain click (2.5.1).",
+  "heading_quality": "{n} suspiciously generic or vague headings/labels: {ej}. Review (2.4.6).",
+  "heading_quality_rem": "Headings should describe their section: \"Q3 Report Results\", not \"Section 2\" or \"More info\" (2.4.6). Name things.",
+  "heading_skips": "Heading level skips: {skips}.",
+  "heading_skips_rem": "Do not skip levels (h2→h4): it breaks the navigation outline. Descend one level at a time.",
+  "help_inconsistent": "Help (contact/support) appears in different places or shapes across site pages ({ej}). Review (3.2.6).",
+  "help_inconsistent_rem": "When help appears on multiple pages, it must appear in the same relative order and consistently (3.2.6, new in 2.2): same menu, same place.",
+  "iframe_title": "{n} <iframe> without an accessible title.",
+  "iframe_title_rem": "Add a descriptive title to the iframe (screen readers announce it on arrival).",
+  "images_of_text": "{n} images that appear to be rendered text (very long alt{ej2}). Review (1.4.5).",
+  "images_of_text_rem": "Except for logotypes, present text as real text (1.4.5): it rescales, reflows and translates; an image does not.",
+  "img_no_alt": "{n} <img> without an alt attribute (not even alt=\"\").",
+  "img_no_alt_rem": "Add alt to every <img>: descriptive text when it conveys information, alt=\"\" when decorative. Same requirement for <input type=\"image\"> and <area>.",
+  "input_img_alt": "<input type=\"image\"> without alt (image button with no name).",
+  "input_img_alt_rem": "Add descriptive alt to the input type=\"image\" (it is its accessible name), or replace it with a <button> with text or <input type=\"submit\" value=\"…\">.",
+  "label_in_name": "{n} controls whose aria-label does not contain the visible text («{ej}»): voice-input users say what they see (2.5.3).",
+  "label_in_name_rem": "The accessible name must CONTAIN the visible label: \"Summer offers (opens in new window)\", not \"More info\". Use visible text + suffix.",
+  "label_orphan": "{n} <label> without for and without a nested field: they label nothing.",
+  "label_orphan_rem": "Connect the label to its field via for=\"id\", or move the field inside the label.",
+  "label_vague": "{n} suspiciously vague labels: {ej} (2.4.6).",
+  "label_vague_rem": "Labels should describe the field: \"Contact email address\", not \"Field\" or \"Text\" (2.4.6).",
+  "landmark_dup": "{n} groups of duplicated landmarks (<nav>, <header>…) without a distinguishing aria-label: {ej}.",
+  "landmark_dup_rem": "Name each repeated landmark (aria-label=\"Main menu\", aria-label=\"Footer menu\"): otherwise landmark navigation is a lottery.",
+  "lang_invalid": "lang=\"{lang}\" is not a valid BCP-47 language code.",
+  "lang_invalid_rem": "Use the correct ISO 639 primary subtag (en, es, pt…).",
+  "lang_missing": "The <html> element does not declare lang.",
+  "lang_missing_rem": "Add lang=\"en\" (the real language) to <html>: screen readers pick the synthetic voice from it.",
+  "lang_region_invalid": "lang “{l}”: the region subtag does not exist (ISO 3166). Use the language alone (“en”) or a real region (“en-GB”).",
+  "lang_region_invalid_rem": "Validate the region against the IANA Language Subtag Registry: “en” alone or “en-GB” with a real region.",
+  "limits": "Automation ≈ one third of WCAG: this is an express filter, not a substitute for manual review (keyboard, screen reader, real contrast, audit rhyme).",
+  "list_structure": "{n} illegal children inside <ul>/<ol> (only <li>, <script> and <template> are valid).",
+  "list_structure_rem": "Wrap loose content in <li> or use another container: screen readers announce the list with its item count and skip non-<li> content.",
+  "meta_refresh": "<meta http-equiv=\"refresh\"> with a timed reload/redirect ({v}s).",
+  "meta_refresh_rem": "Replace the automatic reload with user-initiated navigation (2.2.1). Instant redirects are better done server-side.",
+  "motion_actuation": "{n} deviceorientation/devicemotion handlers with no UI alternative: {ej}. Review (2.5.4).",
+  "motion_actuation_rem": "What motion activates must also be activatable via UI (button) and disablable (2.5.4).",
+  "motion_moving": "{n} moving/looping contents with no visible pause control: {ej}. Review (2.2.2).",
+  "motion_moving_rem": "Content moving/blinking >5s needs a pause/stop mechanism (2.2.2): <marquee> has none; looping animations do not either by default.",
+  "multi_h1": "{n} <h1> on the page (recommended maximum: 1).",
+  "multi_h1_rem": "Keep a single h1 (page title) and demote the rest one level.",
+  "multi_label": "{n} fields with more than one associated <label for>.",
+  "multi_label_rem": "One field, one label: screen readers announce concatenated labels. Merge the text into one.",
+  "nav_inconsistent": "Repeated navigation changes across site pages ({ej}) (3.2.3).",
+  "nav_inconsistent_rem": "Repeated navigation mechanisms must appear in the same relative order on every page (3.2.3): shared template.",
+  "no_bypass": "Neither <main>/role=\"main\" nor a skip link: no way to bypass repeated blocks.",
+  "no_bypass_rem": "Add <main> (or role=\"main\") and a \"Skip to content\" link as the first focus stop.",
+  "no_h1": "There is no <h1> on the page.",
+  "no_h1_rem": "Add a single h1 naming the page.",
+  "no_headings": "The page has no headings (h1–h6).",
+  "no_headings_rem": "Structure content with hierarchical headings: they are the screen reader's navigation index.",
+  "no_multiple_ways": "No alternative way to find pages (no search, no sitemap, no index) across sampled pages (2.4.5).",
+  "no_multiple_ways_rem": "Offer at least two ways: navigation + search or sitemap (2.4.5).",
+  "no_status_regions": "No status regions (aria-live/status/alert) detected on the page: dynamic messages will not be announced (4.1.3).",
+  "no_status_regions_rem": "Add role=\"status\" or aria-live=\"polite\" for toasts, save confirmations, search results (4.1.3).",
+  "orientation_lock": "Orientation lock detected: {ej}. Review (1.3.4).",
+  "orientation_lock_rem": "Content must not be locked to one orientation unless the exception demonstrably applies (1.3.4): remove screen.orientation.lock() and orientation-forcing media queries.",
+  "placeholder_only": "{n} fields using placeholder as their only label (no <label>): {ej}. The placeholder vanishes on input (3.3.2).",
+  "placeholder_only_rem": "Placeholder is NOT a label: add a visible <label for=\"id\">. The placeholder disappears when typing starts and screen readers do not always announce it (3.3.2).",
+  "reduced_motion_ignored": "{n} looping animations still run with prefers-reduced-motion set (before {n}, after {nr}): the user's preference is ignored (2.2.2).",
+  "reduced_motion_ignored_rem": "Wrap animations in @media (prefers-reduced-motion: reduce) { animation: none } — or pause via the Animation API. The user asked for less motion; honor it.",
+  "required_no_indication": "{n} required fields with no visible required indication: {ej} (3.3.2).",
+  "required_no_indication_rem": "Required fields must indicate it: asterisk with legend, \"required\" text in the label, or announced aria-required (3.3.2).",
+  "role_required_attr": "{n} widgets whose role requires missing ARIA attributes: {ej}.",
+  "role_required_attr_rem": "A slider needs aria-valuenow (ideally aria-valuemin/max): without the state the widget is inoperative for assistive tech (4.1.2).",
+  "role_unknown": "{n} unknown ARIA roles: {ej}. Screen readers ignore them.",
+  "role_unknown_rem": "Use roles from the ARIA specification (button, dialog, navigation…) or drop the attribute and rely on semantic HTML.",
+  "same_name_links": {
+   "one": "1 pair of links with identical text pointing to different destinations.",
+   "other": "{n} pairs of links with identical text pointing to different destinations."
+  },
+  "same_name_links_rem": "Differentiate the names (or unify the destination): \"Reports\" ×3 with three different URLs is a problem for anyone navigating by link list.",
+  "score_note": "Weighted score: high −12, medium −6, low −2 from 100. It measures only what is automatable (≈1/3 of WCAG): use it to track trends between releases, not as conformance (WCAG-EM-style sampling and scope; not a conformance evaluation). THIS static pass did NOT measure contrast (1.4.3), target size or the criteria in not_measured: a 100 here is not \"contrast is fine\" — run the rendered audit.",
+  "sensory_text": "Instructions appealing to senses alone: \"{ej}\". Review (1.3.3).",
+  "sensory_text_rem": "Do not instruct by position/shape/color alone (\"the button on the right\"): name things (1.3.3).",
+  "tabindex_pos": "{n} elements with a positive tabindex (overrides natural order).",
+  "tabindex_pos_rem": "Use tabindex=\"0\" or drop the attribute: tab order must follow the DOM.",
+  "table_no_th": "{n} <table> with no <th> cells.",
+  "table_no_th_rem": "Mark row/column headers with <th> (plus scope) so the reader can associate cells.",
+  "text_spacing_clip": "{n} texts clipped when the 1.4.12 spacing overrides apply (line-height 1.5, letter 0.12em): review.",
+  "text_spacing_clip_rem": "Content must survive text-spacing overrides without clipping: replace fixed heights with min-height (1.4.12).",
+  "title_generic": "Generic title (“{t}”): does not identify this page among the open ones (2.4.2, review).",
+  "title_generic_rem": "One unique title per page: content + site (“Contact — MaisMedia”), never “Untitled”, “Home” or “Document”.",
+  "title_missing": "The page has no <title> with content.",
+  "title_missing_rem": "Write a unique, descriptive <title> per page (screen reader's first announcement, tab text).",
+  "video_autoplay": "{n} media elements with autoplay (audio >3s with no way to stop it).",
+  "video_autoplay_rem": "Remove autoplay or add muted + a visible pause/stop control (1.4.2): audio that starts on its own disrupts screen-reader users.",
+  "video_captions": "{n} <video> without <track kind=\"captions\">.",
+  "video_captions_rem": "Publish captions for the video audio track (1.2.2). If decorative and silent, mark it as such.",
+  "zoom_max": "The viewport limits zoom (maximum-scale={v}; recommend no limit or ≥2).",
+  "zoom_max_rem": "Remove maximum-scale from the viewport, or set it to 2 or higher, so text can be enlarged (1.4.4).",
+  "zoom_no": "The viewport blocks user zoom (user-scalable=no/0).",
+  "zoom_no_rem": "Remove user-scalable=no and maximum-scale: zooming is the user's right (1.4.4)."
+ },
+ "badge": {
+  "name": "a11y-toolkit",
+  "scope": "automated screening",
+  "title": "Accessibility: {score}/100 — {date} — {scope} (≈1/3 of WCAG); not conformance."
+ },
+ "contrast": {
+  "criteria": [
+   [
+    "1.4.3 Contrast (Minimum) · normal text",
+    "AA",
+    4.5
+   ],
+   [
+    "1.4.3 Contrast (Minimum) · large text",
+    "AA",
+    3.0
+   ],
+   [
+    "1.4.6 Contrast (Enhanced) · normal text",
+    "AAA",
+    7.0
+   ],
+   [
+    "1.4.6 Contrast (Enhanced) · large text",
+    "AAA",
+    4.5
+   ],
+   [
+    "1.4.11 Non-text Contrast (UI, icons, borders)",
+    "AA",
+    3.0
+   ]
+  ],
+  "darkening": "darkening",
+  "interp": "Text contrast must be evaluated against the REAL background behind it: use worst_ratio to find the most hostile area and area_passes_aa_normal_text_4_5 to know how much surface is safe. If area_passes_aa_normal_text_4_5 < 100% for text over image, you need an overlay/scrim or repositioned alternative text.",
+  "invalid_color": "invalid color (use #rgb, #rrggbb or rgb(r,g,b))",
+  "invalid_region": "region must be x,y,width,height (comma-separated numbers)",
+  "lightening": "lightening",
+  "load_error": "could not load image",
+  "no_box": "the element matched by {s} has no visible box to sample",
+  "no_pixels": "no pixels in region",
+  "no_post_copy": "no specific copy of the post: base only",
+  "opaque_text": "use an opaque color for text over images (no alpha)",
+  "region_outside": "region outside the image",
+  "selector_missing": "selector {s} not found on the page"
+ },
+ "docx": {
+  "docx_fake_headings": "{n} paragraphs with just bold/large text: they LOOK like headings but are not — navigation pane and auto-TOC cannot see them (1.3.1).",
+  "docx_fake_headings_rem": "Apply the \"Heading 1/2\" style instead of manual bold: then they exist in the navigation pane and the TOC.",
+  "docx_no_alt": "{n} images with no alternative text (docPr without descr, or empty): invisible to screen readers (1.1.1).",
+  "docx_no_alt_rem": "Right-click each image → \"Edit Alt Text\" and describe it. Decorative ones: tick \"decorative\".",
+  "docx_no_lang": "document language not declared: synthetic voice and spellcheck cannot pick (3.1.1).",
+  "docx_no_lang_rem": "Review → Language → set the whole-document language.",
+  "docx_table_no_header": "{n} tables with no marked header row: cells lose their column context (1.3.1).",
+  "docx_table_no_header_rem": "Table → mark the header row (\"Repeat header rows\" for multi-page tables).",
+  "limits": "Structural XML screening: not a substitute for human review (reading order of complex tables, meaning of under-described images, embedded charts)."
+ },
+ "dom": {
+  "contrast_fail": "{n} text areas with insufficient contrast: {det}. (computed fg/background, with alpha compositing).",
+  "contrast_fail_rem": "Raise contrast to ≥4.5:1 (≥3:1 for large text). The effective background already includes overlays and translucency; with a background image, check that area manually.",
+  "contrast_image_fail": "{n} text areas over an image/gradient with insufficient contrast, MEASURED by real pixel sampling: {det}.",
+  "contrast_image_fail_rem": "Add a semi-transparent scrim over the image, darken it, or move the text to a safe zone. The worst ratio marks the hostile area; if the AA-passing area is not 100%, the real background is not safe.",
+  "contrast_review": "{n} text areas over background images or with text-shadow: not computable, review.",
+  "contrast_review_rem": "Contrast over a background image could not be measured here: use a11y_contrast_image with a screenshot of that region, or a11y_contrast_dom to measure it directly from the page.",
+  "focus_invisible": "{n} focusable controls with no apparent focus indicator (outline and box-shadow absent): {det}. Review.",
+  "focus_invisible_rem": "Guarantee a visible focus indicator: never outline:none without a replacement; use :focus-visible with ≥2px outline or a contrasted border/shadow (2.4.7).",
+  "focus_navigates": "Receiving focus on {ej} triggered a context change (URL changed to {url}) — 3.2.1.",
+  "focus_navigates_rem": "Receiving focus must never change context (3.2.1): check focus→location.href, focus→form.submit(), focus→window.open().",
+  "focus_not_focusable": "{n} controls that never receive focus via .focus(): {det}.",
+  "focus_not_focusable_rem": "If it must be interactive, make it focusable (tabindex=\"0\"); otherwise remove it from the tab path.",
+  "focus_obscured": "{n} controls end up hidden behind fixed/sticky elements when focused (sticky headers, banners): {det}. Review (2.4.11).",
+  "focus_obscured_rem": "Author-fixed content must not hide the focused element (2.4.11, new in WCAG 2.2 AA): set scroll-padding-top to the fixed header height, or make it auto-collapse.",
+  "forced_colors_svg": "{n} SVGs with hardcoded colored fill: under forced-colors (Windows High Contrast) the fill falls back to inherited and the icon can turn invisible.",
+  "forced_colors_svg_rem": "Use fill=\"currentColor\" (inherits text color, which the system already adjusts) or the system keywords (CanvasText).",
+  "form_error_missing": "{n} forms submitted with invalid data with NO error identification: no aria-invalid, aria-describedby with text, role=alert, or error text (3.3.1).",
+  "form_error_missing_rem": "Errors must be described in text and associated with the field: aria-invalid=\"true\" + a message linked via aria-describedby (or a summary that takes focus on submit). A red border alone is not an identified error.",
+  "form_error_no_suggestion": "{n} fields with an identified error but no detectable correction suggestion (3.3.3). Review.",
+  "form_error_no_suggestion_rem": "When the correction is known, say it: \"Use DD/MM/YYYY\", not \"Invalid date\" (3.3.3). Suggestion pattern: format/example text near the field.",
+  "form_navigated": "The form navigates on submit; error behavior is not measurable in-page ({ej}).",
+  "form_navigated_rem": "Capture the destination page or intercept the submit; judging errors requires the post-submit DOM.",
+  "hover_not_dismissible": "{n} tooltips/overlays appearing on hover/focus that do NOT dismiss on Escape (1.4.13).",
+  "hover_not_dismissible_rem": "Hover/focus-triggered content must be dismissible with Escape without moving the pointer (1.4.13): add a keydown Escape handler that hides the tooltip.",
+  "input_navigates": "Changing {ej} triggered automatic navigation (URL: {url}) — 3.2.2.",
+  "input_navigates_rem": "Changing a setting must never navigate without user request (3.2.2): add an \"Apply\" button or confirm before submitting.",
+  "kbd_trap": "KEYBOARD TRAP: {n} controls caught in a cycle ({cycle}) and Escape does not release. Focus cannot leave (2.1.2).",
+  "kbd_trap_rem": "Every focus-containing component (modal, menu) must release with Escape (ideally click-outside too): close it and return focus to the trigger. Test it with the keyboard alone.",
+  "limits": "Rendered audit: honest heuristics, no substitute for a screen reader or manual review. Contrast computed over computed backgrounds; cases with background images are reported as \"review\". 2.5.8 allows exceptions (equivalent inline, spacing) approximated here.",
+  "reduced_motion_ignored": "{n} looping animations still run with prefers-reduced-motion set (before {n}, after {nr}): the user's preference is ignored (2.2.2).",
+  "reduced_motion_ignored_rem": "Wrap animations in @media (prefers-reduced-motion: reduce) { animation: none } — or pause via the Animation API. The user asked for less motion; honor it.",
+  "reflow_fail": "{n} elements overflow at {w}px width (horizontal scroll): {det}. With correct reflow there is no one-dimensional scroll at 320px (1.4.10).",
+  "reflow_fail_rem": "Use fluid layouts (flex/grid, max-width instead of fixed width) and media queries: content must reflow to 320px without horizontal scroll. Exceptions: data tables, maps, charts.",
+  "state_contrast": "{n} controls with insufficient :focus/:hover state contrast (<3:1): {det}. Review.",
+  "state_contrast_rem": "The control text needs contrast when focused or hovered too (1.4.3); DISABLED controls are exempt under WCAG. Adjust the :focus and :hover colors.",
+  "target_small": "{n} controls with a touch area smaller than 24×24 px (WCAG 2.2 2.5.8): {det}.",
+  "target_small_rem": "Give controls at least 24×24 CSS px (44×44 is better) via padding or min-width/min-height. Exceptions: equivalent inline links and sufficient surrounding spacing."
+ },
+ "evidence": {
+  "manual_remaining": "human review remaining after the machine, per class (MIN 1-3, MED 5-10, MAX 15-30 min per criterion)",
+  "no_signal": "no automated signal exists for this criterion in this toolkit",
+  "not_flagged": "not-flagged ≠ pass: no automated signal fired on this sample",
+  "notice": "This pack is evidence, not conformance: it says what machines found and what remains for a human. A conformance claim requires the signature block completed by a qualified person who reviewed the manual list.",
+  "reviewer_note": "any countersignature must reference pack.sha256 and state which criteria the human reviewed beyond the automated matrix",
+  "verified": "verified against this sample per the manual checklist protocol"
+ },
+ "fix": {
+  "between": "Enter a number between %a and %b.",
+  "email": "Enter an email like name@example.com.",
+  "num": "Enter a number.",
+  "pattern": "Follow the expected format: %p.",
+  "req": "Fill in this field.",
+  "short": "Use at least %n characters.",
+  "url": "Enter a URL like https://example.com."
+ },
+ "journey": {
+  "journey_dialog_trap": [
+   "2.1.2",
+   "high",
+   "A dialog traps the keyboard and Escape does not close it.",
+   "Close the dialog on Escape and return focus to the trigger."
+  ],
+  "journey_duplicate_targets": [
+   "4.1.2",
+   "medium",
+   "Several controls share one accessible name: “the Buy button” is ambiguous by name alone.",
+   "Differentiate accessible names with context (aria-label, visible text)."
+  ],
+  "journey_dynamic_stale": [
+   "4.1.3",
+   "medium",
+   "The tree changed after the action (content replaced) with no announcement — the agent’s map went stale.",
+   "Announce dynamic region updates (role=status/aria-live) and keep focus stable."
+  ],
+  "journey_error_silent": [
+   "3.3.1",
+   "high",
+   "Submission failed and the error is neither announced nor focused.",
+   "Associate the error message with the field (aria-describedby) and move focus to the first error."
+  ],
+  "journey_focus_lost": [
+   "2.4.3",
+   "high",
+   "After an action, focus disappeared or jumped somewhere unexpected.",
+   "Move focus programmatically to the logical destination after inserting or replacing content."
+  ],
+  "journey_generic_link": [
+   "2.4.4",
+   "low",
+   "The destination of a key link is not understandable from its text.",
+   "Descriptive link text in context (\"read more\" says nothing alone)."
+  ],
+  "journey_heading_nav_broken": [
+   "2.4.6",
+   "high",
+   "Headings are missing or break the hierarchy: navigating by headings — a screen-reader user’s primary strategy — cannot find the section the task needs.",
+   "Use real heading markup in logical order (h1→h2…); never fake headings with bold text."
+  ],
+  "journey_hidden_in_tree": [
+   "1.3.1",
+   "medium",
+   "Information essential to the task is missing from the accessibility tree.",
+   "Express the relationship with real semantics (list, heading, table), not layout."
+  ],
+  "journey_landmark_missing": [
+   "2.4.1",
+   "medium",
+   "The page exposes no landmarks (main/nav): landmark navigation cannot skip the boilerplate.",
+   "Wrap content in real main/navigation landmarks; the skip link is a bonus, not the fix."
+  ],
+  "journey_mode_confusion": [
+   "4.1.2",
+   "high",
+   "A custom widget swallows keystrokes or hides its role and state: browse-mode vs focus-mode switching breaks the interaction.",
+   "Use native elements (select, button) or the full ARIA pattern: role, state, keyboard support."
+  ],
+  "journey_no_instruction": [
+   "3.3.2",
+   "medium",
+   "The task required input whose format or requiredness was never stated.",
+   "Label the field with instructions and mark requiredness before the error does."
+  ],
+  "journey_reach_fail": [
+   "2.1.1",
+   "high",
+   "A control needed for the task is not reachable or operable by keyboard.",
+   "Make it focusable and keyboard-operable; pointer-only is never enough."
+  ],
+  "journey_status_silent": [
+   "4.1.3",
+   "medium",
+   "The action result (success or loading) is not announced via a live region.",
+   "Announce the status change with role=\"status\" or aria-live=\"polite\"."
+  ],
+  "journey_timeout_confusion": [
+   "2.2.1",
+   "medium",
+   "The task was lost to a time limit with no way to extend it.",
+   "Allow adjusting, extending or turning off the time limit."
+  ],
+  "journey_unnamed_control": [
+   "4.1.2",
+   "high",
+   "A control needed for the task is announced without a name (\"button\", bare).",
+   "Give the control an accessible name: visible text, aria-label or aria-labelledby."
+  ]
+ },
+ "pdf": {
+  "limits": "Zero-dep structural screening: full PDF/UA conformance needs a spec validator (veraPDF). This screening finds what makes full validation pointless.",
+  "pdf_encrypted": "encrypted PDF: readers may extract nothing.",
+  "pdf_encrypted_rem": "Publish unencrypted (or with full extraction permissions).",
+  "pdf_fake_link": "{n} text fragments styled like links (bluish fill / underlined with a rectangle) with no /A << /S /URI >> annotation on the page: screen readers do NOT announce them as links (2.4.4).",
+  "pdf_fake_link_rem": "Use real link annotations (/Subtype /Link /A << /S /URI /URI (…) >>) over the link text.",
+  "pdf_low_contrast": "{n} text fragments with fill color near the background (ratio < 4.5): a PDF has no cascade — the current color is set by the `rg` operator before each Tj, and it is measurable. Examples: {ej}.",
+  "pdf_low_contrast_rem": "Raise the text contrast: a PDF's default background is white if nothing is painted. Confirm the real background with veraPDF/acrobat.",
+  "pdf_no_alt": "tagged tree with images but 0 /Alt entries: figures are opaque (1.1.1).",
+  "pdf_no_alt_rem": "Add alternative text to figures on export/remediation.",
+  "pdf_no_lang": "no /Lang: readers do not know what language to pronounce (3.1.1 for documents).",
+  "pdf_no_lang_rem": "Set /Lang (e.g. \"en\" or \"es-ES\") in document properties.",
+  "pdf_no_outline": "no bookmarks/outline: a long PDF with no heading navigation (1.3.1).",
+  "pdf_no_outline_rem": "Generate bookmarks from headings on export.",
+  "pdf_no_title": "no /Title in metadata: readers announce the filename (2.4.2 for documents).",
+  "pdf_no_title_rem": "Export with a document title (file properties), not the filename.",
+  "pdf_scanned": "no text layer (0 characters in content): looks like a scan — fully invisible (1.1.1).",
+  "pdf_scanned_rem": "Apply OCR with real text and tag the result.",
+  "pdf_untagged": "no structure tree (/StructTreeRoot): reading order and semantic roles do not exist for the reader. THE root failure of inaccessible PDFs (1.3.1).",
+  "pdf_untagged_rem": "Tag the document (export as tagged PDF from authoring, or remediate in Acrobat): without a tree, everything else is cosmetic."
+ },
+ "scroll": {
+  "limits": "Infinite-scroll auditor: heuristics with real focus and a live-region observer over {n} batches. Not a substitute for screen-reader testing on the real feed.",
+  "scroll_focus": "The focused element {where} after loading a batch ({detail}). Documented infinite-scroll failure: keyboard users lose their reading point (2.4.3).",
+  "scroll_focus_rem": "Do not re-render the feed container: APPEND nodes at the end (appendChild/insertAdjacentHTML). If focus lands on removed content, move it to the new equivalent.",
+  "scroll_no_announce": "{n} batches loaded with zero announcements: no aria-live/status region receives text during loading and the container lacks role=\"feed\" (4.1.3).",
+  "scroll_no_announce_rem": "Add a role=\"status\" region with \"Loading more…\"/\"10 new items\" text and mark the container role=\"feed\" with aria-busy while loading.",
+  "scroll_no_end": "Infinite feed with no visible end after {n} batches and no \"load more\" button alternative: the footer stays unreachable (Deque guidance; akin to 2.2.2).",
+  "scroll_no_end_rem": "Offer a \"Load more\" button (the most accessible option: explicit loading, predictable focus), a real feed end, or a control to pause auto-loading.",
+  "scroll_no_feed": "The feed container does not use role=\"feed\" with role=\"article\" children (ARIA APG Feed pattern): screen readers cannot jump article by article.",
+  "scroll_no_feed_rem": "Mark the container role=\"feed\", each item role=\"article\" with aria-labelledby, and use aria-busy during loading."
+ },
+ "statement_states": {
+  "full": [
+   "Fully compliant",
+   "The website is <strong>fully compliant</strong> with <abbr title=\"Web Content Accessibility Guidelines\">WCAG</abbr> 2.2 level AA, as included in standard <abbr>EN&nbsp;301&nbsp;549</abbr>."
+  ],
+  "not_conformant": [
+   "Not compliant",
+   "The website <strong>is not compliant</strong> with <abbr title=\"Web Content Accessibility Guidelines\">WCAG</abbr> 2.2 level AA, as included in standard <abbr>EN&nbsp;301&nbsp;549</abbr>. The non-accessible content is listed below."
+  ],
+  "partial": [
+   "Partially compliant",
+   "The website is <strong>partially compliant</strong> with <abbr title=\"Web Content Accessibility Guidelines\">WCAG</abbr> 2.2 level AA, as included in standard <abbr>EN&nbsp;301&nbsp;549</abbr>, due to the non-accessible content listed below."
+  ]
+ },
+ "statement_txt": {
+  "complaints": {
+   "eaa": "Any accessibility issue may be reported through the contact point indicated. The service is ultimately subject to supervision under the terms of Directive (EU) 2019/882.",
+   "rd1112": "If the response is not satisfactory, an enforcement complaint may be lodged with the accessibility supervisory body of the relevant Member State (in Spain, the Accessibility Supervision Unit under Article 13 of Royal Decree 1112/2018)."
+  },
+  "contact": "Any communication about the accessibility of this website can be sent to {f}.",
+  "error_inconsistent": "with fully-compliant status, non-accessible content cannot be listed",
+  "error_status": "estado must be: 'plena', 'parcial' or 'no_conforme'",
+  "feedback_default": "the site contact form",
+  "h_alt_access": "Alternative access",
+  "h_contact": "Feedback and contact information",
+  "h_inaccessible": "Non-accessible content",
+  "h_preparation": "Preparation of this declaration",
+  "h_status": "Status",
+  "inaccessible_empty": "No non-accessible content is recorded in the latest assessment.",
+  "inaccessible_intro": "The content listed below is not accessible for one of the following reasons:",
+  "intro": {
+   "eaa": "Accessibility information for the service provided by {e} through {u}, in compliance with Directive (EU) 2019/882 (European Accessibility Act), applicable since 28 June 2025.",
+   "rd1112": "Accessibility declaration of {e} regarding {u}, in accordance with Directive (EU) 2016/2102 on the accessibility of the websites and mobile applications of public sector bodies and standard EN 301 549 (transposed in Spain by Royal Decree 1112/2018)."
+  },
+  "l_declared": "Declaration drawn up on",
+  "l_evaluation": "Date of latest assessment",
+  "l_method": "Assessment method",
+  "l_review": "Last revision of the declaration",
+  "method_default": "To be completed: state the actual assessment method (manual review, tools used and testing performed), with dates and a responsible party. This declaration remains an UNVALIDATED DRAFT until this field is filled.",
+  "title": {
+   "eaa": "Service accessibility information",
+   "rd1112": "Accessibility Declaration"
+  }
+ },
+ "vpat_levels": {
+  "does_not_support": "Does Not Support",
+  "not_applicable": "Not Applicable",
+  "not_evaluated": "Not Evaluated",
+  "partially_supports": "Partially Supports",
+  "supports": "Supports"
+ },
+ "vpat_txt": {
+  "col_criteria": "Criteria",
+  "col_level": "Conformance level",
+  "col_remarks": "Remarks and explanations",
+  "contact": "Contact information",
+  "credential": "Credential",
+  "date": "Report date",
+  "description": "Product description",
+  "draft": "DRAFT — levels pending a qualified person",
+  "error_level": "unknown level in overrides: {n} (use supports, partially_supports, does_not_support, not_applicable, not_evaluated)",
+  "error_no_pack": "need a pack (a11y_evidence) or reports (audit report objects)",
+  "iti_note": "VPAT® is a registered trademark of the Information Technology Industry Council (ITI). This document is a vendor self-declaration scaffold generated by a11y-toolkit; it is not a certification.",
+  "legend": [
+   [
+    "Supports",
+    "The product has at least one method that meets the criterion without known defects."
+   ],
+   [
+    "Partially Supports",
+    "Some functionality of the product does not meet the criterion."
+   ],
+   [
+    "Does Not Support",
+    "The majority of product functionality does not meet the criterion."
+   ],
+   [
+    "Not Applicable",
+    "The criterion is not relevant to the product."
+   ],
+   [
+    "Not Evaluated",
+    "The product has not yet been evaluated against the criterion; the level is pending a qualified person."
+   ]
+  ],
+  "legend_title": "Conformance level definitions (excerpt from the VPAT®)",
+  "method_default": "Automated screening with a11y-toolkit (static audit and, when available, rendered audit with computed contrast and pixel sampling); manual review pending.",
+  "methods": "Evaluation methods used",
+  "notes": "Notes",
+  "product": "Product name",
+  "signature": "This document is a <strong>DRAFT</strong> generated by automated screening. Levels marked \"Not Evaluated\" must be set by a qualified person after review; the signature statement must reference the evidence pack hash:",
+  "signature_empty": "Empty signature block: name, credential and date pending.",
+  "signature_title": "Signature and evidence",
+  "standard": "<abbr title=\"Web Content Accessibility Guidelines\">WCAG</abbr> 2.2 (Levels A and AA) — W3C Recommendation, October 2023.",
+  "standards_section": "Applicable Standards/Guidelines",
+  "table_caption": "Table 1: WCAG 2.2 (A/AA) conformance criteria",
+  "title": "VPAT® 2.5 Accessibility Conformance Report — WCAG edition",
+  "version": "Version"
+ },
+ "vtt": {
+  "limits": "Screening of caption CONTENT (1.2.2): not a substitute for human review of accuracy, speaker identification or audio description.",
+  "vtt_coverage": "{pct}% coverage of the {dur}s of media — stretches without captions.",
+  "vtt_coverage_rem": "Caption the missing stretches (or mark them as music/foreign language when true).",
+  "vtt_empty_cue": "{n} cues with no text: time spent with no caption.",
+  "vtt_empty_cue_rem": "Remove empty cues or add their missing text.",
+  "vtt_malformed": "{n} blocks with malformed timing lines: {ej}.",
+  "vtt_malformed_rem": "Fix the \"HH:MM:SS.mmm --> HH:MM:SS.mmm\" format; a broken cue can be skipped whole by the player.",
+  "vtt_no_cues": "the file declares WebVTT but contains no cues.",
+  "vtt_no_cues_rem": "Caption for real: an empty track does not satisfy 1.2.2.",
+  "vtt_overlap": "{n} timing overlaps between consecutive cues.",
+  "vtt_overlap_rem": "Cues must not overlap: some players show both at once.",
+  "vtt_too_fast": "{n} cues above 21 characters/second: {ej}.",
+  "vtt_too_fast_rem": "Split the cue or extend its time: >21 cps is unreadable (BBC/Netflix standard)."
+ }
+}

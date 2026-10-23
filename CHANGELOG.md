@@ -1,5 +1,44 @@
 # Changelog
 
+## 5.13.0 — pendiente — "locale packs + dictionary-verified English"
+
+- **Community locale packs (the i18n system)**: every user-facing message
+  moved out of Python into `a11y_toolkit/locales/<lang>.json` — one file per
+  language (es/en ship), namespaced, editable from the GitHub web UI.
+  Adding a language = copy `_template.json`, translate keeping `{placeholders}`,
+  and `tests/test_locales.py` validates it mechanically: same keys as English,
+  same placeholders per message, a working CLDR plural expression, no empty
+  values. Zero runtime dependencies (stdlib loader `a11yi18n.py`); English
+  fallback chain at runtime; `{"one", "other"}` plural entries supported;
+  `use_overlay(path)` lets downstream products layer brand wording without
+  forking. The axe-core community-locales model, with the validation layer
+  axe-core doesn't pin. Guide: docs/i18n.md.
+- **Hardening wave upstreamed** (general engine quality, previously carried
+  as downstream patches): `_fetch` reads with a total clock (a dribbling
+  server can no longer reset per-operation timeouts forever) and prefers the
+  HTTP header charset over body sniffing; `validate_redirect` injection hook
+  (callers auditing untrusted URLs can veto each 3xx hop — SSRF boundary);
+  `audit_site(budget=seconds)` bounds the crawl and reports
+  `budget_exhausted` honestly; disprove handles site-mode reports without
+  inventing score 100 (not-rechecked per page); TODAY() computed per call;
+  the VPAT document is self-contained and accessible (fixed color-scheme,
+  wrapping, keyboard-scrollable table — it must audit clean itself);
+  `badge(brand=, palette=, height=)` lets products ship their own seal;
+  the evidence pack gains `lang=` (bilingual notice/matrix/criteria names
+  via locale packs) and a seal stable across re-emission (sha256 excludes
+  the generation clock).
+- **Native CLDR plurals**: pack entries may be `{"one", "other"}` resolved
+  by the locale's plural rule — "1 pair of links / {n} pairs" is now real
+  i18n, not a post-format patch.
+- **Identifiers verified against real dictionaries**: every identifier in the
+  package is checked against a 613,821-word Spanish-only list (Spanish
+  dictionary minus English dictionaries, shipped gzipped) — not a curated
+  lexicon. ~530 more Spanish identifiers found and renamed (sitios, pesos,
+  firmas, _COLORES, veredicto, flujos…), including three public `a11y_diff`
+  output keys (foco_* → focus_*). Both this repo and the a11y.es vendor run
+  the dictionary pin. Comments stay Spanish by design (maintainer
+  readability) — decision recorded in the naming pins.
+
 ## 5.12.0 — pendiente — "official sources"
 
 - **a11y_criterion now cites the source**: every criterion explanation

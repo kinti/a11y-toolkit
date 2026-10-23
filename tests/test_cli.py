@@ -138,7 +138,7 @@ assert 'onclick' not in mal2['fixed_html'], 'rompe atributo vía lang'
 b = badge(90, date='2026"><script>x</script>')
 assert '<script>' not in b and '<' not in b[b.find('2026'):b.find('2026') + 20], 'inyección SVG vía fecha'
 
-# 4. la afirmación del README («26 criterios tocados») queda clavada
+# 4. la afirmación del README («26 criterios touched») queda clavada
 from a11y_toolkit.a11yaudit import CRIT  # noqa: E402
 assert len(CRIT['es']) == 51, f'README claims 51 criteria, CRIT has {len(CRIT["es"])}'
 

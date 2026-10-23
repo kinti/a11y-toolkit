@@ -11,7 +11,7 @@ sys.path.insert(0, ROOT)
 from a11y_toolkit.a11yaudit import audit_html, _internal_links  # noqa: E402
 from a11y_toolkit.a11ysarif import from_report  # noqa: E402
 from a11y_toolkit.a11ybadge import badge  # noqa: E402
-from a11y_toolkit.a11ybudget import init, comparar  # noqa: E402
+from a11y_toolkit.a11ybudget import init, compare  # noqa: E402
 
 # --- 1. señal estable en findings ---
 r = audit_html('<html lang="es"><head><title>t</title></head><body><img src="x.png"></body></html>')
@@ -52,26 +52,26 @@ base_audit = audit_html(base_html, 'https://t.example')
 budget = init(base_audit)
 assert 'img_no_alt' in budget['signals'] and budget['max_new'] == 0
 
-mismo = comparar(budget, audit_html(base_html, 'https://t.example'))
+mismo = compare(budget, audit_html(base_html, 'https://t.example'))
 assert mismo['ok'] and mismo['new'] == [] and mismo['resolved'] == []
 
 worst = audit_html('<html lang="es"><head><title>t</title></head><body><main><h1>a</h1>'
                   '<img src="x.png"><button></button><select name="s"></select></main></body></html>',
                   'https://t.example')
-v = comparar(budget, worst)
+v = compare(budget, worst)
 assert not v['ok'] and 'ctrl_name' in v['new_blocking'], v
 assert 'img_no_alt' not in v['new']         # la base se acepta
 
 best = audit_html('<html lang="es"><head><title>t</title></head><body><main><h1>a</h1></main></body></html>',
                    'https://t.example')
-m = comparar(budget, best)
+m = compare(budget, best)
 assert m['ok'] and 'img_no_alt' in m['resolved']  # arreglo → baja de la lista de pendientes
 
 # base caducada bloquea aunque no haya novedades
 budget['review_date'] = '2020-01-01'
-assert comparar(budget, base_audit)['ok'] is False
+assert compare(budget, base_audit)['ok'] is False
 budget['review_date'] = '2099-01-01'
-assert comparar(budget, base_audit)['ok'] is True
+assert compare(budget, base_audit)['ok'] is True
 
 # --- 5. descubrimiento de enlaces internos (crawl) ---
 html_links = '''<a href="/a">1</a><a href="https://t.example/b#frag">2</a>

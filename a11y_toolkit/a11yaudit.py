@@ -23,6 +23,7 @@ import re
 import sys
 import urllib.request
 from html.parser import HTMLParser
+from . import a11yi18n
 
 MAX_HTML = 3_000_000
 
@@ -30,7 +31,7 @@ MAX_HTML = 3_000_000
 _FIELDS = {'text', 'email', 'tel', 'url', 'search', 'password', 'number',
            'date', 'time', 'datetime-local', 'month', 'week', 'checkbox',
            'radio', 'file', 'range', 'color'}
-_CONTROLES = ('a', 'button', 'summary')
+_CONTROLS = ('a', 'button', 'summary')
 
 # Subetiquetas BCP-47 principales habituales (validación blanda)
 _LANG_CODES = set('''af am ar az be bg bn bs ca cs cy da de el en es et eu fa fi fr ga gl
@@ -75,7 +76,7 @@ _SENSORIAL = re.compile(
 
 
 # Campos que con frecuencia recogen datos personales (1.3.5)
-_DATO_PERSONAL = re.compile(
+_PERSONAL_DATA = re.compile(
     r'(^|[\W_])(name|nombre|email|correo|phone|telefono|tel|address|direccion|postal|zip|'
     r'city|ciudad|country|pais|organi[sz]ation|company|empresa|street|user|usuario)([\W_]|$)', re.I)
 
@@ -232,310 +233,17 @@ CRIT = {
     },
 }
 
-T = {
-    'es': {
-        'fetch_error': 'no se pudo descargar: {e}',
-        'img_no_alt': '{n} <img> sin atributo alt (ni siquiera alt="").',
-        'img_no_alt_rem': 'Añade alt a cada <img>: texto descriptivo si aporta información, alt="" si es decorativa. En <input type="image"> y <area> es igual de obligatorio.',
-        'autocomplete_invalid': '{n} valores de autocomplete no válidos: {ej}. El token debe ser uno del estándar HTML (§7.5 autofill), o el lector no identificará el propósito (1.3.5).',
-        'autocomplete_invalid_rem': 'Usa tokens del estándar: email, tel, name, postal-code, one-time-code… (lista completa en la herramienta).',
-        'input_img_alt': '<input type="image"> sin alt (botón gráfico sin nombre).',
-        'input_img_alt_rem': 'Añade alt descriptivo al input type="image" (es su nombre accesible), o sustitúyelo por <button> con texto o <input type="submit" value="…">.',
-        'ctrl_name': '{n} <{tag}> sin nombre accesible (sin texto, aria-label ni title).',
-        'ctrl_name_rem': 'El nombre accesible llega del texto interno, aria-label, title o de una imagen interna con alt. Un control vacío es invisible para lectores de pantalla.',
-        'aria_hidden_focusable': '{n} elementos interactivos (<{tag}>) con aria-hidden="true": ocultos al lector pero siguen recibiendo foco.',
-        'aria_hidden_focusable_rem': 'Quita aria-hidden del elemento enfocable, o añade tabindex="-1" si debe quedar fuera de la interacción.',
-        'field_label': '{n} campos de formulario sin <label> asociado ni nombre accesible.',
-        'field_label_rem': 'Asocia <label for="id"> al campo (o envuélvelo), o usa aria-label. Aplica a input, select y textarea.',
-        'click_nonfocusable': '{n} elementos no interactivos (<{tag}>) con onclick sin role, tabindex ni manejo de teclado.',
-        'click_nonfocusable_rem': 'Usa <button> real; si no es posible, añade role="button", tabindex="0" y manejo de Enter/Espacio (2.1.1).',
-        'label_orphan': '{n} <label> sin for y sin campo anidado: no etiquetan nada.',
-        'label_orphan_rem': 'Conecta el label con su campo: for="id" del campo, o mueve el campo dentro del label.',
-        'iframe_title': '{n} <iframe> sin title accesible.',
-        'iframe_title_rem': 'Añade title descriptivo al iframe (lo anuncian los lectores al llegar a él).',
-        'video_captions': '{n} <video> sin <track kind="captions">.',
-        'video_captions_rem': 'Publica subtítulos para el audio del vídeo (1.2.2). Si es decorativo y sin audio, márcalo como tal.',
-        'lang_missing': 'El elemento <html> no declara lang.',
-        'lang_region_invalid': 'lang «{l}»: la subetiqueta de región no existe (ISO 3166). Usa el idioma solo («es») o una región real («es-AR»).',
-        'lang_region_invalid_rem': 'Valida la región en el IANA Language Subtag Registry: «es» a secas o «es-AR» con región real.',
-        'lang_missing_rem': 'Añade lang="es" (o el idioma real) a <html>: lectores de pantalla eligen la voz sintética por él.',
-        'lang_invalid': 'lang="{lang}" no es un código de idioma válido (BCP-47).',
-        'lang_invalid_rem': 'Usa el subtag principal ISO 639 correcto (es, en, pt…).',
-        'title_missing': 'La página no tiene <title> con contenido.',
-        'reduced_motion_ignored': '{n} animaciones en bucle siguen moviéndose con prefers-reduced-motion activo (antes {n}, ahora {nr}): la preferencia del usuario se ignora (2.2.2).',
-        'reduced_motion_ignored_rem': 'Envuelve las animaciones en @media (prefers-reduced-motion: reduce) { animation: none } — o paúsala con la API Animation. El usuario pidió menos movimiento; respóndelo.',
-        'forced_colors_svg': '{n} SVG con fill coloreado hardcoded: en forced-colors (Windows High Contrast) el fill cae al heredado y el icono puede volverse invisible.',
-        'forced_colors_svg_rem': 'Usa fill="currentColor" (hereda el color del texto que el sistema ya ajusta) o fuerza los keywords del sistema (CanvasText).',
-        'title_generic': 'Título genérico («{t}»): no identifica esta página entre las abiertas (2.4.2, revisar).',
-        'title_generic_rem': 'Un título único por página: contenido + sitio («Contacto — MaisMedia»), nunca «Untitled», «Inicio» o «Documento».',
-        'title_missing_rem': 'Escribe un <title> único y descriptivo por página (primer anuncio del lector, texto de la pestaña).',
-        'heading_quality': '{n} encabezados/labels sospechosamente genéricos o vagos: {ej}. Revisar (2.4.6).',
-        'heading_quality_rem': 'Los encabezados deben describir su sección: «Resultados del informe Q3», no «Sección 2» o «Más información» (2.4.6). Nombra las cosas.',
-        'char_shortcut': '{n} atajos de teclado de carácter único detectados: {ej}. Revisar (2.1.4).',
-        'char_shortcut_rem': 'Los atajos de una tecla deben poder desactivarse o remapearse, o activarse solo con foco (2.1.4): el usuario que dicta por voz dispara cada letra.',
-        'drag_no_alt': '{n} manejadores de arrastre sin alternativa visible de clic/botón: {ej}. Revisar (2.5.7).',
-        'drag_no_alt_rem': 'Toda acción por arrastre necesita alternativa sin arrastre: botones «arriba/abajo», menú contextual, flechas (2.5.7).',
-        'no_status_regions': 'No se detectan regiones de estado (aria-live/status/alert) en la página: los mensajes dinámicos no se anunciarán (4.1.3).',
-        'no_status_regions_rem': 'Añade role="status" o aria-live="polite" para toasts, confirmaciones de guardado, resultados de búsqueda (4.1.3).',
-        'placeholder_only': '{n} campos con placeholder como única etiqueta (sin <label>): {ej}. El placeholder desaparece al teclear (3.3.2).',
-        'placeholder_only_rem': 'El placeholder NO es una etiqueta: añade <label for="id"> visible. El placeholder desaparece al empezar a escribir y los lectores no siempre lo anuncian (3.3.2).',
-        'required_no_indication': '{n} campos required sin indicación visible de obligatoriedad: {ej} (3.3.2).',
-        'required_no_indication_rem': 'Los campos obligatorios deben indicarlo: asterisco con leyenda, texto "obligatorio" en el label, o aria-required anunciado (3.3.2).',
-        'fieldset_missing': '{n} grupos de radio/checkbox sin <fieldset><legend>: los lectores no anuncian la pregunta común (1.3.1).',
-        'fieldset_missing_rem': 'Envuelve los grupos en <fieldset><legend>Pregunta común</legend>…</fieldset> (1.3.1): sin esto, cada radio se anuncia suelto sin contexto.',
-        'label_vague': '{n} labels sospechosamente vagos: {ej} (2.4.6).',
-        'label_vague_rem': 'Los labels deben describir el campo: "Correo electrónico de contacto", no "Campo" o "Texto" (2.4.6).',
-        'financial_no_confirm': '{n} formulario(s) financiero(s)/legal(es) sin paso de confirmación detectable (3.3.4).',
-        'financial_no_confirm_rem': 'Los envíos con consecuencias legales/financieras deben ser reversibles, verificados o confirmados (3.3.4): checkbox de términos, botón "Revisar y confirmar", o paso de revisión.',
-        'zoom_no': 'El viewport bloquea el zoom del usuario (user-scalable=no/0).',
-        'zoom_no_rem': 'Elimina user-scalable=no y maximum-scale: el zoom es un derecho del usuario (1.4.4).',
-        'zoom_max': 'El viewport limita el zoom (maximum-scale={v}; se recomienda no limitar o ≥2).',
-        'zoom_max_rem': 'Elimina maximum-scale del viewport o déjalo en 2 o más, para que se pueda agrandar la letra (1.4.4).',
-        'meta_refresh': '<meta http-equiv="refresh"> con recarga/redirección temporizada ({v}s).',
-        'meta_refresh_rem': 'Sustituye la recarga automática por navegación iniciada por la persona usuaria (2.2.1). Redirección instantánea mejor en servidor.',
-        'tabindex_pos': '{n} elementos con tabindex positivo (modifica el orden natural).',
-        'tabindex_pos_rem': 'Usa tabindex="0" o elimina el atributo: el orden de tabulación debe seguir al DOM.',
-        'no_bypass': 'Ni <main>/role="main" ni enlace de salto: sin mecanismo para saltar bloques repetidos.',
-        'no_bypass_rem': 'Añade <main> (o role="main") y un enlace "Saltar al contenido" como primer foco.',
-        'no_headings': 'La página no tiene encabezados (h1–h6).',
-        'no_headings_rem': 'Estructura el contenido con encabezados jerárquicos: es el índice de navegación del lector de pantalla.',
-        'no_h1': 'No hay ningún <h1> en la página.',
-        'no_h1_rem': 'Añade un único h1 que nombre la página.',
-        'multi_h1': '{n} <h1> en la página (máximo recomendado: 1).',
-        'multi_h1_rem': 'Conserva un solo h1 (título de la página) y baja el resto un nivel.',
-        'heading_skips': 'Saltos de nivel en encabezados: {skips}.',
-        'heading_skips_rem': 'No saltes niveles (h2→h4): rompe el esquema de navegación. Baja de uno en uno.',
-        'empty_heading': '{n} encabezados vacíos (<h*> sin texto).',
-        'empty_heading_rem': 'Elimina los encabezados vacíos o dales texto: aparecen como huecos en el índice del lector.',
-        'table_no_th': '{n} <table> sin celdas <th>.',
-        'table_no_th_rem': 'Marca encabezados de fila/columna con <th> (y scope) para que el lector asocie celdas.',
-        'blank_no_warning': '{n} enlaces con target="_blank" sin avisar de que abren ventana nueva.',
-        'blank_no_warning_rem': 'Añade aviso en texto (o title/aria-label): «(abre en ventana nueva)», o deja que la persona usuaria decida.',
-        'dup_ids': '{n} ids duplicados; pueden romper asociaciones label-for y aria-labelledby.',
-        'dup_ids_rem': 'Haz únicos los ids: los <label for> y aria-labelledby apuntan solo al primero.',
-        'autocomplete': '{n} campos que recogen datos de la persona usuaria sin atributo autocomplete: {ej}.',
-        'autocomplete_rem': 'Añade autocomplete con el token correcto (email, tel, name, postal-code…, 1.3.5): relleno automático y voz de accesibilidad con sobrecoste cero.',
-        'aria_ref_missing': '{n} referencias aria-labelledby/describedby apuntan a ids que no existen: {ej}.',
-        'aria_ref_missing_rem': 'Corrige o elimina la referencia: un aria-labelledby roto deja el control sin nombre accesible.',
-        'help_inconsistent': 'La ayuda (contacto/soporte) aparece en posiciones o formas distintas entre páginas del sitio ({ej}). Revisar (3.2.6).',
-        'help_inconsistent_rem': 'Si la ayuda aparece en varias páginas, debe aparecer en el mismo orden relativo y de forma consistente (3.2.6, nuevo en 2.2): mismo menú, misma ubicación.',
-        'images_of_text': '{n} imágenes que parecen ser texto renderizado (alt muy largo{ej2}). Revisar (1.4.5).',
-        'images_of_text_rem': 'Salvo logotipos, presenta el texto como texto real (1.4.5): se re escala, se re-fluye y se traduce; una imagen no.',
-        'label_in_name': '{n} controles cuyo aria-label no contiene el texto visible («{ej}»): quien dicta por voz dice lo que ve (2.5.3).',
-        'label_in_name_rem': 'El nombre accesible debe CONTENER la etiqueta visible: «Ofertas de verano (abre en ventana nueva)», no «Más info». Sustituye el aria-label por texto visible + sufijo.',
-        'element_lang_invalid': '{n} atributos lang en elementos no válidos (BCP-47): {ej}.',
-        'element_lang_invalid_rem': 'Los fragmentos en otro idioma llevan lang con código válido (3.1.2): <blockquote lang="en">…</blockquote>.',
-        'down_event': '{n} manejadores en down-event (onmousedown/ontouchstart/onpointerdown): {ej}. Revisar (2.5.2).',
-        'down_event_rem': 'Activa en el UP-event (onclick/onmouseup): permite abortar arrastrando fuera — la regla de 2.5.2.',
-        'captcha': 'Detectado captcha ({ej}): 3.3.8 exige alternativa sin test cognitivo para el acceso.',
-        'captcha_rem': 'Ofrece alternativas: email mágico, OAuth, soporte humano. Un CAPTCHA sin alternativa excluye (3.3.8, nuevo en WCAG 2.2 AA).',
-        'motion_moving': '{n} contenidos en movimiento/bucle sin control de pausa visible: {ej}. Revisar (2.2.2).',
-        'motion_moving_rem': 'Contenido que se mueve/parpadea >5 s necesita un mecanismo de pausa/parada (2.2.2): <marquee> no tiene ninguno; las animaciones en bucle, tampoco por defecto.',
-        'gesture_no_click': '{n} manejadores de gesto/arrastre sin alternativa de clic visible: {ej}. Revisar (2.5.1).',
-        'gesture_no_click_rem': 'Toda función por gesto (swipe/arrastre) necesita alternativa sin gesto: botón «anterior/siguiente» o clic simple (2.5.1).',
-        'motion_actuation': '{n} manejadores de deviceorientation/devicemotion sin alternativa de UI: {ej}. Revisar (2.5.4).',
-        'motion_actuation_rem': 'Lo que se activa moviendo el dispositivo debe poder activarse también con UI (botón) y desactivarse (2.5.4).',
-        'color_only_link': 'Enlaces distinguibles solo por color detectados en el pase renderizado (1.4.1).',
-        'color_only_link_rem': 'El enlace dentro de texto necesita subrayado u otro distintivo, o contraste ≥3:1 con el texto que lo rodea (1.4.1).',
-        'sensory_text': 'Instrucciones que apelan solo a los sentidos: «{ej}». Revisar (1.3.3).',
-        'sensory_text_rem': 'No instruyas por posición/forma/color solos («el botón de la derecha»): nombra las cosas (1.3.3).',
-        'orientation_lock': 'Bloqueo de orientación detectado: {ej}. Revisar (1.3.4).',
-        'orientation_lock_rem': 'El contenido no debe bloquearse a una orientación salvo excepción demostrable (1.3.4): elimina screen.orientation.lock() y los media queries que fuercen una sola orientación.',
-        'audio_desc_missing': '{n} <video> sin track de audiodescripción (1.2.3/1.2.5): pendiente de juicio humano.',
-        'audio_desc_missing_rem': 'Si el vídeo tiene información visual esencial no narrada, publica audiodescripción (track kind="descriptions" o alternativa) — decide una persona viendo el vídeo.',
-        'nav_inconsistent': 'La navegación repetida cambia entre páginas del sitio ({ej}) (3.2.3).',
-        'nav_inconsistent_rem': 'Los mecanismos de navegación repetidos deben aparecer en el mismo orden relativo en todas las páginas (3.2.3): plantilla común.',
-        'no_multiple_ways': 'Sin vía alternativa para encontrar páginas (sin búsqueda, sin mapa, sin índice) en las páginas muestreadas (2.4.5).',
-        'no_multiple_ways_rem': 'Ofrece al menos dos vías: navegación + búsqueda o sitemap (2.4.5).',
-        'dom_visual_order': 'Orden DOM distinto del orden visual en {n} bloques de texto: revisar con teclado (1.3.2).',
-        'dom_visual_order_rem': 'El orden de lectura programático debe coincidir con el visual: revisa flex order, grid placement y position absolute (1.3.2).',
-        'text_spacing_clip': '{n} textos recortados al aplicar los espaciados de 1.4.12 (line-height 1.5, letter 0.12em): revisar.',
-        'text_spacing_clip_rem': 'El contenido debe sobrevivir a los overrides de espaciado de texto sin recortarse: sustituye alturas fijas por min-height (1.4.12).',
-        'list_structure': '{n} hijos ilegales dentro de <ul>/<ol> (solo <li>, <script> y <template> son válidos).',
-        'list_structure_rem': 'Mete el contenido suelto en <li> o usa otro contenedor: los lectores anuncian la lista con su número de ítems y se saltan lo que no es <li>.',
-        'aria_value_invalid': '{n} valores de atributos ARIA inválidos: {ej}. Tecnología asistida los ignora.',
-        'aria_value_invalid_rem': 'Los aria-* booleanos solo admiten true/false/undefined, los de posición enteros, los de token su lista cerrada (4.1.2). Corrige o elimina el atributo.',
-        'role_unknown': '{n} roles ARIA desconocidos: {ej}. Los lectores los ignoran.',
-        'role_unknown_rem': 'Usa roles de la especificación ARIA (button, dialog, navigation…) o elimina el atributo y confía en el HTML semántico.',
-        'role_required_attr': '{n} controles con role que exige atributos ARIA que faltan: {ej}.',
-        'role_required_attr_rem': 'Un slider necesita aria-valuenow (y mejor aria-valuemin/max): sin el estado, el control es inoperante para tecnología asistida (4.1.2).',
-        'landmark_dup': '{n} grupos de landmarks duplicados (<nav>, <header>…) sin aria-label que los distinga: {ej}.',
-        'landmark_dup_rem': 'Nombra cada landmark repetido (aria-label="Menú principal", aria-label="Menú pie"): si no, la navegación por landmarks es una lotería.',
-        'generic_link': '{n} enlaces con texto genérico («más», «aquí», «read more»): {ej}.',
-        'generic_link_rem': 'Describe el destino en el texto del enlace (2.4.4): las personas que listan enlaces saltan de uno a otro sin contexto.',
-        'same_name_links': '{n} pares de enlaces con idéntico texto y destinos distintos.',
-        'same_name_links_rem': 'Diferencia los nombres (o unifica el destino): «Informes» ×3 con tres URLs distintas es un problema para quien navega por lista de enlaces.',
-        'accesskey_dup': '{n} teclas accesskey duplicadas: {ej}.',
-        'accesskey_dup_rem': 'Accesskey repetidas disparan el control equivocado y chocan con atajos del navegador; elimínalas o hazlas únicas.',
-        'multi_label': '{n} campos con más de un <label for> asociado.',
-        'multi_label_rem': 'Un campo, una etiqueta: los lectores anuncian los labels concatenados. Agrupa el texto en uno.',
-        'video_autoplay': '{n} medios con autoplay (audio >3s sin control para pararlo).',
-        'video_autoplay_rem': 'Quita autoplay o añade muted + control visible de pausa/parada (1.4.2): el audio que arranca solo desordena a quien usa lector de pantalla.',
-        'score_note': ('Puntuación ponderada: alta −12, media −6, baja −2 desde 100. Mide solo lo '
-                       'automatizable (≈1/3 de WCAG): sirve para seguir tendencias entre versiones, '
-                       'no como conformidad (método de muestreo y alcance al estilo WCAG-EM, no sustituye '
-                       'la evaluación de conformidad). ESTE pase estático NO midió contraste (1.4.3), tamaño '
-                       'de objetivo ni los demás criterios de not_measured: un 100 aquí no es '
-                       '"contraste bien" — usa la auditoría renderizada.'),
-        'limits': ('Automatización ≈ un tercio de WCAG: esto es un filtro exprés, no sustituye '
-                    'revisión manual (teclado, lector de pantalla, contraste real, refrán de '
-                    'auditoría).'),
-    },
-    'en': {
-        'fetch_error': 'could not download: {e}',
-        'img_no_alt': '{n} <img> without an alt attribute (not even alt="").',
-        'img_no_alt_rem': 'Add alt to every <img>: descriptive text when it conveys information, alt="" when decorative. Same requirement for <input type="image"> and <area>.',
-                'autocomplete_invalid': '{n} invalid autocomplete token values: {ej}. Tokens must come from the HTML autofill standard (§7.5) or assistive tech cannot identify the purpose (1.3.5).',
-        'autocomplete_invalid_rem': 'Use standard tokens: email, tel, name, postal-code, one-time-code… (full list in the tool).',
-'input_img_alt': '<input type="image"> without alt (image button with no name).',
-        'input_img_alt_rem': 'Add descriptive alt to the input type="image" (it is its accessible name), or replace it with a <button> with text or <input type="submit" value="…">.',
-        'ctrl_name': '{n} <{tag}> with no accessible name (no text, aria-label or title).',
-        'ctrl_name_rem': 'The accessible name comes from inner text, aria-label, title, or an inner image with alt. An empty control is invisible to screen readers.',
-        'aria_hidden_focusable': '{n} interactive elements (<{tag}>) with aria-hidden="true": hidden from the screen reader yet still focusable.',
-        'aria_hidden_focusable_rem': 'Remove aria-hidden from the focusable element, or add tabindex="-1" if it must stay out of interaction.',
-        'field_label': '{n} form fields with no associated <label> and no accessible name.',
-        'field_label_rem': 'Associate <label for="id"> (or wrap the field), or use aria-label. Applies to input, select and textarea.',
-        'click_nonfocusable': '{n} non-interactive elements (<{tag}>) with onclick, no role, no tabindex and no keyboard handling.',
-        'click_nonfocusable_rem': 'Use a real <button>; if impossible, add role="button", tabindex="0" and Enter/Space handling (2.1.1).',
-        'label_orphan': '{n} <label> without for and without a nested field: they label nothing.',
-        'label_orphan_rem': 'Connect the label to its field via for="id", or move the field inside the label.',
-        'iframe_title': '{n} <iframe> without an accessible title.',
-        'iframe_title_rem': 'Add a descriptive title to the iframe (screen readers announce it on arrival).',
-        'video_captions': '{n} <video> without <track kind="captions">.',
-        'video_captions_rem': 'Publish captions for the video audio track (1.2.2). If decorative and silent, mark it as such.',
-        'lang_missing': 'The <html> element does not declare lang.',
-        'lang_region_invalid': 'lang “{l}”: the region subtag does not exist (ISO 3166). Use the language alone (“en”) or a real region (“en-GB”).',
-        'lang_region_invalid_rem': 'Validate the region against the IANA Language Subtag Registry: “en” alone or “en-GB” with a real region.',
-        'lang_missing_rem': 'Add lang="en" (the real language) to <html>: screen readers pick the synthetic voice from it.',
-        'lang_invalid': 'lang="{lang}" is not a valid BCP-47 language code.',
-        'lang_invalid_rem': 'Use the correct ISO 639 primary subtag (en, es, pt…).',
-        'title_missing': 'The page has no <title> with content.',
-        'reduced_motion_ignored': '{n} looping animations still run with prefers-reduced-motion set (before {n}, after {nr}): the user\'s preference is ignored (2.2.2).',
-        'reduced_motion_ignored_rem': 'Wrap animations in @media (prefers-reduced-motion: reduce) { animation: none } — or pause via the Animation API. The user asked for less motion; honor it.',
-        'forced_colors_svg': '{n} SVGs with hardcoded colored fill: under forced-colors (Windows High Contrast) the fill falls back to inherited and the icon can turn invisible.',
-        'forced_colors_svg_rem': 'Use fill="currentColor" (inherits text color, which the system already adjusts) or the system keywords (CanvasText).',
-        'title_generic': 'Generic title (“{t}”): does not identify this page among the open ones (2.4.2, review).',
-        'title_generic_rem': 'One unique title per page: content + site (“Contact — MaisMedia”), never “Untitled”, “Home” or “Document”.',
-        'title_missing_rem': 'Write a unique, descriptive <title> per page (screen reader\'s first announcement, tab text).',
-        'heading_quality': '{n} suspiciously generic or vague headings/labels: {ej}. Review (2.4.6).',
-        'heading_quality_rem': 'Headings should describe their section: "Q3 Report Results", not "Section 2" or "More info" (2.4.6). Name things.',
-        'char_shortcut': '{n} single-character keyboard shortcuts detected: {ej}. Review (2.1.4).',
-        'char_shortcut_rem': 'Single-key shortcuts must be disablable, remappable, or active only on focus (2.1.4): voice-dictation users trigger every letter.',
-        'drag_no_alt': '{n} drag handlers with no visible click/button alternative: {ej}. Review (2.5.7).',
-        'drag_no_alt_rem': 'Every drag action needs a non-dragging alternative: up/down buttons, context menu, arrows (2.5.7).',
-        'no_status_regions': 'No status regions (aria-live/status/alert) detected on the page: dynamic messages will not be announced (4.1.3).',
-        'no_status_regions_rem': 'Add role="status" or aria-live="polite" for toasts, save confirmations, search results (4.1.3).',
-        'placeholder_only': '{n} fields using placeholder as their only label (no <label>): {ej}. The placeholder vanishes on input (3.3.2).',
-        'placeholder_only_rem': 'Placeholder is NOT a label: add a visible <label for="id">. The placeholder disappears when typing starts and screen readers do not always announce it (3.3.2).',
-        'required_no_indication': '{n} required fields with no visible required indication: {ej} (3.3.2).',
-        'required_no_indication_rem': 'Required fields must indicate it: asterisk with legend, "required" text in the label, or announced aria-required (3.3.2).',
-        'fieldset_missing': '{n} radio/checkbox groups without <fieldset><legend>: screen readers do not announce the common question (1.3.1).',
-        'fieldset_missing_rem': 'Wrap groups in <fieldset><legend>Common question</legend>…</fieldset> (1.3.1): without it, each radio is announced without context.',
-        'label_vague': '{n} suspiciously vague labels: {ej} (2.4.6).',
-        'label_vague_rem': 'Labels should describe the field: "Contact email address", not "Field" or "Text" (2.4.6).',
-        'financial_no_confirm': '{n} financial/legal form(s) without a detectable confirmation step (3.3.4).',
-        'financial_no_confirm_rem': 'Submissions with legal/financial consequences must be reversible, checked, or confirmed (3.3.4): terms checkbox, "Review and confirm" button, or review step.',
-        'zoom_no': 'The viewport blocks user zoom (user-scalable=no/0).',
-        'zoom_no_rem': 'Remove user-scalable=no and maximum-scale: zooming is the user\'s right (1.4.4).',
-        'zoom_max': 'The viewport limits zoom (maximum-scale={v}; recommend no limit or ≥2).',
-        'zoom_max_rem': 'Remove maximum-scale from the viewport, or set it to 2 or higher, so text can be enlarged (1.4.4).',
-        'meta_refresh': '<meta http-equiv="refresh"> with a timed reload/redirect ({v}s).',
-        'meta_refresh_rem': 'Replace the automatic reload with user-initiated navigation (2.2.1). Instant redirects are better done server-side.',
-        'tabindex_pos': '{n} elements with a positive tabindex (overrides natural order).',
-        'tabindex_pos_rem': 'Use tabindex="0" or drop the attribute: tab order must follow the DOM.',
-        'no_bypass': 'Neither <main>/role="main" nor a skip link: no way to bypass repeated blocks.',
-        'no_bypass_rem': 'Add <main> (or role="main") and a "Skip to content" link as the first focus stop.',
-        'no_headings': 'The page has no headings (h1–h6).',
-        'no_headings_rem': 'Structure content with hierarchical headings: they are the screen reader\'s navigation index.',
-        'no_h1': 'There is no <h1> on the page.',
-        'no_h1_rem': 'Add a single h1 naming the page.',
-        'multi_h1': '{n} <h1> on the page (recommended maximum: 1).',
-        'multi_h1_rem': 'Keep a single h1 (page title) and demote the rest one level.',
-        'heading_skips': 'Heading level skips: {skips}.',
-        'heading_skips_rem': 'Do not skip levels (h2→h4): it breaks the navigation outline. Descend one level at a time.',
-        'empty_heading': '{n} empty headings (<h*> with no text).',
-        'empty_heading_rem': 'Remove empty headings or give them text: they show up as gaps in the reader\'s index.',
-        'table_no_th': '{n} <table> with no <th> cells.',
-        'table_no_th_rem': 'Mark row/column headers with <th> (plus scope) so the reader can associate cells.',
-        'blank_no_warning': '{n} links with target="_blank" that do not warn they open a new window.',
-        'blank_no_warning_rem': 'Add a text hint (or title/aria-label): "(opens in a new window)", or let the user decide.',
-        'dup_ids': '{n} duplicated ids; they can break label-for and aria-labelledby associations.',
-        'dup_ids_rem': 'Make ids unique: <label for> and aria-labelledby only point at the first match.',
-        'autocomplete': '{n} fields collecting user information without an autocomplete attribute: {ej}.',
-        'autocomplete_rem': 'Add autocomplete with the right token (email, tel, name, postal-code…, 1.3.5): free accessibility and autofill at zero cost.',
-        'aria_ref_missing': '{n} aria-labelledby/describedby references point to ids that do not exist: {ej}.',
-        'aria_ref_missing_rem': 'Fix or remove the reference: a broken aria-labelledby leaves the control with no accessible name.',
-        'help_inconsistent': 'Help (contact/support) appears in different places or shapes across site pages ({ej}). Review (3.2.6).',
-        'help_inconsistent_rem': 'When help appears on multiple pages, it must appear in the same relative order and consistently (3.2.6, new in 2.2): same menu, same place.',
-        'images_of_text': '{n} images that appear to be rendered text (very long alt{ej2}). Review (1.4.5).',
-        'images_of_text_rem': 'Except for logotypes, present text as real text (1.4.5): it rescales, reflows and translates; an image does not.',
-        'label_in_name': '{n} controls whose aria-label does not contain the visible text («{ej}»): voice-input users say what they see (2.5.3).',
-        'label_in_name_rem': 'The accessible name must CONTAIN the visible label: "Summer offers (opens in new window)", not "More info". Use visible text + suffix.',
-        'element_lang_invalid': '{n} invalid lang attributes on elements (BCP-47): {ej}.',
-        'element_lang_invalid_rem': 'Foreign-language fragments carry lang with a valid code (3.1.2): <blockquote lang="en">…</blockquote>.',
-        'down_event': '{n} down-event handlers (onmousedown/ontouchstart/onpointerdown): {ej}. Review (2.5.2).',
-        'down_event_rem': 'Activate on the UP event (onclick/onmouseup): dragging away can abort — that is rule 2.5.2.',
-        'captcha': 'Captcha detected ({ej}): 3.3.8 requires a non-cognitive-test alternative for access.',
-        'captcha_rem': 'Offer alternatives: magic links, OAuth, human support. A CAPTCHA without an alternative excludes (3.3.8, new in WCAG 2.2 AA).',
-        'motion_moving': '{n} moving/looping contents with no visible pause control: {ej}. Review (2.2.2).',
-        'motion_moving_rem': 'Content moving/blinking >5s needs a pause/stop mechanism (2.2.2): <marquee> has none; looping animations do not either by default.',
-        'gesture_no_click': '{n} gesture/drag handlers with no visible click alternative: {ej}. Review (2.5.1).',
-        'gesture_no_click_rem': 'Every gesture function (swipe/drag) needs a non-gesture alternative: prev/next button or plain click (2.5.1).',
-        'motion_actuation': '{n} deviceorientation/devicemotion handlers with no UI alternative: {ej}. Review (2.5.4).',
-        'motion_actuation_rem': 'What motion activates must also be activatable via UI (button) and disablable (2.5.4).',
-        'color_only_link': 'Links distinguishable only by color detected in the rendered pass (1.4.1).',
-        'color_only_link_rem': 'A link inside text needs underline or another cue, or ≥3:1 contrast against surrounding text (1.4.1).',
-        'sensory_text': 'Instructions appealing to senses alone: "{ej}". Review (1.3.3).',
-        'sensory_text_rem': 'Do not instruct by position/shape/color alone ("the button on the right"): name things (1.3.3).',
-        'orientation_lock': 'Orientation lock detected: {ej}. Review (1.3.4).',
-        'orientation_lock_rem': 'Content must not be locked to one orientation unless the exception demonstrably applies (1.3.4): remove screen.orientation.lock() and orientation-forcing media queries.',
-        'audio_desc_missing': '{n} <video> without audio-description track (1.2.3/1.2.5): pending human judgment.',
-        'audio_desc_missing_rem': 'If the video carries essential visual information not narrated, publish audio description (track kind="descriptions" or alternative) — a person watching the video decides.',
-        'nav_inconsistent': 'Repeated navigation changes across site pages ({ej}) (3.2.3).',
-        'nav_inconsistent_rem': 'Repeated navigation mechanisms must appear in the same relative order on every page (3.2.3): shared template.',
-        'no_multiple_ways': 'No alternative way to find pages (no search, no sitemap, no index) across sampled pages (2.4.5).',
-        'no_multiple_ways_rem': 'Offer at least two ways: navigation + search or sitemap (2.4.5).',
-        'dom_visual_order': 'DOM order differs from visual order in {n} text blocks: review with keyboard (1.3.2).',
-        'dom_visual_order_rem': 'Programmatic reading order must match visual order: check flex order, grid placement and position absolute (1.3.2).',
-        'text_spacing_clip': '{n} texts clipped when the 1.4.12 spacing overrides apply (line-height 1.5, letter 0.12em): review.',
-        'text_spacing_clip_rem': 'Content must survive text-spacing overrides without clipping: replace fixed heights with min-height (1.4.12).',
-        'list_structure': '{n} illegal children inside <ul>/<ol> (only <li>, <script> and <template> are valid).',
-        'list_structure_rem': 'Wrap loose content in <li> or use another container: screen readers announce the list with its item count and skip non-<li> content.',
-        'aria_value_invalid': '{n} invalid ARIA attribute values: {ej}. Assistive tech ignores them.',
-        'aria_value_invalid_rem': 'Boolean aria-* only accept true/false/undefined, position ones integers, token ones their closed list (4.1.2). Fix or drop the attribute.',
-        'role_unknown': '{n} unknown ARIA roles: {ej}. Screen readers ignore them.',
-        'role_unknown_rem': 'Use roles from the ARIA specification (button, dialog, navigation…) or drop the attribute and rely on semantic HTML.',
-        'role_required_attr': '{n} widgets whose role requires missing ARIA attributes: {ej}.',
-        'role_required_attr_rem': 'A slider needs aria-valuenow (ideally aria-valuemin/max): without the state the widget is inoperative for assistive tech (4.1.2).',
-        'landmark_dup': '{n} groups of duplicated landmarks (<nav>, <header>…) without a distinguishing aria-label: {ej}.',
-        'landmark_dup_rem': 'Name each repeated landmark (aria-label="Main menu", aria-label="Footer menu"): otherwise landmark navigation is a lottery.',
-        'generic_link': '{n} links with generic text ("more", "here", "read more"): {ej}.',
-        'generic_link_rem': 'Describe the destination in the link text (2.4.4): people listing links jump between them with no context.',
-        'same_name_links': '{n} pairs of links with identical text pointing to different destinations.',
-        'same_name_links_rem': 'Differentiate the names (or unify the destination): "Reports" ×3 with three different URLs is a problem for anyone navigating by link list.',
-        'accesskey_dup': '{n} duplicated accesskey values: {ej}.',
-        'accesskey_dup_rem': 'Duplicated accesskeys trigger the wrong control and clash with browser shortcuts; remove or make unique.',
-        'multi_label': '{n} fields with more than one associated <label for>.',
-        'multi_label_rem': 'One field, one label: screen readers announce concatenated labels. Merge the text into one.',
-        'video_autoplay': '{n} media elements with autoplay (audio >3s with no way to stop it).',
-        'video_autoplay_rem': 'Remove autoplay or add muted + a visible pause/stop control (1.4.2): audio that starts on its own disrupts screen-reader users.',
-        'score_note': ('Weighted score: high −12, medium −6, low −2 from 100. It measures only '
-                       'what is automatable (≈1/3 of WCAG): use it to track trends between '
-                       'releases, not as conformance (WCAG-EM-style sampling and scope; not a conformance '
-                        'evaluation). THIS static pass did NOT measure contrast '
-                       '(1.4.3), target size or the criteria in not_measured: a 100 here is not '
-                       '"contrast is fine" — run the rendered audit.'),
-        'limits': ('Automation ≈ one third of WCAG: this is an express filter, not a substitute '
-                    'for manual review (keyboard, screen reader, real contrast, audit rhyme).'),
-    },
-}
+T = a11yi18n.pair('audit')  # locales/<lang>.json — community-editable
 
 # Aviso de ventana nueva: texto que lo indica o icono con nombre
 _BLANK_HINT = re.compile(r'nueva|nuevo|ventana|pesta|tab\b|window|external|externo|exterior', re.I)
 
 
-def _t(lang, key):
-    return T.get(lang, T['es'])[key]
+def _t(lang, key, n=None):
+    """Message by key; `{"one","other"}` entries resolve via the locale's
+    CLDR plural rule when the caller passes the count."""
+    value = T.get(lang, T['en']).get(key, key)
+    return a11yi18n.plural_entry(value, lang, n) if n is not None else value
 
 
 def _crit(lang, code):
@@ -546,7 +254,7 @@ class _Auditor(HTMLParser):
     def __init__(self):
         super().__init__(convert_charrefs=True)
         self.imgs_no_alt = []
-        self.sitios = {}          # tag → lista de atributos de controles sin nombre
+        self.controls_by_kind = {}          # tag → lista de atributos de controles sin nombre
         self.fields_no_label = []
         self.iframes_no_title = []
         self.lang = None
@@ -560,7 +268,7 @@ class _Auditor(HTMLParser):
         self._heading_text = []
         self._visible_text = []
         self._heading_text = []
-        self.tabindex_positivos = []
+        self.positive_tabindices = []
         self.viewport = None
         self.elements = 0
         # Pila de controles interactivos (a/button/summary) para recoger su
@@ -569,10 +277,10 @@ class _Auditor(HTMLParser):
         self._label_depth = 0
         self._labels_stack = []   # un booleano por <label> abierto: ¿contiene campo?
         self._labels_for = {}     # id → nº de <label for> que lo apuntan
-        self.labels_huerfanos = 0
+        self.orphan_labels = 0
         # Nuevas señales
         self.aria_hidden_focusable = []   # tag de interactivos con aria-hidden
-        self.click_sueltos = []           # tags no interactivos con onclick
+        self.stray_clicks = []           # tags no interactivos con onclick
         self.meta_refresh = None
         self.videos = 0
         self.videos_with_captions = 0
@@ -586,20 +294,20 @@ class _Auditor(HTMLParser):
         self.hay_main = False
         self.hay_skip = False
         self.h1s = 0
-        self.vacios_h = 0
+        self.empty_h = 0
         self.ids = {}
         self.input_img_no_alt = 0
         # v3.1: validez ARIA, autocomplete, enlaces, landmarks, accesskey, autoplay
         self.aria_refs = []       # (attr, id) referenciados por aria-labelledby/describedby
         self.aria_values = []    # valores aria-* inválidos
-        self.roles_desconocidos = []
+        self.unknown_roles = []
         self.roles_without_state = []   # widgets con role que exige aria-valuenow
         self.landmarks = {}       # tipo → [con_etiqueta, total]
         self.accesskeys = {}         # accesskey → tag
-        self.autocomplete_faltan = []
+        self.missing_autocomplete = []
         self.autocomplete_invalid = []
         self.links = {}         # nombre normalizado → set de hrefs
-        self.genericos = 0
+        self.generics = 0
         self.labels_for_dups = {}  # id → n labels (los >1, varios)
         self.media_autoplay = 0
         self._list_depth = 0
@@ -609,27 +317,27 @@ class _Auditor(HTMLParser):
         self.lang_parts_invalid = []      # lang inválidos en elementos no-html
         self.down_events = []       # onmousedown/ontouchstart/onpointerdown
         self.captchas = []          # detección 3.3.8
-        self.moviles = []           # marquee/blink/inline infinite animation (2.2.2)
+        self.mobiles = []           # marquee/blink/inline infinite animation (2.2.2)
         self.nav_hrefs = set()      # hrefs inside <nav> (site-level 3.2.3 signature)
         self.help_hrefs = set()     # help/contact links (site-level 3.2.6 signature)
         self.images_of_text = []
-        self.headings_vagos = []
+        self.vague_headings = []
         self.char_shortcuts = []
         self.drag_handlers = []
         self.status_regions = 0
         self.placeholder_only = []     # 3.3.2: placeholder sin label
         self.required_no_indication = [] # 3.3.2: required sin * ni "obligatorio"
-        self.fieldsets_faltan = 0      # 1.3.1: radio/check groups sin fieldset
+        self.missing_fieldsets = 0      # 1.3.1: radio/check groups sin fieldset
         self._radio_group = {}
         self._radio_in_fieldset = {}         # name → count (para detectar grupos)
-        self.labels_vagos = []         # 2.4.6: label quality
+        self.vague_labels = []         # 2.4.6: label quality
         self.financial_no_confirm = 0  # 3.3.4: financial form no confirm
-        self._form_financiero = False
-        self._form_confirma = False    # 1.4.5 suspicion: img inside heading or very long alt
+        self._financial_form = False
+        self._confirm_form = False    # 1.4.5 suspicion: img inside heading or very long alt
         self._in_nav = 0
         self._in_fieldset = False
-        self.tiene_busqueda = False
-        self.tiene_sitemap = False
+        self.has_search = False
+        self.has_sitemap = False
         self.gestures = []            # touchmove/drag handlers (2.5.1)
         self.motions = []           # deviceorientation/devicemotion (2.5.4)
         self.orientation_locks = [] # screen.orientation.lock / orientation MQ (1.3.4)
@@ -637,7 +345,7 @@ class _Auditor(HTMLParser):
         self.sensory = []           # sensory-only instruction patterns (1.3.3)
         self._skip_labels_pend = []  # labels declarados antes que su campo
 
-    def _cierra_control(self, tag):
+    def _close_control(self, tag):
         if not self._ctrl:
             return
         c = self._ctrl[-1]
@@ -650,7 +358,7 @@ class _Auditor(HTMLParser):
                 or a.get('title') or a.get('alt')):
             # el nombre del control puede venir también de una imagen interna
             if not c.get('img_interna'):
-                self.sitios.setdefault(tag, []).append(a)
+                self.controls_by_kind.setdefault(tag, []).append(a)
         if tag == 'a':
             visible = ' '.join(text.lower().split())
             al = ' '.join((a.get('aria-label') or '').lower().split())
@@ -669,7 +377,7 @@ class _Auditor(HTMLParser):
                 entry_key = ' '.join(name.lower().split())[:60]
                 self.links.setdefault(entry_key, set()).add(href)
                 if entry_key in _GENERIC_TEXT:
-                    self.genericos += 1
+                    self.generics += 1
 
     def _field_note(self):
         """El elemento que acaba de abrirse es un campo: marca su <label> ancestro."""
@@ -712,7 +420,7 @@ class _Auditor(HTMLParser):
                 self.iframes_no_title.append((a.get('src') or '')[:100])
         elif tag == 'nav':
             self._in_nav += 1
-        elif tag in _CONTROLES:
+        elif tag in _CONTROLS:
             # Enlace no interactivo (ancla pura sin href): no se audita.
             if tag == 'a' and not (a.get('href') or '').strip():
                 pass
@@ -725,7 +433,7 @@ class _Auditor(HTMLParser):
                                       href, re.I):
                     self.help_hrefs.add(href.split('#')[0].rstrip('/'))
                 if href and re.search(r'sitemap|site-map|mapa-del-sitio|mapa_web|mapaweb', href, re.I):
-                    self.tiene_sitemap = True
+                    self.has_sitemap = True
         elif tag == 'input':
             self._field_note()
             kind = (a.get('type') or 'text').lower()
@@ -734,17 +442,17 @@ class _Auditor(HTMLParser):
                     self.input_img_no_alt += 1
             elif kind in ('submit', 'button', 'reset'):
                 if not (a.get('value') or a.get('aria-label') or a.get('alt')):
-                    self.sitios.setdefault('input:' + kind, []).append(a)
+                    self.controls_by_kind.setdefault('input:' + kind, []).append(a)
             if kind == 'search' or re.search(r'search|busqueda|b[uú]squeda', (a.get('name') or '') + (a.get('id') or ''), re.I):
-                self.tiene_busqueda = True
+                self.has_search = True
             elif kind in _FIELDS:
                 has_name = a.get('aria-label') or a.get('aria-labelledby') or a.get('title')
                 if not has_name and self._label_depth == 0:
                     self.fields_no_label.append((kind, a.get('name', '')[:60], a.get('id')))
                 if 'autocomplete' not in a and kind != 'search' and (
                         kind in ('email', 'tel')
-                        or _DATO_PERSONAL.search((a.get('name') or '') + ' ' + (a.get('id') or ''))):
-                    self.autocomplete_faltan.append(f'input type={kind} name={a.get("name") or "?"}'[:44])
+                        or _PERSONAL_DATA.search((a.get('name') or '') + ' ' + (a.get('id') or ''))):
+                    self.missing_autocomplete.append(f'input type={kind} name={a.get("name") or "?"}'[:44])
         if tag == 'input' and 'autocomplete' in a:
             for tok in (a['autocomplete'] or '').split():
                 if tok and tok not in ('on', 'off') and tok.split(':')[-1] not in _AUTOFILL_TOKENS \
@@ -766,9 +474,9 @@ class _Auditor(HTMLParser):
                     self.labels_for_dups[a['for']] = self._labels_for[a['for']]
                 self._labels_stack[-1] = True
         elif tag == 'marquee':
-            self.moviles.append('<marquee>')
+            self.mobiles.append('<marquee>')
         elif tag == 'blink':
-            self.moviles.append('<blink>')
+            self.mobiles.append('<blink>')
         elif tag == 'track':
             kind = (a.get('kind') or '').lower()
             if kind == 'descriptions':
@@ -793,10 +501,10 @@ class _Auditor(HTMLParser):
             self._th_in_table = True
         elif tag == 'main' or (a.get('role') or '').lower() == 'main':
             self.hay_main = True
-        elif tag not in _CONTROLES + ('input', 'select', 'textarea', 'label', 'option',
+        elif tag not in _CONTROLS + ('input', 'select', 'textarea', 'label', 'option',
                                       'video', 'audio', 'details', 'summary'):
             if a.get('onclick') and not a.get('role') and 'tabindex' not in a:
-                self.click_sueltos.append(tag)
+                self.stray_clicks.append(tag)
         # v3.9: 3.1.2 idioma de partes (elemento no-html con lang inválido)
         if tag != 'html' and a.get('lang'):
             prim = a['lang'].strip().lower().split('-')[0]
@@ -808,21 +516,21 @@ class _Auditor(HTMLParser):
                 self.down_events.append(f'{tag}[{_de}]')
                 break
         # v3.12: 2.2.2 inline looping animation
-        estilo = a.get('style') or ''
-        if 'animation' in estilo and 'infinite' in estilo:
-            self.moviles.append(f'{tag}[style animation…infinite]')
+        style = a.get('style') or ''
+        if 'animation' in style and 'infinite' in style:
+            self.mobiles.append(f'{tag}[style animation…infinite]')
         # v3.12: 2.5.1 gesture without click alternative (attribute-level hint)
         if a.get('ontouchmove') or a.get('ondrag'):
             if not (a.get('onclick') or tag in ('input', 'button', 'a')):
                 self.gestures.append(f'{tag}[{list(a)[0] if a else ""}]')
         # forms: placeholder-only, required sin indicio, financial
         if tag == 'form':
-            self._form_financiero = False
-            self._form_confirma = False
+            self._financial_form = False
+            self._confirm_form = False
             action = (a.get('action') or '').lower()
             if re.search(r'pay|purchase|checkout|buy|order|contract|legal|billing',
                          action, re.I):
-                self._form_financiero = True
+                self._financial_form = True
         if tag in ('input', 'select', 'textarea'):
             if a.get('placeholder') and not (a.get('aria-label') or a.get('aria-labelledby')):
                 if self._label_depth == 0 and not a.get('id'):
@@ -842,12 +550,12 @@ class _Auditor(HTMLParser):
         if tag in ('button', 'input'):
             val = (a.get('value') or a.get('data-action') or '').lower()
             if re.search(r'confirm|verificar|review|revisar|accept|aceptar', val):
-                self._form_confirma = True
+                self._confirm_form = True
             # checkbox de términos
         if tag == 'input' and a.get('type') == 'checkbox':
             nm = (a.get('name') or '').lower()
             if re.search(r'terms|accept|agree|terminos|aceptar|legal|privacy', nm):
-                self._form_confirma = True
+                self._confirm_form = True
         if a.get('draggable') and (a.get('draggable') or '').lower() != 'false':
             if not a.get('onclick') and tag not in ('input', 'button'):
                 self.drag_handlers.append(f'{tag}[draggable]')
@@ -893,14 +601,14 @@ class _Auditor(HTMLParser):
                                           'type': 'tokens',
                                           'valid_tokens': '/'.join(sorted(v for v in _ARIA_TOKENS[_ar] if v))})
         if a.get('role'):
-            rol = a['role'].strip().split()[0].lower()
-            if rol not in _ROLES_ARIA and not rol.startswith('doc-'):
-                self.roles_desconocidos.append(rol)
-            if rol in ('slider', 'spinbutton') and 'aria-valuenow' not in a:
-                self.roles_without_state.append(f'{tag}[role={rol}]')
-        rol_landmark = a.get('role', '').lower() if a.get('role') in (
+            role = a['role'].strip().split()[0].lower()
+            if role not in _ROLES_ARIA and not role.startswith('doc-'):
+                self.unknown_roles.append(role)
+            if role in ('slider', 'spinbutton') and 'aria-valuenow' not in a:
+                self.roles_without_state.append(f'{tag}[role={role}]')
+        landmark_role = a.get('role', '').lower() if a.get('role') in (
             'banner', 'contentinfo', 'navigation', 'complementary', 'main', 'form', 'search', 'region') else None
-        lm = tag if tag in ('header', 'footer', 'nav', 'aside', 'main', 'search') else rol_landmark
+        lm = tag if tag in ('header', 'footer', 'nav', 'aside', 'main', 'search') else landmark_role
         if lm and not (a.get('aria-label') or a.get('aria-labelledby')):
             t = self.landmarks.setdefault(lm, [0, 0])
             t[0] += 1
@@ -916,7 +624,7 @@ class _Auditor(HTMLParser):
         aria_hidden = (a.get('aria-hidden') or '').lower() == 'true'
         ti_raw = (a.get('tabindex') or '').strip()
         if aria_hidden and ti_raw != '-1' and (
-                tag in _CONTROLES + ('input', 'select', 'textarea', 'iframe', 'video')
+                tag in _CONTROLS + ('input', 'select', 'textarea', 'iframe', 'video')
                 or a.get('onclick')):
             self.aria_hidden_focusable.append(tag)
         if tag in ('h1', 'h2', 'h3', 'h4', 'h5', 'h6'):
@@ -924,7 +632,7 @@ class _Auditor(HTMLParser):
             self._heading_text = []
         ti = a.get('tabindex')
         if ti and ti.isdigit() and int(ti) > 0:
-            self.tabindex_positivos.append((tag, int(ti)))
+            self.positive_tabindices.append((tag, int(ti)))
 
     def handle_endtag(self, tag):
         if tag == 'title':
@@ -940,13 +648,13 @@ class _Auditor(HTMLParser):
                 lowered = txt.lower()
                 if txt and (len(txt) < 2 or re.fullmatch(
                     r'(campo|field|input|texto|text|dato|value|entrada|box|caja)[\s\d]*', lowered)):
-                    self.labels_vagos.append(f'"{txt[:30]}"')
+                    self.vague_labels.append(f'"{txt[:30]}"')
             if self._labels_stack and not self._labels_stack.pop():
-                self.labels_huerfanos += 1
+                self.orphan_labels += 1
         elif tag == 'fieldset':
             self._in_fieldset = False
         elif tag == 'form':
-            if self._form_financiero and not self._form_confirma:
+            if self._financial_form and not self._confirm_form:
                 self.financial_no_confirm += 1
         elif tag == 'nav':
             self._in_nav = max(0, self._in_nav - 1)
@@ -954,8 +662,8 @@ class _Auditor(HTMLParser):
             self._li_depth = max(0, self._li_depth - 1)
         elif tag in ('ul', 'ol'):
             self._list_depth = max(0, self._list_depth - 1)
-        elif tag in _CONTROLES:
-            self._cierra_control(tag)
+        elif tag in _CONTROLS:
+            self._close_control(tag)
         elif tag == 'video':
             self._in_video = False
         elif tag == 'table':
@@ -970,23 +678,23 @@ class _Auditor(HTMLParser):
         elif tag in ('h1', 'h2', 'h3', 'h4', 'h5', 'h6') and self._heading_level:
             text = ' '.join(self._heading_text).strip()
             if not text:
-                self.vacios_h += 1
+                self.empty_h += 1
             else:
                 self.headings.append((self._heading_level, text[:80]))
                 if self._heading_level == 1:
                     self.h1s += 1
                 lowered = text.lower().strip()
                 if len(text) < 4 or len(text) > 120:
-                    self.headings_vagos.append(f'h{self._heading_level} "{text[:40]}"')
+                    self.vague_headings.append(f'h{self._heading_level} "{text[:40]}"')
                 elif re.fullmatch(r'(secci[oó]n|section|chapter|cap[ií]tulo|m[aá]s|more|info|informaci[oó]n|information|details|detalle|click|ver|see|leer|read|continue|seguir)[\s\d.]*', lowered):
-                    self.headings_vagos.append(f'h{self._heading_level} "{text[:40]}"')
+                    self.vague_headings.append(f'h{self._heading_level} "{text[:40]}"')
                 elif re.fullmatch(r'[\d.\s]+', lowered):
-                    self.headings_vagos.append(f'h{self._heading_level} "{text[:40]}"')
+                    self.vague_headings.append(f'h{self._heading_level} "{text[:40]}"')
             self._heading_level = None
 
     _RE_CHAR_KEY = re.compile(r'key(?:Code)?\s*===?\s*["\']([a-zA-Z0-9])["\']', re.S)
 
-    def handle_script_espera(self, data):
+    def handle_script_wait(self, data):
         for m in self._RE_CHAR_KEY.finditer(data):
             if len(self.char_shortcuts) < 5:
                 self.char_shortcuts.append(f"key === '{m.group(1)}'")
@@ -1008,7 +716,7 @@ class _Auditor(HTMLParser):
         if self._in_title:
             self.title += data
         elif getattr(self, '_in_script', False):
-            self.handle_script_espera(data)
+            self.handle_script_wait(data)
         else:
             # Un texto puede pertenecer a la vez a un enlace dentro de un
             # encabezado (<h2><a>Guías</a></h2>): alimenta a ambos.
@@ -1058,15 +766,15 @@ def normalize_report(report):
 
 def compute_score(findings):
     """Puntuación 0-100: penalización ponderada por hallazgo (alta 12, media 6, baja 2)."""
-    pesos = {'high': 12, 'medium': 6, 'low': 2}
-    penal = sum(pesos[h['severity']] for h in findings)
+    weights = {'high': 12, 'medium': 6, 'low': 2}
+    penal = sum(weights[h['severity']] for h in findings)
     return max(0, 100 - penal)
 
 
 _VOCAL = re.compile(r'[aeiouyáéíóúàèìòùäëïöü]+', re.I)
 
 
-def _silabas(word):
+def _syllables(word):
     """Heurística de sílabas por grupos vocálicos (suficiente para índices)."""
     return max(1, len(_VOCAL.findall(word)))
 
@@ -1081,7 +789,7 @@ def _reading_level(text, lang='en'):
     phrases = [f for f in re.split(r'[.!?;:]+', clean) if f.strip()]
     if len(words) < 40 or not phrases:
         return None  # muestra insuficiente: no inventar un índice
-    sil = sum(_silabas(w) for w in words)
+    sil = sum(_syllables(w) for w in words)
     ppf = len(words) / len(phrases)   # palabras por frase
     spf = sil / len(words) * 100     # sílabas por 100 palabras
     if lang == 'es':
@@ -1129,29 +837,29 @@ def audit_html(html_text, url='(html)', lang='en'):
     # 1.3.1: grupos de radio (name compartido, ≥2) sin fieldset
     for nm, count in p._radio_group.items():
         if count >= 2 and not p._radio_in_fieldset.get(nm, False):
-            p.fieldsets_faltan += 1
+            p.missing_fieldsets += 1
 
     # Campos cuyo id sí tiene un <label for> explícito en otro punto: fuera.
     p.fields_no_label = [c for c in p.fields_no_label if c[2] not in p._labels_for]
 
     findings = []
 
-    def add(severidad, code, key_msg, **fmt):
-        h = {'severity': severidad, 'criterion': _crit(lang, code), 'signal': key_msg,
-             'issue': _t(lang, key_msg).format(**fmt)}
+    def add(severity, code, key_msg, **fmt):
+        h = {'severity': severity, 'criterion': _crit(lang, code), 'signal': key_msg,
+             'issue': _t(lang, key_msg, n=fmt.get('n')).format(**fmt)}
         h['remediation'] = _t(lang, key_msg + '_rem').format(**fmt)
         findings.append(h)
 
-    def add_ej(severidad, code, key_msg, examples, **fmt):
-        add(severidad, code, key_msg, **fmt)
+    def add_ej(severity, code, key_msg, examples, **fmt):
+        add(severity, code, key_msg, **fmt)
         findings[-1]['examples'] = examples[:5]
 
     if p.imgs_no_alt:
         add_ej('high', '1.1.1', 'img_no_alt', p.imgs_no_alt, n=len(p.imgs_no_alt))
     if p.input_img_no_alt:
         add('high', '1.1.1', 'input_img_alt', n=p.input_img_no_alt)
-    for tag, controles in p.sitios.items():
-        add('high', '4.1.2', 'ctrl_name', n=len(controles), tag=tag)
+    for tag, controls in p.controls_by_kind.items():
+        add('high', '4.1.2', 'ctrl_name', n=len(controls), tag=tag)
     if p.aria_hidden_focusable:
         add('high', '4.1.2', 'aria_hidden_focusable',
             n=len(p.aria_hidden_focusable), tag=p.aria_hidden_focusable[0])
@@ -1159,11 +867,11 @@ def audit_html(html_text, url='(html)', lang='en'):
         add_ej('high', '3.3.2', 'field_label',
                [f'{t} name={n or "(sin name)"}' for t, n, _i in p.fields_no_label],
                n=len(p.fields_no_label))
-    if p.click_sueltos:
+    if p.stray_clicks:
         add('high', '2.1.1', 'click_nonfocusable',
-            n=len(p.click_sueltos), tag=p.click_sueltos[0])
-    if p.labels_huerfanos:
-        add('low', '3.3.2', 'label_orphan', n=p.labels_huerfanos)
+            n=len(p.stray_clicks), tag=p.stray_clicks[0])
+    if p.orphan_labels:
+        add('low', '3.3.2', 'label_orphan', n=p.orphan_labels)
     if p._bad_list:
         add('medium', '1.3.1', 'list_structure', n=p._bad_list)
     if not p.lang:
@@ -1172,13 +880,13 @@ def audit_html(html_text, url='(html)', lang='en'):
         add('medium', '3.1.1', 'lang_invalid', lang=p.lang)
     elif p.lang_region_invalid:
         add('low', '3.1.1', 'lang_region_invalid', l=p.lang_region_invalid)
-    t_limpio = (p.title or '').strip().lower()
-    if not t_limpio:
+    t_clean = (p.title or '').strip().lower()
+    if not t_clean:
         add('medium', '2.4.2', 'title_missing')
-    elif t_limpio in ('untitled', 'documento', 'documento sin título', 'sin título',
+    elif t_clean in ('untitled', 'documento', 'documento sin título', 'sin título',
                       'home', 'inicio', 'page 1', 'new page', 'página 1',
                       'untitled document', 'sin nombre', 'document'):
-        add('low', '2.4.2', 'title_generic', t=t_limpio)
+        add('low', '2.4.2', 'title_generic', t=t_clean)
     if p.iframes_no_title:
         add_ej('medium', '4.1.2', 'iframe_title', p.iframes_no_title, n=len(p.iframes_no_title))
     if p.videos and p.videos_with_captions < p.videos:
@@ -1192,10 +900,10 @@ def audit_html(html_text, url='(html)', lang='en'):
         m = re.match(r'\s*(\d+)', p.meta_refresh)
         segs = int(m.group(1)) if m else 0
         add('medium' if segs > 0 else 'low', '2.2.1', 'meta_refresh', v=segs)
-    if p.tabindex_positivos:
+    if p.positive_tabindices:
         add_ej('medium', '2.4.3', 'tabindex_pos',
-               [f'{t}[tabindex={i}]' for t, i in p.tabindex_positivos],
-               n=len(p.tabindex_positivos))
+               [f'{t}[tabindex={i}]' for t, i in p.positive_tabindices],
+               n=len(p.positive_tabindices))
     if not (p.hay_main or p.hay_skip):
         add('medium', '2.4.1', 'no_bypass')
 
@@ -1206,17 +914,17 @@ def audit_html(html_text, url='(html)', lang='en'):
         elif p.h1s > 1:
             add('low', '1.3.1', 'multi_h1', n=p.h1s)
         prev = 0
-        saltos = []
+        jumps = []
         for n in levels:
             if prev and n > prev + 1:
-                saltos.append(f'h{prev}→h{n}')
+                jumps.append(f'h{prev}→h{n}')
             prev = n
-        if saltos:
-            add('low', '1.3.1', 'heading_skips', skips=', '.join(saltos[:5]))
+        if jumps:
+            add('low', '1.3.1', 'heading_skips', skips=', '.join(jumps[:5]))
     else:
         add('medium', '1.3.1', 'no_headings')
-    if p.vacios_h:
-        add('low', '1.3.1', 'empty_heading', n=p.vacios_h)
+    if p.empty_h:
+        add('low', '1.3.1', 'empty_heading', n=p.empty_h)
     if p.tables and p.tables_with_th < p.tables:
         add('medium', '1.3.1', 'table_no_th', n=p.tables - p.tables_with_th)
     if p.blank_no_warning:
@@ -1226,27 +934,27 @@ def audit_html(html_text, url='(html)', lang='en'):
         add('low', '4.1.2', 'dup_ids', n=dups)
 
     # --- v3.1: validez ARIA, autocomplete, enlaces, landmarks, accesskey ---
-    refs_rotas = [f'{attr}="#{ref}"' for attr, ref in p.aria_refs if ref not in p.ids]
-    if refs_rotas:
-        add_ej('high', '4.1.2', 'aria_ref_missing', refs_rotas, n=len(refs_rotas),
-               ej=refs_rotas[0])
+    broken_refs = [f'{attr}="#{ref}"' for attr, ref in p.aria_refs if ref not in p.ids]
+    if broken_refs:
+        add_ej('high', '4.1.2', 'aria_ref_missing', broken_refs, n=len(broken_refs),
+               ej=broken_refs[0])
     if p.aria_values:
         _labels = {'es': {'bool': 'true/false', 'int': 'entero', 'num': 'número', 'tokens': 'valores'},
                 'en': {'bool': 'true/false', 'int': 'integer', 'num': 'number', 'tokens': 'one of'}}
-        ejes = [f"{v['attr']}=\"{v['val']}\" ({v['valid_tokens'] if v['type'] == 'tokens' else _labels[lang][v['type']]})"
+        axes = [f"{v['attr']}=\"{v['val']}\" ({v['valid_tokens'] if v['type'] == 'tokens' else _labels[lang][v['type']]})"
                 for v in p.aria_values]
-        add_ej('medium', '4.1.2', 'aria_value_invalid', ejes,
-               n=len(p.aria_values), ej=', '.join(ejes[:4]))
-    if p.roles_desconocidos:
+        add_ej('medium', '4.1.2', 'aria_value_invalid', axes,
+               n=len(p.aria_values), ej=', '.join(axes[:4]))
+    if p.unknown_roles:
         add_ej('medium', '4.1.2', 'role_unknown',
-               sorted(set(p.roles_desconocidos)), n=len(p.roles_desconocidos),
-               ej=', '.join(f'"{r}"' for r in sorted(set(p.roles_desconocidos))[:4]))
+               sorted(set(p.unknown_roles)), n=len(p.unknown_roles),
+               ej=', '.join(f'"{r}"' for r in sorted(set(p.unknown_roles))[:4]))
     if p.roles_without_state:
         add_ej('medium', '4.1.2', 'role_required_attr', p.roles_without_state,
                n=len(p.roles_without_state), ej=', '.join(p.roles_without_state[:4]))
-    if p.autocomplete_faltan:
-        add_ej('medium', '1.3.5', 'autocomplete', p.autocomplete_faltan,
-               n=len(p.autocomplete_faltan), ej=', '.join(p.autocomplete_faltan[:4]))
+    if p.missing_autocomplete:
+        add_ej('medium', '1.3.5', 'autocomplete', p.missing_autocomplete,
+               n=len(p.missing_autocomplete), ej=', '.join(p.missing_autocomplete[:4]))
     if p.autocomplete_invalid:
         add_ej('medium', '1.3.5', 'autocomplete_invalid', p.autocomplete_invalid,
                n=len(p.autocomplete_invalid), ej=', '.join(p.autocomplete_invalid[:4]))
@@ -1270,16 +978,16 @@ def audit_html(html_text, url='(html)', lang='en'):
     if p.required_no_indication:
         add_ej('low', '3.3.2', 'required_no_indication', p.required_no_indication,
                n=len(p.required_no_indication), ej=', '.join(p.required_no_indication[:3]))
-    if p.fieldsets_faltan:
-        add('medium', '1.3.1', 'fieldset_missing', n=p.fieldsets_faltan)
-    if p.labels_vagos:
-        add_ej('low', '2.4.6', 'label_vague', p.labels_vagos,
-               n=len(p.labels_vagos), ej=', '.join(p.labels_vagos[:3]))
+    if p.missing_fieldsets:
+        add('medium', '1.3.1', 'fieldset_missing', n=p.missing_fieldsets)
+    if p.vague_labels:
+        add_ej('low', '2.4.6', 'label_vague', p.vague_labels,
+               n=len(p.vague_labels), ej=', '.join(p.vague_labels[:3]))
     if p.financial_no_confirm:
         add('medium', '3.3.4', 'financial_no_confirm', n=p.financial_no_confirm)
-    if p.headings_vagos:
-        add_ej('low', '2.4.6', 'heading_quality', p.headings_vagos,
-               n=len(p.headings_vagos), ej=', '.join(p.headings_vagos[:3]))
+    if p.vague_headings:
+        add_ej('low', '2.4.6', 'heading_quality', p.vague_headings,
+               n=len(p.vague_headings), ej=', '.join(p.vague_headings[:3]))
     if p.char_shortcuts:
         add_ej('low', '2.1.4', 'char_shortcut', p.char_shortcuts,
                n=len(p.char_shortcuts), ej=', '.join(p.char_shortcuts[:3]))
@@ -1287,8 +995,8 @@ def audit_html(html_text, url='(html)', lang='en'):
         add_ej('low', '2.5.7', 'drag_no_alt', p.drag_handlers,
                n=len(p.drag_handlers), ej=', '.join(p.drag_handlers[:3]))
     # 4.1.3: solo si hay evidencia de dinamismo (scripts con eventos, forms, fetch/XHR)
-    dinamico = bool(p.click_sueltos or p._in_script or p.char_shortcuts or p.drag_handlers or p.fields_no_label)
-    if dinamico and p.status_regions == 0:
+    dynamic = bool(p.stray_clicks or p._in_script or p.char_shortcuts or p.drag_handlers or p.fields_no_label)
+    if dynamic and p.status_regions == 0:
         add('medium', '4.1.3', 'no_status_regions')
     if p.images_of_text:
         add_ej('low', '1.4.5', 'images_of_text', p.images_of_text,
@@ -1297,9 +1005,9 @@ def audit_html(html_text, url='(html)', lang='en'):
         add_ej('medium', '3.3.8', 'captcha', p.captchas,
                n=len(p.captchas), ej=', '.join(p.captchas[:2]))
     # v3.12: partial signals on previously manual-only criteria
-    if p.moviles:
-        add_ej('low', '2.2.2', 'motion_moving', p.moviles,
-               n=len(p.moviles), ej=', '.join(p.moviles[:3]))
+    if p.mobiles:
+        add_ej('low', '2.2.2', 'motion_moving', p.mobiles,
+               n=len(p.mobiles), ej=', '.join(p.mobiles[:3]))
     if p.gestures:
         add_ej('low', '2.5.1', 'gesture_no_click', p.gestures,
                n=len(p.gestures), ej=', '.join(p.gestures[:3]))
@@ -1317,12 +1025,12 @@ def audit_html(html_text, url='(html)', lang='en'):
                if t[1] > 1 and t[0] == t[1]]
     if lm_dups:
         add('low', '1.3.1', 'landmark_dup', n=len(lm_dups), ej=', '.join(lm_dups[:4]))
-    if p.genericos >= 2:   # un enlace genérico único suele desambiguarse por contexto
+    if p.generics >= 2:   # un enlace genérico único suele desambiguarse por contexto
         gen = [f'«{k}»' for k in p.links if k in _GENERIC_TEXT][:4]
-        add('low', '2.4.4', 'generic_link', n=p.genericos, ej=', '.join(gen))
-    mismos = sum(1 for _k, hrefs in p.links.items() if len(hrefs) > 1)
-    if mismos:
-        add('low', '2.4.4', 'same_name_links', n=mismos)
+        add('low', '2.4.4', 'generic_link', n=p.generics, ej=', '.join(gen))
+    same = sum(1 for _k, hrefs in p.links.items() if len(hrefs) > 1)
+    if same:
+        add('low', '2.4.4', 'same_name_links', n=same)
     ak_dups = [f'"{k}" ×{v}' for k, v in p.accesskeys.items() if v > 1]
     if ak_dups:
         add('low', '2.1.1', 'accesskey_dup', n=len(ak_dups), ej=', '.join(ak_dups[:4]))
@@ -1351,44 +1059,85 @@ def audit_html(html_text, url='(html)', lang='en'):
     }
 
 
-def _fetch(url, timeout=30, truncate_at=None, aceptar_ct=()):
-    esquema = url.split(':', 1)[0].lower() if ':' in url else ''
-    if esquema not in ('http', 'https'):
+# ── redirect policy hook ───────────────────────────────────────────────────
+# urlopen follows 3xx (up to 10 hops) to ANY host without asking: every hop
+# is a NEW destination nobody validated. Callers that audit untrusted URLs
+# can inject a per-hop validator here (returns False → the redirect is not
+# followed). Without injection, behavior is unchanged.
+validate_redirect = None   # callable(url) -> bool
+
+
+class _CheckedRedirect(urllib.request.HTTPRedirectHandler):
+    def redirect_request(self, req, fp, code, msg, headers, newurl):
+        if validate_redirect is not None and not validate_redirect(newurl):
+            raise ValueError(f'redirect to a disallowed destination: {newurl[:96]}')
+        return super().redirect_request(req, fp, code, msg, headers, newurl)
+
+
+_OPENER = urllib.request.build_opener(_CheckedRedirect)
+
+
+def _fetch(url, timeout=30, truncate_at=None, accept_ct=()):
+    scheme = url.split(':', 1)[0].lower() if ':' in url else ''
+    if scheme not in ('http', 'https'):
         # política única para TODAS las rutas de descarga (audit_url la
         # comprobaba; audit_site y el crawl pasaban por aquí sin frontera)
-        return {'error': f'esquema no permitido: {esquema or url[:24]!r} (solo http/https)'}
+        return {'error': f'scheme not allowed: {scheme or url[:24]!r} (http/https only)'}
     req = urllib.request.Request(url, headers={
         'User-Agent': 'Mozilla/5.0 (compatible; a11y-toolkit/3.2; WCAG audit)',
         'Accept': 'text/html,application/xhtml+xml',
         'Accept-Encoding': 'gzip',
     })
-    with urllib.request.urlopen(req, timeout=timeout) as r:
-        techo = truncate_at or MAX_HTML
-        data = r.read(techo + 1)
-        if len(data) > techo and truncate_at is None:
+    with _OPENER.open(req, timeout=timeout) as r:
+        ceiling = truncate_at or MAX_HTML
+        # TOTAL-CLOCK reading: the socket timeout is per-operation and a server
+        # dribbling one byte per operation reset it forever. Read in chunks
+        # with a global deadline: what arrived is enough to audit (partial).
+        import time
+        read_deadline = time.monotonic() + max(timeout, 5)
+        try:
+            r.fp.raw._sock.settimeout(min(timeout, 5))
+        except (AttributeError, OSError):
+            pass
+        data = b''
+        while len(data) < ceiling + 1:
+            if time.monotonic() >= read_deadline:
+                break          # partial: what arrived suffices to audit
+            chunk = r.read(min(65536, ceiling + 1 - len(data)))
+            if not chunk:
+                break
+            data += chunk
+        if len(data) > ceiling and truncate_at is None:
             raise ValueError(f'HTML > {MAX_HTML // 1000000} MB, demasiado grande')
         if (r.headers.get('Content-Encoding') or '').lower() == 'gzip' or data[:2] == b'\x1f\x8b':
             import zlib
             d = zlib.decompressobj(16 + zlib.MAX_WBITS)
-            data = d.decompress(data, techo)   # techo duro también al descomprimir
+            data = d.decompress(data, ceiling)   # techo duro también al descomprimir
             if d.unconsumed_tail:
-                data = data[:techo]            # bomba gzip: truncado, no OOM
+                data = data[:ceiling]            # bomba gzip: truncado, no OOM
         ctype = (r.headers.get('Content-Type') or '').lower()
         base = ctype.split(';')[0].strip()
-        extra_ok = any(base == p or base.startswith(p + '/') for p in aceptar_ct)
+        extra_ok = any(base == p or base.startswith(p + '/') for p in accept_ct)
         if ctype and not extra_ok and 'html' not in ctype and 'xml' not in ctype and base:
             raise ValueError(f'la URL no devuelve HTML (Content-Type: {base})')
-        charset = 'utf-8'
-        m = re.search(rb'charset=["\']?([\w-]+)', data[:2048])
-        if m:
-            charset = m.group(1).decode('ascii', 'ignore')
+        # the HEADER charset wins over body sniffing (HTTP has priority over
+        # <meta>): a server declaring iso-8859-1 without a meta tag otherwise
+        # produces U+FFFD inside findings
+        charset = None
+        m_ct = re.search(r'charset=["\']?([\w-]+)', (r.headers.get('Content-Type') or '').lower(), re.I)
+        if m_ct:
+            charset = m_ct.group(1)
+        if not charset:
+            m = re.search(rb'charset=["\']?([\w-]+)', data[:2048])
+            if m:
+                charset = m.group(1).decode('ascii', 'ignore')
         try:
-            return data.decode(charset, 'replace')
+            return data.decode(charset or 'utf-8', 'replace')
         except LookupError:
             return data.decode('utf-8', 'replace')
 
 
-_T_ESQUEMA = {
+_T_SCHEME = {
     'es': 'solo se auditan URLs http/https; para HTML local usa --file / el argumento html',
     'en': 'only http/https URLs can be audited; for local HTML use --file / the html argument',
 }
@@ -1396,7 +1145,7 @@ _T_ESQUEMA = {
 
 def audit_url(url, timeout=30, lang='en'):
     if url.split(':')[0].lower() not in ('http', 'https'):
-        return {'error': _T_ESQUEMA.get(lang, _T_ESQUEMA['es'])}
+        return {'error': _T_SCHEME.get(lang, _T_SCHEME['es'])}
     try:
         html_text = _fetch(url, timeout=timeout)
     except ValueError as e:
@@ -1437,7 +1186,7 @@ def _urls_sitemap(url, timeout=30):
                 if len(queue) < 8:
                     queue.append(clean)
                 continue
-            if _NO_RASTREAR.search(parts.path):
+            if _DO_NOT_TRACK.search(parts.path):
                 continue
             if clean not in pages:
                 pages.append(clean)
@@ -1445,7 +1194,7 @@ def _urls_sitemap(url, timeout=30):
 
 
 _HREF = re.compile(r'<a\s[^>]*?href=["\']([^"\']+)["\']', re.I)
-_NO_RASTREAR = re.compile(r'\.(pdf|jpg|jpeg|png|gif|webp|svg|zip|mp3|mp4|docx?|xlsx?|pptx?|xml|json|rss)(\?|$)', re.I)
+_DO_NOT_TRACK = re.compile(r'\.(pdf|jpg|jpeg|png|gif|webp|svg|zip|mp3|mp4|docx?|xlsx?|pptx?|xml|json|rss)(\?|$)', re.I)
 
 
 def _internal_links(html_text, base_url, origin):
@@ -1455,13 +1204,13 @@ def _internal_links(html_text, base_url, origin):
     for href in _HREF.findall(html_text):
         if href.startswith(('#', 'mailto:', 'tel:', 'javascript:')):
             continue
-        absoluta = urljoin(base_url, href.strip()).split('#')[0].rstrip('/')
-        parts = urlsplit(absoluta)
+        absolute = urljoin(base_url, href.strip()).split('#')[0].rstrip('/')
+        parts = urlsplit(absolute)
         if parts.scheme not in ('http', 'https') or parts.netloc != host:
             continue
-        if _NO_RASTREAR.search(parts.path):
+        if _DO_NOT_TRACK.search(parts.path):
             continue
-        out.append(absoluta)
+        out.append(absolute)
     return out
 
 
@@ -1470,22 +1219,22 @@ def evaluate_site(parsers, lang='en'):
     2.4.5 multiple ways. Pure function so tests need no network."""
     out = []
     if len(parsers) >= 3:
-        firmas = [frozenset(p.nav_hrefs) for p in parsers if p.nav_hrefs]
-        if len(firmas) >= 3 and len(set(firmas)) > 1:
+        signatures = [frozenset(p.nav_hrefs) for p in parsers if p.nav_hrefs]
+        if len(signatures) >= 3 and len(set(signatures)) > 1:
             out.append({'severity': 'medium', 'criterion': _crit(lang, '3.2.3'),
                         'signal': 'nav_inconsistent',
                         'issue': _t(lang, 'nav_inconsistent').format(
-                            ej=f'{len(set(firmas))} distintas en {len(firmas)} páginas'),
+                            ej=f'{len(set(signatures))} distintas en {len(signatures)} páginas'),
                         'remediation': _t(lang, 'nav_inconsistent_rem')})
     # 3.2.6 Consistent Help (A, new in 2.2): help links stable across pages
-    firmas_help = [frozenset(p.help_hrefs) for p in parsers if p.help_hrefs]
-    if len(firmas_help) >= 2 and len(parsers) >= 3 and len(set(firmas_help)) > 1:
+    signatures_help = [frozenset(p.help_hrefs) for p in parsers if p.help_hrefs]
+    if len(signatures_help) >= 2 and len(parsers) >= 3 and len(set(signatures_help)) > 1:
         out.append({'severity': 'medium', 'criterion': _crit(lang, '3.2.6'),
                     'signal': 'help_inconsistent',
                     'issue': _t(lang, 'help_inconsistent').format(
-                        ej=f'{len(set(firmas_help))} variantes en {len(firmas_help)} páginas'),
+                        ej=f'{len(set(signatures_help))} variantes en {len(signatures_help)} páginas'),
                     'remediation': _t(lang, 'help_inconsistent_rem')})
-    if parsers and not any(p.tiene_busqueda or p.tiene_sitemap for p in parsers):
+    if parsers and not any(p.has_search or p.has_sitemap for p in parsers):
         out.append({'severity': 'medium', 'criterion': _crit(lang, '2.4.5'),
                     'signal': 'no_multiple_ways',
                     'issue': _t(lang, 'no_multiple_ways'),
@@ -1493,10 +1242,13 @@ def evaluate_site(parsers, lang='en'):
     return out
 
 
-def audit_site(url, max_pages=5, timeout=30, lang='en', from_sitemap=True):
+def audit_site(url, max_pages=5, timeout=30, lang='en', from_sitemap=True,
+               budget=None):
     """Audita la URL y hasta max_pages-1 páginas más del mismo dominio
     (descubrimiento por enlaces). Igual de cero-dependencias que el resto."""
     max_pages = max(1, min(20, int(max_pages)))
+    import time
+    deadline = (time.monotonic() + budget) if budget else None
     try:
         html_text = _fetch(url, timeout=timeout)
     except ValueError as e:
@@ -1512,6 +1264,8 @@ def audit_site(url, max_pages=5, timeout=30, lang='en', from_sitemap=True):
     urls_sm = _urls_sitemap(url, timeout=timeout) if from_sitemap else []
     queue = urls_sm or _internal_links(html_text, url, url)
     while queue and len(reports) < max_pages:
+        if deadline is not None and time.monotonic() >= deadline:
+            break          # budget exhausted: partial, not eternal
         next = queue.pop(0)
         if next in seen:
             continue
@@ -1541,6 +1295,7 @@ def audit_site(url, max_pages=5, timeout=30, lang='en', from_sitemap=True):
     return {
         'url': url,
         'mode': 'site',
+        'budget_exhausted': bool(deadline is not None and time.monotonic() >= deadline),
         'not_measured': _not_measured(lang),
         'discovery': 'sitemap' if urls_sm else 'links',
         'pages': len(reports),

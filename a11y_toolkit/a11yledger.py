@@ -151,7 +151,7 @@ def gaps(url, ledger=None, path='a11y-ledger.json'):
     if not entry:
         return {'url': url, 'status': 'never_audited',
                 'criteria_without_signal': len(CRIT['en'])}
-    auditadas = set(entry.get('active_signals', []))
+    audited = set(entry.get('active_signals', []))
     return {
         'url': url,
         'status': 'audited',

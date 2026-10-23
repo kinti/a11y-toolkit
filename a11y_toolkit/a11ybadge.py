@@ -17,55 +17,65 @@ import datetime
 import json
 import sys
 from xml.sax.saxutils import escape as _xesc
+from . import a11yi18n
 
-_TEXTS = {
-    'es': {
-        'name': 'a11y-toolkit', 'scope': 'cribado automático',
-        'title': 'Accesibilidad: {score}/100 — {date} — {scope} (≈1/3 de WCAG); no es conformidad.',
-    },
-    'en': {
-        'name': 'a11y-toolkit', 'scope': 'automated screening',
-        'title': 'Accessibility: {score}/100 — {date} — {scope} (≈1/3 of WCAG); not conformance.',
-    },
-}
+_TEXTS = a11yi18n.pair('badge')  # locales/<lang>.json — community-editable
 
-_COLORES = [(90, '#2da44e'), (75, '#8bdb5e'), (50, '#d29922'), (0, '#cf222e')]
+_COLORS = [(90, '#2da44e'), (75, '#8bdb5e'), (50, '#d29922'), (0, '#cf222e')]
 
 
 def _color(score):
-    for threshold, c in _COLORES:
+    for threshold, c in _COLORS:
         if score >= threshold:
             return c
-    return _COLORES[-1][1]
+    return _COLORS[-1][1]
 
 
-def badge(score, date=None, scope=None, lang='en'):
-    """Devuelve el SVG (str) de la insignia. score 0-100."""
+def badge(score, date=None, scope=None, lang='en', brand=None, palette=None, height=None):
+    """Honest SVG badge. score 0-100.
+
+    `brand` overrides the left label; `palette` overrides the score colors as
+    [(threshold, '#hex'), …] (measure your contrast with a11y_contrast_pair —
+    a WCAG tool's own badge must pass 1.4.3); `height` scales the SVG (default 20).
+    """
     score = max(0, min(100, int(round(score))))
-    t = _TEXTS.get(lang, _TEXTS['en'])
+    t = dict(_TEXTS.get(lang, _TEXTS['en']))
+    if brand:
+        t['name'] = brand[:24]
+    colors = palette or _COLORS
+
+    def _color(s):
+        for threshold, c in colors:
+            if s >= threshold:
+                return c
+        return colors[-1][1]
+
     date = date or datetime.date.today().isoformat()
     scope = scope or t['scope']
     date = _xesc(date)[:30]
     scope = _xesc(scope)[:60]
     title = _xesc(t['title'].format(score=score, date=date, scope=scope))
     color = _color(score)
-    left = len(t['name']) * 6.5 + 14
-    right = len(f'{score}/100 · {date}') * 6.5 + 14
+    h = height or 20
+    font = 11 if h == 20 else round(h * 0.58)
+    y = h / 2 + font * 0.35
+    left = len(t['name']) * (font * 0.60) + 14
+    right = len(f'{score}/100 · {date}') * (font * 0.60) + 14
     width = left + right
-    return f'''<svg xmlns="http://www.w3.org/2000/svg" width="{width:.0f}" height="20" role="img" aria-label="{title}">
+    return f'''<svg xmlns="http://www.w3.org/2000/svg" width="{width:.0f}" height="{h}" role="img" aria-label="{title}">
   <title>{title}</title>
   <linearGradient id="s" x2="0" y2="100%"><stop offset="0" stop-color="#bbb" stop-opacity=".1"/><stop offset="1" stop-opacity=".1"/></linearGradient>
-  <clipPath id="r"><rect width="{width:.0f}" height="20" rx="3" fill="#fff"/></clipPath>
+  <clipPath id="r"><rect width="{width:.0f}" height="{h}" rx="3" fill="#fff"/></clipPath>
   <g clip-path="url(#r)">
-    <rect width="{left:.0f}" height="20" fill="#1f2328"/>
-    <rect x="{left:.0f}" width="{right:.0f}" height="20" fill="{color}"/>
-    <rect width="{width:.0f}" height="20" fill="url(#s)"/>
+    <rect width="{left:.0f}" height="{h}" fill="#1f2328"/>
+    <rect x="{left:.0f}" width="{right:.0f}" height="{h}" fill="{color}"/>
+    <rect width="{width:.0f}" height="{h}" fill="url(#s)"/>
   </g>
-  <g fill="#fff" text-anchor="middle" font-family="Verdana,Geneva,DejaVu Sans,sans-serif" font-size="11">
-    <text x="{left / 2:.0f}" y="14" fill="#010409" fill-opacity=".3">{t['name']}</text>
-    <text x="{left / 2:.0f}" y="13">{t['name']}</text>
-    <text x="{left + right / 2:.0f}" y="14" fill="#010409" fill-opacity=".3">{score}/100 · {date}</text>
-    <text x="{left + right / 2:.0f}" y="13">{score}/100 · {date}</text>
+  <g fill="#fff" text-anchor="middle" font-family="Verdana,Geneva,DejaVu Sans,sans-serif" font-size="{font}">
+    <text x="{left / 2:.0f}" y="{y + 1:.1f}" fill="#010409" fill-opacity=".3">{t['name']}</text>
+    <text x="{left / 2:.0f}" y="{y:.1f}">{t['name']}</text>
+    <text x="{left + right / 2:.0f}" y="{y + 1:.1f}" fill="#010409" fill-opacity=".3">{score}/100 · {date}</text>
+    <text x="{left + right / 2:.0f}" y="{y:.1f}">{score}/100 · {date}</text>
   </g>
 </svg>'''
 

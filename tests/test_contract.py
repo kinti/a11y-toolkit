@@ -57,24 +57,24 @@ def _kwargs_por_llamada(block):
     return out
 
 
-errores = []
+errors = []
 for t in server.TOOLS:
     name = t['name']
     props = set(t['inputSchema'].get('properties', {}))
     block = _bloque_dispatch(name)
     if block is None:
-        errores.append(f'{name}: sin block de dispatch')
+        errors.append(f'{name}: sin block de dispatch')
         continue
     refs = _args_referidos(block)
     # 1. todo parámetro del schema debe aparecer en el dispatch
     sin_usar = props - refs - WHITELIST_SCHEMA_NO_REF.get(name, set())
     if sin_usar:
-        errores.append(f'{name}: schema declara {sorted(sin_usar)} pero el dispatch no lo usa '
-                       '(la clase auth_state: aceptado y tirado en silencio)')
+        errors.append(f'{name}: schema declara {sorted(sin_usar)} pero el dispatch no lo usa '
+                       '(la grade auth_state: aceptado y tirado en silencio)')
     # 2. todo kwarg de la llamada debe existir en la firma real
     for (fn_name, kwarg), argkey in _kwargs_por_llamada(block).items():
         if argkey not in props:
-            errores.append(f'{name}: dispatch usa {argkey!r} que el schema no declara')
+            errors.append(f'{name}: dispatch usa {argkey!r} que el schema no declara')
         fn = getattr(server, fn_name, None) if fn_name else None
         if fn is not None and callable(fn) and not fn_name.startswith('_'):
             try:
@@ -82,23 +82,23 @@ for t in server.TOOLS:
                 if not any(p.kind is inspect.Parameter.VAR_KEYWORD
                            for p in sig.parameters.values()):
                     if kwarg not in sig.parameters:
-                        errores.append(f'{name}: {fn_name} recibe {kwarg}=args[{argkey!r}] '
-                                       'que su firma no acepta (la clase browser=)')
+                        errors.append(f'{name}: {fn_name} recibe {kwarg}=args[{argkey!r}] '
+                                       'que su firma no acepta (la grade browser=)')
             except (ValueError, TypeError):
                 pass
 
 # 3. forma del inputSchema: claves huérfanas FUERA de properties son
-# invisibles para clientes y tests (la clase browser-huérfano, 2026-10)
+# invisibles para clientes y tests (la grade browser-huérfano, 2026-10)
 _CLAVES_VALIDAS = {'type', 'properties', 'required'}
 for t in server.TOOLS:
     extra = set(t['inputSchema']) - _CLAVES_VALIDAS
     if extra:
-        errores.append(f"{t['name']}: inputSchema con claves huérfanas {sorted(extra)} "
+        errors.append(f"{t['name']}: inputSchema con claves huérfanas {sorted(extra)} "
                        '(removed de properties: ningún cliente las verá)')
 
-if errores:
+if errors:
     print('CONTRATO ROTO —')
-    for e in errores:
+    for e in errors:
         print(' ·', e)
     sys.exit(1)
 print(f'CONTRATO OK ✓ ({len(server.TOOLS)} tools: schema ↔ dispatch ↔ firma reales)')

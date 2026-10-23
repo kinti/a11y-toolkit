@@ -92,12 +92,12 @@ def main(argv):
     a = ap.parse_args(argv)
     if a.check:
         target = os.path.join(a.path, 'AGENTS.md')
-        presente = os.path.exists(target) and MARKER_BEGIN in open(target, encoding='utf-8').read()
-        print(json.dumps({'hook_present': presente, 'file': target}))
-        return 0 if presente else 1
+        present = os.path.exists(target) and MARKER_BEGIN in open(target, encoding='utf-8').read()
+        print(json.dumps({'hook_present': present, 'file': target}))
+        return 0 if present else 1
     res = init(a.path)
-    verbo = 'updated' if res['already_present'] else ('created' if res['created'] else 'installed into')
-    print(f"✓ agent hook {verbo}: {res['file']}")
+    verb = 'updated' if res['already_present'] else ('created' if res['created'] else 'installed into')
+    print(f"✓ agent hook {verb}: {res['file']}")
     print('\nMCP config (any MCP client that accepts stdio servers):')
     print(json.dumps(MCP_CONFIG, indent=2))
     print('\nOptional — the agent skill (audit→fix→document→watch loop):')

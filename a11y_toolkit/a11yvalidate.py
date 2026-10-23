@@ -34,7 +34,7 @@ _MAPPING = (
 )
 
 
-def _criterio_de(message):
+def _criterion_for(message):
     m = message.lower()
     if 'alt' in m and 'img' in m:
         return '1.1.1'
@@ -45,14 +45,14 @@ def _criterio_de(message):
     return None
 
 
-def _llamar(data=None, url=None, timeout=60, base_url=None):
-    destino = (base_url or BASE).rstrip('/') + '/'
+def _call(data=None, url=None, timeout=60, base_url=None):
+    target = (base_url or BASE).rstrip('/') + '/'
     if url:
-        destino += '?' + urllib.parse.urlencode({'doc': url, 'out': 'json'})
-        req = urllib.request.Request(destino, headers={'User-Agent': UA})
+        target += '?' + urllib.parse.urlencode({'doc': url, 'out': 'json'})
+        req = urllib.request.Request(target, headers={'User-Agent': UA})
     else:
-        destino += '?out=json'
-        req = urllib.request.Request(destino, data=data.encode('utf-8'),
+        target += '?out=json'
+        req = urllib.request.Request(target, data=data.encode('utf-8'),
                                      headers={'User-Agent': UA,
                                               'Content-Type': 'text/html; charset=utf-8'},
                                      method='POST')
@@ -66,7 +66,7 @@ def _process(resp, origin, lang='en'):
         kind = m.get('type', 'info')
         if kind == 'info':
             continue
-        crit = _criterio_de(m.get('message', ''))
+        crit = _criterion_for(m.get('message', ''))
         findings.append({
             'severity': 'medium' if kind == 'error' else 'low',
             'criterion': crit or 'HTML validity (W3C Nu)',
@@ -93,12 +93,12 @@ def _process(resp, origin, lang='en'):
 
 
 def validate_url(url, timeout=60, lang='en', base_url=None):
-    resp = _llamar(url=url, timeout=timeout, base_url=base_url)
+    resp = _call(url=url, timeout=timeout, base_url=base_url)
     return _process(resp, url, lang)
 
 
 def validate_html(html_text, timeout=60, lang='en', base_url=None):
-    resp = _llamar(data=html_text, timeout=timeout, base_url=base_url)
+    resp = _call(data=html_text, timeout=timeout, base_url=base_url)
     return _process(resp, '(html posted)', lang)
 
 

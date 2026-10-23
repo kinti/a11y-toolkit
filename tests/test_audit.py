@@ -5,7 +5,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from a11y_toolkit.a11yaudit import audit_html
 from a11y_toolkit.a11ycrit import RENDERED_ONLY
 
-# Página limpia: sin findings (tiene <main> → 2.4.1 covered)
+# Página limpia: sin findings (present <main> → 2.4.1 covered)
 limpia = '''<!doctype html><html lang="es"><head><meta charset="utf-8"><title>Ok</title></head>
 <body><main><h1>Página de inicio</h1><p><img src="a.png" alt="descripción"></p>
 <a href="/x">Enlace con text</a> <button>Botón</button>

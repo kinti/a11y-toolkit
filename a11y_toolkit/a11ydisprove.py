@@ -36,7 +36,7 @@ def _recheck_static(url, findings, timeout=30, lang='en'):
     if 'error' in fresh_report:
         return findings, fresh_report['error']
     fresh_signals = {h['signal'] for h in fresh_report.get('findings', [])}
-    verificadas = []
+    verified = []
     for h in findings:
         if normalize_signal(h.get('signal', '')) in fresh_signals:
             h['status'] = 'confirmed'
@@ -45,8 +45,8 @@ def _recheck_static(url, findings, timeout=30, lang='en'):
             h['reject_reason'] = (
                 f"signal '{h.get('signal', '?')}' no longer fires on re-audit — "
                 "the page may have changed, or the finding was a false positive")
-        verificadas.append(h)
-    return verificadas, None
+        verified.append(h)
+    return verified, None
 
 
 def _recheck_rendered(url, findings, timeout=45, lang='en'):
@@ -59,7 +59,7 @@ def _recheck_rendered(url, findings, timeout=45, lang='en'):
     if 'error' in fresh_report:
         return findings, fresh_report['error']
     fresh_signals = {h['signal'] for h in fresh_report.get('findings', [])}
-    verificadas = []
+    verified = []
     for h in findings:
         if normalize_signal(h.get('signal', '')) in fresh_signals:
             h['status'] = 'confirmed'
@@ -69,8 +69,8 @@ def _recheck_rendered(url, findings, timeout=45, lang='en'):
                 f"signal '{h.get('signal', '?')}' no longer fires in the rendered "
                 "re-audit — the element may have changed, been fixed, or the "
                 "first finding was a false positive")
-        verificadas.append(h)
-    return verificadas, None
+        verified.append(h)
+    return verified, None
 
 
 def disprove(url, report=None, timeout=30, lang='en'):
@@ -82,13 +82,31 @@ def disprove(url, report=None, timeout=30, lang='en'):
         if 'error' in report:
             return report
 
-    modo = report.get('mode', 'static')
+    mode_name = report.get('mode', 'static')
     findings = report.get('findings', [])
 
-    if modo in ('static', 'site'):
-        verificadas, err = _recheck_static(url, findings, timeout=timeout, lang=lang)
-    elif modo == 'rendered':
-        verificadas, err = _recheck_rendered(url, findings, timeout=timeout, lang=lang)
+    if mode_name == 'site' and not findings:
+        # site reports nest findings INSIDE each page: re-checking them against
+        # ONE url marked everything 'rejected' and scored 100 on unreviewed
+        # evidence. Honest path: not-rechecked per page, with the pointer to
+        # re-verify each page properly.
+        every_finding = []
+        for page in (report.get('pages') or report.get('reports') or []):
+            for h in page.get('findings', []):
+                every_finding.append(dict(h, disprover_status='not-rechecked',
+                                          page=page.get('url', '')))
+        res = dict(report)
+        res['findings'] = every_finding
+        res['disprover'] = {'executed': False,
+                            'reason': ('site mode: each finding belongs to a page; '
+                                       're-verify with a11ydisprove --url <page> '
+                                       '--file <that page report>')}
+        return res
+
+    if mode_name in ('static', 'site'):
+        verified, err = _recheck_static(url, findings, timeout=timeout, lang=lang)
+    elif mode_name == 'rendered':
+        verified, err = _recheck_rendered(url, findings, timeout=timeout, lang=lang)
     else:
         # no re-verifier for this mode: report not-rechecked, never a proxy
         # audit (a keyboard finding must not vanish just because the wrong
@@ -97,18 +115,18 @@ def disprove(url, report=None, timeout=30, lang='en'):
         res = dict(report)
         res['findings'] = [dict(h, disprover_status='not-rechecked') for h in findings]
         res['disprover'] = {'executed': False,
-                            'reason': f"no re-verifier for mode {modo!r}"}
+                            'reason': f"no re-verifier for mode {mode_name!r}"}
         return res
 
     if err:
         return {'error': f'disprove re-audit failed: {err}'}
 
     result = dict(report)
-    result['findings'] = verificadas
+    result['findings'] = verified
     result['disprover'] = {
         'executed': True,
-        'confirmed': sum(1 for h in verificadas if h.get('status') == 'confirmed'),
-        'rejected': sum(1 for h in verificadas if h.get('status') == 'rejected'),
+        'confirmed': sum(1 for h in verified if h.get('status') == 'confirmed'),
+        'rejected': sum(1 for h in verified if h.get('status') == 'rejected'),
         'note': ('Each finding was re-checked against the live page. '
                  'Rejected findings include the reason they did not reproduce. '
                  'Confirmed findings survived a fresh verification pass.'),
@@ -116,7 +134,7 @@ def disprove(url, report=None, timeout=30, lang='en'):
 
     # recalcular score sobre los confirmed
     from .a11yaudit import compute_score
-    solo_confirmed = [h for h in verificadas if h.get('status') == 'confirmed']
+    solo_confirmed = [h for h in verified if h.get('status') == 'confirmed']
     result['score_original'] = report.get('score')
     result['score'] = compute_score(solo_confirmed)
     result['summary'] = {

@@ -25,107 +25,13 @@ import argparse
 import json
 import sys
 from datetime import datetime, timezone
+from . import a11yi18n
 
 # Friction catalogue: the recurring ways a task breaks non-visually, each with
 # its criterion and bilingual remediation. The agent logs `pattern` keys from
 # here (or raw criterion+issue for anything rarer). Parity-tested like every
 # other catalog in this toolkit.
-_J = {
-    'es': {
-        'journey_unnamed_control': ('4.1.2', 'high',
-             'Un control necesario para la tarea se anuncia sin nombre ("botón" a secas).',
-             'Da al control un nombre accesible: texto visible, aria-label o aria-labelledby.'),
-        'journey_focus_lost': ('2.4.3', 'high',
-             'Tras una acción, el foco desapareció o saltó a un lugar inesperado.',
-             'Mueve el foco programáticamente al destino lógico tras insertar o reemplazar contenido.'),
-        'journey_error_silent': ('3.3.1', 'high',
-             'El envío falló y el error no se anuncia ni recibe el foco.',
-             'Asocia el mensaje de error al campo (aria-describedby) y mueve el foco al primer error.'),
-        'journey_status_silent': ('4.1.3', 'medium',
-             'El resultado de la acción (éxito o carga) no se anuncia por una región viva.',
-             'Anuncia el cambio de estado con role="status" o aria-live="polite".'),
-        'journey_no_instruction': ('3.3.2', 'medium',
-             'La tarea exigía un dato sin indicar su formato o su obligatoriedad.',
-             'Etiqueta el campo con instrucciones y marca lo requerido antes del error.'),
-        'journey_reach_fail': ('2.1.1', 'high',
-             'Un control necesario no es alcanzable ni operable con teclado.',
-             'Hazlo enfocable y operable con teclado; nunca solo con puntero.'),
-        'journey_dialog_trap': ('2.1.2', 'high',
-             'Un diálogo atrapa el teclado y Escape no lo cierra.',
-             'Cierra el diálogo con Escape y devuelve el foco al disparador.'),
-        'journey_generic_link': ('2.4.4', 'low',
-             'El destino de un enlace clave no se entiende por su texto.',
-             'Texto de enlace descriptivo en contexto («leer más» no dice nada solo).'),
-        'journey_hidden_in_tree': ('1.3.1', 'medium',
-             'Información esencial de la tarea no está en el árbol de accesibilidad.',
-             'Expresa la relación con semántica real (lista, encabezado, tabla), no con layout.'),
-        'journey_timeout_confusion': ('2.2.1', 'medium',
-             'La tarea se perdió por un límite de tiempo sin opción de extenderlo.',
-             'Permite ajustar, extender o desactivar el límite de tiempo.'),
-        'journey_heading_nav_broken': ('2.4.6', 'high',
-             'Los encabezados faltan o rompen la jerarquía: navegar por encabezados — la estrategia principal de un lector de pantalla — no encuentra la sección que la tarea necesita.',
-             'Usa marcado real de encabezados en orden lógico (h1→h2…); nunca simules encabezados con negritas.'),
-        'journey_landmark_missing': ('2.4.1', 'medium',
-             'La página no expone landmarks (main/nav): la navegación por regiones no salta el boilerplate.',
-             'Envuelve el contenido en main/navigation reales; el skip-link es un extra, no el arreglo.'),
-        'journey_mode_confusion': ('4.1.2', 'high',
-             'Un widget personalizado se traga las teclas u oculta su rol y estado: el cambio entre modo navegación y modo foco rompe la interacción.',
-             'Usa elementos nativos (select, button) o el patrón ARIA completo: rol, estado y soporte de teclado.'),
-        'journey_duplicate_targets': ('4.1.2', 'medium',
-             'Varios controles comparten el mismo nombre accesible: «el botón de comprar» es ambiguo por nombre solo.',
-             'Diferencia los nombres accesibles con contexto (aria-label, texto visible).'),
-        'journey_dynamic_stale': ('4.1.3', 'medium',
-             'El árbol cambió tras la acción (contenido reemplazado) sin anuncio: el mapa del agente quedó obsoleto.',
-             'Anuncia las actualizaciones de regiones dinámicas (role=status/aria-live) y mantiene el foco estable.'),
-    },
-    'en': {
-        'journey_unnamed_control': ('4.1.2', 'high',
-             'A control needed for the task is announced without a name ("button", bare).',
-             'Give the control an accessible name: visible text, aria-label or aria-labelledby.'),
-        'journey_focus_lost': ('2.4.3', 'high',
-             'After an action, focus disappeared or jumped somewhere unexpected.',
-             'Move focus programmatically to the logical destination after inserting or replacing content.'),
-        'journey_error_silent': ('3.3.1', 'high',
-             'Submission failed and the error is neither announced nor focused.',
-             'Associate the error message with the field (aria-describedby) and move focus to the first error.'),
-        'journey_status_silent': ('4.1.3', 'medium',
-             'The action result (success or loading) is not announced via a live region.',
-             'Announce the status change with role="status" or aria-live="polite".'),
-        'journey_no_instruction': ('3.3.2', 'medium',
-             'The task required input whose format or requiredness was never stated.',
-             'Label the field with instructions and mark requiredness before the error does.'),
-        'journey_reach_fail': ('2.1.1', 'high',
-             'A control needed for the task is not reachable or operable by keyboard.',
-             'Make it focusable and keyboard-operable; pointer-only is never enough.'),
-        'journey_dialog_trap': ('2.1.2', 'high',
-             'A dialog traps the keyboard and Escape does not close it.',
-             'Close the dialog on Escape and return focus to the trigger.'),
-        'journey_generic_link': ('2.4.4', 'low',
-             'The destination of a key link is not understandable from its text.',
-             'Descriptive link text in context ("read more" says nothing alone).'),
-        'journey_hidden_in_tree': ('1.3.1', 'medium',
-             'Information essential to the task is missing from the accessibility tree.',
-             'Express the relationship with real semantics (list, heading, table), not layout.'),
-        'journey_timeout_confusion': ('2.2.1', 'medium',
-             'The task was lost to a time limit with no way to extend it.',
-             'Allow adjusting, extending or turning off the time limit.'),
-        'journey_heading_nav_broken': ('2.4.6', 'high',
-             'Headings are missing or break the hierarchy: navigating by headings — a screen-reader user\u2019s primary strategy — cannot find the section the task needs.',
-             'Use real heading markup in logical order (h1→h2…); never fake headings with bold text.'),
-        'journey_landmark_missing': ('2.4.1', 'medium',
-             'The page exposes no landmarks (main/nav): landmark navigation cannot skip the boilerplate.',
-             'Wrap content in real main/navigation landmarks; the skip link is a bonus, not the fix.'),
-        'journey_mode_confusion': ('4.1.2', 'high',
-             'A custom widget swallows keystrokes or hides its role and state: browse-mode vs focus-mode switching breaks the interaction.',
-             'Use native elements (select, button) or the full ARIA pattern: role, state, keyboard support.'),
-        'journey_duplicate_targets': ('4.1.2', 'medium',
-             'Several controls share one accessible name: “the Buy button” is ambiguous by name alone.',
-             'Differentiate accessible names with context (aria-label, visible text).'),
-        'journey_dynamic_stale': ('4.1.3', 'medium',
-             'The tree changed after the action (content replaced) with no announcement — the agent\u2019s map went stale.',
-             'Announce dynamic region updates (role=status/aria-live) and keep focus stable.'),
-    },
-}
+_J = a11yi18n.pair('journey')  # locales/<lang>.json — community-editable
 
 _RULES = {'start': 100, 'high': 25, 'medium': 12, 'low': 5, 'pass_threshold': 85}
 
@@ -135,7 +41,7 @@ def _crit_set():
     return {k for k, v in _C.items() if v[0] in ('A', 'AA')}
 
 
-def _validar_friction(item, crits, lang='en'):
+def _validate_friction(item, crits, lang='en'):
     """Expand a friction item (pattern key or raw criterion) → dict, or None+error."""
     cat = _J['es' if lang == 'es' else 'en']
     if 'pattern' in item:
@@ -170,10 +76,10 @@ def verdict(task, steps, outcome, url='', lang='en'):
         return {'error': 'outcome debe ser un objeto'}
 
     crits = _crit_set()
-    findings, errores = [], []
+    findings, errors = [], []
     for i, step in enumerate(steps):
         if not isinstance(step, dict):
-            errores.append(f'step[{i}] no es un objeto')
+            errors.append(f'step[{i}] no es un objeto')
             continue
         f = step.get('friction')
         if not f:
@@ -181,18 +87,18 @@ def verdict(task, steps, outcome, url='', lang='en'):
         items = f if isinstance(f, list) else [f]
         for item in items:
             if not isinstance(item, dict):
-                errores.append(f'step[{i}].friction no es un objeto')
+                errors.append(f'step[{i}].friction no es un objeto')
                 continue
-            conv, err = _validar_friction(item, crits, lang=lang)
+            conv, err = _validate_friction(item, crits, lang=lang)
             if err:
-                errores.append(f'step[{i}]: {err}')
+                errors.append(f'step[{i}]: {err}')
                 continue
             conv['step'] = i
             conv.setdefault('perceived', str(step.get('perceived', ''))[:120] or None)
             findings.append(conv)
 
-    if errores:
-        return {'error': 'log de fricción inválido', 'details': errores}
+    if errors:
+        return {'error': 'log de fricción inválido', 'details': errors}
 
     high = sum(1 for x in findings if x['severity'] == 'high')
     medium = sum(1 for x in findings if x['severity'] == 'medium')
@@ -222,7 +128,7 @@ def verdict(task, steps, outcome, url='', lang='en'):
     else:
         verdict = 'partial'
 
-    nota = ('Task-based usability evidence: ONE task attempted by an AI agent '
+    note = ('Task-based usability evidence: ONE task attempted by an AI agent '
             'perceiving only the accessibility tree, on this URL. A pass means '
             'the task was completable non-visually by the agent — it is not a '
             'conformance claim and not a substitute for a human screen-reader '
@@ -248,7 +154,7 @@ def verdict(task, steps, outcome, url='', lang='en'):
         'summary': {'high': high, 'medium': medium, 'low': low},
         'rules': dict(_RULES, workaround_penalty=15,
                       note='deterministic: start 100, minus friction, minus 15 if only reachable via workaround'),
-        'score_note': nota,
+        'score_note': note,
     }
 
 
@@ -286,29 +192,29 @@ def budget_compare(baseline, verdict):
 
     base = set(baseline.get('friction', []))
     _rank = {'high': 2, 'medium': 1, 'low': 0}
-    actuales = {}
+    current = {}
     for f in verdict.get('findings', []):
         k = f"{f['criterion']}:{f['signal']}"
-        prev = actuales.get(k)
+        prev = current.get(k)
         # colisión clave→severidad MÁS grave (dos custom sobre el mismo
         # criterio no pueden esconder una high tras una medium)
         if prev is None or _rank[f['severity']] > _rank[prev['severity']]:
-            actuales[k] = f
-    nuevas = sorted(set(actuales) - base)
-    resolved = sorted(base - set(actuales))
-    nuevas_altas = [k for k in nuevas if actuales[k]['severity'] == 'high']
-    degrada = (baseline.get('verdict') == 'pass'
+            current[k] = f
+    new_f = sorted(set(current) - base)
+    resolved = sorted(base - set(current))
+    new_high = [k for k in new_f if current[k]['severity'] == 'high']
+    degrades = (baseline.get('verdict') == 'pass'
                and verdict['verdict'] in ('partial', 'fail', 'blocked'))
 
-    go = not nuevas_altas and not degrada
+    go = not new_high and not degrades
     return {
         'verdict': 'GO' if go else 'NO-GO',
-        'new_blocking': nuevas_altas,
-        'new_friction': nuevas,
+        'new_blocking': new_high,
+        'new_friction': new_f,
         'resolved': resolved,
         'verdict_before': baseline.get('verdict'),
         'verdict_after': verdict['verdict'],
-        'degraded': degrada,
+        'degraded': degrades,
         'score_before': baseline.get('score'),
         'score_after': verdict.get('score'),
         'note': ('task-based regression gate: only NEW high friction (or a '
@@ -332,10 +238,10 @@ def _budget_main(argv):
             print(json.dumps(b, ensure_ascii=False))
             return 1
         out = json.dumps(b, ensure_ascii=False, indent=1)
-        destino = a.out or a.budget
-        with open(destino, 'w', encoding='utf-8') as f:
+        target = a.out or a.budget
+        with open(target, 'w', encoding='utf-8') as f:
             f.write(out + '\n')
-        print(json.dumps({'budget': destino, 'friction': len(b.get('friction', [])),
+        print(json.dumps({'budget': target, 'friction': len(b.get('friction', [])),
                           'verdict': b.get('verdict')}))
         return 0
     with open(a.budget, encoding='utf-8') as f:

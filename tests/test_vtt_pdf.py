@@ -107,12 +107,12 @@ print('10. escaneo solo con patrón (img+sin text) ✓')
 from a11y_toolkit.a11ydocx import docx_screen  # noqa: E402
 W_NS = 'xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"'
 
-def docx_tmp(body, estilos=None, name='t.docx'):
+def docx_tmp(body, styles=None, name='t.docx'):
     path = os.path.join('/tmp', name)
     z = zipfile.ZipFile(path, 'w')
     z.writestr('[Content_Types].xml', '<?xml version="1.0"?><Types/>')
     z.writestr('word/document.xml', '<?xml version="1.0"?>' + body)
-    z.writestr('word/styles.xml', estilos or f'<?xml version="1.0"?><w:styles {W_NS}></w:styles>')
+    z.writestr('word/styles.xml', styles or f'<?xml version="1.0"?><w:styles {W_NS}></w:styles>')
     z.close()
     return path
 

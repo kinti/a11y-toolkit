@@ -12,6 +12,11 @@ agentes. Aquí queda clavado:
      salvo los alias de compatibilidad revisados (PARAM/SIGNAL/STATUS_ALIASES).
   4. SIN TILDES ni ñ en identificadores de la superficie.
 
+DECISIÓN A (23/10, Jesús): los COMENTARIOS y docstrings pueden
+seguir en español POR DISEÑO (legibilidad del maintainer) — no son deuda
+pendiente: ninguna sesión futura debe "traducirlos". El i18n completo
+(catálogos, más idiomas) es un ítem de roadmap aparte, decidido pero no hoy.
+
 Los alias de compatibilidad son la ÚNICA excepción: son los nombres pre-5.11
 que seguimos aceptando en la entry para no romper a clientes existentes.
 """
@@ -46,7 +51,10 @@ LEXICON = {
     'fecha', 'fichero', 'ficheros', 'fin', 'firma', 'fondo', 'forma', 'fresco',
     'fuera', 'gestos', 'grande', 'guardado', 'guardar', 'hallazgo',
     'hallazgos', 'hasta', 'hoy',
-    'identificados', 'malos', 'nativos', 'sugeridos', 'coloreados', 'idioma', 'idiomas', 'imagen', 'imagenes',
+    'identificados', 'malos', 'nativos', 'sugeridos', 'coloreados',
+    'techo', 'trozo', 'aceptar', 'esquema', 'severidad', 'saltos', 'esfuerzo',
+    'navego', 'aniadido', 'eliminado', 'cambia', 'busqueda', 'foco',
+    'validar', 'legado', 'pendiente', 'matriz', 'restantes', 'nombre_de', 'modo', 'todas', 'idioma', 'idiomas', 'imagen', 'imagenes',
     'informe', 'informes', 'inicial', 'invalida', 'invalido', 'invalidos',
     'izquierda', 'jornada', 'leyenda', 'libera', 'limite', 'limites', 'linea',
     'lineas', 'lista', 'listas', 'lugar', 'manos', 'marco', 'mejor', 'mensaje',
@@ -182,12 +190,51 @@ for f in sorted(os.listdir(os.path.join(ROOT, 'a11y_toolkit'))):
 assert not fallos, '\n'.join(sorted(set(fallos))[:20])
 
 # ---------- 7. PLANTILLAS ↔ JS: placeholders de _PHRASES y props F.* consistentes ----------
-from a11y_toolkit.a11yfix import _PHRASES, _JS_FORMAS  # noqa: E402
+from a11y_toolkit.a11yfix import _PHRASES, _JS_PHRASES  # noqa: E402
 for idioma in ('es', 'en'):
     for k in _PHRASES[idioma]:
-        assert f'%({k})s' in _JS_FORMAS, f'_JS_FORMAS no usa el placeholder {k}'
-for prop in re.findall(r'F\.([a-zA-Z]+)', _JS_FORMAS):
+        assert f'%({k})s' in _JS_PHRASES, f'_JS_PHRASES no usa el placeholder {k}'
+for prop in re.findall(r'F\.([a-zA-Z]+)', _JS_PHRASES):
     assert prop in _PHRASES['en'] and prop in _PHRASES['es'], \
         f'F.{prop} del JS inyectado no existe en _PHRASES'
+
+
+
+# ---------- 8. DICCIONARIO CRUZADO (definitivo: español ∩ no-inglés) ----------
+# El lexicón curado se queda como primera línea rápida; esta sección usa la
+# lista completa de palabras españolas que NO existen en inglés (613k tokens,
+# tests/es-only-tokens.txt.gz) contra TODO identificador del paquete. Sin
+# huecos posibles: si una palabra es española y no inglesa, salta.
+import gzip as _gz
+_ES_ONLY = set(_gz.open(os.path.join(ROOT, 'tests', 'es-only-tokens.txt.gz'),
+                        'rt', encoding='utf-8').read().splitlines())
+# falsos amigos del código (existen en español pero son términos técnicos)
+_CODE_OK = {'res', 'items', 'values', 'val', 'vals', 'pos', 'sel', 'pre', 'cues',
+            'box', 'todo', 'gaps', 'videos', 'min', 'max', 'idem', 'effort',
+            'minutes', 'form', 'label', 'labels', 'title', 'name', 'text', 'type',
+            'mode', 'state', 'level', 'score', 'note', 'notes', 'scope', 'role',
+            'roles', 'rules', 'focus', 'pair', 'pares', 'gen', 'sin', 'van',
+            'una', 'uno', 'del', 'mal', 'pan', 'tal', 'tres', 'data', 'user',
+            'base', 'top', 'bottom', 'left', 'right', 'center', 'auth', 'lang',
+            'api', 'degrades', 'grew', 'waits', 'wait', 'mask', 'masks', 'layer',
+            'ratios', 'ratio', 'channels', 'raw', 'filter', 'clip', 'forced', 'reduced',
+            'aliases', 'has', 'fileno', 'locales', 'locale',
+            'target', 'errors', 'present', 'verb', 'note', 'notes', 'grade', 'current',
+            'resolved', 'removed', 'renamed', 'same', 'dynamic', 'after', 'touched',
+            'streams', 'stream', 'truncated', 'encrypted', 'signatures', 'weights',
+            'syllables', 'controls', 'styles', 'measured', 'candidates', 'hint', 'clean'}
+fallos = []
+for f in sorted(os.listdir(os.path.join(ROOT, 'a11y_toolkit'))):
+    if not f.endswith('.py'):
+        continue
+    with open(os.path.join(ROOT, 'a11y_toolkit', f), 'rb') as fh:
+        for tok in tokenize.tokenize(fh.readline):
+            if tok.type != tokenize.NAME:
+                continue
+            for parte in tok.string.lower().split('_'):
+                if len(parte) >= 3 and parte in _ES_ONLY and parte not in _CODE_OK:
+                    fallos.append(f'{f}:{tok.start[0]} identificador {tok.string} (español: {parte})')
+assert not fallos, '\n'.join(sorted(set(fallos))[:25])
+print('  diccionario cruzado: 613k tokens españoles revisados — cero fugas')
 
 print('test_naming.py OK — superficie pública y código sin español')

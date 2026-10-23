@@ -27,34 +27,8 @@ import sys
 
 from .a11yaudit import CRIT, T, compute_score
 
-_TD = {
-    'es': {
-        'scroll_focus': 'El elemento con foco {where} tras cargar una tanda ({detail}). Fallo documentado del scroll infinito: quien navega con teclado pierde su punto de lectura (2.4.3).',
-        'scroll_focus_rem': 'No re-renderices el contenedor del feed: AÑADE nodos al final (appendChild/insertAdjacentHTML). Si el foco cae en contenido eliminado, devuélvelo al equivalente nuevo.',
-        'scroll_no_announce': '{n} tandas cargadas sin ningún anuncio: no hay región aria-live/status que reciba texto durante la carga ni role="feed" en el contenedor (4.1.3).',
-        'scroll_no_announce_rem': 'Añade una región role="status" con texto «Cargando más…»/«10 elementos nuevos» y marca el contenedor como role="feed" con aria-busy durante la carga.',
-        'scroll_no_end': 'Feed infinito sin fin visible en {n} tandas y sin botón «cargar más» alternativo: el pie de página queda inalcanzable (guía Deque; afín a 2.2.2).',
-        'scroll_no_end_rem': 'Ofrece un botón «Cargar más» (mejor opción accesible: carga explícita y foco predecible), o un fin real del feed, o un control para pausar la carga automática.',
-        'scroll_no_feed': 'El contenedor del feed no usa role="feed" con hijos role="article" (patrón Feed de ARIA APG): los lectores de pantalla no pueden saltar de artículo en artículo.',
-        'scroll_no_feed_rem': 'Marca el contenedor como role="feed", cada elemento como role="article" con aria-labelledby, y usa aria-busy durante la carga.',
-        'limits': ('Auditor de scroll infinito: heurística con foco real y observador de '
-                    'regiones vivas en {n} tandas. No sustituye la prueba con lector de '
-                    'screen reader en el feed real.'),
-    },
-    'en': {
-        'scroll_focus': 'The focused element {where} after loading a batch ({detail}). Documented infinite-scroll failure: keyboard users lose their reading point (2.4.3).',
-        'scroll_focus_rem': 'Do not re-render the feed container: APPEND nodes at the end (appendChild/insertAdjacentHTML). If focus lands on removed content, move it to the new equivalent.',
-        'scroll_no_announce': '{n} batches loaded with zero announcements: no aria-live/status region receives text during loading and the container lacks role="feed" (4.1.3).',
-        'scroll_no_announce_rem': 'Add a role="status" region with "Loading more…"/"10 new items" text and mark the container role="feed" with aria-busy while loading.',
-        'scroll_no_end': 'Infinite feed with no visible end after {n} batches and no "load more" button alternative: the footer stays unreachable (Deque guidance; akin to 2.2.2).',
-        'scroll_no_end_rem': 'Offer a "Load more" button (the most accessible option: explicit loading, predictable focus), a real feed end, or a control to pause auto-loading.',
-        'scroll_no_feed': 'The feed container does not use role="feed" with role="article" children (ARIA APG Feed pattern): screen readers cannot jump article by article.',
-        'scroll_no_feed_rem': 'Mark the container role="feed", each item role="article" with aria-labelledby, and use aria-busy during loading.',
-        'limits': ('Infinite-scroll auditor: heuristics with real focus and a live-region '
-                    'observer over {n} batches. Not a substitute for screen-reader testing '
-                    'on the real feed.'),
-    },
-}
+from . import a11yi18n
+_TD = a11yi18n.pair('scroll')  # locales/<lang>.json — community-editable
 
 _MON = r"""() => {
   window.__a11yscroll = { events: [], n: 0 };
@@ -126,36 +100,36 @@ def audit_scroll(url, max_batches=5, lang='en', timeout=45, auth_state=None):
 
         batches = []
         end_reached = False
-        via_clic = False
+        via_click = False
         for _t in range(max_batches):
             page.evaluate("window.scrollTo(0, document.documentElement.scrollHeight)")
-            crecio = False
-            for _espera in range(6):   # hasta ~3 s esperando nueva tanda
+            grew = False
+            for _wait in range(6):   # hasta ~3 s esperando nueva tanda
                 page.wait_for_timeout(500)
                 e = page.evaluate(_STATE)
                 if e['items'] > (batches[-1]['items'] if batches else before['items']) \
                         or e['scroll'] > (batches[-1]['scroll'] if batches else before['scroll']):
-                    crecio = True
+                    grew = True
                     break
-            if not crecio and not via_clic:
+            if not grew and not via_click:
                 # el scroll no trae nada: ¿hay botón «cargar más»? (la alternativa sana)
-                via_clic = page.evaluate(
+                via_click = page.evaluate(
                     "() => [...document.querySelectorAll('button, a')].some(b =>"
                     " /más|more|cargar|load/i.test((b.innerText || '').trim()) && b.offsetParent)")
-                if via_clic:
+                if via_click:
                     page.evaluate(
                         "() => { const b = [...document.querySelectorAll('button, a')].find("
                         "b => /más|more|cargar|load/i.test((b.innerText || '').trim()) && b.offsetParent);"
                         " if (b) b.click(); }")
-                    for _espera in range(6):
+                    for _wait in range(6):
                         page.wait_for_timeout(500)
                         e2 = page.evaluate(_STATE)
                         if e2['items'] > (batches[-1]['items'] if batches else before['items']):
-                            crecio = True
+                            grew = True
                             break
             e = page.evaluate(_STATE)
             batches.append(e)
-            if not crecio:
+            if not grew:
                 end_reached = True
                 break
 
@@ -175,9 +149,9 @@ def audit_scroll(url, max_batches=5, lang='en', timeout=45, auth_state=None):
 
     # Guardián de honestidad: sin ítems detectados no hay feed que auditar
     hay_feed_real = before['items'] > 0 or last['items'] > before['items']
-    nota = None
+    note = None
     if not hay_feed_real:
-        nota = ('no standard items detected (article, role=article, li in main): the feed is '
+        note = ('no standard items detected (article, role=article, li in main): the feed is '
                 'behind a login/bot wall or uses non-standard markup. Announcement/end signals '
                 'are skipped; audit feeds you own with known markup.' if lang == 'en' else
                 'no se detectaron ítems con los selectores estándar (article, role=article, '
@@ -212,7 +186,7 @@ def audit_scroll(url, max_batches=5, lang='en', timeout=45, auth_state=None):
         'focus': {'initial': initial_focus, 'final': last['focus'],
                  'offscreen': last['focus_offscreen']},
         'load_more_alternative': last['hasMore'],
-        'note': nota,
+        'note': note,
         'findings': findings,
         'limits': _TD.get(lang, _TD['es'])['limits'].format(n=len(batches)),
     }

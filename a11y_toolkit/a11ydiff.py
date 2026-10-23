@@ -22,7 +22,7 @@ import json
 import sys
 from datetime import datetime, timezone
 
-COLECTOR = r'''() => {
+COLLECTOR = r'''() => {
   const sel = 'a[href], button, input, select, textarea, summary, [tabindex], ' +
               '[contenteditable], video[controls], audio[controls]';
   const visible = el => !!(el.offsetWidth || el.offsetHeight || el.getClientRects().length);
@@ -58,7 +58,7 @@ def snapshot(url, output=None, auth_state=None):
         ctx = nav.new_context(storage_state=auth_state) if auth_state else nav
         page = ctx.new_page() if auth_state else nav.new_page()
         page.goto(url, wait_until='networkidle', timeout=45000)
-        elements = page.evaluate(COLECTOR)
+        elements = page.evaluate(COLLECTOR)
 
         # Árbol de accesibilidad REAL (roles/nombres computados, lo que anuncia
         # un lector de pantalla). Playwright ≥1.49; si no está, se omite.
@@ -108,19 +108,19 @@ def diff(a, b):
     ea = {x['key']: x for x in a['elements']}
     eb = {x['key']: x for x in b['elements']}
     aniadidos = sorted(set(eb) - set(ea))
-    eliminados = sorted(set(ea) - set(eb))
-    renombrados = []
+    removed = sorted(set(ea) - set(eb))
+    renamed = []
     for k in set(ea) & set(eb):
         if ea[k]['name'] != eb[k]['name']:
-            renombrados.append({'key': k, 'before': ea[k]['name'], 'after': eb[k]['name']})
+            renamed.append({'key': k, 'before': ea[k]['name'], 'after': eb[k]['name']})
 
     oa, ob = a['focus_order'], b['focus_order']
     common_a = [x for x in oa if x in set(ob)]
     common_b = [x for x in ob if x in set(oa)]
-    foco_eliminado = [x for x in oa if x not in set(ob)]   # perdió el Tab: regresión real
-    foco_aniadido = [x for x in ob if x not in set(oa)]    # nuevo enfocable: cambio, no pérdida
-    foco_cambia = common_a != common_b
-    primera_divergencia = next((i for i, (x, y) in enumerate(zip(common_a, common_b)) if x != y), None)
+    focus_removed = [x for x in oa if x not in set(ob)]   # perdió el Tab: regresión real
+    focus_added = [x for x in ob if x not in set(oa)]    # nuevo enfocable: cambio, no pérdida
+    focus_changed = common_a != common_b
+    first_divergence = next((i for i, (x, y) in enumerate(zip(common_a, common_b)) if x != y), None)
 
     # Árbol de accesibilidad: si ambos snapshots lo traen, detecta cambios en
     # roles/nombres computados que la lista de interactivos no ve.
@@ -138,20 +138,20 @@ def diff(a, b):
     # perder un elemento del orden de foco ES la regresión que este diff
     # existe para cazar (p. ej. tabindex="-1" añadido al botón de pago):
     # el elemento sigue existiendo, pero ya no es alcanzable por teclado.
-    ok = not (aniadidos or eliminados or renombrados or foco_cambia
-              or foco_eliminado or tree_changed)
+    ok = not (aniadidos or removed or renamed or focus_changed
+              or focus_removed or tree_changed)
     return {
         'ok': ok,
         'summary': {
             'elements': {'before': len(ea), 'after': len(eb)},
-            'added': len(aniadidos), 'removed': len(eliminados),
-            'renamed': len(renombrados),
-            'focus_order_changed': foco_cambia or bool(foco_eliminado),
+            'added': len(aniadidos), 'removed': len(removed),
+            'renamed': len(renamed),
+            'focus_order_changed': focus_changed or bool(focus_removed),
         },
-        'added': aniadidos, 'removed': eliminados, 'renamed': renombrados,
-        'focus': {'before': oa, 'after': ob, 'first_divergence': primera_divergencia,
-                  'removed': foco_eliminado, 'added': foco_aniadido,
-                  'reordered': bool(foco_cambia and not foco_eliminado and not foco_aniadido)},
+        'added': aniadidos, 'removed': removed, 'renamed': renamed,
+        'focus': {'before': oa, 'after': ob, 'first_divergence': first_divergence,
+                  'removed': focus_removed, 'added': focus_added,
+                  'reordered': bool(focus_changed and not focus_removed and not focus_added)},
         'tree': {'changed': tree_changed, 'first_differences': tree_diff},
         'note': ('Elementos sin id se casan por tag+nombre+href: renombrar produce '
                  'eliminado+añadido, no un diff fino. Usa ids estables para trazabilidad.'),
@@ -184,8 +184,8 @@ def main(argv):
     with open(a.b, encoding='utf-8') as f:
         jb = json.load(f)
     print(json.dumps(diff(ja, jb), ensure_ascii=False, indent=1))
-    veredicto = diff(ja, jb)
-    return 0 if veredicto['ok'] else 2
+    verdict = diff(ja, jb)
+    return 0 if verdict['ok'] else 2
 
 
 if __name__ == '__main__':

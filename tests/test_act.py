@@ -11,7 +11,7 @@ from a11y_toolkit.a11yact import ACT_MAP, ACT_NOTES, earl, act_ids  # noqa: E402
 from a11y_toolkit.a11yaudit import T as _TS  # noqa: E402
 from a11y_toolkit.a11ydom import _TD  # noqa: E402
 
-# 1. Toda regla mapeada tiene id ACT canónico (6 alfanuméricos minúscula —
+# 1. Toda regla mapeada present id ACT canónico (6 alfanuméricos minúscula —
 #    p. ej. afw4f7 incluye una 'w': los ids ACT no son hexadecimales) y toda
 #    señal existe en algún catálogo
 for signal, rules in ACT_MAP.items():

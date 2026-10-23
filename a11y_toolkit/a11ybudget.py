@@ -44,19 +44,19 @@ def init(audit):
     }
 
 
-def comparar(budget, audit, today=None):
+def compare(budget, audit, today=None):
     """Presupuesto vs informe actual → veredicto ok/bloqueado con el detalle."""
     pages = audit.get('reports') if 'reports' in audit else [audit]
     base = {normalize_signal(s) for s in budget.get('signals', [])}
     blocking = set(budget.get('blocking', ['high', 'medium']))
-    actuales = {}
+    current = {}
     for pg in pages:
         for h in pg.get('findings', []):
-            actuales.setdefault(normalize_signal(h.get('signal', '')), []).append(h['severity'])
-    new = sorted(s for s in actuales if s not in base)
-    resueltos = sorted(base - set(actuales))
+            current.setdefault(normalize_signal(h.get('signal', '')), []).append(h['severity'])
+    new = sorted(s for s in current if s not in base)
+    resolved = sorted(base - set(current))
     new_blocking = [s for s in new
-                          if any(sev in blocking for sev in actuales[s])]
+                          if any(sev in blocking for sev in current[s])]
     max_new = int(budget.get('max_new', 0))
     ok = len(new_blocking) <= max_new
     expired = False
@@ -68,12 +68,12 @@ def comparar(budget, audit, today=None):
         'url': audit.get('url', budget.get('url', '')),
         'new': new,
         'new_blocking': new_blocking,
-        'resolved': resueltos,
+        'resolved': resolved,
         'summary': {
             'baseline': len(base),
-            'current': len(actuales),
+            'current': len(current),
             'new': len(new),
-            'resolved': len(resueltos),
+            'resolved': len(resolved),
         },
         'baseline_expired': expired,
         'note': ('ok=false: there are new blocking findings (or the baseline expired). '
@@ -113,9 +113,9 @@ def main(argv):
     else:
         from .a11yaudit import audit_url
         report = audit_url(a.url)
-    veredicto = comparar(budget, report)
-    print(json.dumps(veredicto, ensure_ascii=False, indent=1))
-    return 0 if veredicto['ok'] else 2
+    verdict = compare(budget, report)
+    print(json.dumps(verdict, ensure_ascii=False, indent=1))
+    return 0 if verdict['ok'] else 2
 
 
 if __name__ == '__main__':

@@ -1,0 +1,503 @@
+{
+ "_meta": {
+  "dir": "ltr",
+  "name": "Spanish",
+  "native": "Español",
+  "plural": "n == 1"
+ },
+ "audit": {
+  "accesskey_dup": "{n} teclas accesskey duplicadas: {ej}.",
+  "accesskey_dup_rem": "Accesskey repetidas disparan el control equivocado y chocan con atajos del navegador; elimínalas o hazlas únicas.",
+  "aria_hidden_focusable": "{n} elementos interactivos (<{tag}>) con aria-hidden=\"true\": ocultos al lector pero siguen recibiendo foco.",
+  "aria_hidden_focusable_rem": "Quita aria-hidden del elemento enfocable, o añade tabindex=\"-1\" si debe quedar fuera de la interacción.",
+  "aria_ref_missing": "{n} referencias aria-labelledby/describedby apuntan a ids que no existen: {ej}.",
+  "aria_ref_missing_rem": "Corrige o elimina la referencia: un aria-labelledby roto deja el control sin nombre accesible.",
+  "aria_value_invalid": "{n} valores de atributos ARIA inválidos: {ej}. Tecnología asistida los ignora.",
+  "aria_value_invalid_rem": "Los aria-* booleanos solo admiten true/false/undefined, los de posición enteros, los de token su lista cerrada (4.1.2). Corrige o elimina el atributo.",
+  "audio_desc_missing": "{n} <video> sin track de audiodescripción (1.2.3/1.2.5): pendiente de juicio humano.",
+  "audio_desc_missing_rem": "Si el vídeo tiene información visual esencial no narrada, publica audiodescripción (track kind=\"descriptions\" o alternativa) — decide una persona viendo el vídeo.",
+  "autocomplete": "{n} campos que recogen datos de la persona usuaria sin atributo autocomplete: {ej}.",
+  "autocomplete_invalid": "{n} valores de autocomplete no válidos: {ej}. El token debe ser uno del estándar HTML (§7.5 autofill), o el lector no identificará el propósito (1.3.5).",
+  "autocomplete_invalid_rem": "Usa tokens del estándar: email, tel, name, postal-code, one-time-code… (lista completa en la herramienta).",
+  "autocomplete_rem": "Añade autocomplete con el token correcto (email, tel, name, postal-code…, 1.3.5): relleno automático y voz de accesibilidad con sobrecoste cero.",
+  "blank_no_warning": "{n} enlaces con target=\"_blank\" sin avisar de que abren ventana nueva.",
+  "blank_no_warning_rem": "Añade aviso en texto (o title/aria-label): «(abre en ventana nueva)», o deja que la persona usuaria decida.",
+  "captcha": "Detectado captcha ({ej}): 3.3.8 exige alternativa sin test cognitivo para el acceso.",
+  "captcha_rem": "Ofrece alternativas: email mágico, OAuth, soporte humano. Un CAPTCHA sin alternativa excluye (3.3.8, nuevo en WCAG 2.2 AA).",
+  "char_shortcut": "{n} atajos de teclado de carácter único detectados: {ej}. Revisar (2.1.4).",
+  "char_shortcut_rem": "Los atajos de una tecla deben poder desactivarse o remapearse, o activarse solo con foco (2.1.4): el usuario que dicta por voz dispara cada letra.",
+  "click_nonfocusable": "{n} elementos no interactivos (<{tag}>) con onclick sin role, tabindex ni manejo de teclado.",
+  "click_nonfocusable_rem": "Usa <button> real; si no es posible, añade role=\"button\", tabindex=\"0\" y manejo de Enter/Espacio (2.1.1).",
+  "color_only_link": "Enlaces distinguibles solo por color detectados en el pase renderizado (1.4.1).",
+  "color_only_link_rem": "El enlace dentro de texto necesita subrayado u otro distintivo, o contraste ≥3:1 con el texto que lo rodea (1.4.1).",
+  "ctrl_name": "{n} <{tag}> sin nombre accesible (sin texto, aria-label ni title).",
+  "ctrl_name_rem": "El nombre accesible llega del texto interno, aria-label, title o de una imagen interna con alt. Un control vacío es invisible para lectores de pantalla.",
+  "dom_visual_order": "Orden DOM distinto del orden visual en {n} bloques de texto: revisar con teclado (1.3.2).",
+  "dom_visual_order_rem": "El orden de lectura programático debe coincidir con el visual: revisa flex order, grid placement y position absolute (1.3.2).",
+  "down_event": "{n} manejadores en down-event (onmousedown/ontouchstart/onpointerdown): {ej}. Revisar (2.5.2).",
+  "down_event_rem": "Activa en el UP-event (onclick/onmouseup): permite abortar arrastrando fuera — la regla de 2.5.2.",
+  "drag_no_alt": "{n} manejadores de arrastre sin alternativa visible de clic/botón: {ej}. Revisar (2.5.7).",
+  "drag_no_alt_rem": "Toda acción por arrastre necesita alternativa sin arrastre: botones «arriba/abajo», menú contextual, flechas (2.5.7).",
+  "dup_ids": "{n} ids duplicados; pueden romper asociaciones label-for y aria-labelledby.",
+  "dup_ids_rem": "Haz únicos los ids: los <label for> y aria-labelledby apuntan solo al primero.",
+  "element_lang_invalid": "{n} atributos lang en elementos no válidos (BCP-47): {ej}.",
+  "element_lang_invalid_rem": "Los fragmentos en otro idioma llevan lang con código válido (3.1.2): <blockquote lang=\"en\">…</blockquote>.",
+  "empty_heading": "{n} encabezados vacíos (<h*> sin texto).",
+  "empty_heading_rem": "Elimina los encabezados vacíos o dales texto: aparecen como huecos en el índice del lector.",
+  "fetch_error": "no se pudo descargar: {e}",
+  "field_label": "{n} campos de formulario sin <label> asociado ni nombre accesible.",
+  "field_label_rem": "Asocia <label for=\"id\"> al campo (o envuélvelo), o usa aria-label. Aplica a input, select y textarea.",
+  "fieldset_missing": "{n} grupos de radio/checkbox sin <fieldset><legend>: los lectores no anuncian la pregunta común (1.3.1).",
+  "fieldset_missing_rem": "Envuelve los grupos en <fieldset><legend>Pregunta común</legend>…</fieldset> (1.3.1): sin esto, cada radio se anuncia suelto sin contexto.",
+  "financial_no_confirm": "{n} formulario(s) financiero(s)/legal(es) sin paso de confirmación detectable (3.3.4).",
+  "financial_no_confirm_rem": "Los envíos con consecuencias legales/financieras deben ser reversibles, verificados o confirmados (3.3.4): checkbox de términos, botón \"Revisar y confirmar\", o paso de revisión.",
+  "forced_colors_svg": "{n} SVG con fill coloreado hardcoded: en forced-colors (Windows High Contrast) el fill cae al heredado y el icono puede volverse invisible.",
+  "forced_colors_svg_rem": "Usa fill=\"currentColor\" (hereda el color del texto que el sistema ya ajusta) o fuerza los keywords del sistema (CanvasText).",
+  "generic_link": "{n} enlaces con texto genérico («más», «aquí», «read more»): {ej}.",
+  "generic_link_rem": "Describe el destino en el texto del enlace (2.4.4): las personas que listan enlaces saltan de uno a otro sin contexto.",
+  "gesture_no_click": "{n} manejadores de gesto/arrastre sin alternativa de clic visible: {ej}. Revisar (2.5.1).",
+  "gesture_no_click_rem": "Toda función por gesto (swipe/arrastre) necesita alternativa sin gesto: botón «anterior/siguiente» o clic simple (2.5.1).",
+  "heading_quality": "{n} encabezados/labels sospechosamente genéricos o vagos: {ej}. Revisar (2.4.6).",
+  "heading_quality_rem": "Los encabezados deben describir su sección: «Resultados del informe Q3», no «Sección 2» o «Más información» (2.4.6). Nombra las cosas.",
+  "heading_skips": "Saltos de nivel en encabezados: {skips}.",
+  "heading_skips_rem": "No saltes niveles (h2→h4): rompe el esquema de navegación. Baja de uno en uno.",
+  "help_inconsistent": "La ayuda (contacto/soporte) aparece en posiciones o formas distintas entre páginas del sitio ({ej}). Revisar (3.2.6).",
+  "help_inconsistent_rem": "Si la ayuda aparece en varias páginas, debe aparecer en el mismo orden relativo y de forma consistente (3.2.6, nuevo en 2.2): mismo menú, misma ubicación.",
+  "iframe_title": "{n} <iframe> sin title accesible.",
+  "iframe_title_rem": "Añade title descriptivo al iframe (lo anuncian los lectores al llegar a él).",
+  "images_of_text": "{n} imágenes que parecen ser texto renderizado (alt muy largo{ej2}). Revisar (1.4.5).",
+  "images_of_text_rem": "Salvo logotipos, presenta el texto como texto real (1.4.5): se re escala, se re-fluye y se traduce; una imagen no.",
+  "img_no_alt": "{n} <img> sin atributo alt (ni siquiera alt=\"\").",
+  "img_no_alt_rem": "Añade alt a cada <img>: texto descriptivo si aporta información, alt=\"\" si es decorativa. En <input type=\"image\"> y <area> es igual de obligatorio.",
+  "input_img_alt": "<input type=\"image\"> sin alt (botón gráfico sin nombre).",
+  "input_img_alt_rem": "Añade alt descriptivo al input type=\"image\" (es su nombre accesible), o sustitúyelo por <button> con texto o <input type=\"submit\" value=\"…\">.",
+  "label_in_name": "{n} controles cuyo aria-label no contiene el texto visible («{ej}»): quien dicta por voz dice lo que ve (2.5.3).",
+  "label_in_name_rem": "El nombre accesible debe CONTENER la etiqueta visible: «Ofertas de verano (abre en ventana nueva)», no «Más info». Sustituye el aria-label por texto visible + sufijo.",
+  "label_orphan": "{n} <label> sin for y sin campo anidado: no etiquetan nada.",
+  "label_orphan_rem": "Conecta el label con su campo: for=\"id\" del campo, o mueve el campo dentro del label.",
+  "label_vague": "{n} labels sospechosamente vagos: {ej} (2.4.6).",
+  "label_vague_rem": "Los labels deben describir el campo: \"Correo electrónico de contacto\", no \"Campo\" o \"Texto\" (2.4.6).",
+  "landmark_dup": "{n} grupos de landmarks duplicados (<nav>, <header>…) sin aria-label que los distinga: {ej}.",
+  "landmark_dup_rem": "Nombra cada landmark repetido (aria-label=\"Menú principal\", aria-label=\"Menú pie\"): si no, la navegación por landmarks es una lotería.",
+  "lang_invalid": "lang=\"{lang}\" no es un código de idioma válido (BCP-47).",
+  "lang_invalid_rem": "Usa el subtag principal ISO 639 correcto (es, en, pt…).",
+  "lang_missing": "El elemento <html> no declara lang.",
+  "lang_missing_rem": "Añade lang=\"es\" (o el idioma real) a <html>: lectores de pantalla eligen la voz sintética por él.",
+  "lang_region_invalid": "lang «{l}»: la subetiqueta de región no existe (ISO 3166). Usa el idioma solo («es») o una región real («es-AR»).",
+  "lang_region_invalid_rem": "Valida la región en el IANA Language Subtag Registry: «es» a secas o «es-AR» con región real.",
+  "limits": "Automatización ≈ un tercio de WCAG: esto es un filtro exprés, no sustituye revisión manual (teclado, lector de pantalla, contraste real, refrán de auditoría).",
+  "list_structure": "{n} hijos ilegales dentro de <ul>/<ol> (solo <li>, <script> y <template> son válidos).",
+  "list_structure_rem": "Mete el contenido suelto en <li> o usa otro contenedor: los lectores anuncian la lista con su número de ítems y se saltan lo que no es <li>.",
+  "meta_refresh": "<meta http-equiv=\"refresh\"> con recarga/redirección temporizada ({v}s).",
+  "meta_refresh_rem": "Sustituye la recarga automática por navegación iniciada por la persona usuaria (2.2.1). Redirección instantánea mejor en servidor.",
+  "motion_actuation": "{n} manejadores de deviceorientation/devicemotion sin alternativa de UI: {ej}. Revisar (2.5.4).",
+  "motion_actuation_rem": "Lo que se activa moviendo el dispositivo debe poder activarse también con UI (botón) y desactivarse (2.5.4).",
+  "motion_moving": "{n} contenidos en movimiento/bucle sin control de pausa visible: {ej}. Revisar (2.2.2).",
+  "motion_moving_rem": "Contenido que se mueve/parpadea >5 s necesita un mecanismo de pausa/parada (2.2.2): <marquee> no tiene ninguno; las animaciones en bucle, tampoco por defecto.",
+  "multi_h1": "{n} <h1> en la página (máximo recomendado: 1).",
+  "multi_h1_rem": "Conserva un solo h1 (título de la página) y baja el resto un nivel.",
+  "multi_label": "{n} campos con más de un <label for> asociado.",
+  "multi_label_rem": "Un campo, una etiqueta: los lectores anuncian los labels concatenados. Agrupa el texto en uno.",
+  "nav_inconsistent": "La navegación repetida cambia entre páginas del sitio ({ej}) (3.2.3).",
+  "nav_inconsistent_rem": "Los mecanismos de navegación repetidos deben aparecer en el mismo orden relativo en todas las páginas (3.2.3): plantilla común.",
+  "no_bypass": "Ni <main>/role=\"main\" ni enlace de salto: sin mecanismo para saltar bloques repetidos.",
+  "no_bypass_rem": "Añade <main> (o role=\"main\") y un enlace \"Saltar al contenido\" como primer foco.",
+  "no_h1": "No hay ningún <h1> en la página.",
+  "no_h1_rem": "Añade un único h1 que nombre la página.",
+  "no_headings": "La página no tiene encabezados (h1–h6).",
+  "no_headings_rem": "Estructura el contenido con encabezados jerárquicos: es el índice de navegación del lector de pantalla.",
+  "no_multiple_ways": "Sin vía alternativa para encontrar páginas (sin búsqueda, sin mapa, sin índice) en las páginas muestreadas (2.4.5).",
+  "no_multiple_ways_rem": "Ofrece al menos dos vías: navegación + búsqueda o sitemap (2.4.5).",
+  "no_status_regions": "No se detectan regiones de estado (aria-live/status/alert) en la página: los mensajes dinámicos no se anunciarán (4.1.3).",
+  "no_status_regions_rem": "Añade role=\"status\" o aria-live=\"polite\" para toasts, confirmaciones de guardado, resultados de búsqueda (4.1.3).",
+  "orientation_lock": "Bloqueo de orientación detectado: {ej}. Revisar (1.3.4).",
+  "orientation_lock_rem": "El contenido no debe bloquearse a una orientación salvo excepción demostrable (1.3.4): elimina screen.orientation.lock() y los media queries que fuercen una sola orientación.",
+  "placeholder_only": "{n} campos con placeholder como única etiqueta (sin <label>): {ej}. El placeholder desaparece al teclear (3.3.2).",
+  "placeholder_only_rem": "El placeholder NO es una etiqueta: añade <label for=\"id\"> visible. El placeholder desaparece al empezar a escribir y los lectores no siempre lo anuncian (3.3.2).",
+  "reduced_motion_ignored": "{n} animaciones en bucle siguen moviéndose con prefers-reduced-motion activo (antes {n}, ahora {nr}): la preferencia del usuario se ignora (2.2.2).",
+  "reduced_motion_ignored_rem": "Envuelve las animaciones en @media (prefers-reduced-motion: reduce) { animation: none } — o paúsala con la API Animation. El usuario pidió menos movimiento; respóndelo.",
+  "required_no_indication": "{n} campos required sin indicación visible de obligatoriedad: {ej} (3.3.2).",
+  "required_no_indication_rem": "Los campos obligatorios deben indicarlo: asterisco con leyenda, texto \"obligatorio\" en el label, o aria-required anunciado (3.3.2).",
+  "role_required_attr": "{n} controles con role que exige atributos ARIA que faltan: {ej}.",
+  "role_required_attr_rem": "Un slider necesita aria-valuenow (y mejor aria-valuemin/max): sin el estado, el control es inoperante para tecnología asistida (4.1.2).",
+  "role_unknown": "{n} roles ARIA desconocidos: {ej}. Los lectores los ignoran.",
+  "role_unknown_rem": "Usa roles de la especificación ARIA (button, dialog, navigation…) o elimina el atributo y confía en el HTML semántico.",
+  "same_name_links": {
+   "one": "1 par de enlaces con idéntico texto y destinos distintos.",
+   "other": "{n} pares de enlaces con idéntico texto y destinos distintos."
+  },
+  "same_name_links_rem": "Diferencia los nombres (o unifica el destino): «Informes» ×3 con tres URLs distintas es un problema para quien navega por lista de enlaces.",
+  "score_note": "Puntuación ponderada: alta −12, media −6, baja −2 desde 100. Mide solo lo automatizable (≈1/3 de WCAG): sirve para seguir tendencias entre versiones, no como conformidad (método de muestreo y alcance al estilo WCAG-EM, no sustituye la evaluación de conformidad). ESTE pase estático NO midió contraste (1.4.3), tamaño de objetivo ni los demás criterios de not_measured: un 100 aquí no es \"contraste bien\" — usa la auditoría renderizada.",
+  "sensory_text": "Instrucciones que apelan solo a los sentidos: «{ej}». Revisar (1.3.3).",
+  "sensory_text_rem": "No instruyas por posición/forma/color solos («el botón de la derecha»): nombra las cosas (1.3.3).",
+  "tabindex_pos": "{n} elementos con tabindex positivo (modifica el orden natural).",
+  "tabindex_pos_rem": "Usa tabindex=\"0\" o elimina el atributo: el orden de tabulación debe seguir al DOM.",
+  "table_no_th": "{n} <table> sin celdas <th>.",
+  "table_no_th_rem": "Marca encabezados de fila/columna con <th> (y scope) para que el lector asocie celdas.",
+  "text_spacing_clip": "{n} textos recortados al aplicar los espaciados de 1.4.12 (line-height 1.5, letter 0.12em): revisar.",
+  "text_spacing_clip_rem": "El contenido debe sobrevivir a los overrides de espaciado de texto sin recortarse: sustituye alturas fijas por min-height (1.4.12).",
+  "title_generic": "Título genérico («{t}»): no identifica esta página entre las abiertas (2.4.2, revisar).",
+  "title_generic_rem": "Un título único por página: contenido + sitio («Contacto — MaisMedia»), nunca «Untitled», «Inicio» o «Documento».",
+  "title_missing": "La página no tiene <title> con contenido.",
+  "title_missing_rem": "Escribe un <title> único y descriptivo por página (primer anuncio del lector, texto de la pestaña).",
+  "video_autoplay": "{n} medios con autoplay (audio >3s sin control para pararlo).",
+  "video_autoplay_rem": "Quita autoplay o añade muted + control visible de pausa/parada (1.4.2): el audio que arranca solo desordena a quien usa lector de pantalla.",
+  "video_captions": "{n} <video> sin <track kind=\"captions\">.",
+  "video_captions_rem": "Publica subtítulos para el audio del vídeo (1.2.2). Si es decorativo y sin audio, márcalo como tal.",
+  "zoom_max": "El viewport limita el zoom (maximum-scale={v}; se recomienda no limitar o ≥2).",
+  "zoom_max_rem": "Elimina maximum-scale del viewport o déjalo en 2 o más, para que se pueda agrandar la letra (1.4.4).",
+  "zoom_no": "El viewport bloquea el zoom del usuario (user-scalable=no/0).",
+  "zoom_no_rem": "Elimina user-scalable=no y maximum-scale: el zoom es un derecho del usuario (1.4.4)."
+ },
+ "badge": {
+  "name": "a11y-toolkit",
+  "scope": "cribado automático",
+  "title": "Accesibilidad: {score}/100 — {date} — {scope} (≈1/3 de WCAG); no es conformidad."
+ },
+ "contrast": {
+  "criteria": [
+   [
+    "1.4.3 Contraste (mínimo) · texto normal",
+    "AA",
+    4.5
+   ],
+   [
+    "1.4.3 Contraste (mínimo) · texto grande",
+    "AA",
+    3.0
+   ],
+   [
+    "1.4.6 Contraste (mejorado) · texto normal",
+    "AAA",
+    7.0
+   ],
+   [
+    "1.4.6 Contraste (mejorado) · texto grande",
+    "AAA",
+    4.5
+   ],
+   [
+    "1.4.11 Contraste no textual (UI, iconos, bordes)",
+    "AA",
+    3.0
+   ]
+  ],
+  "darkening": "oscureciendo",
+  "interp": "El contraste del texto debe evaluarse contra el FONDO REAL tras él: usa worst_ratio para saber la zona más hostil y area_passes_aa_normal_text_4_5 para saber cuánta superficie es segura. Si area_passes_aa_normal_text_4_5 < 100% con texto sobre imagen, se necesita velo/overlay o texto alternativo posicionado.",
+  "invalid_color": "color no válido (usa #rgb, #rrggbb o rgb(r,g,b))",
+  "invalid_region": "region debe ser x,y,ancho,alto (números separados por comas)",
+  "lightening": "aclarando",
+  "load_error": "no se pudo cargar la imagen",
+  "no_box": "el elemento que coincide con {s} no tiene caja visible que muestrear",
+  "no_pixels": "sin píxeles en la región",
+  "no_post_copy": "sin copia específica del post: base a secas",
+  "opaque_text": "para texto sobre imagen usa un color opaco (sin alfa)",
+  "region_outside": "región fuera de la imagen",
+  "selector_missing": "selector {s} no encontrado en la página"
+ },
+ "docx": {
+  "docx_fake_headings": "{n} párrafos con solo negrita/grande: parecen encabezados pero no lo son — el panel de navegación y el índice no los ven (1.3.1).",
+  "docx_fake_headings_rem": "Aplica estilo «Título 1/2» en vez de negrita manual: así existen en el panel de navegación y en el índice.",
+  "docx_no_alt": "{n} imágenes sin texto alternativo (docPr sin descr o descr vacío): invisibles para el lector de pantalla (1.1.1).",
+  "docx_no_alt_rem": "Clic derecho en cada imagen → «Editar texto alternativo» y descríbela. Las decorativas: marca la casilla «decorativa».",
+  "docx_no_lang": "idioma del documento sin declarar: la voz sintética y el corrector no saben (3.1.1).",
+  "docx_no_lang_rem": "Revisar → Idioma → establece el idioma del documento completo.",
+  "docx_table_no_header": "{n} tablas sin fila de encabezado marcada: las celdas pierden su contexto de columna (1.3.1).",
+  "docx_table_no_header_rem": "Tabla → fila de encabezado marcada («Repetir filas de encabezado» en tablas multi-página).",
+  "limits": "Cribado estructural del XML: no sustituye la revisión humana (orden de lectura de tablas complejas, significado de imágenes con alt insuficiente, gráficos incrustados)."
+ },
+ "dom": {
+  "contrast_fail": "{n} zonas de texto con contraste insuficiente: {det}. (fg/fondo computados, con composición de transparencias).",
+  "contrast_fail_rem": "Sube el contraste a ≥4.5:1 (≥3:1 en texto grande). El fondo efectivo ya incluye superposiciones y transparencias; si hay imagen de fondo, verifica esa zona a mano.",
+  "contrast_image_fail": "{n} zonas de texto sobre imagen/degradado con contraste insuficiente, MEDIDO por muestreo real de píxeles: {det}.",
+  "contrast_image_fail_rem": "Añade un velo/scrim semitransparente sobre la imagen, oscurécela o mueve el texto a una zona segura. El ratio peor marca la zona hostil; si el área que pasa AA no es 100%, el fondo real no es seguro.",
+  "contrast_review": "{n} zonas de texto con imagen de fondo o sombra: no calculables, revisar.",
+  "contrast_review_rem": "El contraste sobre imagen de fondo no se pudo medir aquí: usa a11y_contrast_image con una captura de esa región o a11y_contrast_dom para medirlo directamente desde la página.",
+  "focus_invisible": "{n} controles enfocables sin indicador de foco aparente (outline y box-shadow ausentes): {det}. Revisar.",
+  "focus_invisible_rem": "Asegura un indicador de foco visible: nunca outline:none sin sustituto; usa :focus-visible con outline ≥2px o borde/sombra contrastada (2.4.7).",
+  "focus_navigates": "Al recibir foco, {ej} provocó un cambio de contexto (URL cambió a {url}) — 3.2.1.",
+  "focus_navigates_rem": "Recibir foco nunca debe cambiar el contexto (3.2.1): revisa focus→location.href, focus→form.submit(), focus→window.open().",
+  "focus_not_focusable": "{n} controles que no reciben foco con .focus(): {det}.",
+  "focus_not_focusable_rem": "Si debe ser interactivo, que sea enfocable (tabindex=\"0\"); si no, quítalo de la ruta de tabulación.",
+  "focus_obscured": "{n} controles quedan tapados por elementos fijos/sticky al recibir el foco (cabeceras sticky, banners): {det}. Revisar (2.4.11).",
+  "focus_obscured_rem": "Un elemento fijo no debe ocultar el elemento enfocado (2.4.11, nuevo en WCAG 2.2 AA): usa scroll-padding-top igual a la altura del header fijo, o hazlo auto-colapsable.",
+  "forced_colors_svg": "{n} SVG con fill coloreado hardcoded: en forced-colors (Windows High Contrast) el fill cae al heredado y el icono puede volverse invisible.",
+  "forced_colors_svg_rem": "Usa fill=\"currentColor\" (hereda el color del texto que el sistema ya ajusta) o fuerza los keywords del sistema (CanvasText).",
+  "form_error_missing": "{n} formularios enviados con datos inválidos SIN identificación de error: nada de aria-invalid, aria-describedby con texto, role=alert ni texto de error (3.3.1).",
+  "form_error_missing_rem": "Los errores deben describirse en texto y asociarse al campo: aria-invalid=\"true\" + un mensaje enlazado con aria-describedby (o un resumen con focus al enviar). El borde rojo solo no es un error identificado.",
+  "form_error_no_suggestion": "{n} campos con error identificado pero sin sugerencia de corrección detectable (3.3.3). Revisar.",
+  "form_error_no_suggestion_rem": "Cuando la corrección se conoce, dila: «Usa DD/MM/AAAA», no «Fecha inválida» (3.3.3). Sugerimos patrón: texto con formato/ejemplo cerca del campo.",
+  "form_navigated": "El formulario navega al enviar; el comportamiento del error no es medible en la página ({ej}).",
+  "form_navigated_rem": "Captura la página de destino o prueba con un intercepto; el juicio del error requiere ver el DOM tras el envío.",
+  "hover_not_dismissible": "{n} tooltips/overlays aparecen al hover/focus que NO se cierran con Escape (1.4.13).",
+  "hover_not_dismissible_rem": "El contenido emergente debe poder cerrarse con Escape sin mover el puntero (1.4.13): añade keydown Escape que oculte el tooltip.",
+  "input_navigates": "Cambiar {ej} provocó navegación automática (URL: {url}) — 3.2.2.",
+  "input_navigates_rem": "Cambiar un ajuste nunca debe navegar sin petición del usuario (3.2.2): añade un botón «Aplicar» o confirma antes de enviar.",
+  "kbd_trap": "TRAMPA DE TECLADO: {n} controles atrapados en un ciclo ({cycle}) y Escape no libera. El foco no puede salir (2.1.2).",
+  "kbd_trap_rem": "Todo componente con foco contenido (modal, menú) debe liberarse con Escape (y idealmente clic fuera): ciérralo y devuelve el foco al disparador. Pruébalo solo con teclado.",
+  "limits": "Auditoría renderizada: heurística honesta, no sustituye lector de pantalla ni revisión manual. Contraste calculado sobre fondos computados; los casos con imagen de fondo se reportan como «revisar». 2.5.8 admite excepciones (inline equivalente, espaciado) que aquí se aproximan.",
+  "reduced_motion_ignored": "{n} animaciones en bucle siguen moviéndose con prefers-reduced-motion activo (antes {n}, ahora {nr}): la preferencia del usuario se ignora (2.2.2).",
+  "reduced_motion_ignored_rem": "Envuelve las animaciones en @media (prefers-reduced-motion: reduce) { animation: none } — o paúsala con la API Animation. El usuario pidió menos movimiento; respóndelo.",
+  "reflow_fail": "{n} elementos desbordan a {w}px de ancho (scroll horizontal): {det}. Con reflujo correcto, a 320px no hay scroll en una dimensión (1.4.10).",
+  "reflow_fail_rem": "Usa layouts fluidos (flex/grid, max-width en vez de width fija) y media queries: el contenido debe reflujo a 320px sin scroll horizontal. Los excepciones: tablas de datos, mapas, gráficos.",
+  "state_contrast": "{n} controles con contraste insuficiente en estado :focus/:hover (<3:1): {det}. Revisar.",
+  "state_contrast_rem": "El texto del control también necesita contraste cuando está enfocado o con el puntero encima (1.4.3); los controles DESACTIVADOS están exentos por WCAG. Ajusta los colores de :focus y :hover.",
+  "target_small": "{n} controles con área de toque menor de 24×24 px (WCAG 2.2, 2.5.8): {det}.",
+  "target_small_rem": "Da a los controles al menos 24×24 px CSS (mejor 44×44) con padding o min-width/min-height. Excepciones: enlaces inline equivalentes y espaciado suficiente alrededor."
+ },
+ "evidence": {
+  "manual_remaining": "revisión humana pendiente después de la máquina, por clase (MIN 1-3, MED 5-10, MAX 15-30 min por criterio)",
+  "no_signal": "no hay señal automática para este criterio en este motor",
+  "not_flagged": "sin señal ≠ pasa: ninguna señal automática saltó en esta muestra",
+  "notice": "Este pack es evidencia, no conformidad: dice qué encontró la máquina y qué queda para una persona. Una declaración de conformidad requiere el bloque de firma completo, de una persona cualificada que haya revisado la lista manual.",
+  "reviewer_note": "cualquier contrafirma debe referenciar pack.sha256 e indicar qué criterios revisó la persona más allá de la matriz automática",
+  "verified": "verificado sobre esta muestra según el protocolo del checklist manual"
+ },
+ "fix": {
+  "between": "Escribe un número entre %a y %b.",
+  "email": "Escribe un correo como nombre@ejemplo.com.",
+  "num": "Escribe un número.",
+  "pattern": "Sigue el formato esperado: %p.",
+  "req": "Completa este campo.",
+  "short": "Usa al menos %n caracteres.",
+  "url": "Escribe una URL como https://ejemplo.com."
+ },
+ "journey": {
+  "journey_dialog_trap": [
+   "2.1.2",
+   "high",
+   "Un diálogo atrapa el teclado y Escape no lo cierra.",
+   "Cierra el diálogo con Escape y devuelve el foco al disparador."
+  ],
+  "journey_duplicate_targets": [
+   "4.1.2",
+   "medium",
+   "Varios controles comparten el mismo nombre accesible: «el botón de comprar» es ambiguo por nombre solo.",
+   "Diferencia los nombres accesibles con contexto (aria-label, texto visible)."
+  ],
+  "journey_dynamic_stale": [
+   "4.1.3",
+   "medium",
+   "El árbol cambió tras la acción (contenido reemplazado) sin anuncio: el mapa del agente quedó obsoleto.",
+   "Anuncia las actualizaciones de regiones dinámicas (role=status/aria-live) y mantiene el foco estable."
+  ],
+  "journey_error_silent": [
+   "3.3.1",
+   "high",
+   "El envío falló y el error no se anuncia ni recibe el foco.",
+   "Asocia el mensaje de error al campo (aria-describedby) y mueve el foco al primer error."
+  ],
+  "journey_focus_lost": [
+   "2.4.3",
+   "high",
+   "Tras una acción, el foco desapareció o saltó a un lugar inesperado.",
+   "Mueve el foco programáticamente al destino lógico tras insertar o reemplazar contenido."
+  ],
+  "journey_generic_link": [
+   "2.4.4",
+   "low",
+   "El destino de un enlace clave no se entiende por su texto.",
+   "Texto de enlace descriptivo en contexto («leer más» no dice nada solo)."
+  ],
+  "journey_heading_nav_broken": [
+   "2.4.6",
+   "high",
+   "Los encabezados faltan o rompen la jerarquía: navegar por encabezados — la estrategia principal de un lector de pantalla — no encuentra la sección que la tarea necesita.",
+   "Usa marcado real de encabezados en orden lógico (h1→h2…); nunca simules encabezados con negritas."
+  ],
+  "journey_hidden_in_tree": [
+   "1.3.1",
+   "medium",
+   "Información esencial de la tarea no está en el árbol de accesibilidad.",
+   "Expresa la relación con semántica real (lista, encabezado, tabla), no con layout."
+  ],
+  "journey_landmark_missing": [
+   "2.4.1",
+   "medium",
+   "La página no expone landmarks (main/nav): la navegación por regiones no salta el boilerplate.",
+   "Envuelve el contenido en main/navigation reales; el skip-link es un extra, no el arreglo."
+  ],
+  "journey_mode_confusion": [
+   "4.1.2",
+   "high",
+   "Un widget personalizado se traga las teclas u oculta su rol y estado: el cambio entre modo navegación y modo foco rompe la interacción.",
+   "Usa elementos nativos (select, button) o el patrón ARIA completo: rol, estado y soporte de teclado."
+  ],
+  "journey_no_instruction": [
+   "3.3.2",
+   "medium",
+   "La tarea exigía un dato sin indicar su formato o su obligatoriedad.",
+   "Etiqueta el campo con instrucciones y marca lo requerido antes del error."
+  ],
+  "journey_reach_fail": [
+   "2.1.1",
+   "high",
+   "Un control necesario no es alcanzable ni operable con teclado.",
+   "Hazlo enfocable y operable con teclado; nunca solo con puntero."
+  ],
+  "journey_status_silent": [
+   "4.1.3",
+   "medium",
+   "El resultado de la acción (éxito o carga) no se anuncia por una región viva.",
+   "Anuncia el cambio de estado con role=\"status\" o aria-live=\"polite\"."
+  ],
+  "journey_timeout_confusion": [
+   "2.2.1",
+   "medium",
+   "La tarea se perdió por un límite de tiempo sin opción de extenderlo.",
+   "Permite ajustar, extender o desactivar el límite de tiempo."
+  ],
+  "journey_unnamed_control": [
+   "4.1.2",
+   "high",
+   "Un control necesario para la tarea se anuncia sin nombre (\"botón\" a secas).",
+   "Da al control un nombre accesible: texto visible, aria-label o aria-labelledby."
+  ]
+ },
+ "pdf": {
+  "limits": "Cribado estructural zero-dep: la conformidad PDF/UA completa exige un validador de especificación (veraPDF). Este cribado encuentra lo que hace inútil la validación completa.",
+  "pdf_encrypted": "PDF cifrado: los lectores pueden no extraer nada.",
+  "pdf_encrypted_rem": "Publica sin cifrado (o con permisos de extracción completos).",
+  "pdf_fake_link": "{n} textos con apariencia de enlace (color azulado / subrayado con rectángulo) sin anotación /A << /S /URI >> en la página: el lector de pantalla NO los anuncia como enlace (2.4.4).",
+  "pdf_fake_link_rem": "Usa anotaciones de enlace reales (/Subtype /Link /A << /S /URI /URI (…) >>) sobre el texto del enlace.",
+  "pdf_low_contrast": "{n} fragmentos de texto con color de relleno cercano al fondo (ratio < 4.5): el PDF no tiene cascada — el color actual lo fija el operador `rg` antes del Tj, y es medible. Ejemplos: {ej}.",
+  "pdf_low_contrast_rem": "Sube el contraste del texto: en PDF el fondo por defecto es blanco si nadie lo pinta. m viewed con veraPDF/acrobat para confirmar el fondo real.",
+  "pdf_no_alt": "árbol etiquetado con imágenes pero 0 entradas /Alt: los gráficos son opacos (1.1.1).",
+  "pdf_no_alt_rem": "Añade texto alternativo a las figuras al exportar/remediar.",
+  "pdf_no_lang": "sin /Lang: los lectores no saben en qué idioma pronunciar (3.1.1 en documentos).",
+  "pdf_no_lang_rem": "Fija /Lang (p. ej. «es-ES») en las propiedades del documento.",
+  "pdf_no_outline": "sin marcadores/outline: un PDF largo sin navegación por encabezados (1.3.1).",
+  "pdf_no_outline_rem": "Genera marcadores desde los encabezados al exportar.",
+  "pdf_no_title": "sin /Title en metadatos: el lector anuncia el nombre del fichero (2.4.2 en documentos).",
+  "pdf_no_title_rem": "Exporta con título de documento (propiedades del fichero), no con el nombre del archivo.",
+  "pdf_scanned": "sin capa de texto (0 caracteres en el contenido): parece un escaneo — invisible por completo (1.1.1).",
+  "pdf_scanned_rem": "Aplica OCR con texto real y etiqueta el resultado.",
+  "pdf_untagged": "sin árbol de estructura (/StructTreeRoot): el orden de lectura y los roles semánticos no existen para el lector. Es EL fallo raíz de los PDF inaccesibles (1.3.1).",
+  "pdf_untagged_rem": "Etiqueta el documento (exporta con «PDF etiquetado» desde authoring, o remedia con Acrobat): sin árbol, todo lo demás es cosmético."
+ },
+ "scroll": {
+  "limits": "Auditor de scroll infinito: heurística con foco real y observador de regiones vivas en {n} tandas. No sustituye la prueba con lector de screen reader en el feed real.",
+  "scroll_focus": "El elemento con foco {where} tras cargar una tanda ({detail}). Fallo documentado del scroll infinito: quien navega con teclado pierde su punto de lectura (2.4.3).",
+  "scroll_focus_rem": "No re-renderices el contenedor del feed: AÑADE nodos al final (appendChild/insertAdjacentHTML). Si el foco cae en contenido eliminado, devuélvelo al equivalente nuevo.",
+  "scroll_no_announce": "{n} tandas cargadas sin ningún anuncio: no hay región aria-live/status que reciba texto durante la carga ni role=\"feed\" en el contenedor (4.1.3).",
+  "scroll_no_announce_rem": "Añade una región role=\"status\" con texto «Cargando más…»/«10 elementos nuevos» y marca el contenedor como role=\"feed\" con aria-busy durante la carga.",
+  "scroll_no_end": "Feed infinito sin fin visible en {n} tandas y sin botón «cargar más» alternativo: el pie de página queda inalcanzable (guía Deque; afín a 2.2.2).",
+  "scroll_no_end_rem": "Ofrece un botón «Cargar más» (mejor opción accesible: carga explícita y foco predecible), o un fin real del feed, o un control para pausar la carga automática.",
+  "scroll_no_feed": "El contenedor del feed no usa role=\"feed\" con hijos role=\"article\" (patrón Feed de ARIA APG): los lectores de pantalla no pueden saltar de artículo en artículo.",
+  "scroll_no_feed_rem": "Marca el contenedor como role=\"feed\", cada elemento como role=\"article\" con aria-labelledby, y usa aria-busy durante la carga."
+ },
+ "statement_states": {
+  "full": [
+   "Plenamente conforme",
+   "El sitio web es <strong>plenamente conforme</strong> con el estándar <abbr lang=\"en\" title=\"Web Content Accessibility Guidelines\">WCAG</abbr> 2.2 nivel AA, incluido en la norma <abbr lang=\"en\">EN&nbsp;301&nbsp;549</abbr>."
+  ],
+  "not_conformant": [
+   "No conforme",
+   "El sitio web <strong>no es conforme</strong> con el estándar <abbr lang=\"en\" title=\"Web Content Accessibility Guidelines\">WCAG</abbr> 2.2 nivel AA, incluido en la norma <abbr lang=\"en\">EN&nbsp;301&nbsp;549</abbr>. Los contenidos no accesibles se enumeran a continuación."
+  ],
+  "partial": [
+   "Parcialmente conforme",
+   "El sitio web es <strong>parcialmente conforme</strong> con el estándar <abbr lang=\"en\" title=\"Web Content Accessibility Guidelines\">WCAG</abbr> 2.2 nivel AA, incluido en la norma <abbr lang=\"en\">EN&nbsp;301&nbsp;549</abbr>, por los contenidos no accesibles que se enumeran a continuación."
+  ]
+ },
+ "statement_txt": {
+  "complaints": {
+   "eaa": "Se puede comunicar cualquier incidencia de accesibilidad a través del punto de contacto indicado. En última instancia, el servicio está sujeto a supervisión en los términos de la Ley 11/2023.",
+   "rd1112": "Si la respuesta no es satisfactoria, puede presentarse una reclamación ante la Unidad de Supervisión de Accesibilidad (División de Inspección de Servicios y Atención a las Personas con Discapacidad) conforme al artículo 13 del RD 1112/2018."
+  },
+  "contact": "Cualquier comunicación sobre la accesibilidad de este sitio puede dirigirse a {f}.",
+  "error_inconsistent": "con estado plena no procede enumerar contenido no accesible",
+  "error_status": "estado debe ser: 'plena', 'parcial' o 'no_conforme'",
+  "feedback_default": "el formulario de contacto del sitio",
+  "h_alt_access": "Disponibilidad alternativa",
+  "h_contact": "Observaciones y datos de contacto",
+  "h_inaccessible": "Contenido no accesible",
+  "h_preparation": "Preparación de esta declaración",
+  "h_status": "Estado",
+  "inaccessible_empty": "No consta contenido no accesible en la última evaluación realizada.",
+  "inaccessible_intro": "El contenido listado a continuación no es accesible por alguno de los motivos siguientes:",
+  "intro": {
+   "eaa": "Información de accesibilidad del servicio prestado por {e} a través de {u}, en cumplimiento de la Ley 11/2023, de 8 de mayo, por la que se transpone la Directiva (UE) 2019/882 (Acta Europea de Accesibilidad), aplicable desde el 28 de junio de 2025.",
+   "rd1112": "Declaración de accesibilidad de {e} relativa a {u}, conforme al Real Decreto 1112/2018, de 7 de septiembre, sobre accesibilidad de los sitios webs y aplicaciones para dispositivos móviles del sector público."
+  },
+  "l_declared": "Declaración elaborada el",
+  "l_evaluation": "Fecha de la última evaluación",
+  "l_method": "Método de evaluación",
+  "l_review": "Última revisión de la declaración",
+  "method_default": "Pendiente de completar: declara aquí el método de evaluación real (revisión manual, herramientas y pruebas realizadas), con fechas y responsable. Esta declaración es un BORRADOR NO VALIDADO mientras este campo no se complete.",
+  "title": {
+   "eaa": "Información de accesibilidad del servicio",
+   "rd1112": "Declaración de Accesibilidad"
+  }
+ },
+ "vpat_levels": {
+  "does_not_support": "No lo soporta",
+  "not_applicable": "No aplica",
+  "not_evaluated": "No evaluado",
+  "partially_supports": "Lo soporta parcialmente",
+  "supports": "Lo soporta"
+ },
+ "vpat_txt": {
+  "col_criteria": "Criterio",
+  "col_level": "Nivel de conformidad",
+  "col_remarks": "Comentarios y explicaciones",
+  "contact": "Información de contacto",
+  "credential": "Credencial",
+  "date": "Fecha del informe",
+  "description": "Descripción del producto",
+  "draft": "BORRADOR — niveles pendientes de persona cualificada",
+  "error_level": "nivel desconocido en overrides: {n} (usa supports, partially_supports, does_not_support, not_applicable, not_evaluated)",
+  "error_no_pack": "necesitas un pack (a11y_evidence) o reports (informes de auditoría)",
+  "iti_note": "VPAT® es una marca registrada del Information Technology Industry Council (ITI). Este documento es un andamiaje de autodeclaración del proveedor, generado por a11y-toolkit; no constituye certificación alguna.",
+  "legend": [
+   [
+    "Supports",
+    "El producto tiene al menos un método que cumple el criterio sin defectos conocidos."
+   ],
+   [
+    "Partially Supports",
+    "Alguna funcionalidad del producto no cumple el criterio."
+   ],
+   [
+    "Does Not Support",
+    "La mayor parte de la funcionalidad del producto no cumple el criterio."
+   ],
+   [
+    "Not Applicable",
+    "El criterio no es relevante para el producto."
+   ],
+   [
+    "Not Evaluated",
+    "El producto aún no ha sido evaluado frente al criterio; el nivel está pendiente de una persona cualificada."
+   ]
+  ],
+  "legend_title": "Definiciones de los niveles de conformidad (extracto del VPAT®)",
+  "method_default": "Cribado automatizado con a11y-toolkit (auditoría estática y, cuando está disponible, renderizada con contraste computado y muestreo de píxeles); revisión manual pendiente.",
+  "methods": "Métodos de evaluación utilizados",
+  "notes": "Notas",
+  "product": "Nombre del producto",
+  "signature": "Este documento es un <strong>BORRADOR</strong> generado por cribado automatizado. Los niveles marcados «No evaluado» deben ser fijados por una persona cualificada tras la revisión; la declaración de firma debe referenciar el hash del paquete de evidencia:",
+  "signature_empty": "Bloque de firma sin completar: nombre, credencial y fecha pendientes.",
+  "signature_title": "Firma y evidencia",
+  "standard": "<abbr lang=\"en\" title=\"Web Content Accessibility Guidelines\">WCAG</abbr> 2.2 (niveles A y AA) — Recomendación W3C de octubre de 2023.",
+  "standards_section": "Pautas/estándares aplicables",
+  "table_caption": "Tabla 1: Criterios de conformidad WCAG 2.2 (A/AA)",
+  "title": "Informe de conformidad de accesibilidad VPAT® 2.5 — edición WCAG",
+  "version": "Versión"
+ },
+ "vtt": {
+  "limits": "Cribado del CONTENIDO de los subtítulos (1.2.2): no sustituye la revisión humana de precisión, identificación de hablantes ni audiodescripción.",
+  "vtt_coverage": "cobertura {pct}% de los {dur}s de media — hay tramos sin subtítulos.",
+  "vtt_coverage_rem": "Subtitula los tramos faltantes o declara el tramo como música/idioma extranjero si aplica.",
+  "vtt_empty_cue": "{n} cues sin texto: tiempo consumido sin subtítulo.",
+  "vtt_empty_cue_rem": "Elimina los cues vacíos o dales el texto que falta.",
+  "vtt_malformed": "{n} bloques con línea de tiempos malformada: {ej}.",
+  "vtt_malformed_rem": "Corrige el formato «HH:MM:SS.mmm --> HH:MM:SS.mmm»; un cue roto puede saltarse entero en el lector.",
+  "vtt_no_cues": "el archivo declara WebVTT pero no contiene cues.",
+  "vtt_no_cues_rem": "Subtitula de verdad: un track vacío no cumple 1.2.2.",
+  "vtt_overlap": "{n} solapamientos de tiempo entre cues consecutivos.",
+  "vtt_overlap_rem": "Los cues no deben solaparse: algunos lectores muestran ambos a la vez.",
+  "vtt_too_fast": "{n} cues por encima de 21 caracteres/segundo: {ej}.",
+  "vtt_too_fast_rem": "Divide el cue o alarga su tiempo: >21 cps es ilegible (estándar BBC/Netflix)."
+ }
+}

@@ -871,8 +871,8 @@ def effort(code):
     """Human-effort class for an A/AA criterion: {clase, porque, minutos} or None."""
     if code not in _EFFORT:
         return None
-    clase, why = _EFFORT[code]
-    return {'class': clase, 'why': why, 'minutes': list(_EFFORT_MINUTES[clase])}
+    grade, why = _EFFORT[code]
+    return {'class': grade, 'why': why, 'minutes': list(_EFFORT_MINUTES[grade])}
 
 
 def main(argv):

@@ -28,12 +28,13 @@ import json
 import re
 import sys
 
-from .a11yaudit import audit_html, _DATO_PERSONAL
+from .a11yaudit import audit_html, _PERSONAL_DATA
 
+from . import a11yi18n
 # token autocomplete por type de input (determinista por especificación)
-_TOKEN_POR_TYPE = {'email': 'email', 'tel': 'tel', 'url': 'url'}
+_TOKEN_BY_TYPE = {'email': 'email', 'tel': 'tel', 'url': 'url'}
 # token por pista de name/id (mismas pistas que usa el auditor 1.3.5)
-_TOKEN_POR_PISTA = [
+_TOKEN_BY_HINT = [
     (re.compile(r'postal|zip|cp\b', re.I), 'postal-code'),
     (re.compile(r'street|direccion|address|calle', re.I), 'street-address'),
     (re.compile(r'ciudad|city', re.I), 'address-level2'),
@@ -50,18 +51,9 @@ _RE_FIELD = re.compile(r'<input' + _RE_TAG_Q + r'>|<(select|textarea)' + _RE_TAG
 _RE_SCRIPTS = re.compile(r'<script\b.*?</script>', re.S | re.I)
 _RE_FORM_BLOCK = re.compile(r'<form\b.*?</form>', re.S | re.I)
 
-_PHRASES = {
-    'es': {'req': 'Completa este campo.', 'email': 'Escribe un correo como nombre@ejemplo.com.',
-           'url': 'Escribe una URL como https://ejemplo.com.', 'num': 'Escribe un número.',
-           'between': 'Escribe un número entre %a y %b.', 'short': 'Usa al menos %n caracteres.',
-           'pattern': 'Sigue el formato esperado: %p.'},
-    'en': {'req': 'Fill in this field.', 'email': 'Enter an email like name@example.com.',
-           'url': 'Enter a URL like https://example.com.', 'num': 'Enter a number.',
-           'between': 'Enter a number between %a and %b.', 'short': 'Use at least %n characters.',
-           'pattern': 'Follow the expected format: %p.'},
-}
+_PHRASES = a11yi18n.pair('fix')  # locales/<lang>.json — community-editable
 
-_JS_FORMAS = """<script>
+_JS_PHRASES = """<script>
 (function(){
   var F = {req:%(req)s,email:%(email)s,url:%(url)s,num:%(num)s,between:%(between)s,short:%(short)s,pattern:%(pattern)s};
   function sug(el){var v=el.validity;if(!v)return '';
@@ -109,10 +101,10 @@ def _attrs(tag_html):
     return out
 
 
-def _viewport_limpio(content):
+def _clean_viewport(content):
     parts = [p.strip() for p in content.split(',') if p.strip()]
     removed = []
-    limpias = []
+    clean = []
     for p in parts:
         if re.match(r'user-scalable\s*=\s*(no|0)', p, re.I):
             removed.append(p)
@@ -121,8 +113,8 @@ def _viewport_limpio(content):
         if m and float(m.group(1)) < 2:
             removed.append(p)
             continue
-        limpias.append(p)
-    return ', '.join(limpias), removed
+        clean.append(p)
+    return ', '.join(clean), removed
 
 
 def autofix(html_text, lang=None, title=None, url='(html)', form_errors=True):
@@ -133,12 +125,12 @@ def autofix(html_text, lang=None, title=None, url='(html)', form_errors=True):
     # 0. máscara REAL: el contenido de script/style/textarea y los comentarios
     #    no son marcado — ninguna regex de transformación debe verlo. Sin este
     #    paso, el "no toco scripts" era falso (revisión externa, ronda 2).
-    _mascaras = []
+    _masks = []
 
-    def _enmascara(text):
+    def _mask(text):
         def _pon(m):
-            tok = '\x00A11YFXMASK%d\x00' % len(_mascaras)
-            _mascaras.append((tok, m.group(0)))
+            tok = '\x00A11YFXMASK%d\x00' % len(_masks)
+            _masks.append((tok, m.group(0)))
             return tok
         text = re.sub(r'<script\b[^>]*>.*?</script\s*>', _pon, text, flags=re.I | re.S)
         text = re.sub(r'<style\b[^>]*>.*?</style\s*>', _pon, text, flags=re.I | re.S)
@@ -148,17 +140,17 @@ def autofix(html_text, lang=None, title=None, url='(html)', form_errors=True):
         return text
 
     def _unmask(text):
-        for tok, original in _mascaras:
+        for tok, original in _masks:
             text = text.replace(tok, original)
         return text
 
-    fixed = _enmascara(fixed)
+    fixed = _mask(fixed)
 
     # 1. viewport: zoom sin bloqueos (1.4.4)
     m = _RE_VIEWPORT.search(fixed)
     if m and (re.search(r'user-scalable\s*=\s*(no|0)', m.group(2), re.I)
               or re.search(r'maximum-scale\s*=\s*([\d.]+)', m.group(2), re.I)):
-        clean, removed = _viewport_limpio(m.group(2))
+        clean, removed = _clean_viewport(m.group(2))
         if clean:
             fixed = fixed[:m.start()] + m.group(1) + clean + m.group(3) + fixed[m.end():]
         else:
@@ -190,13 +182,13 @@ def autofix(html_text, lang=None, title=None, url='(html)', form_errors=True):
             return tag
         a = _attrs(tag)
         kind = (a.get('type') or 'text').lower()
-        token = _TOKEN_POR_TYPE.get(kind)
+        token = _TOKEN_BY_TYPE.get(kind)
         if not token:
-            pista = (a.get('name') or '') + ' ' + (a.get('id') or '')
+            hint = (a.get('name') or '') + ' ' + (a.get('id') or '')
             if kind in ('search', 'password'):
                 return tag
-            for rx, tok in _TOKEN_POR_PISTA:
-                if rx.search(pista):
+            for rx, tok in _TOKEN_BY_HINT:
+                if rx.search(hint):
                     token = tok
                     break
         if not token:
@@ -253,15 +245,15 @@ def autofix(html_text, lang=None, title=None, url='(html)', form_errors=True):
                     opening = opening[:-1] + ' data-a11yfx-err="%s">' % fid
                 else:
                     opening = opening[:-1] + ' data-a11yfx-err="%s" aria-describedby="%s">' % (fid, fid)
-                capa = '\n<p class="a11yfx-err" id="%s" hidden></p>' % fid
+                layer = '\n<p class="a11yfx-err" id="%s" hidden></p>' % fid
                 if opening.lower().startswith(('<textarea', '<select')):
                     # content-bearing element: the layer goes AFTER the close,
                     # never inside (inside would become its value — a real
                     # data-corruption regression, caught in external review)
-                    return elem.replace(re.match(r'<[^>]*>', elem).group(0), opening, 1) + capa
-                return opening + capa
+                    return elem.replace(re.match(r'<[^>]*>', elem).group(0), opening, 1) + layer
+                return opening + layer
 
-            def _manejo_propio(atrs_form):
+            def _own_handling(atrs_form):
                 m = re.search(r'onsubmit=["\']([^"\']*)', atrs_form, re.I)
                 if not m:
                     return False
@@ -272,7 +264,7 @@ def autofix(html_text, lang=None, title=None, url='(html)', form_errors=True):
             def _process_block(mb):
                 block = mb.group(0)
                 opening = re.match(r'<form\b[^>]*>', block, re.I).group(0)
-                if 'data-a11yfx' in opening or _manejo_propio(opening):
+                if 'data-a11yfx' in opening or _own_handling(opening):
                     return block  # custom error handling present: never fight it
                 state['forms'] += 1
                 rest = block[len(opening):]
@@ -282,7 +274,7 @@ def autofix(html_text, lang=None, title=None, url='(html)', form_errors=True):
             fixed = _RE_FORM_BLOCK.sub(_process_block, fixed)
             if state['fields']:
                 fr = _PHRASES.get(lang, _PHRASES['en'])
-                js = _JS_FORMAS % {k: _json.dumps(v) for k, v in fr.items()}
+                js = _JS_PHRASES % {k: _json.dumps(v) for k, v in fr.items()}
                 fixed = fixed.replace('</body>', js + '\n</body>', 1)
                 applied.append({'signal': 'form_error_missing',
                                   'fix': f"accessible error layer on {state['forms']} form(s), "

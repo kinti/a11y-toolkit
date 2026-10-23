@@ -19,56 +19,9 @@ import subprocess
 import sys
 import tempfile
 import os
+from . import a11yi18n
 
-T = {
-    'es': {
-        'criteria': [
-            ('1.4.3 Contraste (mínimo) · texto normal', 'AA', 4.5),
-            ('1.4.3 Contraste (mínimo) · texto grande', 'AA', 3.0),
-            ('1.4.6 Contraste (mejorado) · texto normal', 'AAA', 7.0),
-            ('1.4.6 Contraste (mejorado) · texto grande', 'AAA', 4.5),
-            ('1.4.11 Contraste no textual (UI, iconos, bordes)', 'AA', 3.0),
-        ],
-        'invalid_color': 'color no válido (usa #rgb, #rrggbb o rgb(r,g,b))',
-        'invalid_region': 'region debe ser x,y,ancho,alto (números separados por comas)',
-        'region_outside': 'región fuera de la imagen',
-        'no_pixels': 'sin píxeles en la región',
-        'load_error': 'no se pudo cargar la imagen',
-        'opaque_text': 'para texto sobre imagen usa un color opaco (sin alfa)',
-        'selector_missing': 'selector {s} no encontrado en la página',
-        'no_box': 'el elemento que coincide con {s} no tiene caja visible que muestrear',
-        'lightening': 'aclarando', 'darkening': 'oscureciendo',
-        'no_post_copy': 'sin copia específica del post: base a secas',
-        'interp': ('El contraste del texto debe evaluarse contra el FONDO REAL tras él: '
-                   'usa worst_ratio para saber la zona más hostil y area_passes_aa_normal_text_4_5 '
-                   'para saber cuánta superficie es segura. Si area_passes_aa_normal_text_4_5 < 100% con texto '
-                   'sobre imagen, se necesita velo/overlay o texto alternativo posicionado.'),
-    },
-    'en': {
-        'criteria': [
-            ('1.4.3 Contrast (Minimum) · normal text', 'AA', 4.5),
-            ('1.4.3 Contrast (Minimum) · large text', 'AA', 3.0),
-            ('1.4.6 Contrast (Enhanced) · normal text', 'AAA', 7.0),
-            ('1.4.6 Contrast (Enhanced) · large text', 'AAA', 4.5),
-            ('1.4.11 Non-text Contrast (UI, icons, borders)', 'AA', 3.0),
-        ],
-        'invalid_color': 'invalid color (use #rgb, #rrggbb or rgb(r,g,b))',
-        'invalid_region': 'region must be x,y,width,height (comma-separated numbers)',
-        'region_outside': 'region outside the image',
-        'no_pixels': 'no pixels in region',
-        'load_error': 'could not load image',
-        'opaque_text': 'use an opaque color for text over images (no alpha)',
-        'selector_missing': 'selector {s} not found on the page',
-        'no_box': 'the element matched by {s} has no visible box to sample',
-        'lightening': 'lightening', 'darkening': 'darkening',
-        'no_post_copy': 'no specific copy of the post: base only',
-        'interp': ('Text contrast must be evaluated against the REAL background behind it: '
-                   'use worst_ratio to find the most hostile area and '
-                   'area_passes_aa_normal_text_4_5 to know how much surface is safe. If '
-                   'area_passes_aa_normal_text_4_5 < 100% for text over image, you need an overlay/scrim or '
-                   'repositioned alternative text.'),
-    },
-}
+T = a11yi18n.pair('contrast')  # locales/<lang>.json — community-editable
 
 
 def _t(lang):
@@ -249,26 +202,26 @@ def suggest(fg, bg, target=4.5, lang='en'):
     return best
 
 
-def pair(fg_s, bg_s, con_sugerencia=True, lang='en'):
+def pair(fg_s, bg_s, with_suggestion=True, lang='en'):
     fg, bg = parse_color(fg_s), parse_color(bg_s)
     if not fg or not bg:
         return {'error': _t(lang)['invalid_color']}
-    nota_alfa = None
+    alpha_note = None
     if bg.get('a', 1) < 1:
         bg = composite(bg, WHITE)
-        nota_alfa = hexs(bg)
+        alpha_note = hexs(bg)
     if fg.get('a', 1) < 1:
         fg = composite(fg, bg)
-        nota_alfa = hexs(fg)
+        alpha_note = hexs(fg)
     r = ratio(fg, bg)
     out = {
         'text': hexs(fg), 'background': hexs(bg),
         'ratio': round(r, 2),
         'verdicts': verdicts(r, lang),
     }
-    if nota_alfa:
-        out['effective_color'] = nota_alfa
-    if con_sugerencia and r < 4.5:
+    if alpha_note:
+        out['effective_color'] = alpha_note
+    if with_suggestion and r < 4.5:
         s = suggest(fg, bg, 4.5, lang)
         if s:
             out['aa_suggestion'] = s
@@ -344,7 +297,7 @@ def _percentile(vals, p):
 # color types 0/2/3/6 a 8 bits. Lo que no sepa → ValueError con mensaje claro.
 
 
-def decodificar_png(data):
+def decode_png(data):
     """Bytes PNG → (ancho, alto, bytes RGB). Sin dependencias.
 
     Soporta color types 0 (gris), 2 (RGB), 3 (paleta) y 6 (RGBA) a 8 bits;
@@ -370,30 +323,30 @@ def decodificar_png(data):
         pos += 12 + ln
     if bd != 8:
         raise ValueError(f'PNG bit depth {bd} unsupported (8-bit only)')
-    canales = {0: 1, 2: 3, 3: 1, 4: 2, 6: 4}.get(ct)
-    if canales is None:
+    channels = {0: 1, 2: 3, 3: 1, 4: 2, 6: 4}.get(ct)
+    if channels is None:
         raise ValueError(f'PNG color type {ct} unsupported')
     if ct == 3 and not plte:
         raise ValueError('PNG palette without PLTE chunk')
-    crudo = zlib.decompress(idat)
-    step = w * canales
+    raw = zlib.decompress(idat)
+    step = w * channels
     rows = []
     for y in range(h):
         base = y * (step + 1)
-        filtro = crudo[base]
-        f = bytearray(crudo[base + 1:base + 1 + step])
+        filter = raw[base]
+        f = bytearray(raw[base + 1:base + 1 + step])
         prev = rows[-1] if rows else bytearray(step)
         for i in range(step):
-            a = f[i - canales] if i >= canales else 0
+            a = f[i - channels] if i >= channels else 0
             b = prev[i]
-            c = prev[i - canales] if i >= canales else 0
-            if filtro == 1:
+            c = prev[i - channels] if i >= channels else 0
+            if filter == 1:
                 f[i] = (f[i] + a) & 255
-            elif filtro == 2:
+            elif filter == 2:
                 f[i] = (f[i] + b) & 255
-            elif filtro == 3:
+            elif filter == 3:
                 f[i] = (f[i] + ((a + b) >> 1)) & 255
-            elif filtro == 4:
+            elif filter == 4:
                 p = a + b - c
                 pa, pb, pc = abs(p - a), abs(p - b), abs(p - c)
                 pr = a if (pa <= pb and pa <= pc) else (b if pb <= pc else c)
@@ -403,7 +356,7 @@ def decodificar_png(data):
     for y in range(h):
         f = rows[y]
         for x in range(w):
-            o = x * canales
+            o = x * channels
             if ct == 0:
                 r = g = b = f[o]
             elif ct == 2:
@@ -513,11 +466,11 @@ def image_contrast(path, text_color, region=None, sample=4, lang='en'):
     budget = 2_000_000
     if (rw // sample) * (rh // sample) > budget:
         sample = max(sample, int(((rw * rh) / budget) ** 0.5) + 1)
-    recorte = bytearray(rw * rh * 3)
+    clip = bytearray(rw * rh * 3)
     for j in range(rh):
-        recorte[j * rw * 3:(j + 1) * rw * 3] = rgb[(y + j) * w * 3 + x * 3:
+        clip[j * rw * 3:(j + 1) * rw * 3] = rgb[(y + j) * w * 3 + x * 3:
                                                     (y + j) * w * 3 + (x + rw) * 3]
-    m = sample_rgb(rw, rh, bytes(recorte), c, sample)
+    m = sample_rgb(rw, rh, bytes(clip), c, sample)
     if not m:
         return {'error': t9['no_pixels']}
 
@@ -545,7 +498,7 @@ def main(argv):
         return 1
     lang = 'en'
     flags = {}
-    posicionales = []
+    positional = []
     i = 1
     while i < len(argv):
         v = argv[i]
@@ -561,18 +514,18 @@ def main(argv):
         elif v == '--suggest':
             flags['--suggest'] = True
         else:
-            posicionales.append(v)
+            positional.append(v)
         i += 1
     if argv[0] == 'pair':
-        if len(posicionales) < 2:
+        if len(positional) < 2:
             print('usage: contrast.py pair "#text" "#background" [--lang es|en]')
             return 1
-        res = pair(posicionales[0], posicionales[1], con_sugerencia=True, lang=lang)
+        res = pair(positional[0], positional[1], with_suggestion=True, lang=lang)
     else:
-        if not posicionales or '--text' not in flags:
+        if not positional or '--text' not in flags:
             print('usage: contrast.py image photo.jpg --text "#ffffff" [--region x,y,w,h] [--sample N] [--lang es|en]')
             return 1
-        res = image_contrast(posicionales[0], flags['--text'],
+        res = image_contrast(positional[0], flags['--text'],
                              region=flags.get('--region'),
                              sample=flags.get('--sample', 4), lang=lang)
     print(json.dumps(res, ensure_ascii=False, indent=1))

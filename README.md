@@ -697,6 +697,18 @@ uvx --from a11y-toolkit a11ytoolkit init     # writes/merges the AGENTS.md hook 
 It also prints the MCP config block and the optional skill install step.
 `--check` reports whether the hook is present (exit 1 if not — CI-friendly).
 
+## Languages — community locale packs
+
+All user-facing messages (findings, remediations, legal wording) live in
+[locale packs](a11y_toolkit/locales/) — one JSON per language, `es` and `en`
+ship today. **Adding a language is a single-file PR**: copy
+[`_template.json`](a11y_toolkit/locales/_template.json), translate keeping the
+`{placeholders}`, and `python3 tests/test_locales.py` validates it mechanically
+(keys, placeholders, plural rule, completeness). Same community model as
+axe-core's locales — with validation axe-core doesn't have. Guide:
+[docs/i18n.md](docs/i18n.md). Downstream products can layer brand wording via
+overlays without forking.
+
 ## CLI — same engine, one command
 
 ```bash
