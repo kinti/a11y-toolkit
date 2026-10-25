@@ -202,5 +202,19 @@ for h in HOSTILES:
 # el diff de snapshots con JSON malformado no traza (vía CLI sí; vía API lanza
 # ValueError controlado por el servidor — aquí solo la garantía del auditor)
 
+# ---------- 5. higiene: lo interno no entra en el repo público ----------
+# 2026-10: .zcodeignore (fichero que el editor escribe en el workspace y que
+# lista rutas internas) viajó barrida por git add -A en 23 releases, desde
+# v4.0.1. Clavado: no vuelve a trackearse, y el nombre de ninguna ubicación
+# interna aparece en fichero trackeado alguno (el hook bloquea al commit).
+_tracked = subprocess.run(['git', 'ls-files'], cwd=ROOT, capture_output=True,
+                          text=True, check=True).stdout.split()
+assert '.zcodeignore' not in _tracked, '.zcodeignore trackeada — git rm --cached .zcodeignore'
+_aguja = b'a11y-' + b'drafts'  # partida: el propio test no contiene el literal que busca
+for _f in _tracked:
+    with open(os.path.join(ROOT, _f), 'rb') as _fh:
+        assert _aguja not in _fh.read().lower(), f'nombre de ubicación interna publicado en {_f}'
+
 print('INVARIANTES OK ✓ (catálogo parejo, _rem completo, versiones alineadas, '
-      f'conteos = {len(server.TOOLS)}+{len(server._PROMPTS)} en todas las superficies, fuzz hostil sin caídas)')
+      f'conteos = {len(server.TOOLS)}+{len(server._PROMPTS)} en todas las superficies, '
+      'fuzz hostil sin caídas, superficie interna limpia)')

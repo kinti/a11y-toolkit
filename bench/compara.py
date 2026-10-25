@@ -23,9 +23,15 @@ sys.path.insert(0, RAIZ)
 from a11y_toolkit.a11yaudit import audit_url
 from a11y_toolkit.a11ydom import audit_dom_url
 
-AXE_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'axe.min.js')
+# el binario MPL vive en la caché del usuario, nunca dentro del árbol del repo
+# (zero-dep: no se redistribuye código de terceros aunque sea artefacto local)
+_AXE_CACHE = os.path.join(os.environ.get('XDG_CACHE_HOME',
+                                         os.path.expanduser('~/.cache')),
+                          'a11y-bench')
+AXE_PATH = os.path.join(_AXE_CACHE, 'axe.min.js')
 if not os.path.exists(AXE_PATH):
     import urllib.request
+    os.makedirs(_AXE_CACHE, exist_ok=True)
     urllib.request.urlretrieve('https://cdn.jsdelivr.net/npm/axe-core@4.10.3/axe.min.js', AXE_PATH)
 AXE_JS = open(AXE_PATH, encoding='utf-8').read()
 

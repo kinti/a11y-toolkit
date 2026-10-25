@@ -1,8 +1,11 @@
 #!/usr/bin/env bash
 # Internal documents never reach the public repo — block at commit time.
 set -euo pipefail
-PATRONES=(drafts/ internal/ a11y-drafts/ .draft.md .local.md competencia competitor backlog estrategia)
-STAGED=$(git diff --cached --name-only || true)
+# (the specific internal names live in generic patterns below — nothing in
+# this file may name a private location: everything here is public)
+PATRONES=(drafts/ internal/ .draft.md .local.md competencia competitor backlog estrategia zcodeignore)
+# deletions can't leak content — only check files the commit adds or modifies
+STAGED=$(git diff --cached --name-only --diff-filter=ACMR || true)
 for f in $STAGED; do
   low=$(echo "$f" | tr 'A-Z' 'a-z')
   for p in "${PATRONES[@]}"; do
