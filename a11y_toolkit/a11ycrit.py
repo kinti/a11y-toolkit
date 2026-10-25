@@ -617,6 +617,128 @@ _C = {
                'Buttons with no name, unknown ARIA roles, broken aria-labelledby, slider without aria-valuenow, aria-hidden on focusables.',
                'a11y_audit_url / a11y_audit_dom (detection); a11y_snapshot shows the real names.'),
     }),
+
+    # ── AAA: la biblia completa (ingesta w3c/wcag 2026-10) ──────────────────
+    '1.2.6': ('AAA', {
+        'es': ('Lengua de señas (pregrabado)', 'El vídeo pregrabado ofrece interpretación en lengua de señas.', 'Vídeos con subtítulos pero sin interpretación en señas.', 'Manual: verificar que existe la pista o ventana de lengua de señas.'),
+        'en': ('Sign Language (Prerecorded)', 'Prerecorded video provides sign language interpretation.', 'Videos with captions but no sign language interpretation.', 'Manual: verify a sign language track or window exists.'),
+    }),
+    '1.2.7': ('AAA', {
+        'es': ('Audiodescripción extendida (pregrabado)', 'La audiodescripción extendida pausa el vídeo cuando hace falta más tiempo.', 'Audiodescripción que se corta porque el vídeo no hace pausas.', 'Manual: reproducir y comprobar que la descripción completa cabe.'),
+        'en': ('Extended Audio Description (Prerecorded)', 'Extended audio description pauses the video when more time is needed.', 'Audio description cut off because the video never pauses.', 'Manual: play and check the full description fits.'),
+    }),
+    '1.2.8': ('AAA', {
+        'es': ('Alternativa medial (pregrabado)', 'Toda película pregrabada tiene transcripción textual completa que describe la acción.', 'Vídeos largos sin transcripción descriptiva.', 'Manual: verificar la transcripción y que describe lo esencial visual.'),
+        'en': ('Media Alternative (Prerecorded)', 'Every prerecorded movie has a full text transcript describing the action.', 'Long videos without a descriptive transcript.', 'Manual: verify the transcript describes the essential visuals.'),
+    }),
+    '1.2.9': ('AAA', {
+        'es': ('Solo audio (en directo)', 'La transmisión de audio en directo tiene transcripción o equivalente textual.', 'Directos y webinars sin subtítulos ni transcripción en vivo.', 'Manual: verificar la transcripción en vivo o su equivalente.'),
+        'en': ('Audio-only (Live)', 'Live audio streams provide a transcript or text alternative.', 'Live events and webinars without live captions or transcript.', 'Manual: verify live transcription or its equivalent.'),
+    }),
+    '1.3.6': ('AAA', {
+        'es': ('Identificar el propósito', 'El propósito de los controles comunes se puede determinar programáticamente (personalización).', 'Controles sin semántica que impiden la personalización por el usuario.', 'a11y_audit_url (roles/estructura) + manual: contrastar con los purposes de WCAG.'),
+        'en': ('Identify Purpose', 'The purpose of common controls is programmatically determinable (personalization).', 'Controls without semantics blocking user-side customization.', 'a11y_audit_url (roles/structure) + manual: compare against WCAG purposes.'),
+    }),
+    '1.4.6': ('AAA', {
+        'es': ('Contraste (mejorado)', 'Texto con ratio ≥ 7:1 (≥ 4,5:1 el grande).', 'Gris claro sobre blanco, textos de marca al límite.', 'a11y_contrast_pair con objetivo 7.0; a11y_contrast_dom / a11y_contrast_image en contexto real.'),
+        'en': ('Contrast (Enhanced)', 'Text at ≥ 7:1 (≥ 4.5:1 large).', 'Light gray on white, brand colors at the edge.', 'a11y_contrast_pair with 7.0 target; a11y_contrast_dom / a11y_contrast_image in real context.'),
+    }),
+    '1.4.7': ('AAA', {
+        'es': ('Audio de fondo bajo o nulo', 'El audio hablado tiene fondo ≤ 20 dB por debajo de la voz, o se puede apagar.', 'Música alta bajo una locución que no se puede silenciar.', 'Manual: medir o verificar el control de audio de fondo.'),
+        'en': ('Low or No Background Audio', 'Speech audio has background ≥ 20 dB below the voice, or it can be turned off.', 'Loud music under narration with no way to mute it.', 'Manual: measure or verify the background-audio control.'),
+    }),
+    '1.4.8': ('AAA', {
+        'es': ('Presentación visual', 'Bloques de texto: selección de colores, 80 columnas, reflujo, justificado no forzado, interlineado/espaciado ajustables.', 'Textos justificados a fuerza de hyphens, sin opciones de espaciado, columnas kilométricas.', 'Manual: probar el reflujo a 320px (a11y_reflow ayuda) y las preferencias de usuario.'),
+        'en': ('Visual Presentation', 'Text blocks: color selectable, 80 columns, reflow, no forced justification, adjustable leading/spacing.', 'Force-justified text, no spacing options, kilometer-wide columns.', 'Manual: test reflow at 320px (a11y_reflow helps) and user preferences.'),
+    }),
+    '1.4.9': ('AAA', {
+        'es': ('Imágenes de texto (sin excepción)', 'Texto como texto siempre — salvo esencial (logos) o decorativo.', 'Citas o párrafos enteros renderizados como imagen.', 'a11y_audit_url (images_of_text) + revisión visual de excepciones esenciales.'),
+        'en': ('Images of Text (No Exception)', 'Text as text always — except essential (logos) or decorative.', 'Whole quotes or paragraphs rendered as images.', 'a11y_audit_url (images_of_text) + visual review of essential exceptions.'),
+    }),
+    '2.1.3': ('AAA', {
+        'es': ('Teclado (sin excepción)', 'TODA la funcionalidad es operable por teclado, sin excepción de plataforma.', 'Widget que solo funciona con puntero en alguna plataforma.', 'a11y_keyboard (trampas) + recorrido manual completo por teclado.'),
+        'en': ('Keyboard (No Exception)', 'ALL functionality is keyboard operable, with no platform exception.', 'A widget that only works with pointer on some platform.', 'a11y_keyboard (traps) + full manual keyboard walk.'),
+    }),
+    '2.2.3': ('AAA', {
+        'es': ('Sin tiempos', 'Ni la interacción ni los eventos tienen límite de tiempo — ni siquiera ajustable.', 'Carrousels que avanzan solos sin control de pausa.', 'Manual: buscar todo avance/timeout automático; a11y_reduced_motion ayuda con animaciones.'),
+        'en': ('No Timing', 'No interaction or event has a time limit — not even an adjustable one.', 'Carousels that auto-advance with no pause control.', 'Manual: hunt every auto-advance/timeout; a11y_reduced_motion helps with animation.'),
+    }),
+    '2.2.4': ('AAA', {
+        'es': ('Interrupciones', 'Las interrupciones (avisos, actualizaciones) se pueden aplazar o suprimir.', 'Popups de chat que saltan sobre la tarea y no se silencian.', 'Manual: probar notificaciones y actualizaciones en contexto.'),
+        'en': ('Interruptions', 'Interruptions (alerts, updates) can be postponed or suppressed.', 'Chat popups jumping over the task with no way to silence.', 'Manual: test notifications and updates in context.'),
+    }),
+    '2.2.5': ('AAA', {
+        'es': ('Re-autenticación', 'Al re-autenticar tras expirar la sesión, no se pierde el estado ni los datos de la actividad.', 'Formularios que se vacían cuando caduca la sesión a mitad.', 'Manual: dejar caducar la sesión con un formulario a medias.'),
+        'en': ('Re-authenticating', 'Re-authenticating after session expiry loses no activity data or state.', 'Forms wiped when the session expires mid-way.', 'Manual: let a half-filled form session expire.'),
+    }),
+    '2.2.6': ('AAA', {
+        'es': ('Tiempos de espera', 'Se avisa de la duración de la inactividad que provoca pérdida de datos (salvo seguridad esencial).', 'Sesiones que caducan sin decir cuánto ni avisar.', 'Manual: revisar avisos de expiración y su antelación.'),
+        'en': ('Timeouts', 'Users are warned of the inactivity duration that causes data loss (unless security-essential).', 'Sessions expiring with no duration info or warning.', 'Manual: review expiry notices and their lead time.'),
+    }),
+    '2.3.2': ('AAA', {
+        'es': ('Tres destellos', 'Nada destella más de tres veces por segundo (umbral más estricto que 2.3.1).', 'Animaciones parpadeantes agresivas aunque "justo" bajo el umbral de 2.3.1.', 'Manual + análisis de la frecuencia de parpadeo del contenido.'),
+        'en': ('Three Flashes', 'Nothing flashes more than three times per second (stricter threshold than 2.3.1).', 'Aggressive flashing animations "just" under the 2.3.1 threshold.', 'Manual + flash-frequency analysis of the content.'),
+    }),
+    '2.3.3': ('AAA', {
+        'es': ('Animación por interacciones', 'La animación por interacción se puede desactivar (salvo esencial).', 'Parallax y efectos que siguen al scroll/puntero sin off.', 'a11y_reduced_motion (¿respeta prefers-reduced-motion?) + manual de la pausa.'),
+        'en': ('Animation from Interactions', 'Motion from interaction can be disabled (unless essential).', 'Parallax and effects tracking scroll/pointer with no off switch.', 'a11y_reduced_motion (honors prefers-reduced-motion?) + manual pause check.'),
+    }),
+    '2.4.8': ('AAA', {
+        'es': ('Ubicación', 'Hay información de la ubicación dentro del conjunto de páginas (breadcrumb o mapa).', 'Páginas profundas sin rastro de dónde estás.', 'Manual: verificar breadcrumb/mapa; a11y_audit_url detecta sitemap/enlaces de ayuda.'),
+        'en': ('Location', 'Information about location within the page set exists (breadcrumb or sitemap).', 'Deep pages with no trace of where you are.', 'Manual: verify breadcrumb/sitemap; a11y_audit_url detects sitemap/help links.'),
+    }),
+    '2.4.9': ('AAA', {
+        'es': ('Propósito del enlace (solo enlace)', 'El propósito se entiende SOLO con el texto del enlace, sin contexto.', '"Más", "aquí" como única pista incluso con contexto.', 'a11y_audit_url (generic_link / same_name_links) + revisión editorial.'),
+        'en': ('Link Purpose (Link Only)', 'The purpose is understandable from the link text ALONE, no context.', '"More", "here" as the only hint even with context.', 'a11y_audit_url (generic_link / same_name_links) + editorial review.'),
+    }),
+    '2.4.10': ('AAA', {
+        'es': ('Encabezados de sección', 'Las secciones van encabezadas (cuando la estructura lo permite).', 'Muros de texto sin encabezados por sección.', 'a11y_audit_url (heading_skips / no_headings) + revisión de estructura.'),
+        'en': ('Section Headings', 'Sections begin with headings (where structure allows).', 'Walls of text with no per-section headings.', 'a11y_audit_url (heading_skips / no_headings) + structure review.'),
+    }),
+    '2.4.12': ('AAA', {
+        'es': ('Foco no oscurecido (mejorado)', 'El foco nunca queda oculto por nada (umbral estricto del 2.4.11).', 'Banners/cookies que tapan el elemento enfocado.', 'a11y_audit_dom (focus_obscured 2.4.11) + recorrido manual estricto.'),
+        'en': ('Focus Not Obscured (Enhanced)', 'Focus is never obscured by anything (strict version of 2.4.11).', 'Banners/cookies covering the focused element.', 'a11y_audit_dom (focus_obscured 2.4.11) + strict manual walk.'),
+    }),
+    '2.4.13': ('AAA', {
+        'es': ('Apariencia del foco', 'El indicador de foco: ≥ 2px de perímetro, ≥ 3:1 de contraste, sin que el tamaño del encierre baje.', 'Focos de 1px casi invisibles o con cambio de color únicamente.', 'a11y_audit_dom (focus indicator) + medición manual fina.'),
+        'en': ('Focus Appearance', 'Focus indicator: ≥ 2px perimeter, ≥ 3:1 contrast, no enclosure size drop.', '1px near-invisible focus or color-only change.', 'a11y_audit_dom (focus indicator) + fine manual measurement.'),
+    }),
+    '2.5.5': ('AAA', {
+        'es': ('Tamaño del objetivo (mejorado)', 'Objetivos de puntero ≥ 44×44 CSS (con las excepciones del estándar).', 'Iconos de 16px pegados unos a otros.', 'a11y_audit_dom (target_small, umbral AA 24 — el AAA exige 44).'),
+        'en': ('Target Size (Enhanced)', 'Pointer targets ≥ 44×44 CSS (with the standard exceptions).', '16px icons crammed together.', 'a11y_audit_dom (target_small, AA threshold 24 — AAA requires 44).'),
+    }),
+    '2.5.6': ('AAA', {
+        'es': ('Mecanismos de entrada concurrentes', 'No restringir el uso de los mecanismos de entrada disponibles (salvo esencial).', 'Forzar a pantalla táctil cuando hay teclado/pointer.', 'Manual: probar entrada alternativa en cada plataforma.'),
+        'en': ('Concurrent Input Mechanisms', 'Do not restrict use of available input mechanisms (unless essential).', 'Forcing touch when keyboard/pointer exist.', 'Manual: try an alternative input on each platform.'),
+    }),
+    '3.1.3': ('AAA', {
+        'es': ('Palabras inusuales', 'Las palabras raras, jerga o idioms tienen explicación (glosario o en línea).', 'Jerga de sector sin glosario en una web pública.', 'Manual + revisión editorial; reading_level da el nivel de lectura del texto.'),
+        'en': ('Unusual Words', 'Rare words, jargon or idioms are explained (glossary or inline).', 'Industry jargon with no glossary on a public site.', 'Manual + editorial review; reading_level gives the text reading level.'),
+    }),
+    '3.1.4': ('AAA', {
+        'es': ('Abreviaturas', 'Las abreviaturas tienen expansión en su primera aparición (o un glosario).', 'Siglas internas sin expandir jamás.', 'Manual + revisión editorial de primeras apariciones.'),
+        'en': ('Abbreviations', 'Abbreviations have an expansion at first use (or a glossary).', 'Internal acronyms never expanded.', 'Manual + editorial review of first occurrences.'),
+    }),
+    '3.1.5': ('AAA', {
+        'es': ('Nivel de lectura', 'Suplementos de comprensión para contenido que exige nivel de lectura superior al inferior de secundaria.', 'Textos legales densos sin resumen en lenguaje claro.', 'reading_level (Fernández-Huerta/Flesch por página) para detectar densidad + redacción de suplementos.'),
+        'en': ('Reading Level', 'Comprehension supplements when reading level exceeds lower secondary education.', 'Dense legal text with no plain-language summary.', 'reading_level (Fernández-Huerta/Flesch per page) to spot density + write supplements.'),
+    }),
+    '3.1.6': ('AAA', {
+        'es': ('Pronunciación', 'Cuando el significado depende de la pronunciación, esta se determina programáticamente o por contexto.', 'Homógrafos chinos o puntuación hebrea sin marca de pronunciación.', 'Manual específico del idioma (idiomas con ambigüedad de pronunciación).'),
+        'en': ('Pronunciation', 'Where meaning depends on pronunciation, it is programmatically or contextually determinable.', 'Chinese heteronyms or Hebrew punctuation without pronunciation marks.', 'Manual, language-specific (languages with pronunciation ambiguity).'),
+    }),
+    '3.3.5': ('AAA', {
+        'es': ('Ayuda', 'Hay ayuda sensible al contexto para cada paso de un proceso.', 'Formularios complejos sin pista contextual en cada campo difícil.', 'Manual: revisar hints/contexto por paso; a11y_audit_url (help_inconsistent 3.2.6 relacionado).'),
+        'en': ('Help', 'Context-sensitive help exists for each step of a process.', 'Complex forms with no contextual hint on each hard field.', 'Manual: review per-step hints; a11y_audit_url (related 3.2.6 help_inconsistent).'),
+    }),
+    '3.3.6': ('AAA', {
+        'es': ('Prevención de errores (todos)', 'Toda sumisión reversible/verificable/corregible — para TODOS los formularios, no solo legales.', 'Cualquier formulario que confirma a ciegas.', 'Manual: recorrer todos los flujos de envío.'),
+        'en': ('Error Prevention (All)', 'Every submission reversible/verifiable/correctable — for ALL forms, not just legal ones.', 'Any form that confirms blindly.', 'Manual: walk every submission flow.'),
+    }),
+    '3.3.9': ('AAA', {
+        'es': ('Autenticación accesible (mejorado)', 'Sin prueba de función cognitiva NINGUNA en la autenticación (ni con alternativa: ninguna).', 'Captcha como único paso, sin excepción.', 'Manual del flujo de autenticación completo (registro, login, recuperación).'),
+        'en': ('Accessible Authentication (Enhanced)', 'NO cognitive function test at all in authentication (no alternative-based exception either).', 'A captcha as the only step, no exception.', 'Manual review of the full authentication flow (signup, login, recovery).'),
+    }),
 }
 
 _LEVEL = {'A': 'A', 'AA': 'AA', 'AAA': 'AAA'}
@@ -796,6 +918,8 @@ _SIGNAL_CRIT = {
     'orientation_lock': '1.3.4',
     'pdf_encrypted': '1.1.1',
     'pdf_fake_link': '2.4.4',
+    'pdf_form_no_label': '3.3.2',
+    'pdf_button_no_name': '4.1.2',
     'pdf_low_contrast': '1.4.3',
     'pdf_no_alt': '1.1.1',
     'pdf_no_lang': '3.1.1',

@@ -42,7 +42,7 @@ def docx_screen(path, lang='en'):
     except (zipfile.BadZipFile, FileNotFoundError, IsADirectoryError, PermissionError) as e:
         return {'error': f'no es un .docx legible: {e}'}
     if 'word/document.xml' not in z.namelist():
-        return {'error': 'ZIP sin word/document.xml (¿es un .docx de verdad?)'}
+        return {'error': 'ZIP without word/document.xml (is this really a .docx?)'}
 
     body = z.read('word/document.xml').decode('utf-8', errors='replace')
 

@@ -41,6 +41,25 @@ assert all(_OUTCOMES[o].strip() for o in _OUTCOMES), 'outcome sin nombre'
 assert len(_OUTCOMES) == 46, f'registro divergente del draft: {len(_OUTCOMES)} outcomes (re-baseline pendiente)'
 assert DRAFT['url'] == 'https://www.w3.org/TR/wcag-3.0/' and DRAFT['draft_date'] == '10 September 2026'
 
+# 2b. ingesta: el registro debe coincidir con la FUENTE canónica grabada
+# (snapshot generado por scripts/wcag3_ingest.py desde el clon w3c/wcag3 —
+# cada re-baseline del draft refresca el snapshot con --update)
+import re as _re2
+_snap = json.load(open(os.path.join(ROOT, 'docs', 'wcag3-outcomes-source.json'), encoding='utf-8'))
+_norm = lambda s: _re2.sub(r'[^a-z0-9]', '', s.lower())  # noqa: E731
+_fuente = {_norm(_s.replace('-', ' ')) for _area in _snap['outcomes'].values() for _s in _area}
+_fuente = {(_t.replace('and ', 'and ') if False else _t) for _t in _fuente}
+# slug→título: capitalizar cada palabra salvo and/of/or
+def _tit(_slug):
+    return _norm(' '.join(p.capitalize() if p not in ('and', 'of', 'or') else p
+                          for p in _slug.replace('-', ' ').replace('  ', ' ').split()))
+_fuente = {_tit(_s) for _area in _snap['outcomes'].values() for _s in _area}
+_nuestros = {_norm(n) for n in _OUTCOMES.values()}
+assert _nuestros == _fuente, (f'deriva frente a la fuente canónica: '
+                              f'solo-nosotros={sorted(_nuestros - _fuente)[:3]} '
+                              f'solo-fuente={sorted(_fuente - _nuestros)[:3]} — correr '
+                              'scripts/wcag3_ingest.py y re-baselinear')
+
 
 def _sin_score(nodo, ruta='root'):
     """Recorre: ninguna clave se llama score/tier/level con valor de claim."""

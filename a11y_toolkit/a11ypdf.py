@@ -30,6 +30,7 @@ _CRIT = {
     'pdf_no_lang': ('3.1.1', 'medium'), 'pdf_no_outline': ('1.3.1', 'low'),
     'pdf_no_alt': ('1.1.1', 'high'), 'pdf_encrypted': ('1.1.1', 'medium'),
     'pdf_scanned': ('1.1.1', 'high'),
+    'pdf_form_no_label': ('3.3.2', 'medium'), 'pdf_button_no_name': ('4.1.2', 'high'),
 }
 
 
@@ -71,7 +72,7 @@ def pdf_screen(path_or_bytes, lang='en'):
         name = str(path_or_bytes).rsplit('/', 1)[-1]
 
     if not data.startswith(b'%PDF-'):
-        return {'error': 'no es un PDF (sin marca %PDF-)'}
+        return {'error': 'not a PDF (no %PDF- marker)'}
 
     streams = _uncompressed_streams(data)
     todo = data + b'\n'.join(streams[:40])
@@ -155,7 +156,7 @@ def pdf_screen(path_or_bytes, lang='en'):
         findings.append({
             'severity': 'medium', 'criterion': '1.4.3 (PDF)',
             'signal': 'pdf_low_contrast',
-            'issue': _t(lang, 'pdf_low_contrast').format(n=len(low_hits), ej='; '.join(low_hits[:3])),
+            'issue': _t(lang, 'pdf_low_contrast').format(n=len(low_hits), example='; '.join(low_hits[:3])),
             'remediation': _t(lang, 'pdf_low_contrast_rem')})
 
     # ── 2.4.4 en PDF: falso affordance de enlace ──
@@ -177,6 +178,38 @@ def pdf_screen(path_or_bytes, lang='en'):
             'issue': _t(lang, 'pdf_fake_link').format(n=len(bluish)),
             'remediation': _t(lang, 'pdf_fake_link_rem'),
             'examples': bluish})
+
+    # ── 3.3.2 / 4.1.2 en PDF: campos AcroForm sin etiqueta accesible ──
+    # /FT declara el tipo de campo (/Tx texto, /Ch lista, /Sig firma, /Btn
+    # botón); /TU es el texto alternativo — LO que anuncia el lector de
+    # pantalla. Sin /TU, el campo se oye con su nombre técnico o como
+    # "button" a secas. Caso claro (ningún /TU): acusa por tipo. Caso
+    # parcial: recuento único sin desglosar botones (la herencia /Parent
+    # de los grupos de radio hace impredecible el emparejamiento campo a
+    # campo en un cribado sin parser de objetos).
+    n_fields_txt = len(re.findall(rb'/FT\s*/(?:Tx|Ch|Sig)\b', todo))
+    n_fields_btn = len(re.findall(rb'/FT\s*/Btn\b', todo))
+    n_tu = len(re.findall(rb'/TU\s*[<(]', todo))
+    n_fields = n_fields_txt + n_fields_btn
+    if n_fields and n_tu == 0:
+        if n_fields_txt:
+            findings.append({
+                'severity': 'medium', 'criterion': '3.3.2 (PDF)',
+                'signal': 'pdf_form_no_label',
+                'issue': _t(lang, 'pdf_form_no_label').format(n=n_fields_txt, m=n_fields_txt),
+                'remediation': _t(lang, 'pdf_form_no_label_rem')})
+        if n_fields_btn:
+            findings.append({
+                'severity': 'high', 'criterion': '4.1.2 (PDF)',
+                'signal': 'pdf_button_no_name',
+                'issue': _t(lang, 'pdf_button_no_name').format(n=n_fields_btn),
+                'remediation': _t(lang, 'pdf_button_no_name_rem')})
+    elif n_tu < n_fields:
+        findings.append({
+            'severity': 'medium', 'criterion': '3.3.2 (PDF)',
+            'signal': 'pdf_form_no_label',
+            'issue': _t(lang, 'pdf_form_no_label').format(n=n_fields - n_tu, m=n_fields),
+            'remediation': _t(lang, 'pdf_form_no_label_rem')})
 
     def add(key):
         crit, sev = _CRIT[key]
@@ -217,6 +250,7 @@ def pdf_screen(path_or_bytes, lang='en'):
                   if title_meta else None),
         'images': n_imgs, 'alt_entries': n_alt, 'actual_text': n_actual,
         'text_operators': n_text,
+        'form_fields': n_fields, 'form_labels': n_tu,
         'truncated': truncated,
         'score': compute_score(findings),
         'findings': findings,

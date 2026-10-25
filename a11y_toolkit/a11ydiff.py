@@ -173,7 +173,7 @@ def main(argv):
         try:
             d = snapshot(a.url, a.out)
         except ImportError:
-            print(json.dumps({'error': 'Playwright no instalado: pip install playwright && playwright install chromium'}))
+            print(json.dumps({'error': 'Playwright not installed: pip install playwright && playwright install chromium'}))
             return 1
         print(json.dumps({'url': d['url'], 'elements': len(d['elements']),
                           'focus_steps': len(d['focus_order']), 'out': a.out},

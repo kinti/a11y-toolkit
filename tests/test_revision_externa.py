@@ -106,10 +106,10 @@ print('12. cadena de navegadores sin NameError latente ✓')
 main_js = src_chain if 'ratioOf(over_' in src_chain else None
 import a11y_toolkit.a11ydom as _dom
 src_dom = open(os.path.join(ROOT, 'a11y_toolkit', 'a11ydom.py')).read()
-assert 'ratioOf(over_(fg, bg), bg)' in src_dom, 'el pase principal no compone el alfa del text'
+assert 'ratioOf(over_(fgE, bg), bg)' in src_dom, 'el pase principal no compone el alfa del text (con opacidad del elemento)'
 # y la definición de over_ precede a su uso en el mismo block
 i_over = src_dom.index('const over_ =')
-i_use = src_dom.index('ratioOf(over_(fg, bg), bg)')
+i_use = src_dom.index('ratioOf(over_(fgE, bg), bg)')
 assert i_over < i_use
 print('13. pase principal: alfa del text compuesto (over_ before del uso) ✓')
 

@@ -20,7 +20,7 @@ import re
 import sys
 
 from .a11yaudit import CRIT, T, compute_score
-from .contrast import parse_color, decode_png, sample_rgb, hexs
+from .contrast import parse_color, decode_png, sample_rgb, hexs, luminance, ratio
 
 from . import a11yi18n
 # browser pool: Chromium reutilizable entre llamadas consecutivas
@@ -113,7 +113,7 @@ _JS = r'''(maxEj) => {
                 ids: {}, lang: null, title: '', viewport: null, refresh: null,
                 main: false, skip: false, elements: 0, shadow_roots: 0,
                 colorOnly: [], orderInversions: 0, loopingAnims: 0 };
-  const fijos = [...document.querySelectorAll('*')].filter(el => {
+  const fixed_els = [...document.querySelectorAll('*')].filter(el => {
     const s = getComputedStyle(el);
     return (s.position === 'fixed' || s.position === 'sticky') && s.display !== 'none'
            && el.getBoundingClientRect().height > 8;
@@ -121,13 +121,13 @@ _JS = r'''(maxEj) => {
 
   // ---- raíces: document + shadow roots ABIERTOS (tope 20, profundidad 6) ----
   const roots = [document];
-  const colecta_raices = (base, prof) => {
+  const collectRoots = (base, prof) => {
     if (prof > 6 || roots.length >= 20) return;
     for (const el of base.querySelectorAll('*')) {
-      if (el.shadowRoot) { roots.push(el.shadowRoot); colecta_raices(el.shadowRoot, prof + 1); }
+      if (el.shadowRoot) { roots.push(el.shadowRoot); collectRoots(el.shadowRoot, prof + 1); }
     }
   };
-  try { colecta_raices(document, 0); } catch (e) { /* no bloquear por raíces */ }
+  try { collectRoots(document, 0); } catch (e) { /* no bloquear por raíces */ }
   out.shadow_roots = roots.length - 1;
   const deepQ = sel => {
     const acc = [];
@@ -141,7 +141,8 @@ _JS = r'''(maxEj) => {
     const r = el.getBoundingClientRect();
     if (r.width < 1 || r.height < 1) return false;
     const s = getComputedStyle(el);
-    return s.visibility !== 'hidden' && s.display !== 'none' && parseFloat(s.opacity || '1') > 0.05;
+    return s.visibility !== 'hidden' && s.display !== 'none' && parseFloat(s.opacity || '1') > 0.05
+      && !el.closest('[aria-hidden="true"]');
   };
   const path = el => {
     let p = el.tagName.toLowerCase();
@@ -195,59 +196,116 @@ _JS = r'''(maxEj) => {
   const ratioOf = (a, b) => { const l1 = Math.max(lum(a), lum(b)), l2 = Math.min(lum(a), lum(b));
     return (l1 + 0.05) / (l2 + 0.05); };
 
-  // ---- contraste de texto en TODAS las raíces ----
+  // ---- contraste de text_ en TODAS las raíces ----
   const fails = new Map();
-  const escanea_textos = root => {
+  const scanTexts = root => {
     const walker = document.createTreeWalker(root.body || root, NodeFilter.SHOW_TEXT);
     let node;
     while ((node = walker.nextNode())) {
       const txt = (node.nodeValue || '').trim();
       if (!txt) continue;
-      const el = node.parentElement;
+      let el = node.parentElement;
+      if (!el) {
+        // text_ DIRECTO bajo un shadow root (sin elemento): manda el HOST
+        const _rn = node.getRootNode();
+        el = (_rn && _rn.host) || null;
+      }
       if (!el || el.closest('script, style, noscript, svg title')) continue;
       if (!vis(el)) continue;
+      // text_ de solo símbolos (±±±@@) o UN carácter ASCII (X de cerrar):
+      // contenido no verbal — sin requisito. CUALQUIER letra/dígito de
+      // cualquier alfabeto (CJK, cirílico, árabe…) ES text_ verbal
+      if (!/\p{L}|\p{N}/u.test(txt)) continue;
+      if (txt.length === 1 && /[a-zA-Z0-9]/.test(txt)) continue;
+      // componente inactivo (fieldset disabled, aria-disabled, control
+      // disabled): la excepción del propio 1.4.3 — sin requisito
+      if (el.closest('fieldset[disabled], [aria-disabled="true"], button[disabled], input[disabled], select[disabled], textarea[disabled]')) continue;
+      // label de control disabled, o label sin control: componente inactivo
+      // o no-componente — el contraste no aplica (afw4f7)
+      if (el.tagName === 'LABEL') {
+        const ctl = el.control || (el.getAttribute('for') ? el.getRootNode().getElementById(el.getAttribute('for')) : null);
+        if (!ctl || ctl.disabled) continue;
+      }
       const s = getComputedStyle(el);
       const fg = parseCol(s.color);
       if (!fg) continue;
-      if (s.textShadow && s.textShadow !== 'none') { out.contrastReview++; continue; }
+      // text-shadow: los colores de la sombra pintan DETRÁS del text_ y
+      // participan como fondo peor-caso (8c33: #666 con sombra #aaa sobre
+      // blanco falla por 1.6:1 aunque el fondo dé 5.7) — se decide, no se
+      // deriva a revisión
+      const shCols = (s.textShadow && s.textShadow !== 'none')
+        ? (s.textShadow.match(/rgba?\([^)]+\)/g) || []).map(parseCol).filter(Boolean)
+        : [];
       const bg = bgOf(el);
       if (bg.image) {
         out.contrastReview++;
         const fa = (fg.a === undefined) ? 1 : fg.a;
         const pxx = parseFloat(s.fontSize);
-        const larg = pxx >= 24 || (parseInt(s.fontWeight || '400', 10) >= 700 && pxx >= 18.66);  // spec bold=700 (600 daba 3:1 a texto normal)
+        const isLargePx = pxx >= 24 || (parseInt(s.fontWeight || '400', 10) >= 700 && pxx >= 18.66);  // spec bold=700 (600 daba 3:1 a text_ normal)
+        // text_ con ALFA: el color real depende del fondo bajo cada píxel; se
+        // muestrea en los DOS extremos (compuesto sobre negro y sobre blanco)
+        // — el peor decide (bf47c65f: rgba(90,90,90,.8) sobre split negro)
+        if (out.contrastZones.length < 11 && fa < 1 && !el.hasAttribute('data-a11ytxt')) {
+          const rr = el.getBoundingClientRect();
+          if (rr.width > 2 && rr.height > 2 && rr.width <= 1400 && rr.height <= 400) {
+            const zi = out.contrastZones.length;
+            el.setAttribute('data-a11ytxt', zi);
+            for (const pol of [{r:0,g:0,b:0}, {r:255,g:255,b:255}]) {
+              const c2 = over({r: fg.r, g: fg.g, b: fg.b, a: fa}, pol);
+              out.contrastZones.push({
+                i: zi, example: path(el) + (pol.r ? ' (sobre claro)' : ' (sobre oscuro)'),
+                fg: 'rgb(' + Math.round(c2.r) + ',' + Math.round(c2.g) + ',' + Math.round(c2.b) + ')',
+                px: pxx, large: isLargePx, x: rr.x, y: rr.y, w: rr.width, h: rr.height });
+            }
+          }
+        }
         if (out.contrastZones.length < 12 && fa >= 1 && !el.hasAttribute('data-a11ytxt')) {
           const rr = el.getBoundingClientRect();
           if (rr.width > 2 && rr.height > 2 && rr.width <= 1400 && rr.height <= 400) {
             el.setAttribute('data-a11ytxt', out.contrastZones.length);
             out.contrastZones.push({
-              i: out.contrastZones.length, ej: path(el),
+              i: out.contrastZones.length, example: path(el),
               fg: 'rgb(' + Math.round(fg.r) + ',' + Math.round(fg.g) + ',' + Math.round(fg.b) + ')',
-              px: pxx, large: larg, x: rr.x, y: rr.y, w: rr.width, h: rr.height });
+              px: pxx, large: isLargePx, x: rr.x, y: rr.y, w: rr.width, h: rr.height });
           }
         }
         continue;
       }
       const px = parseFloat(s.fontSize);
       const bold = parseInt(s.fontWeight || '400', 10) >= 700;
-      const large = px >= 24 || (bold && px >= 18.66);
+      const isLarge = px >= 24 || (bold && px >= 18.66);
       const over_ = (f, b) => { const a = (f.a === undefined) ? 1 : f.a;
         return { r: Math.round(f.r * a + b.r * (1 - a)),
           g: Math.round(f.g * a + b.g * (1 - a)),
           b: Math.round(f.b * a + b.b * (1 - a)), a: 1 }; };
-      const r = ratioOf(over_(fg, bg), bg);  // alfa del TEXTO compuesto sobre el fondo
-      const umbral = large ? 3.0 : 4.5;
-      if (r >= umbral) continue;
+      // alfa efectivo del text_: su color Y la opacidad del elemento y sus
+      // ancestros (opacity no está en color — 7507c813: negro al 30%)
+      let alphaTot = (fg.a === undefined) ? 1 : fg.a;
+      for (let an = el; an; an = an.parentElement) {
+        alphaTot *= parseFloat(getComputedStyle(an).opacity || '1');
+      }
+      const fgE = { r: fg.r, g: fg.g, b: fg.b, a: alphaTot };
+      let r;  // text_ compuesto sobre el fondo
+      if (shCols.length) {
+        // con text-shadow, la sombra rodea al glifo: es el FONDO efectivo
+        // (Passed 4: blanco detrás de negro sobre gris = pasa; 8c33: #aaa
+        // detrás de #666 = 1.6:1 falla aunque el fondo dé 5.7)
+        r = Math.min(...shCols.map(sc => ratioOf(over_(fgE, sc), sc)));
+      } else {
+        r = ratioOf(over_(fgE, bg), bg);
+      }
+      const threshold = isLarge ? 3.0 : 4.5;
+      if (r >= threshold) continue;
       const fk = `rgb(${fg.r},${fg.g},${fg.b})`;
       const bk = `rgb(${bg.r},${bg.g},${bg.b})`;
-      const key = fk + '|' + bk + '|' + (large ? 'L' : 'N');
-      if (!fails.has(key)) fails.set(key, { fg: fk, bg: bk, large, ratio: Math.round(r * 100) / 100,
-                                            n: 0, ej: path(el) });
+      const key = fk + '|' + bk + '|' + (isLarge ? 'L' : 'N');
+      if (!fails.has(key)) fails.set(key, { fg: fk, bg: bk, large: isLarge, ratio: Math.round(r * 100) / 100,
+                                            n: 0, example: path(el) });
       const f = fails.get(key);
       f.n++;
     }
   };
-  for (const r of roots) escanea_textos(r);
+  for (const r of roots) scanTexts(r);
   out.contrast = [...fails.values()].slice(0, 40);
 
   // ---- 1.4.1 use of color: inline links distinguishable ONLY by color ----
@@ -266,21 +324,21 @@ _JS = r'''(maxEj) => {
 
   // ---- 1.3.2 meaningful sequence: DOM order vs visual order, same parent ----
   {
-    const porPadre = new Map();
+    const byParent = new Map();
     for (const el of deepQ('p, li, h1, h2, h3, h4, h5, h6')) {
-      if (porPadre.size > 200) break;
+      if (byParent.size > 200) break;
       if (!el.offsetParent) continue;
       const r = el.getBoundingClientRect();
       if (r.height < 4 || r.width < 4) continue;
       const p = el.parentElement;
       if (!p) continue;
-      if (!porPadre.has(p)) porPadre.set(p, []);
-      porPadre.get(p).push({ top: r.top });
+      if (!byParent.has(p)) byParent.set(p, []);
+      byParent.get(p).push({ top: r.top });
     }
     let inv = 0;
-    for (const lista of porPadre.values()) {
-      for (let i = 0; i < lista.length - 1; i++)
-        if (lista[i + 1].top + 4 < lista[i].top) inv++;   // next-in-DOM clearly above
+    for (const listEls of byParent.values()) {
+      for (let i = 0; i < listEls.length - 1; i++)
+        if (listEls[i + 1].top + 4 < listEls[i].top) inv++;   // next-in-DOM clearly above
     }
     out.orderInversions = inv;
   }
@@ -310,7 +368,7 @@ _JS = r'''(maxEj) => {
     const disp = getComputedStyle(el).display;
     if (el.tagName === 'A' && disp.includes('inline') && el.closest('p, li, dd, dt, td, figcaption, blockquote')) continue;
     const r = el.getBoundingClientRect();
-    if (r.width <= 2 || r.height <= 2) continue;   // patrón visualmente oculto (skip link)
+    if (r.width <= 2 || r.height <= 2) continue;   // patrón visualmente hiddenEl (skip link)
     if (el.getAttribute('tabindex') === '-1') continue;
     if (r.width < 24 || r.height < 24) {
       // excepción de espaciado (2.5.8): un objetivo menor de 24px PASA si el
@@ -318,11 +376,11 @@ _JS = r'''(maxEj) => {
       // arbitrarios) y condena temprana: un solo vecino <24px basta.
       if (!interpRects) {
         interpRects = [];
-        for (const otro of deepQ(INTER)) {
-          if (otro.type === 'hidden' || !vis(otro)) continue;
-          const rr = otro.getBoundingClientRect();
+        for (const other of deepQ(INTER)) {
+          if (other.type === 'hidden' || !vis(other)) continue;
+          const rr = other.getBoundingClientRect();
           if (rr.width <= 2 && rr.height <= 2) continue;
-          interpRects.push({ el: otro, r: rr });
+          interpRects.push({ el: other, r: rr });
         }
       }
       let sep = Infinity;
@@ -336,7 +394,7 @@ _JS = r'''(maxEj) => {
         if (sep < 24) break;   // condenado: no hace falta seguir
       }
       if (sep < 24 && out.targets.length < 40) out.targets.push(
-        { ej: path(el), w: Math.round(r.width), h: Math.round(r.height),
+        { example: path(el), w: Math.round(r.width), h: Math.round(r.height),
           inline: disp.includes('inline'), spacing: Math.round(sep) });
     }
   }
@@ -433,46 +491,46 @@ _JS = r'''(maxEj) => {
   out.marks = mi;
 
   // ---- foco: indicador visible (heurístico) + contraste en estado focus ----
-  const oculto = el => { const r = el.getBoundingClientRect();
+  const hiddenEl = el => { const r = el.getBoundingClientRect();
     return (r.width <= 2 && r.height <= 2); };
   const stops = deepQ(INTER)
     .filter(el => vis(el) && !el.disabled && el.getAttribute('tabindex') !== '-1'
-                  && !oculto(el)).slice(0, 40);
-  const activo = () => { let a = document.activeElement;
+                  && !hiddenEl(el)).slice(0, 40);
+  const activeEl = () => { let a = document.activeElement;
     while (a && a.shadowRoot && a.shadowRoot.activeElement) a = a.shadowRoot.activeElement;
     return a; };
   const prevFocus = document.activeElement;
   for (const el of stops) {
     try { el.focus(); } catch (e) { /* no enfocable */ }
-    if (activo() !== el) {
-      out.focusFail.push({ ej: path(el), why: 'nofocus' });
+    if (activeEl() !== el) {
+      out.focusFail.push({ example: path(el), why: 'nofocus' });
       continue;
     }
     const s = getComputedStyle(el);
     const outline = s.outlineStyle !== 'none' && parseFloat(s.outlineWidth || '0') > 0;
     const shadow = s.boxShadow && s.boxShadow !== 'none';
-    const borde = ['Top', 'Right', 'Bottom', 'Left'].some(
+    const edgePx = ['Top', 'Right', 'Bottom', 'Left'].some(
       k => parseFloat(s['border' + k + 'Width'] || '0') >= 2
            && s['border' + k + 'Style'] !== 'none');
-    if (!outline && !shadow && !borde) out.focus.push(path(el));
+    if (!outline && !shadow && !edgePx) out.focus.push(path(el));
     const fgf = parseCol(s.color);
     const bgf = bgOf(el);
     if (fgf && !bgf.image) {
       const fs = parseFloat(s.fontSize) || 16;
-      const large = fs >= 24 || (fs >= 18.66 && (parseInt(s.fontWeight) || 400) >= 700);
+      const isLarge = fs >= 24 || (fs >= 18.66 && (parseInt(s.fontWeight) || 400) >= 700);
       const rf2 = ratioOf(over(fgf, bgf), bgf);
-      if (rf2 < (large ? 3.0 : 4.5) && out.focusContrast.length < 20)
-        out.focusContrast.push({ ej: path(el), ratio: Math.round(rf2 * 100) / 100 });
+      if (rf2 < (isLarge ? 3.0 : 4.5) && out.focusContrast.length < 20)
+        out.focusContrast.push({ example: path(el), ratio: Math.round(rf2 * 100) / 100 });
     }
     // (2.4.11 por parada se cubre abajo con la causa raíz)
   }
   // 2.4.11 causa raíz: header fijo arriba sin scroll-padding-top suficiente →
   // saltos de ancla y de foco aterrizan tapados. Determinista y sin falsos
   // negativos de recorridos.
-  if (fijos.length && out.focusObscured.length === 0) {
+  if (fixed_els.length && out.focusObscured.length === 0) {
     const sp = parseFloat(getComputedStyle(document.documentElement).scrollPaddingTop) || 0;
-    const top_fijos = fijos.map(f => f.getBoundingClientRect()).filter(q => q.top <= 20);
-    const hmax = top_fijos.length ? Math.max(...top_fijos.map(q => q.height)) : 0;
+    const top_fixed = fixed_els.map(f => f.getBoundingClientRect()).filter(q => q.top <= 20);
+    const hmax = top_fixed.length ? Math.max(...top_fixed.map(q => q.height)) : 0;
     if (hmax > sp + 4) {
       out.focusObscured.push('header fijo de ' + Math.round(hmax) + 'px con scroll-padding-top de '
                              + Math.round(sp) + 'px');
@@ -505,7 +563,7 @@ def audit_dom(data, url='(rendered)', lang='en', color_scheme='light'):
                         + (' (grande)' if f['large'] else '') + f" ×{f['n']}"
                         for f in failures[:4])
         _over, _eg = ('sobre', 'p. ej.') if lang == 'es' else ('over', 'e.g.')
-        examples = [f"{f['fg']} {_over} {f['bg']} → {f['ratio']}:1 ({_eg} {f['ej']})" for f in failures]
+        examples = [f"{f['fg']} {_over} {f['bg']} → {f['ratio']}:1 ({_eg} {f['example']})" for f in failures]
         _add(findings, lang, 'high', '1.4.3', 'contrast_fail',
                 examples=examples, n=len(failures), det=det)
     measured = data.get('contrastMeasured') or []
@@ -513,11 +571,11 @@ def audit_dom(data, url='(rendered)', lang='en', color_scheme='light'):
         offenders = [m for m in measured
                  if m['measured']['worst_ratio'] < (3.0 if m.get('large') else 4.5)]
         if offenders:
-            det = '; '.join(f"{m['ej']} → worst {m['measured']['worst_ratio']}:1, "
+            det = '; '.join(f"{m['example']} → worst {m['measured']['worst_ratio']}:1, "
                             f"{m['measured']['area_passes_aa_normal_text_4_5']}% passes AA"
                             for m in offenders[:4])
             _add(findings, lang, 'high', '1.4.3', 'contrast_image_fail',
-                    examples=[f"{m['ej']} (worst {m['measured']['worst_ratio']}:1)"
+                    examples=[f"{m['example']} (worst {m['measured']['worst_ratio']}:1)"
                               for m in offenders],
                     n=len(offenders), det=det)
     # las zonas medidas salen del contador de "revisar" (ya están juzgadas)
@@ -530,21 +588,21 @@ def audit_dom(data, url='(rendered)', lang='en', color_scheme='light'):
     targets = data.get('targets') or []
     if targets:
         all_inline = all(t.get('inline') for t in targets)
-        det = ', '.join(f"{t['ej']} ({t['w']}×{t['h']})" for t in targets[:4])
+        det = ', '.join(f"{t['example']} ({t['w']}×{t['h']})" for t in targets[:4])
         _add(findings, lang, 'low' if all_inline else 'medium', '2.5.8',
                 'target_small',
-                examples=[f"{t['ej']} ({t['w']}×{t['h']}px)" for t in targets],
+                examples=[f"{t['example']} ({t['w']}×{t['h']}px)" for t in targets],
                 n=len(targets), det=det)
 
     # 2.bis Estados focus/hover
     states = list(data.get('focusContrast') or []) + list(data.get('hover') or [])
     if states:
-        det = ', '.join(f"{e['ej']} = {e['ratio']}:1" for e in states[:4])
+        det = ', '.join(f"{e['example']} = {e['ratio']}:1" for e in states[:4])
         _add(findings, lang, 'medium', '1.4.3', 'state_contrast',
-                examples=[f"{e['ej']} = {e['ratio']}:1" for e in states],
+                examples=[f"{e['example']} = {e['ratio']}:1" for e in states],
                 n=len(states), det=det)
 
-    # 2.ter 2.4.11 foco ocultado por fijos
+    # 2.ter 2.4.11 foco ocultado por fixed_els
     if data.get('focusObscured'):
         _add(findings, lang, 'medium', '2.4.11', 'focus_obscured',
                 examples=data['focusObscured'], n=len(data['focusObscured']),
@@ -560,7 +618,7 @@ def audit_dom(data, url='(rendered)', lang='en', color_scheme='light'):
     if data.get('loopingAnims'):
         _add(findings, lang, 'low', '2.2.2', 'motion_moving',
                 examples=[], n=data['loopingAnims'],
-                ej=f"{data['loopingAnims']} looping CSS animations")
+                example=f"{data['loopingAnims']} looping CSS animations")
     if data.get('spacingClipped'):
         _add(findings, lang, 'medium', '1.4.12', 'text_spacing_clip',
                 examples=data['spacingClipped'], n=len(data['spacingClipped']))
@@ -572,8 +630,8 @@ def audit_dom(data, url='(rendered)', lang='en', color_scheme='light'):
                 det=', '.join(data['focus'][:4]))
     if data.get('focusFail'):
         _add(findings, lang, 'low', '2.4.7', 'focus_not_focusable',
-                examples=[f['ej'] for f in data['focusFail']],
-                n=len(data['focusFail']), det=', '.join(f['ej'] for f in data['focusFail'][:4]))
+                examples=[f['example'] for f in data['focusFail']],
+                n=len(data['focusFail']), det=', '.join(f['example'] for f in data['focusFail'][:4]))
 
     # 4. Resto de señales (renderizadas)
     if data.get('unnamed'):
@@ -663,40 +721,40 @@ def audit_dom(data, url='(rendered)', lang='en', color_scheme='light'):
 
 _JS_FORM_FILL = r'''() => {
   // Fill every validatable field with INVALID data, then submit. Returns what we touched.
-  const CAMPOS = 'input:not([type=hidden]):not([type=submit]):not([type=button]):not([type=reset]):not([type=image]), select, textarea';
-  const invalidos = {email: 'not-an-email', url: 'not-a-url', number: 'abc', tel: 'no-phone'};
-  const tocados = [];
+  const FIELDS_JS = 'input:not([type=hidden]):not([type=submit]):not([type=button]):not([type=reset]):not([type=image]), select, textarea';
+  const invalidItems = {email: 'not-an-email', url: 'not-a-url', number: 'abc', tel: 'no-phone'};
+  const touched_els = [];
   for (const f of document.querySelectorAll('form')) {
     if (f.querySelector('[novalidate]') || f.hasAttribute('novalidate')) { /* still try: JS may validate */ }
-    for (const el of f.querySelectorAll(CAMPOS)) {
+    for (const el of f.querySelectorAll(FIELDS_JS)) {
       if (el.disabled || el.readOnly) continue;
-      const tipo = (el.type || el.tagName.toLowerCase()).toLowerCase();
-      const exige = el.required || el.getAttribute('aria-required') === 'true'
+      const kindV = (el.type || el.tagName.toLowerCase()).toLowerCase();
+      const needs = el.required || el.getAttribute('aria-required') === 'true'
         || el.hasAttribute('pattern') || el.hasAttribute('minlength') || el.hasAttribute('min');
       let val = '';
-      if (invalidos[tipo]) val = invalidos[tipo];
-      else if (tipo === 'checkbox' || tipo === 'radio') { continue; }
-      else if (!exige) continue;
-      else val = tipo === 'number' ? 'abc' : '';
+      if (invalidItems[kindV]) val = invalidItems[kindV];
+      else if (kindV === 'checkbox' || kindV === 'radio') { continue; }
+      else if (!needs) continue;
+      else val = kindV === 'number' ? 'abc' : '';
       el.value = val;
       el.dispatchEvent(new Event('input', {bubbles: true}));
       el.dispatchEvent(new Event('change', {bubbles: true}));
-      tocados.push({form: f.id || f.action || f.getAttribute('class') || 'form',
-                    campo: (el.name || el.id || tipo).toString().slice(0, 40)});
+      touched_els.push({form: f.id || f.action || f.getAttribute('class') || 'form',
+                    campo: (el.name || el.id || kindV).toString().slice(0, 40)});
     }
     const btn = f.querySelector('button[type=submit], input[type=submit], button:not([type])');
     if (btn) btn.click(); else if (f.requestSubmit) f.requestSubmit();
   }
-  return tocados;
+  return touched_els;
 }'''
 
 _JS_FORM_PRE = r'''() => {
   // PRE-submit: la ayuda ordinaria que ya existía (describedby, contexto).
   // Sin esto, "Tu email" contaba como identificación de error y "Use…"
   // como sugerencia — la crítica externa lo destapó: ayuda ≠ error.
-  const CAMPOS = 'input:not([type=hidden]):not([type=submit]):not([type=button]):not([type=reset]):not([type=image]), select, textarea';
+  const FIELDS_JS = 'input:not([type=hidden]):not([type=submit]):not([type=button]):not([type=reset]):not([type=image]), select, textarea';
   const pre = {};
-  for (const el of document.querySelectorAll(CAMPOS)) {
+  for (const el of document.querySelectorAll(FIELDS_JS)) {
     if (el.disabled) continue;
     const key = (el.name || el.id || el.type) + '@' + (el.form ? (el.form.id || el.form.action || '') : '');
     let dbTxt = '';
@@ -705,15 +763,15 @@ _JS_FORM_PRE = r'''() => {
       const r = document.getElementById(id);
       if (r && (r.innerText || '').trim()) dbTxt += r.innerText.trim() + '\n';
     }
-    const cerca = el.closest('div, p, li, td, fieldset');
-    pre[key] = { db: dbTxt, ctx: cerca ? (cerca.innerText || '').trim().slice(0, 400) : '' };
+    const nearby = el.closest('div, p, li, td, fieldset');
+    pre[key] = { db: dbTxt, ctx: nearby ? (nearby.innerText || '').trim().slice(0, 400) : '' };
   }
   return pre;
 }'''
 
 _JS_FORM_STATE = r'''(pre) => {
   // After submit: how were errors identified and announced?
-  // Identificación = lo NUEVO tras el envío (aria-invalid, texto cambiado en
+  // Identificación = lo NUEVO tras el envío (aria-invalid, text_ cambiado en
   // un nodo referido, semántica de alerta) — la ayuda previa NO cuenta.
   const RX_ERR = /(error|invalid|required|obligatorio|requerido|inv[áa]lido|incorrecto|falta|requerid)/i;
   const RX_SUG = /(format|example|ejemplo|usa |use |dd\/mm|mm\/dd|pattern|como |like |must be|debe)/i;
@@ -722,45 +780,45 @@ _JS_FORM_STATE = r'''(pre) => {
   for (const a of document.querySelectorAll('[role=alert], [aria-live]')) {
     if ((a.innerText || '').trim() && RX_ERR.test(a.innerText)) out.alerts++;
   }
-  const CAMPOS = 'input:not([type=hidden]):not([type=submit]):not([type=button]):not([type=reset]):not([type=image]), select, textarea';
+  const FIELDS_JS = 'input:not([type=hidden]):not([type=submit]):not([type=button]):not([type=reset]):not([type=image]), select, textarea';
   for (const f of document.querySelectorAll('form')) {
     const info = { form: f.id || f.action || 'form', fields: 0, identified: 0,
                    suggested: 0, native: 0 };
-    for (const el of f.querySelectorAll(CAMPOS)) {
+    for (const el of f.querySelectorAll(FIELDS_JS)) {
       if (el.disabled) continue;
       info.campos++;
       const key = (el.name || el.id || el.type) + '@' + (f.id || f.action || '');
-      const antes = pre[key] || {};
-      let identificado = false, sugerido = false;
-      if (el.getAttribute('aria-invalid') === 'true') identificado = true;
+      const shot_before = pre[key] || {};
+      let identified = false, sugerido = false;
+      if (el.getAttribute('aria-invalid') === 'true') identified = true;
       const db = el.getAttribute('aria-describedby');
       if (db) for (const id of db.split(/\s+/)) {
         const r = document.getElementById(id);
         if (!r) continue;
-        const texto = (r.innerText || '').trim();
-        if (!texto) continue;
-        const nuevoOCambiado = texto !== (antes.db || '').split('\n').find(t => t === texto)
-                               && !(antes.db || '').includes(texto);
-        const semanticaError = r.matches('[role=alert],[aria-live],.error,.invalid')
+        const text_ = (r.innerText || '').trim();
+        if (!text_) continue;
+        const newOrChanged = text_ !== (shot_before.db || '').split('\n').find(t => t === text_)
+                               && !(shot_before.db || '').includes(text_);
+        const semanticError = r.matches('[role=alert],[aria-live],.error,.invalid')
                                || r.hasAttribute('aria-errormessage');
-        if (nuevoOCambiado || semanticaError) {
-          identificado = true;
-          if (RX_SUG.test(texto)) sugerido = true;
+        if (newOrChanged || semanticError) {
+          identified = true;
+          if (RX_SUG.test(text_)) sugerido = true;
         }
       }
-      const cerca = el.closest('div, p, li, td, fieldset');
-      const ctxAhora = cerca ? (cerca.innerText || '').trim().slice(0, 400) : '';
-      if (cerca && RX_ERR.test(ctxAhora) && !RX_ERR.test(antes.ctx || '')) {
-        identificado = true;
-        const nuevaParte = ctxAhora.replace((antes.ctx || ''), '');
-        if (RX_SUG.test(nuevaParte)) sugerido = true;
+      const nearby = el.closest('div, p, li, td, fieldset');
+      const ctxNow = nearby ? (nearby.innerText || '').trim().slice(0, 400) : '';
+      if (nearby && RX_ERR.test(ctxNow) && !RX_ERR.test(shot_before.ctx || '')) {
+        identified = true;
+        const newPart = ctxNow.replace((shot_before.ctx || ''), '');
+        if (RX_SUG.test(newPart)) sugerido = true;
       }
       // native validation only identifies errors when the form lets it fire
       // (a novalidate form never shows the browser message — the API lying ≠ UX)
       if (!f.noValidate && el.willValidate !== undefined && !el.checkValidity() && el.validationMessage) {
-        identificado = true; info.native++;
+        identified = true; info.native++;
       }
-      if (identificado) info.identified++;
+      if (identified) info.identified++;
       if (sugerido) info.suggested++;
     }
     out.forms.push(info);
@@ -799,7 +857,7 @@ def audit_forms(url, timeout=45, lang='en', auth_state=None):
                           'remediation': _t(lang, key + '_rem').format(**fmt)})
 
     if navigated:
-        add('low', '3.3.1', 'form_navigated', ej=page.url if False else 'submit')
+        add('low', '3.3.1', 'form_navigated', example=page.url if False else 'submit')
     elif touched and state is not None:
         unidentified = [f['form'] for f in state['forms']
                            if f['fields'] and f['identified'] == 0 and f['native'] == 0
@@ -885,12 +943,12 @@ def sr_transcript(url, timeout=45, lang='en', auth_state=None, browser='auto'):
 
 _JS_HOVER_TEST = r'''() => {
   // find elements that show tooltips/overlays on hover
-  const candidatos = [];
+  const candidates = [];
   for (const el of document.querySelectorAll('[title], [data-tooltip], [aria-describedby]')) {
-    if (candidatos.length >= 10) break;
+    if (candidates.length >= 10) break;
     const r = el.getBoundingClientRect();
     if (r.width > 10 && r.height > 10 && r.top >= 0 && r.top < innerHeight) {
-      candidatos.push({
+      candidates.push({
         tag: el.tagName.toLowerCase(),
         id: el.id || '',
         desc: el.getAttribute('aria-describedby') || el.getAttribute('title') || '',
@@ -898,7 +956,7 @@ _JS_HOVER_TEST = r'''() => {
       });
     }
   }
-  return candidatos;
+  return candidates;
 }'''
 
 def audit_hover(url, timeout=45, lang='en', auth_state=None):
@@ -924,7 +982,7 @@ def audit_hover(url, timeout=45, lang='en', auth_state=None):
                 page.hover(sel, timeout=2000)
                 page.wait_for_timeout(400)
                 # identidad de los tooltips visibles ANTES (por elemento, no
-                # por recuento global: otro tooltip podía aparecer a la vez y
+                # por recuento global: other tooltip podía aparecer a la vez y
                 # el contador antiguo enmascaraba un cierre correcto)
                 before = page.evaluate(
                     "() => [...document.querySelectorAll("
@@ -1046,7 +1104,7 @@ def _merge_iframes(data):
         for k in _IFRAME_LISTS:
             for item in (sub.get(k) or [])[:12]:
                 if isinstance(item, dict):
-                    item = dict(item, ej=pref + str(item.get('ej', item)))
+                    item = dict(item, example=pref + str(item.get('example', item)))
                 else:
                     item = pref + str(item)
                 data.setdefault(k, [])
@@ -1188,7 +1246,7 @@ def audit_keyboard(url, max_steps=60, lang='en', timeout=45, auth_state=None, br
         cycle = None
         for p_ in range(1, min(12, len(seq) // 2) + 1):
             if seq[-p_:] == seq[-2 * p_:-p_] and len(set(seq[-p_:])) >= 1:
-                # exige al menos 2 repeticiones completas del periodo
+                # needs al menos 2 repeticiones completas del periodo
                 reps = sum(1 for k in range(len(seq) - p_, 0, -p_)
                            if seq[k:k + p_] == seq[-p_:])
                 if reps >= 2:
@@ -1248,13 +1306,13 @@ def audit_keyboard(url, max_steps=60, lang='en', timeout=45, auth_state=None, br
         findings.append({
             'severity': 'high', 'criterion': CRIT.get(lang, CRIT['es']).get('3.2.1', '3.2.1'),
             'signal': 'focus_navigates',
-            'issue': _t(lang, 'focus_navigates').format(ej='un elemento', url=focus_navigated[:60]),
+            'issue': _t(lang, 'focus_navigates').format(example='un elemento', url=focus_navigated[:60]),
             'remediation': _t(lang, 'focus_navigates_rem')})
     if input_navigated:
         findings.append({
             'severity': 'high', 'criterion': CRIT.get(lang, CRIT['es']).get('3.2.2', '3.2.2'),
             'signal': 'input_navigates',
-            'issue': _t(lang, 'input_navigates').format(ej=input_elem, url=input_navigated[:60]),
+            'issue': _t(lang, 'input_navigates').format(example=input_elem, url=input_navigated[:60]),
             'remediation': _t(lang, 'input_navigates_rem')})
     if cycle and esc_releases is False:
         elems = [paths.get(i, f'tab stop {i}') for i in cycle]
@@ -1289,8 +1347,8 @@ def audit_keyboard(url, max_steps=60, lang='en', timeout=45, auth_state=None, br
     }
 
 
-# La captura del FONDO real: el texto se vuelve transparente durante el
-# screenshot (los glifos desaparecen y queda el fondo puro, sin bordes de
+# La captura del FONDO real: el text_ se vuelve transparente durante el
+# screenshot (los glyphs desaparecen y queda el fondo puro, sin bordes de
 # antialiasing que sesguen el muestreo); después se restaura. La imagen se
 # recorta geométricamente al rect real (Playwright redondea el clip: floor de
 # x/y, ceil de ancho/alto — las filas/columnas de "sliver" quedan fuera).
@@ -1339,10 +1397,15 @@ def _clip_rect(rgb, w, h, rect):
 
 
 def _samples_background(loc, rect, c):
-    """Captura el fondo real de `loc` (texto transparente) y lo muestrea.
+    """Fondo real de `loc` medido SOLO donde hay glyphs (afw4f7).
 
-    Devuelve el dict de sample_rgb o None si no hay píxeles medibles."""
+    Dos capturas (normal y con el text_ transparente): los píxeles que
+    difieren son los glyphs; el fondo se muestrea en exactamente esos
+    puntos — un degradado que solo pisa al text_ por su parte clara no
+    puede acusarse por la parte oscura donde no hay text_. Sin glyphs
+    detectables, cae al muestreo de toda la región."""
     try:
+        shot_before = loc.screenshot()
         loc.evaluate(_JS_BACKGROUND)
         png = loc.screenshot()
     finally:
@@ -1355,6 +1418,38 @@ def _samples_background(loc, rect, c):
     if not clip:
         return None
     rw, rh, rgb2 = clip
+    try:
+        wA, hA, rgbA = decode_png(shot_before)
+        clipA = _clip_rect(rgbA, wA, hA, rect)
+        if clipA and (clipA[0], clipA[1]) == (rw, rh):
+            glyphs = []
+            for o in range(0, rw * rh):
+                x3, a3 = o * 3, o * 3
+                d = abs(rgb2[x3] - clipA[2][a3]) + abs(rgb2[x3 + 1] - clipA[2][a3 + 1]) \
+                    + abs(rgb2[x3 + 2] - clipA[2][a3 + 2])
+                if d > 90:
+                    glyphs.append(o)
+            if len(glyphs) >= 8:
+                lt = luminance(c)
+                ratios = []
+                for o in glyphs[::max(1, len(glyphs) // 600)]:
+                    px = (rgb2[o * 3] / 255, rgb2[o * 3 + 1] / 255, rgb2[o * 3 + 2] / 255)
+                    lb = luminance({'r': rgb2[o * 3], 'g': rgb2[o * 3 + 1], 'b': rgb2[o * 3 + 2]})
+                    l1, l2 = max(lt, lb), min(lt, lb)
+                    ratios.append((l1 + 0.05) / (l2 + 0.05))
+                ratios.sort()
+                p95 = ratios[max(0, int(len(ratios) * 0.95) - 1)]
+                return {'worst_ratio': round(ratios[0], 2),
+                        'median_ratio': round(ratios[len(ratios) // 2], 2),
+                        'p95_ratio': round(p95, 2),
+                        'area_passes_aa_normal_text_4_5': round(
+                            100 * sum(1 for r in ratios if r >= 4.5) / len(ratios)),
+                        'area_passes_aa_min_3_0': round(
+                            100 * sum(1 for r in ratios if r >= 3.0) / len(ratios)),
+                        'sampled_pixels': len(ratios),
+                        'method': 'glyph-diff'}
+    except Exception:  # noqa: BLE001
+        pass
     return sample_rgb(rw, rh, rgb2, c)
 
 
@@ -1363,15 +1458,15 @@ def audit_forced_colors(url, timeout=45, lang='en', auth_state=None, browser='au
 
     Los usuarios de Windows High Contrast Mode (ahora forced-colors CSS) ven
     la paleta del sistema: los colores del autor desaparecen. Lo que se
-    rompe: texto pintado con color sobre fondo pintado (los DOS pasan al
+    rompe: text_ pintado con color sobre fondo pintado (los DOS pasan al
     esquema del sistema, el contraste del autor ya no aplica — pero los
     iconos SVG con fill coloreado y las imágenes informativas PNG que
-    dependen del color del autor pueden quedar invisibles sobre el fondo
+    dependen del color del autor pueden quedar invisible_els sobre el fondo
     del sistema), y bordes usados como único indicador visual. Nadie más
     lo automatiza."""
     from playwright.sync_api import sync_playwright
     _JS_FC = r'''() => {
-      const invisibles = [];
+      const invisible_els = [];
       let n = 0;
       for (const el of document.querySelectorAll('svg, img, [role=img], canvas')) {
         if (n >= 400) break;
@@ -1389,14 +1484,14 @@ def audit_forced_colors(url, timeout=45, lang='en', auth_state=None, browser='au
           const col = fills.find(f => f && !['currentColor', 'CanvasText', 'Canvas', 'none',
                                           'inherit', 'transparent'].includes(f)
                                   && !f.startsWith('url('));
-          if (col) invisibles.push('svg fill=' + col + ' — puede desaparecer en HCM');
+          if (col) invisible_els.push('svg fill=' + col + ' — puede desaparecer en HCM');
         }
       }
       // imágenes informativas sin forced-color-adjust: en HCM Windows las
       // oscurece; si el PNG es oscuro, desaparece. Señal de revisión si hay
       // PNG con clase de icono (heurística humilde)
       const icons = document.querySelectorAll('img[class*=icon i], svg[class*=icon i]').length;
-      return { coloredSvgs: invisibles.slice(0, 8), icons };
+      return { coloredSvgs: invisible_els.slice(0, 8), icons };
     }'''
     from .a11yaudit import _t as _t_audit, CRIT, compute_score
 
@@ -1551,7 +1646,7 @@ def audit_dom_url(url, timeout=45, lang='en', auth_state=None, browser='auto', c
                         {'x': z.get('x', 0), 'y': z.get('y', 0),
                          'width': z.get('w', 1400), 'height': z.get('h', 400)}, c)
                     if m:
-                        measured.append({'ej': z['ej'], 'fg': z['fg'],
+                        measured.append({'example': z['example'], 'fg': z['fg'],
                                         'large': bool(z.get('large')),
                                         'measured': m})
                 except Exception:  # noqa: BLE001
@@ -1572,7 +1667,7 @@ def audit_dom_url(url, timeout=45, lang='en', auth_state=None, browser='auto', c
                     page.hover(f'[data-a11yidx="{i}"]', timeout=1000)
                     r = page.evaluate(_JS_HOVER, i)
                     if r and r['ratio'] < 3:
-                        hover.append(dict(r, ej=f'hover #{i}'))
+                        hover.append(dict(r, example=f'hover #{i}'))
                 except Exception:  # noqa: BLE001
                     continue
             data['hover'] = hover
@@ -1590,10 +1685,10 @@ def contrast_dom(url, selector, text_color=None, sample=4, lang='en', timeout=45
     """Contraste REAL de un elemento contra lo que sea que tenga detrás.
 
     La versión automatizada de a11y_contrast_image: carga la página, captura el
-    elemento que coincide con `selector` con el texto en transparente (queda el
+    elemento que coincide con `selector` con el text_ en transparente (queda el
     fondo puro, sin bordes de antialiasing), muestrea sus píxeles y los
-    contrasta con el color del texto — computado del elemento cuando no se da.
-    Para texto sobre imágenes, degradados, vídeo o cualquier fondo que el
+    contrasta con el color del text_ — computado del elemento cuando no se da.
+    Para text_ sobre imágenes, degradados, vídeo o cualquier fondo que el
     cálculo CSS no puede resolver. Requiere Playwright.
     """
     from playwright.sync_api import sync_playwright
@@ -1678,7 +1773,7 @@ def main(argv):
     try:
         res = audit_dom_url(a.url, timeout=a.timeout, lang=a.lang)
     except ImportError:
-        print(json.dumps({'error': 'Playwright no instalado: pip install playwright && playwright install chromium'}))
+        print(json.dumps({'error': 'Playwright not installed: pip install playwright && playwright install chromium'}))
         return 1
     except Exception as e:  # noqa: BLE001
         print(json.dumps({'error': str(e)}))
@@ -1696,7 +1791,7 @@ def reflow_main(argv):
     try:
         res = audit_reflow(a.url, timeout=a.timeout, lang=a.lang)
     except ImportError:
-        print(json.dumps({'error': 'Playwright no instalado'}))
+        print(json.dumps({'error': 'Playwright not installed'}))
         return 1
     print(json.dumps(res, ensure_ascii=False, indent=1))
     return 0
@@ -1726,7 +1821,7 @@ def kbd_main(argv):
     try:
         res = audit_keyboard(a.url, max_steps=a.max_steps, lang=a.lang)
     except ImportError:
-        print(json.dumps({'error': 'Playwright no instalado'}))
+        print(json.dumps({'error': 'Playwright not installed'}))
         return 1
     print(json.dumps(res, ensure_ascii=False, indent=1))
     return 0

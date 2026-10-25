@@ -98,12 +98,12 @@ def main(argv):
             with open(a.audit, encoding='utf-8') as f:
                 inform = json.load(f)
         if not inform:
-            print('necesito el informe por stdin o --audit fichero')
+            print('need the report via stdin or --audit file')
             return 1
         print(json.dumps(init(inform), ensure_ascii=False, indent=1))
         return 0
     if not (a.audit or a.url):
-        print('necesito --audit informe.json o --url https://…')
+        print('need --audit report.json or --url https://…')
         return 1
     with open(a.budget, encoding='utf-8') as f:
         budget = json.load(f)

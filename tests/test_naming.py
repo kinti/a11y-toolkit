@@ -237,4 +237,64 @@ for f in sorted(os.listdir(os.path.join(ROOT, 'a11y_toolkit'))):
 assert not fallos, '\n'.join(sorted(set(fallos))[:25])
 print('  diccionario cruzado: 613k tokens españoles revisados — cero fugas')
 
-print('test_naming.py OK — superficie pública y código sin español')
+# ── 9. JS INYECTADO y LITERALES (análisis externo 2026-10: el test veía NAME
+#    tokens y claves, pero NO los identificadores dentro de los strings
+#    evaluate(...) ni los literales de print/error — ahí vivía el español) ──
+_TRIPLE = "'''" + '"""'
+_JS_BLOQUES = []
+for _f9 in sorted(os.listdir(os.path.join(ROOT, 'a11y_toolkit'))):
+    if not _f9.endswith('.py'):
+        continue
+    _src9 = open(os.path.join(ROOT, 'a11y_toolkit', _f9), encoding='utf-8').read()
+    for _b in re.findall("'''(.*?)'''", _src9, re.S):
+        if 'const ' in _b or 'function ' in _b or 'document.' in _b or 'getComputedStyle' in _b:
+            _JS_BLOQUES.append((_f9, _b))
+assert len(_JS_BLOQUES) >= 5, 'no se extrajo el JS inyectado — ¿cambió el transporte?'
+_fallos_js = []
+for _f9, _b in _JS_BLOQUES:
+    for _m in re.finditer(r'(?:const|let|var|function)\s+([A-Za-z_$][\w$]*)', _b):
+        for _parte in _m.group(1).lower().split('_'):
+            if len(_parte) >= 3 and _parte in _ES_ONLY and _parte not in _CODE_OK:
+                _fallos_js.append(f'{_f9} JS: {_m.group(1)} (español: {_parte})')
+assert not _fallos_js, 'JS inyectado con español: ' + '; '.join(sorted(set(_fallos_js))[:8])
+
+# literales de string (print/errores de usuario): inglés — el contenido va en
+# locales/*.json, no en el código. DOCSTRINGS exentos (decisión A): se marcan
+# sus posiciones por AST y se saltan. Alias de compatibilidad tolerados.
+from a11y_toolkit.a11yaudit import SIGNAL_ALIASES as _SA  # noqa: E402
+from a11y_toolkit.server import PARAM_ALIASES as _PA  # noqa: E402
+from a11y_toolkit.a11ystatement import STATUS_ALIASES as _STA  # noqa: E402
+_ALIASES_OK = {'pixel', 'huerta'}   # préstamo inglés legítimo / nombre propio
+for _al in list(_SA) + list(_SA.values()) + list(_PA) + list(_PA.values()) \
+        + list(_STA) + list(_STA.values()):
+    _ALIASES_OK |= set(_al.split('_'))
+# alcance: strings que el usuario VE (prints de CLI y mensajes de error) —
+# los datos bilingües de detección (CRIT es, vocabularios, labels) son
+# DATO de idioma, no superficie de código
+import ast as _ast9  # noqa: E402
+_CADENAS_UI = []
+for _f9 in sorted(os.listdir(os.path.join(ROOT, 'a11y_toolkit'))):
+    if not _f9.endswith('.py'):
+        continue
+    _tree = _ast9.parse(open(os.path.join(ROOT, 'a11y_toolkit', _f9), encoding='utf-8').read())
+    for _n in _ast9.walk(_tree):
+        if isinstance(_n, _ast9.Call) and isinstance(_n.func, _ast9.Name) and _n.func.id == 'print':
+            for _a9 in _n.args:
+                if isinstance(_a9, _ast9.Constant) and isinstance(_a9.value, str):
+                    _CADENAS_UI.append((_f9, _a9.lineno, _a9.value))
+        if isinstance(_n, _ast9.Dict):
+            for _k9, _v9 in zip(_n.keys, _n.values):
+                if isinstance(_k9, _ast9.Constant) and _k9.value == 'error' \
+                        and isinstance(_v9, _ast9.Constant) and isinstance(_v9.value, str):
+                    _CADENAS_UI.append((_f9, _v9.lineno, _v9.value))
+_fallos_lit = []
+for _f9, _ln9, _txt9 in _CADENAS_UI:
+    for _palabra in re.findall(r'[a-záéíóúñü]{4,}', _txt9):
+        _p9 = _palabra.lower()
+        if _p9 in _ES_ONLY and _p9 not in _CODE_OK and _p9 not in _ALIASES_OK:
+            _fallos_lit.append(f'{_f9}:{_ln9} literal "{_palabra}"')
+assert not _fallos_lit, 'prints/errores con español: ' + '; '.join(sorted(set(_fallos_lit))[:8])
+print(f'  prints/errores de usuario ({len(_CADENAS_UI)} strings): sin español ✓')
+print(f'  JS inyectado ({len(_JS_BLOQUES)} bloques) y literales de código: sin español ✓')
+
+print('test_naming.py OK — superficie pública, código, JS inyectado y literales sin español')

@@ -202,7 +202,7 @@ def main(argv):
     try:
         res = audit_scroll(a.url, max_batches=a.max_batches, lang=a.lang, timeout=a.timeout)
     except ImportError:
-        print(json.dumps({'error': 'Playwright no instalado'}))
+        print(json.dumps({'error': 'Playwright not installed'}))
         return 1
     print(json.dumps(res, ensure_ascii=False, indent=1))
     return 0

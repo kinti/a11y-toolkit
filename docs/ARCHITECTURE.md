@@ -16,9 +16,9 @@ import guards. Output es/en; wire keys English (`a11y-evidence-pack/2`).
 
 | Module | One line |
 |---|---|
-| `server.py` | MCP stdio server: 24 tools, 6 prompts, routing/annotations dicts. VERSION lives here. |
+| `server.py` | MCP stdio server: 32 tools, 6 prompts, routing/annotations dicts. VERSION lives here. |
 | `a11y.py` | CLI dispatcher (`SUBCOMANDOS` dict → module mains). |
-| `a11yaudit.py` | Static auditor: 50+ signals, `CRIT` name maps, weighted 0-100 score, sitemap crawl (`evaluar_sitio`). |
+| `a11yaudit.py` | Static auditor: 50+ signals, `CRIT` name maps, weighted 0-100 score, sitemap crawl (`audit_site` / `evaluate_site`). |
 | `a11ydom.py` | Rendered auditor (Playwright): shadow DOM, state contrast, target size, reflow, keyboard walk, forms, hover, sr_transcript; browser pool + auto-detection; `_TD` catalog. |
 | `a11yscroll.py` | Infinite-scroll audit (focus survival, announcements, feed end). |
 | `a11yevidence.py` | Evidence pack builder (`a11y-evidence-pack/2`): 55-criterion matrix, effort per row, SHA-256 chain, embedded bodies. |
@@ -30,7 +30,7 @@ import guards. Output es/en; wire keys English (`a11y-evidence-pack/2`).
 | `a11ywcag3.py` | WCAG 3 preview: re-groups 2.2 findings under the Sept-2026 draft's 46 outcomes (`_OUTCOMES`, exact names) via a curated criterion→outcome map — no score, no tier, no conformance claim (W3C has no official cross-map). |
 | `a11yvtt.py` | WebVTT caption quality (1.2.2): parses the real .vtt — malformed/empty/overlapping/too-fast cues (>21 cps), coverage vs duration. |
 | `a11ydocx.py` | DOCX structural screening (zip+XML): images w/o alt, fake headings (bold+big without Heading style), document language, header rows. |
-| `a11ypdf.py` | PDF structural screening: tagged tree, title, /Lang, outline, /Alt, text layer (scans), encryption — zero-dep, the space nobody automated. |
+| `a11ypdf.py` | PDF structural screening: tagged tree, title, /Lang, outline, /Alt, text layer (scans), encryption, AcroForm fields without /TU labels (3.3.2/4.1.2) — zero-dep, the space nobody automated. |
 | `a11yjourney.py` | Blindfold journey verdict: friction log → deterministic scored task verdict; `_J` friction catalogue (journey_* patterns → criterion + bilingual remediation). |
 | `a11ydiff.py` | Snapshot + regression diff (interactives, focus order, tree). |
 | `a11ybudget.py` | Error budget: only NEW blocking findings fail (exit 2). |
@@ -100,7 +100,7 @@ change (see 4.0.1); internal dev docs don't.
   friction, −15 workaround; pass = completed, no high, no workaround, ≥85).
   Journeys enter the pack as `report:journey`. Usability evidence, never
   conformance: an AI agent is not a human screen-reader user.
-- **D14 — VPAT honesty + ACT interop (next)**: the VPAT generator fills
+- **D16 — VPAT honesty + ACT interop (v5.5.0+)**: the VPAT generator fills
   Remarks from the pack and leaves every Conformance Level at Not Evaluated
   unless an automated fail forces Does Not Support — only a qualified human's
   `overrides` (plus the signature block referencing pack.sha256) turn the

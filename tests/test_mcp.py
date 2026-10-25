@@ -104,7 +104,7 @@ assert c14['criterion'].startswith('2.5.8') and '24×24' in c14['requires'] and 
 d2 = json.loads(por_id[10]['result']['content'][0]['text'])
 assert d2['text'] == '#999999' and abs(d2['ratio'] - 2.85) < 0.02  # hsl + name CSS
 
-print('TESTS MCP PASAN ✓ (handshake+instructions, 19 tools EN, 5 prompts, criterion 2.5.8, audit html inline, hsl/nombres)')
+print('TESTS MCP PASAN ✓ (handshake+instructions, 19 tools EN, 6 prompts, criterion 2.5.8, audit html inline, hsl/nombres)')
 
 REQ2 = [
     {'jsonrpc': '2.0', 'id': 10, 'method': 'initialize', 'params': {'protocolVersion': '2024-11-05', 'capabilities': {}, 'clientInfo': {'name': 't'}}},

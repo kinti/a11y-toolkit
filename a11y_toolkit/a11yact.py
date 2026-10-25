@@ -30,7 +30,6 @@ ACT_MAP = {
     'ctrl_name': [('97a4e1', 'Button has non-empty accessible name'),
                   ('c487ae', 'Link has non-empty accessible name')],
     'field_label': [('e086e5', 'Form field has non-empty accessible name')],
-    'placeholder_only': [('e086e5', 'Form field has non-empty accessible name')],
     'label_in_name': [('2ee8b8', 'Visible label is part of accessible name')],
     'empty_heading': [('ffd0e9', 'Heading has non-empty accessible name')],
     'iframe_title': [('cae760', 'Iframe element has non-empty accessible name')],
@@ -46,8 +45,9 @@ ACT_MAP = {
     'zoom_no': [('b4f0c3', 'Meta viewport allows for zoom')],
     'no_bypass': [('3e12e1', 'Block of repeated content is collapsible')],
     'dup_ids': [('3ea0c8', 'Id attribute value is unique')],
-    'autocomplete': [('73f2c2', 'Autocomplete attribute has valid value')],
+    'autocomplete_invalid': [('73f2c2', 'Autocomplete attribute has valid value')],
     'contrast_fail': [('afw4f7', 'Text has minimum contrast')],
+    'contrast_image_fail': [('afw4f7', 'Text has minimum contrast')],
 }
 
 # Reglas con estado "proposed" (no aún publicadas por el AG WG) en el canónico
@@ -70,12 +70,11 @@ def act_rules_for(signal):
 # Notas de honestidad por señal (solapes aproximados declarados)
 ACT_NOTES = {
     'ctrl_name': 'toolkit signal covers a/button/summary; the two ACT rules map by element role',
-    'placeholder_only': 'placeholder is not an accessible name under the ACT rule',
     'dup_ids': 'ACT rule references WCAG 2.0/2.1 4.1.1 (removed in WCAG 2.2); kept as a parsing-quality signal',
     'contrast_fail': ('ACT rule assumes solid backgrounds; the toolkit measurement '
                       'composes effective backgrounds with alpha — approximate overlap'),
-    'autocomplete': ('ACT rule validates the attribute value; the toolkit flags missing '
-                     'autocomplete on user-data fields (1.3.5 intent)'),
+    'autocomplete_invalid': ('the ACT rule validates the attribute value; the toolkit '
+                             'implements the WHATWG modifier grammar and flags invalid values'),
     'no_bypass': 'toolkit signal is a bypass-mechanism heuristic (skip link/main); the ACT rule verifies the technique',
 }
 

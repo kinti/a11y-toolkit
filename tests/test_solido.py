@@ -32,7 +32,8 @@ _hallazgo = {k for k in es
              if not k.endswith(('_rem', '_nota')) and k not in
              ('limits', 'interp', 'criteria', 'score_note', 'lightening', 'darkening',
               'no_post_copy', 'invalid_color', 'invalid_region', 'region_outside',
-              'no_pixels', 'load_error', 'opaque_text', 'fetch_error')}
+              'no_pixels', 'load_error', 'opaque_text', 'fetch_error',
+              'rendered_reason')}   # dato del namespace audit, no un finding
 sin_rem = sorted(k for k in _hallazgo if f'{k}_rem' not in es)
 assert not sin_rem, f"findings sin _rem (KeyError al emitir): {sin_rem}"
 assert set(CRIT['es']) == set(CRIT['en']), 'CRIT desparejo es/en'
@@ -41,6 +42,15 @@ assert set(CRIT['es']) == set(CRIT['en']), 'CRIT desparejo es/en'
 from a11y_toolkit.a11ycrit import _UNDERSTANDING, _C, _SIGNAL_CRIT, criterion as _crit  # noqa: E402
 _sin_link = [c for c in _C if c not in _UNDERSTANDING]
 assert not _sin_link, f'criterios sin enlace Understanding: {_sin_link}'
+# biblia COMPLETA: los 86 criterios de WCAG 2.2 (A/AA/AAA) contra la fuente
+# canónica ingesta da (w3c/wcag, snapshot generado por scripts/wcag22_ingest.py)
+_sc_src = json.load(open(os.path.join(ROOT, 'docs', 'wcag22-criteria-source.json'),
+                         encoding='utf-8'))['criteria']
+_fuente = {s['num']: s['level'] for s in _sc_src}
+assert len(_fuente) == 86 and len(_C) == 86, f'biblia incompleta: fuente {len(_fuente)}, catálogo {len(_C)}'
+_des = {c: v[0] for c, v in _C.items() if c in _fuente and _fuente[c] != v[0]}
+assert not _des, f'niveles ≠ fuente canónica: {_des}'
+assert set(_C) == set(_fuente), 'el catálogo y la fuente canónica divergen'
 _r = _crit('1.4.3', 'en')
 assert _r['understanding'].startswith('https://www.w3.org/WAI/WCAG22/Understanding/') and _r['understanding'].endswith('.html')
 

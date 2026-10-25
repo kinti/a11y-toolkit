@@ -1,0 +1,75 @@
+{
+ "source": "w3c/wcag3 guidelines/groups (canónico)",
+ "outcomes": {
+  "images-and-media": [
+   "accessible-media-player",
+   "audio-descriptions",
+   "captions",
+   "figure-captions",
+   "image-alternatives",
+   "non-text-alternatives",
+   "sign-language",
+   "single-sense",
+   "transcripts"
+  ],
+  "text-and-wording": [
+   "clear-language",
+   "text-appearance",
+   "text-to-speech"
+  ],
+  "interactive-components": [
+   "control-information",
+   "expected-behavior",
+   "keyboard-focus-appearance",
+   "navigating-content",
+   "pointer-focus-appearance"
+  ],
+  "input-operation": [
+   "authentication",
+   "input-operation",
+   "keyboard-interface-input",
+   "physical-or-cognitive-effort-when-using-keyboard",
+   "pointer-input",
+   "speech-and-voice-input"
+  ],
+  "error-handling": [
+   "correct-errors",
+   "prevent-errors"
+  ],
+  "animation-and-movement": [
+   "avoid-physical-harm"
+  ],
+  "layout": [
+   "no-obstruction",
+   "recognizable-layouts",
+   "structure",
+   "user-orientation"
+  ],
+  "consistency-across-views": [
+   "consistency"
+  ],
+  "process-and-task-completion": [
+   "adequate-time",
+   "avoid-deception",
+   "avoid-exclusionary-cognitive-tasks",
+   "complete-tasks",
+   "retain-information",
+   "unnecessary-steps"
+  ],
+  "policy-and-protection": [
+   "algorithms",
+   "risk"
+  ],
+  "help-and-feedback": [
+   "feedback",
+   "help-available"
+  ],
+  "user-control": [
+   "adjustable-viewport",
+   "assistive-technology-control",
+   "content-changes",
+   "control-text",
+   "media-control"
+  ]
+ }
+}

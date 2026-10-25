@@ -52,7 +52,7 @@ def vtt_check(url, duration=None, lang='en'):
                           'remediation': _t(lang, key + '_rem').format(**fmt)})
 
     if not text.lstrip().startswith('WEBVTT'):
-        return {'error': 'no declara WEBVTT (¿es un .srt u otro formato?)',
+        return {'error': 'does not declare WEBVTT (is it .srt or another format?)',
                 'primeros_bytes': text[:40]}
 
     blocks = [b for b in re.split(r'\n\s*\n', text) if b.strip()]
@@ -74,7 +74,7 @@ def vtt_check(url, duration=None, lang='en'):
         cues.append({'start': start, 'end': end, 'text': body})
 
     if malformed:
-        add('high', 'vtt_malformed', n=len(malformed), ej=', '.join(malformed[:3]))
+        add('high', 'vtt_malformed', n=len(malformed), example=', '.join(malformed[:3]))
     if not cues:
         add('high', 'vtt_no_cues')
         return _report(url, findings, 0, 0, lang, duration, cues)
@@ -92,7 +92,7 @@ def vtt_check(url, duration=None, lang='en'):
                and len(c['text']) / max(c['end'] - c['start'], 0.1) > 21]
     if too_fast:
         add('medium', 'vtt_too_fast', n=len(too_fast),
-            ej=', '.join(f"{r['t']}… ({r['cps']}cps)" for r in too_fast[:3]))
+            example=', '.join(f"{r['t']}… ({r['cps']}cps)" for r in too_fast[:3]))
 
     if duration:
         covered = sum(max(0.0, min(c['end'], duration) - c['start']) for c in cues if c['start'] < duration)

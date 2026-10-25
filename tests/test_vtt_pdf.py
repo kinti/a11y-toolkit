@@ -103,6 +103,53 @@ assert 'pdf_scanned' not in {h['signal'] for h in solo_estructura['findings']}
 print('10. escaneo solo con patrón (img+sin text) ✓')
 
 
+# 11-14. formularios AcroForm sin /TU (3.3.2/4.1.2 — el hueco que nadie cubría)
+def form_pdf(campos):
+    """PDF con campos AcroForm: campos = [(tipo, /TU?)] · tipo 'tx'|'btn'."""
+    objs = [b'1 0 obj\n<< /Type /Catalog /Pages 2 0 R /AcroForm << /Fields [' +
+            b' '.join(b'%d 0 R' % (20 + i) for i in range(len(campos))) + b'] >> >>\nendobj\n',
+            b'2 0 obj\n<< /Type /Pages /Kids [10 0 R] /Count 1 >>\nendobj\n',
+            b'3 0 obj\n<< /Producer (t) >>\nendobj\n']
+    for i, (tipo, tu) in enumerate(campos):
+        ft = {'tx': b'/Tx', 'btn': b'/Btn'}[tipo]
+        objs.append(b'%d 0 obj\n<< /FT %s /T (f%d)%s /Subtype /Widget >>\nendobj\n'
+                    % (20 + i, ft, i, b' /TU (Etiqueta campo %d)' % i if tu else b''))
+    objs.append(b'10 0 obj\n<< /Type /Page /Contents 6 0 R >>\nendobj\n')
+    comp = zlib.compress(b'BT (Formulario) Tj ET\n')
+    return (b'%PDF-1.7\n' + b''.join(objs)
+            + b'6 0 obj\n<< /Length %d /Filter /FlateDecode >>\nstream\n' % len(comp)
+            + comp + b'\nendstream\nendobj\n%%EOF\n')
+
+
+sin_tu = pdf_screen(form_pdf([('tx', False), ('tx', False), ('btn', False)]), lang='es')
+senales = {h['signal'] for h in sin_tu['findings']}
+assert {'pdf_form_no_label', 'pdf_button_no_name'} <= senales
+assert sin_tu['form_fields'] == 3 and sin_tu['form_labels'] == 0
+h_form = next(h for h in sin_tu['findings'] if h['signal'] == 'pdf_form_no_label')
+h_btn = next(h for h in sin_tu['findings'] if h['signal'] == 'pdf_button_no_name')
+assert h_form['severity'] == 'medium' and h_form['criterion'].startswith('3.3.2')
+assert h_btn['severity'] == 'high' and h_btn['criterion'].startswith('4.1.2')
+print('11. forms sin /TU: 3.3.2 (2 campos, media) + 4.1.2 (botón, alta) ✓')
+
+con_tu = pdf_screen(form_pdf([('tx', True), ('btn', True)]), lang='en')
+assert 'pdf_form_no_label' not in {h['signal'] for h in con_tu['findings']}
+assert 'pdf_button_no_name' not in {h['signal'] for h in con_tu['findings']}
+assert con_tu['form_labels'] == 2
+print('12. forms con /TU: limpios ✓')
+
+parcial = pdf_screen(form_pdf([('tx', True), ('tx', False), ('btn', False)]), lang='es')
+senales_p = {h['signal'] for h in parcial['findings']}
+assert 'pdf_form_no_label' in senales_p and 'pdf_button_no_name' not in senales_p
+h_p = next(h for h in parcial['findings'] if h['signal'] == 'pdf_form_no_label')
+assert '2 de 3' in h_p['issue']   # recuento honesto sin desglosar botones
+print('13. parcial: 2 de 3, sin desglosar botones (herencia /Parent) ✓')
+
+sin_forms = pdf_screen(mini_pdf(), lang='es')
+assert 'pdf_form_no_label' not in {h['signal'] for h in sin_forms['findings']}
+assert sin_forms['form_fields'] == 0
+print('14. sin forms: no acusa ✓')
+
+
 # ── DOCX screening (5.9-c) ──
 from a11y_toolkit.a11ydocx import docx_screen  # noqa: E402
 W_NS = 'xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"'

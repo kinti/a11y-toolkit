@@ -106,9 +106,9 @@ def build_pack(reports, snapshot=None, reviewer=None, notes=None, verified=None,
                     m = _re.search(r'([\d.]+):1', h.get('issue', ''))
                     if m:
                         val['measured'] = f'{m.group(1)}:1'
-                ej = h.get('examples', [])
-                if ej:
-                    val['example'] = str(ej[0])[:80]
+                _ex_list = h.get('examples', [])
+                if _ex_list:
+                    val['example'] = str(_ex_list[0])[:80]
                 if val:
                     values[code] = val
 
@@ -158,17 +158,21 @@ def build_pack(reports, snapshot=None, reviewer=None, notes=None, verified=None,
     manual_remaining = [m for m in MANUAL_AA if m.split(' ')[0] not in verified]
     # los not-run son adicionalmente "pendientes" (la máquina no miró)
     for name in manual_remaining:
-        row = {'criterion': name, 'status': 'manual-only',
+        code = name.split(' ')[0]
+        # el nombre viaja en el idioma del pack como el resto de la matriz:
+        # manual_pending también es un entregable que va al cliente
+        row = {'criterion': f"{code} {(_CAT[code][1].get(language) or _CAT[code][1]['en'])[0]}",
+               'status': 'manual-only',
                 'note': tx['no_signal']}
-        ef = effort(name.split(' ')[0])
+        ef = effort(code)
         if ef:
             row['effort'] = {'class': ef['class'], 'minutes': ef['minutes'],
                                 'why': ef['why']}
         matrix.append(row)
     for code in sorted(verified):
         if any(code in m for m in MANUAL_AA) and not any(m.startswith(code) for m in manual_remaining):
-            name = next(m for m in MANUAL_AA if m.startswith(code))
-            row = {'criterion': name, 'status': 'agent-verified',
+            row = {'criterion': f"{code} {(_CAT[code][1].get(language) or _CAT[code][1]['en'])[0]}",
+                   'status': 'agent-verified',
                     'note': 'verified against this sample per the manual checklist protocol'}
             ef = effort(code)
             if ef:

@@ -52,7 +52,7 @@ from . import a11yact
 from . import a11yinit
 from . import a11ywcag3
 
-SUBCOMANDOS = {
+SUBCOMMANDS = {
     'pair': (contrast, 'pair'),
     'image': (contrast, 'image'),
     'audit': (a11yaudit, None),
@@ -88,13 +88,13 @@ def main(argv=None):
     argv = list(sys.argv[1:] if argv is None else argv)
     if not argv or argv[0] in ('-h', '--help'):
         print(__doc__)
-        print('Subcomandos disponibles:', ', '.join(sorted(SUBCOMANDOS)))
+        print('Available subcommands:', ', '.join(sorted(SUBCOMMANDS)))
         return 0
-    if argv[0] not in SUBCOMANDOS:
+    if argv[0] not in SUBCOMMANDS:
         print(__doc__)
-        print(f'Subcomando desconocido: {argv[0]}. Disponibles:', ', '.join(sorted(SUBCOMANDOS)))
+        print(f'Unknown subcommand: {argv[0]}. Available:', ', '.join(sorted(SUBCOMMANDS)))
         return 2
-    modulo, sub = SUBCOMANDOS[argv[0]]
+    modulo, sub = SUBCOMMANDS[argv[0]]
     if sub and sub.endswith('_main'):
         return getattr(modulo, sub)(argv[1:])   # función propia (reflow_main, kbd_main)
     args = ([sub] + argv[1:]) if sub else argv[1:]

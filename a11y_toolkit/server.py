@@ -40,7 +40,8 @@ Tools:
   - a11y_wcag3_preview(report, lang?)           re-group findings under the WCAG 3
                                                   Working Draft outcomes (no score)
 
-Prompts: audit-page, fix-contrast, pre-deploy-check, declaration-eaa.
+Prompts: audit-page, fix-contrast, pre-deploy-check, declaration-eaa,
+         conformance-wcagem, blindfold-task.
 
 Register in an MCP client (no clone needed):
 
@@ -82,7 +83,7 @@ try:
 except ImportError:
     ARIALIVE_JS = None  # repo checkout: read the file
 
-VERSION = '5.14.0'
+VERSION = '5.15.0'
 
 # Params renombrados a inglés en 5.11.0; se aceptan los nombres previos.
 PARAM_ALIASES = {
@@ -575,12 +576,14 @@ TOOLS = [
         'description': ('PDF accessibility screening — the space nobody automated (axe, pa11y, '
                         'Lighthouse: HTML only). Zero-dep structural first pass on a LOCAL file: '
                         'tagged tree (/StructTreeRoot — the root failure), title, language, '
-                        'outline, /Alt entries, text layer (scanned detection), encryption. '
+                        'outline, /Alt entries, text layer (scanned detection), encryption, and '
+                        'AcroForm fields without accessible labels (/TU — what a screen reader '
+                        'announces; 3.3.2 inputs, 4.1.2 buttons). '
                         'Full PDF/UA conformance needs a spec validator (veraPDF); this finds '
                         'the failures that make full validation pointless. Use for enterprise '
                         'document pipelines and PDFs linked from the audited site. '
                         'Returns JSON: {mode: "pdf", pages, tagged, lang, title, images, '
-                        'alt_entries, findings, summary, limits}.'),
+                        'alt_entries, form_fields, form_labels, findings, summary, limits}.'),
         'inputSchema': {'type': 'object', 'properties': {
             'path': {'type': 'string', 'description': 'local PDF file path (never fetched remotely — download it yourself first)'},
             'lang': {'type': 'string', 'enum': ['en', 'es'], 'description': 'output language'},

@@ -69,11 +69,11 @@ def verdict(task, steps, outcome, url='', lang='en'):
     """Friction log → deterministic journey verdict (pack-ready report shape)."""
     lang = 'es' if lang == 'es' else 'en'
     if not isinstance(task, dict) or not str(task.get('goal', '')).strip():
-        return {'error': 'task.goal es obligatorio (qué tarea intentó el agente)'}
+        return {'error': 'task.goal is required (what task the agent attempted)'}
     if not isinstance(steps, list):
-        return {'error': 'steps debe ser una lista de pasos'}
+        return {'error': 'steps must be a list of steps'}
     if not isinstance(outcome, dict):
-        return {'error': 'outcome debe ser un objeto'}
+        return {'error': 'outcome must be an object'}
 
     crits = _crit_set()
     findings, errors = [], []
@@ -165,7 +165,7 @@ def budget_init(verdict, url=''):
     por diseño (D3), así que el baseline sigue siendo válido entre versiones
     del motor."""
     if not isinstance(verdict, dict) or verdict.get('verdict') is None:
-        return {'error': 'no es un veredicto de journey (usa a11y_journey_verdict)'}
+        return {'error': 'not a journey verdict (use a11y_journey_verdict)'}
     return {
         'format': 'a11y-journey-budget/1',
         'task': verdict.get('task', {}),
@@ -185,7 +185,7 @@ def budget_compare(baseline, verdict):
     if not isinstance(baseline, dict) or baseline.get('format') != 'a11y-journey-budget/1':
         return {'error': 'baseline inválida (usa budget_init)'}
     if not isinstance(verdict, dict) or verdict.get('verdict') is None:
-        return {'error': 'no es un veredicto de journey'}
+        return {'error': 'not a journey verdict'}
     if baseline.get('task', {}).get('goal') != verdict.get('task', {}).get('goal'):
         return {'error': "el baseline es de OTRA tarea: %r vs %r" % (
             baseline.get('task', {}).get('goal'), verdict.get('task', {}).get('goal'))}

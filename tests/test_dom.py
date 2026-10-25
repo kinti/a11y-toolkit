@@ -121,7 +121,7 @@ with open('/tmp/fixture_grad.html', 'w', encoding='utf-8') as f:
 g = audit_dom_url('file:///tmp/fixture_grad.html', lang='en')
 imgf = [h for h in g['findings'] if h['signal'] == 'contrast_image_fail']
 assert len(imgf) == 1, [h['signal'] for h in g['findings']]  # solo el claro falla
-assert imgf[0]['severity'] == 'high' and 'worst 1.0' in imgf[0]['issue'], imgf[0]
+assert imgf[0]['severity'] == 'high' and 'worst 1.1' in imgf[0]['issue'], imgf[0]
 assert 'h1' in imgf[0]['examples'][0]  # la zona medida es la clara, no la oscura
 assert not any(h['signal'] == 'contrast_review' for h in g['findings']), 'ambas zonas medidas'
 from a11y_toolkit.a11ydom import contrast_dom as _cd

@@ -1,5 +1,133 @@
 # Changelog
 
+## 5.15.0 — pendiente — "client-facing pack, fully in the client's language"
+
+- **The whole bible: WCAG 2.2 A/AA/AAA ingested from the canonical source**:
+  `scripts/wcag22_ingest.py` extracts every success criterion (number, name,
+  level) from the w3c/wcag repository (guidelines order gives numbering;
+  4.1.1 Parsing numbered then excluded as removed). The catalog now covers
+  ALL 86 criteria — the 31 AAA entries authored bilingually (name, what it
+  requires, typical failures, how to check — pointing at the right toolkit
+  tool where one applies, honest "manual" where none does). `a11y_criterion`
+  explains the complete standard with Understanding links; the A/AA set and
+  every level are verified against the source snapshot
+  (`docs/wcag22-criteria-source.json`), pinned in test_solido (86/86,
+  zero level drift).
+- **WCAG 3 ingested from the canonical source**: `scripts/wcag3_ingest.py`
+  verifies the preview's outcome registry against the w3c/wcag3 repository
+  itself (guidelines/groups structure) — 46/46 names verified; the snapshot
+  (`docs/wcag3-outcomes-source.json`) is pinned by tests/test_wcag3.py, so
+  every future draft re-baseline is a diff against the source, not a guess.
+- **Independent adversarial review of the whole wave** (executable reviewer,
+  protocol round): 14 real issues the suites missed, all fixed and
+  re-verified — contrast symbol-filter exempted all non-Latin text (CJK/
+  Cyrillic/Arabic pages measured nothing; now Unicode-property aware);
+  role-controls closed on nested same-tag endtags (React icon-button
+  pattern produced false unnamed-control highs; close now requires depth
+  match); orphan alpha-zone marker burned 30s timeouts per element;
+  placeholder+id fields escaped every 3.3.2 signal (placeholder-only now a
+  post-parse decision); search inputs never reached the label check; the
+  style-rule scan was quadratic (450x overhead with inlined CSS — now
+  cached); icon-font exemption required an actual font declaration; the
+  ACT runner applicability table carried dead keys (EARL outcomes now
+  semantically honest); AAA 2.5.5 documented as 24×24 instead of 44×44;
+  later aria-toggles erased earlier real collapse toggles; id-text
+  accumulation was quadratic; the 4.1.3 dynamism gate read a post-parse
+  flag. Clean probes: hostile HTML, walker JS syntax, glyph-diff sampler,
+  deep DOMs, real pages (cross-validated against browser naming).
+- **20/20 — 100% consistent with every published ACT rule implemented**.
+  The final wave closed every residual: label-in-name implements the full
+  2.5.3 algorithm (punctuation removed WITHOUT splitting words — "11×3=33"
+  is one token; contiguous word-slice matching — "discover it" does not fit
+  "discover italy"; DOM-faithful text concatenation — inline-div letters
+  are "ACT", spaced "W C A G" is four words; single symbolic letter exempt);
+  icon-font pages exempt buttons (their "text" may be glyphs); <style>-based
+  visually-hidden classes excluded from the visible label; bypass = a
+  toggle whose function actually collapses (body says `display` inline, or
+  the function name does when the JS is external — off-screen/aria toggles
+  do not count); element language by effective inheritance incl. img alt
+  as text, whitespace lang invalid but empty lang is not. Rendered contrast
+  (afw4f7) became fully decisive: aria-hidden/disabled-ancestor/symbol-only
+  and single-char text excluded; element+ancestor OPACITY composed into the
+  text alpha; text-shadow treated as the effective background (improves or
+  fails, no longer deferred); alpha text over gradients measured at BOTH
+  composition extremes; and the sampler now measures the background ONLY at
+  glyph pixels (two-screenshot diff) — a gradient the text only crosses at
+  its light end can no longer fail by its dark end. 34/34 official
+  contrast cases, 355/355 overall, zero inconsistencies, published as-is
+  in docs/act-report-summary.md.
+- **ACT precision wave II — 14/20 rules consistent (was 12/20, originally
+  1/20)**: first-`<title>`-in-document model (a body title counts when no
+  head title exists, per the case truth table); off-screen focus sentinels
+  decided post-parse against the full script text (an unwired sentinel is a
+  failure, a wired one is exempt); element language validated by the
+  EFFECTIVE language of each text node (nearest ancestor with lang — a
+  child with valid lang covers its text even under an invalid ancestor);
+  field names per e086e5 semantics (placeholder IS a name for the
+  accessibility tree — our separate placeholder_only signal keeps the honest
+  3.3.2 review position; label[for] only labels labelable elements;
+  role-fields get name-from-content; role=none/disabled/hidden skip);
+  aria-value validation skips valueless attributes, accepts tri-state
+  "mixed" for pressed/checked, and validates aria-relevant token-wise; a
+  button toggling a nav (onclick referencing its id) is a valid bypass
+  mechanism (a link toggle is not). Rendered-contrast rule (afw4f7) kept
+  static on purpose: the rendered pass caught 5 real fails but added 9
+  false positives on indeterminable backgrounds — machinery (file:// +
+  Playwright) is in the runner, ready when contrast applicability learns
+  gradients/unmeasurable backgrounds.
+- **ACT precision wave — 12/20 rules consistent (was 1/20)**: the official
+  W3C test cases drove a real engine overhaul. New in the parser: inherited
+  visibility model (aria-hidden with `false` re-enabling for accname,
+  hidden/display:none/visibility:hidden stacks), an id→text registry
+  resolving `aria-labelledby` post-parse (ids can be declared later),
+  focusability model for 6cfa84 (native elements + tabindex, `disabled`
+  disables, aria-disabled does not, tabindex=-1 does not count, off-screen
+  focus sentinels whose id is wired in scripts are exempt, nested
+  aria-hidden=false does NOT exempt), the exact ACT/WHATWG autocomplete
+  grammar (section-* → shipping|billing → contact modifier only before
+  email/impp/tel* → field → webauthn; disabled/hidden/aria-disabled fields
+  out of applicability), meta-refresh per the HTML declarative steps (first
+  parseable wins — `0:` with a colon does not parse; 0s and >20h exempt),
+  zoom blocking on invalid user-scalable/maximum-scale values (negatives
+  and device-width do not block), title only in (explicit or implied)
+  head and never in templates/bodies, multi-token role validation, and
+  name sources for img/input-image/iframe/links/buttons/headings/fields
+  (alt, aria-label, resolved labelledby, title, inner image names,
+  presentational/hidden exemptions with the focusable exception).
+  label-in-name now implements the WCAG 2.5.3 algorithm (parens removed,
+  word-level containment, single-symbol visible labels exempt, CSS-hidden
+  text is not the visible label) and covers buttons, not just links.
+  ARIA 1.2/1.3 roles added (searchfield, comment, suggestion, blockquote).
+  Per-rule detail in docs/act-report-summary.md; residuals documented
+  there (rendered-only contrast, icon-font labels, bypass heuristics).
+- **ACT implementation report (W3C WAI listing play)**: `scripts/act_report.py`
+  runs the shipped static engine over the official ACT test cases (single
+  w3.org testcases.json, 1211 cases; ours: the rules in ACT_MAP) and emits
+  the EARL JSON-LD implementation report (`docs/act-implementation-report.json`,
+  act-rules.github.io format) plus an honest per-rule consistency summary
+  (`docs/act-report-summary.md`). Outcomes derive from mapped signals —
+  failed when a mapped signal fires; passed/inapplicable via a per-signal
+  applicability table; never cantTell. Polite crawler (w3.org rate-limits
+  bursts: local cache + backoff). Published as-is, inconsistencies included:
+  they are the precision backlog. Submission to the W3C implementations
+  list = GitHub issue w3c/wcag-act-rules with the permanent raw URL.
+- **PDF forms screening (a11y_audit_pdf)**: AcroForm fields without an
+  accessible label — `/TU` is what a screen reader announces; without it a
+  field is heard as its technical name or as bare "button". Clear-cut case
+  (zero /TU in the document) reports by type: inputs/choices/signatures →
+  3.3.2 medium, buttons → 4.1.2 high; the partial case reports the honest
+  count (N of M) without splitting buttons (radio-group /Parent inheritance
+  makes per-field pairing unreliable in an object-parser-free screening).
+  The report gains `form_fields` and `form_labels`. Same nobody-automated
+  lane as the rest of the PDF screening; public-sector forms are the use
+  case.
+- **a11y_evidence lang= now covers manual_pending and verified manual rows**:
+  the manual-only and agent-verified rows of the criteria matrix used the raw
+  English MANUAL_AA strings while the rest of the matrix localized — a pack
+  in Spanish reached the client with four English rows. All criterion names
+  in the pack now come from the bilingual catalog in the pack's language.
+  (Found live at the a11y.es vendor sync: its pack-language test caught it.)
+
 ## 5.14.0 — pendiente — "WCAG 3 preview + EN 301 549 v4.1.1"
 
 - **a11y_wcag3_preview (tool 32) — the WCAG 3 demo nobody ships**: takes any
