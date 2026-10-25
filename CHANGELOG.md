@@ -1,6 +1,35 @@
 # Changelog
 
-## 5.15.0 — pendiente — "client-facing pack, fully in the client's language"
+## 5.16.0 — pendiente — "README: quickstart + compact tool table, honest labels"
+
+- **README restructured for onboarding**: a `## Quickstart` at the top (MCP
+  one-liner, `pip install`, two example commands, the zero-dep vs Playwright
+  split), a one-line tagline, and the tools section reduced to a compact
+  32-row table (Tool | Category | What it does) — the full reference moved to
+  the new `docs/tools.md`. README goes from ~860 to ~310 lines.
+- **`docs/tools.md` — the full tool reference, auto-generated**: the long
+  claim is now literal on two surfaces. `scripts/gen_readme.py` emits both the
+  README table and the `docs/tools.md` catalog from `server.TOOLS`, with
+  `--check` (exit 1 when stale) wired into `make test`, `make fast` and CI —
+  neither surface can drift.
+- **Behavior annotations restored on every tool**: labels now surface the
+  three MCP annotations — `read-only`/`mutates state` · `network` ·
+  `not idempotent`. This fixes a regeneration regression that mislabeled
+  `a11y_generate_declaration`/`a11y_generate_vpat` as read-only, and restores
+  the network/not-idempotent signals an agent needs before running
+  `a11y_forms` or `a11y_ledger`.
+- **`a11y_wcag3_preview` openWorldHint corrected** (pure report→outcomes tool,
+  not network) so its label stops lying.
+- **Features table** (`What no other a11y tool…` → `## Features`): ✗/✓ replaced
+  by No/Yes (screen-reader friendly), two rows added (ACT Rules interop,
+  WCAG 3 draft preview), and the "93% of A/AA" vs "~1/3 of WCAG" wording
+  reconciled in one sentence.
+
+Tests: `scripts/gen_readme.py --check` (two surfaces) folded into `make test`/
+`make fast`/CI; `test_solido.py` now pins both the README table and
+`docs/tools.md` entries.
+
+## 5.15.0 — 2026-10-25 — "the whole bible + 100% ACT + WCAG 3 from source"
 
 - **The whole bible: WCAG 2.2 A/AA/AAA ingested from the canonical source**:
   `scripts/wcag22_ingest.py` extracts every success criterion (number, name,
@@ -18,6 +47,21 @@
   itself (guidelines/groups structure) — 46/46 names verified; the snapshot
   (`docs/wcag3-outcomes-source.json`) is pinned by tests/test_wcag3.py, so
   every future draft re-baseline is a diff against the source, not a guess.
+- **README regenerated from the server itself** — the long-standing claim
+  is now literal: `scripts/gen_readme.py` builds the tools section from
+  `server.TOOLS` between markers, with `--check` (exit 1 when stale) for CI;
+  new categories (Knowledge & context, Coverage & evidence) and a tool
+  without a category fails the generator. a11y.es is demoted to a two-line
+  mention at the end ("The engine behind a11y.es") — the repo is the engine,
+  not the service.
+- **Naming: `ej` → `example`** across 105 coordinated sites (code kwargs,
+  locale placeholders es/en, JS transport keys) and the injected-JS Spanish
+  purge (~25 local identifiers). Note for pack consumers: the value key
+  rename changes regenerated pack sha256s.
+- **EN 301 549 v4.1.1 status note** in every generated statement (both
+  frameworks, es/en): adopts WCAG 2.2 and adds the EAA mapping, but not yet
+  cited in the Official Journal — presumption of conformity stays with the
+  already cited v3.2.1 (WCAG 2.1 AA) until then.
 - **Independent adversarial review of the whole wave** (executable reviewer,
   protocol round): 14 real issues the suites missed, all fixed and
   re-verified — contrast symbol-filter exempted all non-Latin text (CJK/
@@ -128,7 +172,7 @@
   in the pack now come from the bilingual catalog in the pack's language.
   (Found live at the a11y.es vendor sync: its pack-language test caught it.)
 
-## 5.14.0 — pendiente — "WCAG 3 preview + EN 301 549 v4.1.1"
+## 5.14.0 — 2026-10-23 — "WCAG 3 preview + EN 301 549 v4.1.1"
 
 - **a11y_wcag3_preview (tool 32) — the WCAG 3 demo nobody ships**: takes any
   audit report and re-groups its WCAG 2.2 findings under the 46 outcomes of
@@ -157,7 +201,7 @@
   param names in README/skill (`contenido_no_accesible`, `marco=` →
   `inaccessible_content`, `framework=`).
 
-## 5.13.0 — pendiente — "locale packs + dictionary-verified English"
+## 5.13.0 — 2026-10-23 — "locale packs + dictionary-verified English"
 
 - **Community locale packs (the i18n system)**: every user-facing message
   moved out of Python into `a11y_toolkit/locales/<lang>.json` — one file per
@@ -196,7 +240,7 @@
   the dictionary pin. Comments stay Spanish by design (maintainer
   readability) — decision recorded in the naming pins.
 
-## 5.12.0 — pendiente — "official sources"
+## 5.12.0 — 2026-10-23 — "official sources"
 
 - **a11y_criterion now cites the source**: every criterion explanation
   includes `understanding` — the official W3C Understanding WCAG 2.2
@@ -519,9 +563,9 @@ Five bets from the ecosystem gap analysis, landed together (no release yet —
 - **Screen-reader cross-check scaffold**: `docs/sr-crosscheck.md` (NVDA via
   CI harness + VoiceOver via Caption Panel) and
   `scripts/voiceover-capture.applescript` (experimental, human-driven).
-- **Watch-loop SaaS (private companion)**: the audit → budget → pack → badge
-  loop productized behind a multi-tenant panel. Built on this engine; will get
-  its own public home when it launches.
+- **Watch loop productized**: the audit → budget → pack → badge loop runs as
+  a hosted companion built on this engine (separate codebase, not in this
+  repository).
 
 Tests: `tests/test_png.py` (PNG decoder + sampler), `tests/test_vpat.py`
 (derivation honesty + overrides + pack hash in the document),
@@ -529,10 +573,10 @@ Tests: `tests/test_png.py` (PNG decoder + sampler), `tests/test_vpat.py`
 Counts bumped 24 → 26 MCP tools across README, ARCHITECTURE, visuals and the
 pinned invariants.
 
-- **a11y.es companion**: the server instructions now point to a11y.es — the
-  hosted home for countersigning and continuous monitoring. Auditing stays
-  free; the human signature and monitoring are the paid part. The SaaS lives
-  in its own private repository (a11y.es), decoupled from this engine.
+- **a11y.es companion**: the server instructions point to the hosted
+  companion (separate private codebase, decoupled from this engine).
+  Auditing stays free; the human signature and monitoring are the paid
+  part.
 
 ## 5.4.2 — 2026-10-11 — "changelog correction"
 

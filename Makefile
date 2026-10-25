@@ -7,12 +7,14 @@ test:            ## todas las suites (dom/scroll se auto-omiten sin Playwright)
 	  && python3 tests/test_png.py && python3 tests/test_vpat.py && python3 tests/test_act.py \
 	  && python3 tests/test_wcag3.py \
 	  && python3 tests/test_solido.py && python3 tests/test_mcp.py && python3 tests/test_revision_externa.py \
-  && python3 tests/test_naming.py && python3 tests/test_locales.py
+  && python3 tests/test_naming.py && python3 tests/test_locales.py \
+  && python3 scripts/gen_readme.py --check
 
 fast:            ## suites rápidas (lo que guarda el pre-push)
 	python3 tests/test_contrast.py && python3 tests/test_audit.py && python3 tests/test_v32.py \
 	  && python3 tests/test_wcag3.py \
-	  && python3 tests/test_solido.py && python3 tests/test_mcp.py
+	  && python3 tests/test_solido.py && python3 tests/test_mcp.py \
+	  && python3 scripts/gen_readme.py --check
 
 hooks:           ## activa el guardián de push (una vez por clon)
 	git config core.hooksPath .githooks

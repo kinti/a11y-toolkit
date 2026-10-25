@@ -83,7 +83,7 @@ try:
 except ImportError:
     ARIALIVE_JS = None  # repo checkout: read the file
 
-VERSION = '5.15.0'
+VERSION = '5.16.0'
 
 # Params renombrados a inglés en 5.11.0; se aceptan los nombres previos.
 PARAM_ALIASES = {
@@ -1006,7 +1006,7 @@ _ANN = {
     'a11y_docx_screen':      ('DOCX accessibility screening', True, False),
     'a11y_reduced_motion':   ('prefers-reduced-motion honored?', True, True),
     'a11y_forced_colors':    ('forced-colors survival heuristic', True, True),
-    'a11y_wcag3_preview':    ('WCAG 3 draft preview (no score)', True, True),
+    'a11y_wcag3_preview':    ('WCAG 3 draft preview (no score)', True, False),
 }
 # TDQS hygiene: annotations must match reality, and every description states
 # its return shape and when (not) to use the tool. a11y_ledger.record mutates

@@ -22,6 +22,7 @@ jobs:
       - run: python tests/test_revision_externa.py
       - run: python tests/test_cli.py
       - run: python tests/test_mcp.py
+      - run: python scripts/gen_readme.py --check
       - name: Package smoke test (pip install .)
         run: |
           pip install .

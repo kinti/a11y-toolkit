@@ -155,8 +155,11 @@ from collections import Counter  # noqa: E402
 _dist = Counter(c for c, _ in _EFFORT.values())
 assert _dist == Counter({'MIN': 23, 'MED': 19, 'MAX': 13}), f'distribución de esfuerzo derivó: {dict(_dist)}'
 assert '51 of 55 A/AA criteria carry automated signals (93%)' in readme, 'claim de cobertura en README'
-_faltan_tools = [t['name'] for t in server.TOOLS if f'#### `{t["name"]}`' not in readme]
-assert not _faltan_tools, f'tools sin entry completa en README: {_faltan_tools}'
+_tools_doc = open(os.path.join(ROOT, 'docs', 'tools.md'), encoding='utf-8').read()
+_faltan_tabla = [t['name'] for t in server.TOOLS if f'[`{t["name"]}`](docs/tools.md' not in readme]
+assert not _faltan_tabla, f'tools sin fila en la tabla del README: {_faltan_tabla}'
+_faltan_doc = [t['name'] for t in server.TOOLS if f'#### `{t["name"]}`' not in _tools_doc]
+assert not _faltan_doc, f'tools sin entry completa en docs/tools.md: {_faltan_doc}'
 _faltan_prompts = [p2['name'] for p2 in server._PROMPTS if f'`{p2["name"]}`' not in readme]
 assert not _faltan_prompts, f'prompts sin entry en README: {_faltan_prompts}'
 assert 'of 54' not in readme and '94%' not in readme, 'quedan restos del conteo antiguo en README'
