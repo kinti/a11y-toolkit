@@ -227,7 +227,9 @@ this engine. The service is a separate codebase; this repository is the engine.
 ## Validated against real pages
 
 Benchmarked against axe-core 4.10 on real pages monthly ([methodology and
-results](bench/README.md)). Found a real WCAG failure on gov.uk that axe does not
+results](bench/README.md)). Task-based agent benchmark on live sites,
+including a stratified sample of Spain's most important pages
+([method and results](docs/benchmark-agents.md)). Found a real WCAG failure on gov.uk that axe does not
 report (blue button at 3.91:1, manually verified). Drove out our own false positives
 (hidden skip links, honeypot fields, single-context generic links, image-alt accname
 — each with a regression fixture).
