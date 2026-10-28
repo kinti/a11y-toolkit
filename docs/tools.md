@@ -589,3 +589,18 @@ WCAG 3 demo — the view layer nobody ships: takes an audit report and re-groups
 - `report` *(required)*: audit report object with a findings list (from a11y_audit_url, a11y_audit_dom, a11y_disprove, …).
 
 - `lang` — one of ['es', 'en']: Output language (en default).
+
+## Routing
+
+#### `a11y_route`
+
+<sub>read-only · network</sub>
+
+The router — start here when unsure which tool solves a task: state the goal in plain language ("gate my PR", "fix the contrast of my hero", "generate the legal statement") and get the ordered tool sequence with the why of each step. Deterministic keyword index over the toolkit map, not an LLM guessing; when nothing matches, the honest fallback route says where everyone starts. Makes 33 specialized tools an O(1) choice — ask once instead of scanning descriptions. Returns JSON: {route, steps [{step, tool, why}], alternates, prompts, cli, note} — the ordered tool sequence for the goal.
+
+
+**Arguments**
+
+- `goal` *(required)*: the task in plain language (es or en).
+
+- `lang` — one of ['es', 'en']: Output language (en default).

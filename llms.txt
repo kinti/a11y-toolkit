@@ -1,0 +1,97 @@
+# a11y-toolkit
+
+> The accessibility layer for AI coding agents: a zero-dependency Python engine (MCP server, 33 tools + 6 prompts, CLI `a11ytoolkit`, MIT) that audits, fixes, documents and watches WCAG 2.2 — and never signs conformance: the machine finds, the human signs. Bilingual es/en output. Runs anywhere MCP runs.
+
+## What is verifiably true (no marketing)
+- 100% consistent with every published W3C ACT rule it implements: 355 official test cases, 20/20 rules, zero inconsistencies, regenerated per release against the w3c/wcag-act-rules repository (https://github.com/kinti/a11y-toolkit/blob/main/docs/act-report-summary.md).
+- The WCAG 2.2 catalog (86 criteria, A/AA/AAA) and the WCAG 3 outcome registry are ingested from the canonical w3.org sources and pinned by tests.
+- Automation covers about one third of WCAG 2.2. Every report says so: filter, not verdict. The evidence pack prices the human remainder per criterion.
+- Zero telemetry, zero core dependencies (Playwright/Pillow optional behind import guards). Python 3.9+.
+- The engine behind a11y.es (a separate Spanish-market service; this repository is the engine).
+
+## Quickstart
+```bash
+claude mcp add a11y-toolkit -- uvx --from a11y-toolkit a11y-toolkit-mcp
+# or any MCP client: command "uvx", args ["--from","a11y-toolkit","a11y-toolkit-mcp"]
+# CLI only: pip install a11y-toolkit && a11ytoolkit audit --url https://example.com
+```
+
+## Tools (33)
+
+Start with `a11y_route` (the router): state a goal in plain language and get the ordered tool sequence — an O(1) choice instead of scanning descriptions.
+
+### Audit
+- `a11y_audit_url` — Express WCAG audit
+- `a11y_audit_dom` — Rendered WCAG audit
+- `a11y_audit_pdf` — PDF accessibility screening
+- `a11y_docx_screen` — DOCX accessibility screening
+
+### Blindfold testing
+- `a11y_journey_verdict` — Blindfold journey verdict
+
+### Fix & contrast
+- `a11y_autofix` — Deterministic safe auto-fixes
+- `a11y_contrast_pair` — Contrast ratio + verdicts
+- `a11y_contrast_image` — Text-over-image contrast
+- `a11y_contrast_dom` — Live-element contrast sampling
+- `a11y_suggest_color` — Nearest passing color
+
+### Document
+- `a11y_generate_declaration` — Accessibility statement (EAA/RD 1112)
+- `a11y_generate_vpat` — VPAT 2.5 report (WCAG edition)
+- `a11y_badge` — Honest SVG badge
+
+### Watch (regressions)
+- `a11y_snapshot` — A11y snapshot + tab order
+- `a11y_diff` — Snapshot regression diff
+- `a11y_diff_urls` — Staging vs production diff
+- `a11y_aria_live_snippet` — aria-live monitor snippet
+
+### Knowledge & context
+- `a11y_criterion` — WCAG criterion explained
+- `a11y_html_validate` — W3C Nu validation
+
+### Interactions
+- `a11y_keyboard` — Keyboard-trap detector
+- `a11y_forms` — Form error testing
+- `a11y_hover` — Hover dismissibility (1.4.13)
+- `a11y_reflow` — 320px reflow check
+- `a11y_scroll` — Infinite-scroll audit
+- `a11y_sr_transcript` — Screen reader transcript
+- `a11y_reduced_motion` — prefers-reduced-motion honored?
+- `a11y_forced_colors` — forced-colors survival heuristic
+- `a11y_vtt_check` — WebVTT caption quality
+
+### Coverage & evidence
+- `a11y_evidence` — Evidence pack (verifiable handoff)
+- `a11y_disprove` — Disprover: re-verify findings
+- `a11y_ledger` — Coverage ledger (persistent)
+- `a11y_wcag3_preview` — WCAG 3 draft preview (no score)
+
+### Routing
+- `a11y_route` — Tool router (goal to steps)
+
+## Prompts (6)
+
+- `audit-page` — Full accessibility audit workflow for a URL: automated tools + what to verify manually (keyboard, screen reader, zoom).
+- `fix-contrast` — Guided contrast fix: verify the pair (or the text-over-image region), get the nearest passing color, apply it to the code.
+- `pre-deploy-check` — Pre-deploy regression check: express audit of the URL plus snapshot diff against a baseline snapshot.
+- `declaration-eaa` — Generate a European Accessibility Act / RD 1112/2018 accessibility statement, collecting any missing legal fields from the user.
+- `conformance-wcagem` — Guided WCAG-EM conformance ladder for a site: express screening → agent-verified guided evaluation on a representative sample → conformance report inputs.
+- `blindfold-task` — Blindfold usability test — the agent attempts a real task perceiving ONLY the accessibility tree and acting only by accessible name and keyboard, logging friction per step; closes with a11y_journey_verdict
+
+## Documentation
+- [Full tools reference](https://github.com/kinti/a11y-toolkit/blob/main/docs/tools.md): every tool, arguments and annotations
+- [Install per client](https://github.com/kinti/a11y-toolkit/blob/main/docs/clients.md): Claude Code, Cursor, Windsurf and more
+- [Agent benchmark](https://github.com/kinti/a11y-toolkit/blob/main/docs/benchmark-agents.md): blindfold journeys on live sites + the Spanish sample
+- [Journey example](https://github.com/kinti/a11y-toolkit/blob/main/docs/journey-example.md): GOV.UK 100 / IKEA Spain 0, full journals
+- [axe-core comparison](https://github.com/kinti/a11y-toolkit/blob/main/bench/README.md): monthly, real pages, methodology open
+- [Architecture](https://github.com/kinti/a11y-toolkit/blob/main/docs/ARCHITECTURE.md): module map, decisions D1+, traps
+- [i18n guide](https://github.com/kinti/a11y-toolkit/blob/main/docs/i18n.md): add a language in one PR
+
+## Where it stops (the honest boundary)
+- Static audits cannot measure class/var() CSS contrast: the report says not_measured, a 100 is never "contrast is fine".
+- No tool asserts pass from the absence of findings.
+- Conformance is signed by a qualified human over verifiable evidence; nothing here signs it for you.
+
+Version: 5.16.0. Generated by `scripts/gen_llms.py` from `server.TOOLS` — never edit by hand.

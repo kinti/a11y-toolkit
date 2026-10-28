@@ -10,7 +10,7 @@
 [![MCP](https://img.shields.io/badge/Model%20Context%20Protocol-server-purple)](https://modelcontextprotocol.io)
 [![Sponsor](https://img.shields.io/badge/Sponsor-%E2%9D%A4-pink)](https://github.com/sponsors/kinti)
 
-32 MCP tools, 6 prompts and a skill covering the whole WCAG 2.2 loop: audit, fix,
+33 MCP tools, 6 prompts and a skill covering the whole WCAG 2.2 loop: audit, fix,
 document, watch, hand off — and now blindfold usability testing, where the agent
 attempts real tasks perceiving only what a screen reader exposes. 51 of 55 A/AA criteria carry automated signals (93%), every
 finding ships with a concrete remediation your agent can apply, and the rendered tools
@@ -60,7 +60,7 @@ traps, reflow, forms) additionally need Playwright:
 | Runs with zero dependencies at core, speaks es/en, any browser you have | Heavy runtimes | Zero dependencies |
 
 <!-- TOOLS:BEGIN -->
-## The tools (32)
+## The tools (33)
 
 Full reference — descriptions, arguments, return shapes and behavior — in [docs/tools.md](docs/tools.md). All tools accept `lang` (`en`|`es`) unless noted; output is JSON unless noted. Generated from `server.TOOLS` by `scripts/gen_readme.py`.
 
@@ -98,6 +98,7 @@ Full reference — descriptions, arguments, return shapes and behavior — in [d
 | [`a11y_disprove`](docs/tools.md#a11y_disprove) | Coverage & evidence | Disprover: re-verify findings |
 | [`a11y_ledger`](docs/tools.md#a11y_ledger) | Coverage & evidence | Coverage ledger (persistent) |
 | [`a11y_wcag3_preview`](docs/tools.md#a11y_wcag3_preview) | Coverage & evidence | WCAG 3 draft preview (no score) |
+| [`a11y_route`](docs/tools.md#a11y_route) | Routing | Tool router (goal to steps) |
 <!-- TOOLS:END -->
 
 ## The 6 prompts
@@ -295,6 +296,13 @@ python3 tests/test_contrast.py && python3 tests/test_audit.py && python3 tests/t
 `tests/test_dom.py` self-skips without Playwright. `tests/test_solido.py` enforces the design
 invariants (catalog parity, version alignment, count coverage, hostile-HTML fuzz).
 Releases: `make release V=X.Y.Z` — bumps, gates, tags and pushes atomically.
+
+Generated surfaces — never edit by hand: this README's tool table and
+[docs/tools.md](docs/tools.md) come from `server.TOOLS`
+(`scripts/gen_readme.py`), and [llms.txt](llms.txt) — this repo's index for
+agents, llmstxt.org convention — from the same source
+(`scripts/gen_llms.py`). Both `--check` in the Makefile gates: adding a
+tool and forgetting them fails the suite.
 
 ## Roadmap
 

@@ -1,5 +1,27 @@
 # Changelog
 
+## 5.17.0 — pendiente — "a11y_route: the router"
+
+- **llms.txt (generated)**: the repo publishes its own index for
+  agents (llmstxt.org convention — the pattern a11y.es invented,
+  ported): what is verifiably true, quickstart, the 33 tools by
+  category, prompts, docs and the honest boundary. Generated from
+  `server.TOOLS` by `scripts/gen_llms.py` with `--check` pinned in
+  the Makefile gates — a new tool regenerates the index, nobody
+  edits it by hand. D17 recorded in ARCHITECTURE: grow in signals,
+  not tools.
+- **Tool 33, `a11y_route` — the router nobody has**: state a goal in plain
+  language ("gate my PR", "fix the contrast of my hero", "quiero una
+  declaración EAA") and get the ordered tool sequence with the why of each
+  step, the matching prompts and the CLI equivalent. Deterministic by
+  design: a word-boundary keyword index over an 18-route table (es/en),
+  NOT an LLM; when nothing matches, the honest fallback says where everyone
+  starts (the express audit). Turns the "too many tools" penalty into the
+  opposite argument: 33 specialized tools, an O(1) choice. CLI:
+  `a11ytoolkit route --goal "gate my PR"`. Pinned by tests/test_route.py
+  (every referenced tool/prompt/CLI exists, determinism, es/en, fallback,
+  hostile goals) in every gate (make test, make fast, RAPIDAS, pre-push).
+
 ## 5.16.0 — pendiente — "README: quickstart + compact tool table, honest labels"
 
 - **README restructured for onboarding**: a `## Quickstart` at the top (MCP

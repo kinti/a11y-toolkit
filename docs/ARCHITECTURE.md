@@ -7,7 +7,7 @@ read this. Every claim here that can be pinned by a test IS pinned by
 ## What this is
 
 a11y-toolkit is the machine half of WCAG 2.2 conformance work: an MCP server
-(32 tools + 6 prompts) and a CLI (`a11ytoolkit`) that audit, fix, document,
+(33 tools + 6 prompts) and a CLI (`a11ytoolkit`) that audit, fix, document,
 watch and hand off accessibility findings. The human half is priced, not
 guessed. Zero dependencies at the core; Playwright/Pillow optional behind
 import guards. Output es/en; wire keys English (`a11y-evidence-pack/2`).
@@ -16,7 +16,7 @@ import guards. Output es/en; wire keys English (`a11y-evidence-pack/2`).
 
 | Module | One line |
 |---|---|
-| `server.py` | MCP stdio server: 32 tools, 6 prompts, routing/annotations dicts. VERSION lives here. |
+| `server.py` | MCP stdio server: 33 tools, 6 prompts, routing/annotations dicts. VERSION lives here. |
 | `a11y.py` | CLI dispatcher (`SUBCOMANDOS` dict → module mains). |
 | `a11yaudit.py` | Static auditor: 50+ signals, `CRIT` name maps, weighted 0-100 score, sitemap crawl (`audit_site` / `evaluate_site`). |
 | `a11ydom.py` | Rendered auditor (Playwright): shadow DOM, state contrast, target size, reflow, keyboard walk, forms, hover, sr_transcript; browser pool + auto-detection; `_TD` catalog. |
@@ -27,6 +27,7 @@ import guards. Output es/en; wire keys English (`a11y-evidence-pack/2`).
 | `a11yi18n.py` | Locale-pack loader: community `locales/<lang>.json` catalogs, English fallback, CLDR plurals, product overlays. |
 | `a11yinit.py` | `a11ytoolkit init` — installs the AGENTS.md agent hook in user projects. |
 | `a11yact.py` | ACT Rules interop: curated signal → ACT rule map (`ACT_MAP`, partial by design) + EARL 1.0 JSON-LD export (failures only, never asserts pass). |
+| `a11yroute.py` | Tool 33: the router — goal in plain language → ordered tools with why (deterministic word-boundary index over 18 routes es/en, honest `start` fallback). Makes the catalog an O(1) choice. |
 | `a11ywcag3.py` | WCAG 3 preview: re-groups 2.2 findings under the Sept-2026 draft's 46 outcomes (`_OUTCOMES`, exact names) via a curated criterion→outcome map — no score, no tier, no conformance claim (W3C has no official cross-map). |
 | `a11yvtt.py` | WebVTT caption quality (1.2.2): parses the real .vtt — malformed/empty/overlapping/too-fast cues (>21 cps), coverage vs duration. |
 | `a11ydocx.py` | DOCX structural screening (zip+XML): images w/o alt, fake headings (bold+big without Heading style), document language, header rows. |
@@ -101,6 +102,7 @@ change (see 4.0.1); internal dev docs don't.
   Journeys enter the pack as `report:journey`. Usability evidence, never
   conformance: an AI agent is not a human screen-reader user.
 - **D16 — VPAT honesty + ACT interop (v5.5.0+)**: the VPAT generator fills
+- **D17 — Grow in signals, not tools (v5.17.0)**: a new check joins the existing tool unless it needs its own lifecycle (state, cache, separate CLI). The count only grows with new capabilities (a11y_route earned its slot by making all 33 an O(1) choice); quality-check inflation never adds slots. Pinned culturally by the registry listing cost: breadth is paid, depth is free.
   Remarks from the pack and leaves every Conformance Level at Not Evaluated
   unless an automated fail forces Does Not Support — only a qualified human's
   `overrides` (plus the signature block referencing pack.sha256) turn the

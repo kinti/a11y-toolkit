@@ -39,6 +39,7 @@ Tools:
   - a11y_evidence(reports, …)                   verifiable evidence pack
   - a11y_wcag3_preview(report, lang?)           re-group findings under the WCAG 3
                                                   Working Draft outcomes (no score)
+  - a11y_route(goal, lang?)                     the router: goal → ordered tools (start here)
 
 Prompts: audit-page, fix-contrast, pre-deploy-check, declaration-eaa,
          conformance-wcagem, blindfold-task.
@@ -77,6 +78,7 @@ from .a11yaudit import audit_site as audit_site_fn  # noqa: E402
 from .a11yvpat import generate_vpat as vpat_fn  # noqa: E402
 from .a11ydom import contrast_dom as contrast_dom_fn  # noqa: E402
 from .a11ywcag3 import preview as wcag3_preview_fn  # noqa: E402
+from .a11yroute import route as route_fn  # noqa: E402
 
 try:
     from .arialive_js import ARIALIVE_JS  # installed as a module (pip)
@@ -110,6 +112,7 @@ INSTRUCTIONS = (
          'a11y_evidence records verified codes as agent-verified (automated-fail stays fail). '
     'a11y_criterion explains what any criterion means. Every tool returns es/en '
     'findings with concrete remediation. '
+    'a11y_route(goal) tells you which tools solve a task — ask it instead of scanning descriptions. '
     'a11y_wcag3_preview re-groups audit findings under the WCAG 3 Working Draft '
     'outcomes (demo only, no score: WCAG 2.2 remains the audit target). '
     'Automation covers about one third of WCAG: pair audits with the manual checklist '
@@ -652,6 +655,21 @@ TOOLS = [
             'lang': {'type': 'string', 'enum': ['es', 'en'], 'description': 'Output language (en default)'},
         }, 'required': ['report']},
     },
+    {
+        'name': 'a11y_route',
+        'description': ('The router — start here when unsure which tool solves a task: '
+                        'state the goal in plain language ("gate my PR", "fix the contrast '
+                        'of my hero", "generate the legal statement") and get the ordered '
+                        'tool sequence with the why of each step. Deterministic keyword '
+                        'index over the toolkit map, not an LLM guessing; when nothing '
+                        'matches, the honest fallback route says where everyone starts. '
+                        'Makes 33 specialized tools an O(1) choice — ask once instead of '
+                        'scanning descriptions.'),
+        'inputSchema': {'type': 'object', 'properties': {
+            'goal': {'type': 'string', 'description': 'the task in plain language (es or en)'},
+            'lang': {'type': 'string', 'enum': ['es', 'en'], 'description': 'Output language (en default)'},
+        }, 'required': ['goal']},
+    },
 ]
 
 _PROMPTS = [
@@ -1007,6 +1025,7 @@ _ANN = {
     'a11y_reduced_motion':   ('prefers-reduced-motion honored?', True, True),
     'a11y_forced_colors':    ('forced-colors survival heuristic', True, True),
     'a11y_wcag3_preview':    ('WCAG 3 draft preview (no score)', True, False),
+    'a11y_route':            ('Tool router (goal to steps)', True, True),
 }
 # TDQS hygiene: annotations must match reality, and every description states
 # its return shape and when (not) to use the tool. a11y_ledger.record mutates
@@ -1042,6 +1061,7 @@ _RETURNS = {
     'a11y_generate_vpat': 'Returns {html, summary {level: count}, levels {code: level}, pack_sha256, draft} — the VPAT draft; writes a file only when output_path is given.',
     'a11y_contrast_dom': 'Returns JSON: {url, selector, text_color, worst_ratio, median_ratio, p95_ratio, area_passes_aa_normal_text_4_5, worst_zone?, sampled_pixels, interpretation}.',
     'a11y_wcag3_preview': 'Returns JSON: {mode, draft, disclaimer, mapping_note, no_score, conformance_model, outcomes [{outcome, draft_url, findings, severity, signals, criteria_22}], counts, unmapped} — never a score.',
+    'a11y_route': 'Returns JSON: {route, steps [{step, tool, why}], alternates, prompts, cli, note} — the ordered tool sequence for the goal.',
 }
 _USAGE = {
     'a11y_forms': 'Use on test/staging forms, or forms you own: invalid data is REALLY submitted. Do not run against production forms that trigger real emails, orders or leads.',
@@ -1354,6 +1374,8 @@ def invoke(name, args):
                     'isError': True}
         except Exception as e:  # noqa: BLE001
             return {'content': [{'type': 'text', 'text': f'error: {e}'}], 'isError': True}
+    if name == 'a11y_route':
+        return _content(route_fn(args.get('goal') or '', lang=args.get('lang', 'en')))
     if name == 'a11y_wcag3_preview':
         if not isinstance(args.get('report'), dict):
             return _content({'error': 'report must be an audit report object '

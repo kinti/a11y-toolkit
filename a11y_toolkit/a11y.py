@@ -25,6 +25,7 @@
   a11ytoolkit earl --from-audit audit.json -o earl.json       # ACT Rules / EARL export
   a11ytoolkit init [path]                                  # agent hook: AGENTS.md + MCP config
   a11ytoolkit wcag3 --from-audit audit.json                # WCAG 3 draft preview (no score)
+  a11ytoolkit route --goal "gate my PR"                     # which tools for the task
 """
 
 import sys
@@ -51,6 +52,7 @@ from . import a11yvpat
 from . import a11yact
 from . import a11yinit
 from . import a11ywcag3
+from . import a11yroute
 
 SUBCOMMANDS = {
     'pair': (contrast, 'pair'),
@@ -81,6 +83,7 @@ SUBCOMMANDS = {
     'earl': (a11yact, None),
     'init': (a11yinit, 'init_main'),
     'wcag3': (a11ywcag3, None),
+    'route': (a11yroute, None),
 }
 
 
