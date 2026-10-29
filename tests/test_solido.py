@@ -202,6 +202,45 @@ for h in HOSTILES:
 # el diff de snapshots con JSON malformado no traza (vía CLI sí; vía API lanza
 # ValueError controlado por el servidor — aquí solo la garantía del auditor)
 
+# ---------- 4b. gramática 3.9 en f-strings (la lección de v5.18.0) ----------
+# Una barra invertida DENTRO de las llaves de un f-string compila en 3.12+ y
+# es SyntaxError en el suelo del producto (3.9): v5.18.0 llegó a PyPI roto
+# para ≤3.11 y solo lo cazó el CI. En 3.12+ los tokens del f-string permiten
+# verlo; en <3.12 el propio intérprete habría reventado antes de llegar aquí.
+if sys.version_info >= (3, 12):
+    import io
+    import tokenize
+
+    def _backslash_en_llaves_fstring(src):
+        prof = 0
+        hallazgos = []
+        try:
+            toks = list(tokenize.generate_tokens(io.StringIO(src).readline))
+        except tokenize.TokenError:
+            return hallazgos          # el fuzz hostil ya cubre sintaxis rota
+        for tok in toks:
+            if tok.type == tokenize.FSTRING_START:
+                prof += 1
+            elif tok.type == tokenize.FSTRING_END:
+                prof -= 1
+            elif prof > 0 and tok.type == tokenize.STRING and '\\' in tok.string:
+                hallazgos.append(tok.line.strip()[:80])
+        return hallazgos
+
+    # el detector detecta: la línea culpable de v5.18.0 debe dar positivo
+    assert _backslash_en_llaves_fstring(
+        'x = f"{len(re.findall(r"<input\\b", h))} texto"'), \
+        'el detector de barras en f-strings dejó de detectar'
+    _paquete = os.path.join(ROOT, 'a11y_toolkit')
+    for _f in sorted(os.listdir(_paquete)):
+        if not _f.endswith('.py'):
+            continue
+        with open(os.path.join(_paquete, _f), encoding='utf-8') as _fh:
+            _malas = _backslash_en_llaves_fstring(_fh.read())
+        assert not _malas, \
+            f'{_f}: barra invertida dentro de llaves de f-string (SyntaxError <3.12): {_malas[:2]}'
+    print('  gramática 3.9: sin barras en llaves de f-string ✓')
+
 # ---------- 5. higiene: lo interno no entra en el repo público ----------
 # 2026-10: .zcodeignore (fichero que el editor escribe en el workspace y que
 # lista rutas internas) viajó barrida por git add -A en 23 releases, desde

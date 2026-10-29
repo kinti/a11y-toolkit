@@ -237,7 +237,10 @@ _NOTE = {
 # ausente) o la evidencia en una línea.
 _DIAG = [
     {'id': 'forms', 'severity': 'high', 'tool': 'a11y_forms',
-     'detect': lambda h: (f'{len(re.findall(r"<(?:input|select|textarea)\b", h))} form fields'
+     # ojo: sin \b dentro de las llaves del f-string (barra invertida DENTRO
+     # de llaves es SyntaxError antes de 3.12; el guardián de test_solido lo
+     # vigila) — la detección con \b vive en el re.search de fuera
+     'detect': lambda h: (f'{len(re.findall(r"<(?:input|select|textarea)", h))} form fields'
                           if re.search(r'<(?:input|select|textarea)\b', h) else None),
      'why': ('formularios presentes: rellenar inválido, enviar y juzgar el aviso de errores',
              'forms present: fill invalid data, submit, judge the error announcement')},

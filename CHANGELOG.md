@@ -1,5 +1,20 @@
 # Changelog
 
+## 5.18.1 — pendiente — "3.9 grammar guard"
+
+- **Fix: v5.18.0 was broken on Python ≤3.11** — one `_DIAG` lambda in
+  `a11yroute.py` had a backslash inside f-string braces (`\b` in a regex
+  inside the interpolation): valid from 3.12, `SyntaxError` on the
+  product floor 3.9, so every import of the CLI/router crashed there.
+  Local dev on 3.13 swallowed it; only CI's 3.9 job caught it (after
+  PyPI had already published). Fixed; per T14 the burned tag stays,
+  superseded by this one.
+- **New invariant in test_solido (every gate)**: no backslash inside
+  f-string braces anywhere in the package — a tokenize-based guard that
+  self-validates against the exact line that burned v5.18.0. On <3.12
+  interpreters the suite cannot even run past import, so the guard only
+  needs teeth on 3.12+.
+
 ## 5.18.0 — pendiente — "the sealed exam + sequential diagnosis"
 
 - **`a11ymutants.py` — the engine examines itself (WCAG mutation
