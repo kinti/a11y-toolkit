@@ -1,6 +1,40 @@
 # Changelog
 
-## 5.19.0 — pendiente — "the overlay tell + the procurement YAML"
+## 5.20.0 — pendiente — "verify it yourself"
+
+- **`scripts/verify_pack.py` — the independent evidence-pack verifier.**
+  Copy the single stdlib-only file anywhere with Python 3.9+ and verify any
+  `a11y-evidence-pack/2`: recomputes every embedded body hash and the pack
+  seal (current rule: minus `sha256`/`generated`; legacy pre-5.13 rule
+  labelled), checks the 55-criteria matrix and summary consistency, exits
+  0/1 naming the field that broke the chain. `--json` for machines. It
+  deliberately imports NOTHING from the engine — a third party verifies
+  without installing us (`tests/test_verify_pack.py`, all gates). The
+  evidence format is now verifiable by anyone: the last link of the
+  de-facto-standard play.
+- **evidence-pack spec fixes** (found by the verifier's first run):
+  `docs/evidence-pack-schema.md`'s normative hash rule still described the
+  pre-5.13 seal and the pack/1 `artefactos[]` key — now states the current
+  rule and both eras; the sample pack was hand-edited at some point (its
+  recorded hashes no longer matched its content) and is regenerated with
+  the current builder; `(sin name)` leftover → `(no name)` in audit
+  examples (the -0e decision, applied everywhere).
+- **Official GitHub Action + GitLab CI template** —
+  **[`kinti/a11y-watch@v1`](https://github.com/kinti/a11y-watch)** (published;
+  composite action: audit → SARIF → budget ratchet; first run without
+  `budget.json` generates the accepted baseline and fails with instructions
+  — adoption is explicit; this folder is the mirrored source); the
+  copy-paste workflow gained its missing SARIF generation step; GitLab
+  template `examples/a11y-watch-gitlab.yml` (include-by-remote).
+- **`bench/RUNBOOK.md`** — the monthly benchmark loop (fixed page panel,
+  raw JSON always in-repo, every divergence explained; mutant cross-check
+  phrasing rule) so the monthly credibility cadence is a 30-minute routine.
+- Gate hygiene: the pre-push hook now runs the mutant suite it claimed to
+  cover (drift since 5.18.1).
+- Registry card now points at **https://a11y.es** (the service brand;
+  jquin.net stays author credit only).
+
+## 5.19.0 — 2026-10-29 — "the overlay tell + the procurement YAML"
 
 - **`a11y_generate_openacr` (tool 34) + `a11ytoolkit openacr`** — OpenACR
   (GSA open standard, VPAT-derived) generator: the evidence pack becomes a
@@ -24,7 +58,7 @@
   SaaS layering: products can add their own overlay-guide link via the
   existing locale `use_overlay()` mechanism.
 
-## 5.18.1 — pendiente — "3.9 grammar guard"
+## 5.18.1 — 2026-10-29 — "3.9 grammar guard"
 
 - **Fix: v5.18.0 was broken on Python ≤3.11** — one `_DIAG` lambda in
   `a11yroute.py` had a backslash inside f-string braces (`\b` in a regex

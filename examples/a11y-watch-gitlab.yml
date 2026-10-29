@@ -1,0 +1,37 @@
+# a11y-watch para GitLab CI — el mismo ratchet ("solo lo NUEVO bloquea").
+#
+# Uso (desde TU .gitlab-ci.yml):
+#   include:
+#     - remote: 'https://raw.githubusercontent.com/kinti/a11y-toolkit/main/examples/a11y-watch-gitlab.yml'
+#   variables:
+#     SITE_URL: "https://mysite.example"
+#
+# Primera vez: el job falla y deja budget.json como artefacto — revísalo,
+# commitealo en la raíz y vuelve a lanzar. Desde entonces solo lo NUEVO bloquea.
+
+a11y-watch:
+  stage: test
+  image: python:3.12
+  variables:
+    PAGES: "5"
+    LANG: "en"
+  script:
+    - pip install a11y-toolkit
+    - a11ytoolkit audit --url "$SITE_URL" --lang "$LANG" --pages "$PAGES" > audit.json
+    - a11ytoolkit sarif --from-audit audit.json -o a11y.sarif --lang "$LANG"
+    - |
+      if [ ! -f budget.json ]; then
+        a11ytoolkit budget --init < audit.json > budget.json
+        echo "Sin budget.json — primera base generada como artefacto. Revísala, commitea y vuelve a lanzar." && exit 1
+      fi
+    - a11ytoolkit budget --budget budget.json --audit audit.json | tee budget-verdict.json
+  artifacts:
+    when: always
+    paths:
+      - audit.json
+      - a11y.sarif
+      - budget-verdict.json
+      - budget.json
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "schedule"
+    - if: $CI_PIPELINE_SOURCE == "web"

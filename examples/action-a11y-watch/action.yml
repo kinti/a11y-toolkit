@@ -1,0 +1,75 @@
+name: 'a11y-watch'
+description: "Accessibility watchdog: WCAG 2.2 audit + SARIF + budget ratchet — only NEW findings block. Powered by a11y-toolkit."
+author: 'kinti'
+branding:
+  icon: 'gear'
+  color: 'green'
+
+inputs:
+  site-url:
+    description: 'Homepage URL to watch (the audit samples pages from there)'
+    required: true
+  budget-file:
+    description: 'Accepted-baseline file (ratchet). First run without it generates the baseline and fails with instructions — commit it to adopt.'
+    default: 'budget.json'
+  lang:
+    description: 'Report language: en | es'
+    default: 'en'
+  pages:
+    description: 'Pages to audit per run (sample size)'
+    default: '5'
+  sarif:
+    description: "Upload SARIF to code scanning ('true' needs security-events: write in the calling workflow)"
+    default: 'true'
+
+runs:
+  using: 'composite'
+  steps:
+    - uses: actions/setup-python@v5
+      with:
+        python-version: '3.12'
+
+    - name: Install a11y-toolkit
+      shell: bash
+      run: pip install a11y-toolkit
+
+    - name: Audit + SARIF
+      shell: bash
+      env:
+        SITE_URL: ${{ inputs.site-url }}
+        LANG_: ${{ inputs.lang }}
+        PAGES: ${{ inputs.pages }}
+      run: |
+        a11ytoolkit audit --url "$SITE_URL" --lang "$LANG_" --pages "$PAGES" > audit.json
+        a11ytoolkit sarif --from-audit audit.json -o a11y.sarif --lang "$LANG_"
+
+    - name: Budget gate (only NEW findings block)
+      shell: bash
+      env:
+        BUDGET_FILE: ${{ inputs.budget-file }}
+      run: |
+        if [ ! -f "$BUDGET_FILE" ]; then
+          a11ytoolkit budget --init < audit.json > "$BUDGET_FILE"
+          echo "::error::No budget file ('$BUDGET_FILE'). A first baseline has been generated — review it, commit it, and re-run. From then on, only NEW findings block the build."
+          exit 1
+        fi
+        a11ytoolkit budget --budget "$BUDGET_FILE" --audit audit.json | tee budget-verdict.json
+
+    - name: Upload SARIF to code scanning
+      if: ${{ inputs.sarif == 'true' }}
+      continue-on-error: true
+      uses: github/codeql-action/upload-sarif@v3
+      with:
+        sarif_file: a11y.sarif
+
+    - name: Upload audit artifacts
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: a11y-watch
+        path: |
+          audit.json
+          a11y.sarif
+          budget-verdict.json
+          ${{ inputs.budget-file }}
+        if-no-files-found: ignore

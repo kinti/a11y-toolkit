@@ -1,14 +1,15 @@
 {
  "format": "a11y-evidence-pack/2",
- "generated": "2026-09-23T16:46:17+00:00",
+ "lang": "en",
+ "generated": "2026-10-29T03:09:57+00:00",
  "tool": "a11y-toolkit (github.com/kinti/a11y-toolkit)",
  "summary": {
   "automated-fail": 5,
   "automated-review": 0,
-  "not-flagged": 36,
+  "not-flagged": 30,
   "manual-only": 4,
   "agent-verified": 0,
-  "not-run": 10
+  "not-run": 16
  },
  "effort_pending": {
   "by_class": {
@@ -176,8 +177,8 @@
   },
   {
    "criterion": "1.4.10 Reflow",
-   "status": "not-flagged",
-   "note": "not-flagged ≠ pass: no automated signal fired on this sample",
+   "status": "not-run",
+   "note": "requires rendered mode (a11y_audit_dom) — this pack only includes the static audit, so no signal was tried",
    "effort": {
     "class": "MED",
     "minutes": [
@@ -189,8 +190,8 @@
   },
   {
    "criterion": "1.4.11 Non-text Contrast",
-   "status": "not-flagged",
-   "note": "not-flagged ≠ pass: no automated signal fired on this sample",
+   "status": "not-run",
+   "note": "requires rendered mode (a11y_audit_dom) — this pack only includes the static audit, so no signal was tried",
    "effort": {
     "class": "MED",
     "minutes": [
@@ -215,8 +216,8 @@
   },
   {
    "criterion": "1.4.13 Content on Hover or Focus",
-   "status": "not-flagged",
-   "note": "not-flagged ≠ pass: no automated signal fired on this sample",
+   "status": "not-run",
+   "note": "requires rendered mode (a11y_audit_dom) — this pack only includes the static audit, so no signal was tried",
    "effort": {
     "class": "MED",
     "minutes": [
@@ -293,8 +294,8 @@
   },
   {
    "criterion": "2.1.2 No Keyboard Trap",
-   "status": "not-flagged",
-   "note": "not-flagged ≠ pass: no automated signal fired on this sample",
+   "status": "not-run",
+   "note": "requires rendered mode (a11y_audit_dom) — this pack only includes the static audit, so no signal was tried",
    "effort": {
     "class": "MAX",
     "minutes": [
@@ -618,8 +619,8 @@
   },
   {
    "criterion": "3.3.1 Error Identification",
-   "status": "not-flagged",
-   "note": "not-flagged ≠ pass: no automated signal fired on this sample",
+   "status": "not-run",
+   "note": "requires rendered mode (a11y_audit_dom) — this pack only includes the static audit, so no signal was tried",
    "effort": {
     "class": "MAX",
     "minutes": [
@@ -647,8 +648,8 @@
   },
   {
    "criterion": "3.3.3 Error Suggestion",
-   "status": "not-flagged",
-   "note": "not-flagged ≠ pass: no automated signal fired on this sample",
+   "status": "not-run",
+   "note": "requires rendered mode (a11y_audit_dom) — this pack only includes the static audit, so no signal was tried",
    "effort": {
     "class": "MAX",
     "minutes": [
@@ -774,7 +775,7 @@
   {
    "type": "report:static",
    "url": "https://sample.example",
-   "sha256": "4c2ce9abd8c1ae779928dfbedddf070dd17768a5897420d18f2268af8ac09708",
+   "sha256": "95ee507fb2c4d305c9179ef8da8bd24cecac9c7dc24728f61bc8211bbf525693",
    "score": 52,
    "body": {
     "url": "https://sample.example",
@@ -840,7 +841,7 @@
   "statement": null,
   "note": "any countersignature must reference pack.sha256 and state which criteria the human reviewed beyond the automated matrix"
  },
- "notes": "Synthetic sample generated from a fixture page (no live URL audited).",
- "notice": "This pack is evidence, not conformance: it says what machines found and what remains for a human. A conformance claim requires the firma block completed by a qualified person who reviewed the manual list.",
- "sha256": "7023d07035e87543996b49888e203b9815f241a7db15fe83cbba996ff554b9d0"
+ "notes": null,
+ "notice": "This pack is evidence, not conformance: it says what machines found and what remains for a human. A conformance claim requires the signature block completed by a qualified person who reviewed the manual list.",
+ "sha256": "e07c008762c3e723e976fc75d7e3aab99c52130bc8d1c48b5785578fa15f06bb"
 }

@@ -3,18 +3,18 @@
   "name": "io.github.kinti/a11y-toolkit",
   "title": "A11Y Toolkit",
   "description": "The accessibility layer for AI coding agents: audit, fix, document and watch - WCAG 2.2.",
-  "websiteUrl": "https://jquin.net/lab/",
+  "websiteUrl": "https://a11y.es",
   "repository": {
     "url": "https://github.com/kinti/a11y-toolkit",
     "source": "github"
   },
-  "version": "5.19.0",
+  "version": "5.20.0",
   "packages": [
     {
       "registryType": "pypi",
       "registryBaseUrl": "https://pypi.org",
       "identifier": "a11y-toolkit",
-      "version": "5.19.0",
+      "version": "5.20.0",
       "transport": {
         "type": "stdio"
       },

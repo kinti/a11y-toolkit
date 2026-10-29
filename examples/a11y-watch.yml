@@ -2,6 +2,7 @@
 # Copia este fichero en .github/workflows/ de TU proyecto, edita SITE_URL y
 # haz commit. Cada lunes: auditoría exprés + presupuesto; falla si aparece
 # algo NUEVO respecto a la base aceptada.
+# (Alternativa sin copiar: la Action oficial — uses: kinti/a11y-watch@v1)
 #
 # Primera vez: genera la base con
 #   a11ytoolkit audit --url $SITE_URL | a11ytoolkit budget --init > budget.json
@@ -25,8 +26,10 @@ jobs:
           python-version: '3.12'
       - run: pip install a11y-toolkit
 
-      - name: Audit
-        run: a11ytoolkit audit --url "$SITE_URL" --lang en --pages 5 > audit.json
+      - name: Audit + SARIF
+        run: |
+          a11ytoolkit audit --url "$SITE_URL" --lang en --pages 5 > audit.json
+          a11ytoolkit sarif --from-audit audit.json -o a11y.sarif --lang en
         env:
           SITE_URL: ${{ vars.SITE_URL || 'https://example.com' }}
 

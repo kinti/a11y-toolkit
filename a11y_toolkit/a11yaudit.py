@@ -1329,7 +1329,7 @@ def audit_html(html_text, url='(html)', lang='en'):
             n=len(p.aria_hidden_focusable), tag=p.aria_hidden_focusable[0])
     if p.fields_no_label:
         add_ej('high', '3.3.2', 'field_label',
-               [f'{t} name={n or "(sin name)"}' for t, n, _i in p.fields_no_label],
+               [f'{t} name={n or "(no name)"}' for t, n, _i in p.fields_no_label],
                n=len(p.fields_no_label))
     if p.stray_clicks:
         add('high', '2.1.1', 'click_nonfocusable',
