@@ -1,5 +1,41 @@
 # Changelog
 
+## 5.18.0 — pendiente — "the sealed exam + sequential diagnosis"
+
+- **`a11ymutants.py` — the engine examines itself (WCAG mutation
+  testing)**: a seeded mutant bank where the exam is regenerable — same
+  seed, same exam (byte-identical, stable across processes and Python
+  3.9–3.13); fresh seed, an exam nobody has memorized. 18 operators
+  inject one violation each into clean generated pages, every operator
+  derived from the engine's own signal→criterion map (13 criteria; a
+  test pins bank↔map, they cannot diverge). The sealed answer log
+  (operator/signal/criterion) opens only after scoring. Placebo control
+  pages ride every exam: any finding on them is a false positive by
+  construction. The suite clamps the engine's kill rate at 1.0 — a
+  detection regression in ANY of the 18 signals turns `make test` red
+  (detection now has a regression gate, like parsing always had the fuzz
+  suite). `run_exam(engine=…)` scores EXTERNAL evaluators (with or
+  without `lang=`) — the door to measuring axe, an LLM judge or a human
+  auditor on a fresh exam any day. CLI: `a11ytoolkit mutants --seed 7
+  --n 12 [--out dir]` (writes pages + answers.json for external
+  examiners). D18. Academic precedent: Ma11y (2024); the product delta
+  is the regenerable exam shipped inside the analyzer.
+- **`a11y_route` v2 — sequential diagnosis (evidence orders, severity
+  only breaks ties)**: pass `url` or `html` (MCP params, CLI `--url` /
+  `--file`) and the router takes the page's cheap vitals (the static
+  pass: score, findings) and lets its symptoms — forms, menus, video,
+  animation, SVG — order the next exams by expected yield. Differential
+  diagnosis, not a fixed criterion priority: a page without forms does
+  not need the form exam however severe 3.3.1 is on paper. The rendered
+  deepener (`a11y_audit_dom`) closes every plan, and the guarantee ships
+  in every response (es/en): diagnosis ORDERS the exams, never trims
+  them — the full catalog stays one `route(goal)` away. Goal routing is
+  unchanged (test_route sections 1–7 still pin it). D19.
+- **versionar.py regenerates llms.txt after the bump**: v5.17.0 shipped
+  llms.txt still saying 5.16.0 (the version is embedded; the release
+  script never regenerated it). Now it always does, and RAPIDAS runs the
+  new mutant suite too.
+
 ## 5.17.0 — pendiente — "a11y_route: the router"
 
 - **llms.txt (generated)**: the repo publishes its own index for
