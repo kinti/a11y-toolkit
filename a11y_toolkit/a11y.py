@@ -26,6 +26,8 @@
   a11ytoolkit init [path]                                  # agent hook: AGENTS.md + MCP config
   a11ytoolkit wcag3 --from-audit audit.json                # WCAG 3 draft preview (no score)
   a11ytoolkit route --goal "gate my PR"                     # which tools for the task
+  a11ytoolkit route --file page.html                        # diagnosis: read the page, order the exams
+  a11ytoolkit mutants --seed 7 --n 12                       # the engine's sealed self-exam
 """
 
 import sys
@@ -53,6 +55,7 @@ from . import a11yact
 from . import a11yinit
 from . import a11ywcag3
 from . import a11yroute
+from . import a11ymutants
 
 SUBCOMMANDS = {
     'pair': (contrast, 'pair'),
@@ -84,6 +87,7 @@ SUBCOMMANDS = {
     'init': (a11yinit, 'init_main'),
     'wcag3': (a11ywcag3, None),
     'route': (a11yroute, None),
+    'mutants': (a11ymutants, None),
 }
 
 

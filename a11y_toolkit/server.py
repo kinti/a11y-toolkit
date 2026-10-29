@@ -662,13 +662,20 @@ TOOLS = [
                         'of my hero", "generate the legal statement") and get the ordered '
                         'tool sequence with the why of each step. Deterministic keyword '
                         'index over the toolkit map, not an LLM guessing; when nothing '
-                        'matches, the honest fallback route says where everyone starts. '
+                        'matches, the honest fallback route says where everyone begins. '
                         'Makes 33 specialized tools an O(1) choice — ask once instead of '
-                        'scanning descriptions.'),
+                        'scanning descriptions. Optional sequential-diagnosis mode: pass '
+                        'url or html and the router takes the page\'s cheap vitals (static '
+                        'pass) and orders the next exams by expected yield — the evidence '
+                        'decides (forms → form error testing, menus → keyboard, video → '
+                        'caption content), severity only breaks ties; the ordered plan '
+                        'never replaces the full catalog.'),
         'inputSchema': {'type': 'object', 'properties': {
             'goal': {'type': 'string', 'description': 'the task in plain language (es or en)'},
+            'url': {'type': 'string', 'description': 'optional diagnosis mode: page URL — its cheap signals (static pass) order the next exams by expected yield'},
+            'html': {'type': 'string', 'description': 'optional diagnosis mode: inline HTML instead of a URL'},
             'lang': {'type': 'string', 'enum': ['es', 'en'], 'description': 'Output language (en default)'},
-        }, 'required': ['goal']},
+        }},
     },
 ]
 
@@ -1025,7 +1032,7 @@ _ANN = {
     'a11y_reduced_motion':   ('prefers-reduced-motion honored?', True, True),
     'a11y_forced_colors':    ('forced-colors survival heuristic', True, True),
     'a11y_wcag3_preview':    ('WCAG 3 draft preview (no score)', True, False),
-    'a11y_route':            ('Tool router (goal to steps)', True, True),
+    'a11y_route':            ('Tool router (goal or page to steps)', True, True),
 }
 # TDQS hygiene: annotations must match reality, and every description states
 # its return shape and when (not) to use the tool. a11y_ledger.record mutates
@@ -1061,7 +1068,7 @@ _RETURNS = {
     'a11y_generate_vpat': 'Returns {html, summary {level: count}, levels {code: level}, pack_sha256, draft} — the VPAT draft; writes a file only when output_path is given.',
     'a11y_contrast_dom': 'Returns JSON: {url, selector, text_color, worst_ratio, median_ratio, p95_ratio, area_passes_aa_normal_text_4_5, worst_zone?, sampled_pixels, interpretation}.',
     'a11y_wcag3_preview': 'Returns JSON: {mode, draft, disclaimer, mapping_note, no_score, conformance_model, outcomes [{outcome, draft_url, findings, severity, signals, criteria_22}], counts, unmapped} — never a score.',
-    'a11y_route': 'Returns JSON: {route, steps [{step, tool, why}], alternates, prompts, cli, note} — the ordered tool sequence for the goal.',
+    'a11y_route': 'Returns JSON: {route, steps [{step, tool, why}], alternates, prompts, cli, note} — the ordered tool sequence for the goal. Diagnosis mode (url/html passed): {mode: diagnose, vitals {score, summary, signals}, symptoms [{symptom, evidence}], steps [...], guarantee} — evidence orders the exams, severity breaks ties.',
 }
 _USAGE = {
     'a11y_forms': 'Use on test/staging forms, or forms you own: invalid data is REALLY submitted. Do not run against production forms that trigger real emails, orders or leads.',
@@ -1375,7 +1382,8 @@ def invoke(name, args):
         except Exception as e:  # noqa: BLE001
             return {'content': [{'type': 'text', 'text': f'error: {e}'}], 'isError': True}
     if name == 'a11y_route':
-        return _content(route_fn(args.get('goal') or '', lang=args.get('lang', 'en')))
+        return _content(route_fn(args.get('goal') or '', lang=args.get('lang', 'en'),
+                                 url=args.get('url'), html=args.get('html')))
     if name == 'a11y_wcag3_preview':
         if not isinstance(args.get('report'), dict):
             return _content({'error': 'report must be an audit report object '

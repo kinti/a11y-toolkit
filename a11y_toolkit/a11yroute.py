@@ -1,24 +1,33 @@
 #!/usr/bin/env python3
 """a11y_route — the router: tell the agent WHICH tools solve a task.
 
-32 specialized tools are the positioning; this makes the choice O(1). The
-agent (or the human) states a goal in plain language — "gate my PR",
-"arregla el contraste del hero" — and gets the ordered tool sequence with
-the why of each step. Deterministic by design: a keyword index over the
-routes table, NOT an LLM guessing. If nothing matches, the honest fallback
-says where everyone starts: the express audit.
+Two brains, one tool:
+  - GOAL routing: the agent states a goal in plain language — "gate my PR",
+    "arregla el contraste del hero" — and gets the ordered tool sequence
+    with the why of each step. Deterministic keyword index, not an LLM.
+  - SEQUENTIAL DIAGNOSIS (pass url= or html=): the router takes the page's
+    cheap vitals (the static pass) and lets the EVIDENCE order the next
+    exams — forms present → form error testing; menus → keyboard; video →
+    caption content. Severity only breaks ties: a page without forms does
+    not need the form exam no matter how severe 3.3.1 is on paper.
+    Diagnosis ORDERS the exams, never trims them — the full catalog stays
+    one route(goal) away.
 
-The routes table is the product: keep it in sync with the toolkit (the
-test suite pins that every referenced tool and prompt exists).
+The tables are the product: keep them in sync with the toolkit (the
+test suite pins that every referenced tool exists).
 
 CLI:
   a11yroute.py --goal "gate my PR" [--lang en]
+  a11yroute.py --file page.html          # diagnosis mode
+  a11yroute.py --url https://…           # diagnosis mode
 """
 
 import argparse
 import json
 import re
 import sys
+
+from .a11yaudit import audit_html, _fetch
 
 # Índice de rutas: patrones es/en → pasos ordenados. Una ruta gana por
 # puntuación de coincidencias (subcadena sobre el goal en minúsculas);
@@ -219,9 +228,99 @@ _NOTE = {
            'matched, the "start" route is where everyone begins.'),
 }
 
+# ── diagnóstico secuencial: la EVIDENCIA manda, la severidad solo desempata ──
+# Traducción cruzada del diagnóstico diferencial (medicina): primero la
+# constante vital barata —el pase estático— y sus síntomas deciden qué
+# examen reduce más la incertidumbre. No es una prioridad fija de criterios:
+# una página sin formularios no necesita el examen de formularios por muy
+# grave que sea 3.3.1 sobre el papel. detect() devuelve None (síntoma
+# ausente) o la evidencia en una línea.
+_DIAG = [
+    {'id': 'forms', 'severity': 'high', 'tool': 'a11y_forms',
+     'detect': lambda h: (f'{len(re.findall(r"<(?:input|select|textarea)\b", h))} form fields'
+                          if re.search(r'<(?:input|select|textarea)\b', h) else None),
+     'why': ('formularios presentes: rellenar inválido, enviar y juzgar el aviso de errores',
+             'forms present: fill invalid data, submit, judge the error announcement')},
+    {'id': 'menus', 'severity': 'high', 'tool': 'a11y_keyboard',
+     'detect': lambda h: ('menus or disclosure widgets'
+                          if re.search(r'<(?:nav|details)\b|aria-expanded', h) else None),
+     'why': ('menús o desplegables: la zona clásica de trampas de teclado',
+             'menus or disclosure widgets: the classic keyboard-trap zone')},
+    {'id': 'video', 'severity': 'medium', 'tool': 'a11y_vtt_check',
+     'detect': lambda h: (f'{h.count("<video")} <video>' if '<video' in h else None),
+     'why': ('vídeo presente: que existan subtítulos no basta — juzgar su CONTENIDO',
+             'video present: captions existing is not enough — judge their CONTENT')},
+    {'id': 'animation', 'severity': 'medium', 'tool': 'a11y_reduced_motion',
+     'detect': lambda h: ('animated content'
+                          if re.search(r'animation|transition|<marquee', h) else None),
+     'why': ('contenido animado: ¿respeta prefers-reduced-motion?',
+             'animated content: does it honor prefers-reduced-motion?')},
+    {'id': 'svg', 'severity': 'low', 'tool': 'a11y_forced_colors',
+     'detect': lambda h: (f'{h.count("<svg")} inline <svg>' if h.count('<svg') >= 2 else None),
+     'why': ('iconografía SVG en volumen: los fills fijos caen en forced-colors',
+             'SVG iconography at volume: hardcoded fills fall in forced-colors')},
+]
 
-def route(goal, lang='en'):
-    """Goal en lenguaje natural → secuencia de tools con el porqué."""
+_RANK = {'high': 0, 'medium': 1, 'low': 2}
+
+_GUARANTEE = {
+    'es': ('El diagnóstico ORDENA los exámenes, nunca los recorta: el catálogo '
+           'completo sigue a un route(goal) de distancia.'),
+    'en': ('Diagnosis ORDERS the exams, never trims them: the full catalog '
+           'stays one route(goal) away.'),
+}
+
+
+def diagnose(html_text, url='(html)', lang='en', goal=None):
+    """Pase barato → síntomas → exámenes ordenados por rendimiento esperado."""
+    t = 'es' if lang == 'es' else 'en'
+    idx = 0 if t == 'es' else 1
+    rep = audit_html(html_text, url=url, lang=t)
+    if 'error' in rep:
+        return {'mode': 'diagnose', 'lang': t, 'error': rep['error']}
+    vitals = {'tool': 'a11y_audit_url', 'score': rep.get('score'),
+              'summary': rep.get('summary'),
+              'signals': [f"{h['severity']}: {h['signal']}"
+                          for h in rep.get('findings', [])]}
+    symptoms, hit = [], []
+    for d in _DIAG:
+        ev = d['detect'](html_text)
+        if ev:
+            symptoms.append({'symptom': d['id'], 'evidence': ev})
+            hit.append(d)
+    # sort estable: severidad como desempate, orden de tabla dentro de cada nivel
+    hit.sort(key=lambda d: _RANK[d['severity']])
+    steps = [{'step': 1, 'tool': 'a11y_audit_url',
+              'why': ('constante vital ya medida: este pase barato decidió lo demás',
+                      'vitals already taken: this cheap pass decided the rest')[idx]}]
+    evidences = {d['id']: d['detect'](html_text) for d in _DIAG}
+    for i, d in enumerate(hit, 2):
+        steps.append({'step': i, 'tool': d['tool'], 'why': d['why'][idx],
+                      'symptom': d['id'], 'evidence': evidences[d['id']]})
+    steps.append({'step': len(steps) + 1, 'tool': 'a11y_audit_dom',
+                  'why': ('profundizar lo que el estático no ve: contraste computado, 2.5.8, foco',
+                          'deepen what static cannot see: computed contrast, 2.5.8, focus')[idx]})
+    return {'mode': 'diagnose', 'goal': goal, 'url': url, 'lang': t,
+            'vitals': vitals, 'symptoms': symptoms, 'steps': steps,
+            'guarantee': _GUARANTEE[t]}
+
+
+def route(goal, lang='en', url=None, html=None):
+    """Goal en lenguaje natural → secuencia de tools con el porqué.
+    Con url= o html= → diagnóstico secuencial (la página decide el orden)."""
+    if html or url:
+        if html:
+            return diagnose(html, url=url or '(html)', lang=lang, goal=goal)
+        try:
+            html_text = _fetch(url, timeout=20)
+        except ValueError as e:
+            return {'mode': 'diagnose', 'lang': lang, 'error': str(e)}
+        except Exception as e:  # noqa: BLE001
+            return {'mode': 'diagnose', 'lang': lang, 'error': f'fetch failed: {e}'}
+        if isinstance(html_text, dict):
+            return {'mode': 'diagnose', 'lang': lang,
+                    'error': html_text.get('error', 'fetch failed')}
+        return diagnose(html_text, url=url, lang=lang, goal=goal)
     t = 'es' if lang == 'es' else 'en'
     g = (goal or '').lower()
     scored = []
@@ -256,10 +355,17 @@ def route(goal, lang='en'):
 
 def main(argv):
     ap = argparse.ArgumentParser(description=__doc__)
-    ap.add_argument('--goal', required=True, help='the task in plain language')
+    ap.add_argument('--goal', default='', help='the task in plain language')
+    ap.add_argument('--url', help='diagnosis mode: read the page, order the exams')
+    ap.add_argument('--file', help='diagnosis mode: local HTML file')
     ap.add_argument('--lang', default='en', choices=['en', 'es'])
     a = ap.parse_args(argv)
-    print(json.dumps(route(a.goal, lang=a.lang), ensure_ascii=False, indent=1))
+    html = None
+    if a.file:
+        with open(a.file, encoding='utf-8') as f:
+            html = f.read()
+    print(json.dumps(route(a.goal, lang=a.lang, url=a.url, html=html),
+                     ensure_ascii=False, indent=1))
     return 0
 
 

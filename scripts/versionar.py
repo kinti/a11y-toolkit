@@ -16,7 +16,7 @@ import subprocess
 import sys
 
 AQUI = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-RAPIDAS = ['tests/test_contrast.py', 'tests/test_audit.py', 'tests/test_v32.py', 'tests/test_wcag3.py', 'tests/test_route.py', 'tests/test_solido.py']
+RAPIDAS = ['tests/test_contrast.py', 'tests/test_audit.py', 'tests/test_v32.py', 'tests/test_wcag3.py', 'tests/test_route.py', 'tests/test_mutants.py', 'tests/test_solido.py']
 
 
 def bump_fichero(ruta, ancla, nuevo_valor, etiqueta):
@@ -68,6 +68,13 @@ def main():
         if r.returncode != 0:
             print('SUITE ROJA — no se versiona nada más. Arregla y reintenta.')
             return 2
+
+    # llms.txt incrusta la versión: regenerar tras el bump o el --check del
+    # Makefile enrojece al día siguiente (lección v5.17.0: bump sin regen)
+    r = subprocess.run([sys.executable, os.path.join(AQUI, 'scripts', 'gen_llms.py')],
+                       capture_output=True, timeout=120)
+    assert r.returncode == 0, f'llms.txt no regenerado: {r.stderr[-300:]}'
+    print('  ✓ llms.txt regenerado con la nueva versión')
 
     if con_tag:
         r = subprocess.run(['git', 'add', '-A'], cwd=AQUI)

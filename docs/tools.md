@@ -596,11 +596,15 @@ WCAG 3 demo — the view layer nobody ships: takes an audit report and re-groups
 
 <sub>read-only · network</sub>
 
-The router — start here when unsure which tool solves a task: state the goal in plain language ("gate my PR", "fix the contrast of my hero", "generate the legal statement") and get the ordered tool sequence with the why of each step. Deterministic keyword index over the toolkit map, not an LLM guessing; when nothing matches, the honest fallback route says where everyone starts. Makes 33 specialized tools an O(1) choice — ask once instead of scanning descriptions. Returns JSON: {route, steps [{step, tool, why}], alternates, prompts, cli, note} — the ordered tool sequence for the goal.
+The router — start here when unsure which tool solves a task: state the goal in plain language ("gate my PR", "fix the contrast of my hero", "generate the legal statement") and get the ordered tool sequence with the why of each step. Deterministic keyword index over the toolkit map, not an LLM guessing; when nothing matches, the honest fallback route says where everyone begins. Makes 33 specialized tools an O(1) choice — ask once instead of scanning descriptions. Optional sequential-diagnosis mode: pass url or html and the router takes the page's cheap vitals (static pass) and orders the next exams by expected yield — the evidence decides (forms → form error testing, menus → keyboard, video → caption content), severity only breaks ties; the ordered plan never replaces the full catalog. Returns JSON: {route, steps [{step, tool, why}], alternates, prompts, cli, note} — the ordered tool sequence for the goal. Diagnosis mode (url/html passed): {mode: diagnose, vitals {score, summary, signals}, symptoms [{symptom, evidence}], steps [...], guarantee} — evidence orders the exams, severity breaks ties.
 
 
 **Arguments**
 
-- `goal` *(required)*: the task in plain language (es or en).
+- `goal`: the task in plain language (es or en).
+
+- `url`: optional diagnosis mode: page URL — its cheap signals (static pass) order the next exams by expected yield.
+
+- `html`: optional diagnosis mode: inline HTML instead of a URL.
 
 - `lang` — one of ['es', 'en']: Output language (en default).

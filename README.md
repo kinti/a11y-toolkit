@@ -57,6 +57,8 @@ traps, reflow, forms) additionally need Playwright:
 | An evidence pack a human can sign — hashes, matrix, empty signature block | No | Yes |
 | ACT Rules interop: EARL export + per-rule consistency report against official W3C test cases | No | Yes |
 | WCAG 3 draft preview — regroup 2.2 findings under the draft's outcomes, no fake score | No | Yes |
+| The engine examines itself: seeded WCAG mutant bank — regenerable exam, kill rate + false positives via placebos | No | Yes |
+| Sequential diagnosis: pass a URL and the page's own evidence orders the exams (severity only breaks ties) | No | Yes |
 | Runs with zero dependencies at core, speaks es/en, any browser you have | Heavy runtimes | Zero dependencies |
 
 <!-- TOOLS:BEGIN -->
@@ -98,7 +100,7 @@ Full reference — descriptions, arguments, return shapes and behavior — in [d
 | [`a11y_disprove`](docs/tools.md#a11y_disprove) | Coverage & evidence | Disprover: re-verify findings |
 | [`a11y_ledger`](docs/tools.md#a11y_ledger) | Coverage & evidence | Coverage ledger (persistent) |
 | [`a11y_wcag3_preview`](docs/tools.md#a11y_wcag3_preview) | Coverage & evidence | WCAG 3 draft preview (no score) |
-| [`a11y_route`](docs/tools.md#a11y_route) | Routing | Tool router (goal to steps) |
+| [`a11y_route`](docs/tools.md#a11y_route) | Routing | Tool router (goal or page to steps) |
 <!-- TOOLS:END -->
 
 ## The 6 prompts
@@ -209,6 +211,9 @@ a11ytoolkit contrast-dom https://mysite --selector ".hero h1"  # auto-region pix
 a11ytoolkit vpat pack.json --product "Acme" -o vpat.html      # VPAT 2.5 (WCAG) draft
 a11ytoolkit earl --from-audit audit.json -o earl.json          # ACT Rules / EARL export
 a11ytoolkit wcag3 --from-audit audit.json                      # WCAG 3 draft preview (no score)
+a11ytoolkit route --goal "gate my PR"                          # which tools for the task
+a11ytoolkit route --file page.html                             # diagnosis: the page orders the exams
+a11ytoolkit mutants --seed 7 --n 12                            # the engine's sealed self-exam
 ```
 
 ## Coverage: 51 of 55 WCAG 2.2 A/AA criteria (93%)

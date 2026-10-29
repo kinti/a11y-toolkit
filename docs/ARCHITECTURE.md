@@ -27,7 +27,8 @@ import guards. Output es/en; wire keys English (`a11y-evidence-pack/2`).
 | `a11yi18n.py` | Locale-pack loader: community `locales/<lang>.json` catalogs, English fallback, CLDR plurals, product overlays. |
 | `a11yinit.py` | `a11ytoolkit init` — installs the AGENTS.md agent hook in user projects. |
 | `a11yact.py` | ACT Rules interop: curated signal → ACT rule map (`ACT_MAP`, partial by design) + EARL 1.0 JSON-LD export (failures only, never asserts pass). |
-| `a11yroute.py` | Tool 33: the router — goal in plain language → ordered tools with why (deterministic word-boundary index over 18 routes es/en, honest `start` fallback). Makes the catalog an O(1) choice. |
+| `a11yroute.py` | Tool 33: the router — goal in plain language → ordered tools with why (deterministic word-boundary index over 18 routes es/en, honest `start` fallback) + sequential diagnosis (url/html): the cheap static pass is the vitals, its symptoms (forms, menus, video, animation, svg) order the next exams by expected yield — severity only breaks ties, the plan never replaces the catalog. |
+| `a11ymutants.py` | The engine's sealed self-exam (WCAG mutation testing): seeded regenerable clean pages, 18 operators derived from the signal→criterion map (one violation per mutant), sealed answer log, placebo pages (any finding = false positive by construction), kill-rate exam — CLI + suite, not a tool. |
 | `a11ywcag3.py` | WCAG 3 preview: re-groups 2.2 findings under the Sept-2026 draft's 46 outcomes (`_OUTCOMES`, exact names) via a curated criterion→outcome map — no score, no tier, no conformance claim (W3C has no official cross-map). |
 | `a11yvtt.py` | WebVTT caption quality (1.2.2): parses the real .vtt — malformed/empty/overlapping/too-fast cues (>21 cps), coverage vs duration. |
 | `a11ydocx.py` | DOCX structural screening (zip+XML): images w/o alt, fake headings (bold+big without Heading style), document language, header rows. |
@@ -110,6 +111,27 @@ change (see 4.0.1); internal dev docs don't.
   only published rules that correspond directly; absence of findings is
   never asserted as pass. PNG decoding is stdlib-only (`contrast.py`) so the
   pixel-sampling path keeps the zero-dep core.
+- **D18 — The sealed exam (mutation testing for WCAG, cross-industry
+  translation)**: static corpora get memorized (public ACT test cases and
+  every fixed fixture are in the LLM training corpora), so detection
+  quality cannot be measured with them. `a11ymutants.py` builds the exam
+  the way aviation builds simulator sessions: seeded, regenerable, never
+  seen twice. The examinee is blind (gets only the HTML); the examiner
+  keeps the sealed log (operator/signal/criterion) and opens it only after
+  scoring. Placebos expose false positives by construction. The bank is
+  DERIVED from the engine's own signal→criterion map (pinned by
+  tests/test_mutants.py), not maintained in parallel; kill rate is clamped
+  at 1.0 in the suite — a detection regression in ANY operator turns the
+  gate red. Academic precedent exists (Ma11y 2024); the product delta is a
+  regenerable exam shipped inside the analyzer.
+- **D19 — Diagnosis orders, never trims**: sequential diagnosis inside
+  `a11y_route` (url/html) reads the page's cheap vitals and its symptoms
+  decide which exam carries the most information next — differential
+  diagnosis, not a fixed criterion priority (a page without forms does not
+  need the form exam however severe 3.3.1 is on paper). Severity only
+  breaks ties, the rendered deepener closes the plan, and the guarantee is
+  explicit in every response: the full catalog stays one route(goal) away.
+  The goal-routing behavior for plain goals is unchanged.
 
 ## Trap catalogue (each class cost a bug — recognize the class)
 
