@@ -22,6 +22,7 @@
   a11ytoolkit ledger record --url https://web --audit r.json  # track coverage
   a11ytoolkit contrast-dom https://web --selector ".hero h1"   # auto-region pixel sampling
   a11ytoolkit vpat pack.json --product "App" -o vpat.html    # VPAT 2.5 (WCAG) draft
+  a11ytoolkit openacr pack.json --product "App" -o openacr.yaml  # OpenACR YAML (GSA) draft
   a11ytoolkit earl --from-audit audit.json -o earl.json       # ACT Rules / EARL export
   a11ytoolkit init [path]                                  # agent hook: AGENTS.md + MCP config
   a11ytoolkit wcag3 --from-audit audit.json                # WCAG 3 draft preview (no score)
@@ -51,6 +52,7 @@ from . import a11yjourney
 from . import a11yvtt
 from . import a11ypdf
 from . import a11yvpat
+from . import a11yopenacr
 from . import a11yact
 from . import a11yinit
 from . import a11ywcag3
@@ -83,6 +85,7 @@ SUBCOMMANDS = {
     'pdf': (a11ypdf, None),
     'contrast-dom': (a11ydom, 'contrast_dom_main'),
     'vpat': (a11yvpat, None),
+    'openacr': (a11yopenacr, None),
     'earl': (a11yact, None),
     'init': (a11yinit, 'init_main'),
     'wcag3': (a11ywcag3, None),

@@ -32,6 +32,7 @@ Tools:
   - a11y_reduced_motion(url)                       does the site honor prefers-reduced-motion? (2.2.2)
   - a11y_forced_colors(url)                        SVG hardcoded fills vs forced-colors (Windows HCM)
   - a11y_generate_vpat(product, pack|reports, …)  VPAT 2.5 (WCAG) draft from the evidence pack
+  - a11y_generate_openacr(product, pack|reports, …)  OpenACR YAML (GSA) — machine-readable ACR
   - a11y_contrast_dom(url, selector, …)           real text-over-anything contrast (auto-region sampling)
   - a11y_disprove(url, report?, …)                re-verify findings → confirmed/rejected
   - a11y_ledger(action, url?, report?, …)          persistent coverage ledger
@@ -76,6 +77,7 @@ from .a11yledger import record as ledger_record, gaps as ledger_gaps, summary as
 from .a11ybadge import badge as badge_fn  # noqa: E402
 from .a11yaudit import audit_site as audit_site_fn  # noqa: E402
 from .a11yvpat import generate_vpat as vpat_fn  # noqa: E402
+from .a11yopenacr import generate_openacr as openacr_fn  # noqa: E402
 from .a11ydom import contrast_dom as contrast_dom_fn  # noqa: E402
 from .a11ywcag3 import preview as wcag3_preview_fn  # noqa: E402
 from .a11yroute import route as route_fn  # noqa: E402
@@ -85,7 +87,7 @@ try:
 except ImportError:
     ARIALIVE_JS = None  # repo checkout: read the file
 
-VERSION = '5.18.1'
+VERSION = '5.19.0'
 
 # Params renombrados a inglés en 5.11.0; se aceptan los nombres previos.
 PARAM_ALIASES = {
@@ -538,6 +540,37 @@ TOOLS = [
         }, 'required': ['product']},
     },
     {
+        'name': 'a11y_generate_openacr',
+        'description': ('Generates an OpenACR (the GSA open standard, VPAT-derived) '
+                        'accessibility conformance report in machine-readable YAML from an '
+                        'a11y_evidence pack (or raw audit reports): the full 55-criterion '
+                        'WCAG 2.2 A/AA matrix as chapters with one web component per '
+                        'criterion, adherence levels starting at not-evaluated (automated '
+                        'fails force does-not-support, review-level signals '
+                        'partially-supports) and notes auto-filled from the pack (status, '
+                        'measured values, remaining human effort, sha256). Same honesty '
+                        'rule as a11y_generate_vpat: the machine fills notes, a qualified '
+                        'human sets levels via overrides (supports, partially_supports, …; '
+                        'hyphenated OpenACR forms accepted). OpenACR is what US federal '
+                        'procurement and GSA buyers parse — emit it from the same pack as '
+                        'the human-readable VPAT.'),
+        'inputSchema': {'type': 'object', 'properties': {
+            'product': {'type': 'string', 'description': 'Product name as it must appear in the OpenACR'},
+            'pack': {'type': 'object', 'description': 'a11y_evidence output (evidence pack); alternative to reports'},
+            'reports': {'type': 'array', 'items': {'type': 'object'}, 'description': 'Audit report objects to bundle (when pack is not given, the pack is built here first)'},
+            'product_version': {'type': 'string', 'description': 'Product version'},
+            'report_date': {'type': 'string', 'description': 'ACR report date ISO (default: today)'},
+            'product_description': {'type': 'string', 'description': 'Product description paragraph'},
+            'author': {'type': 'object', 'description': '{"name":…, "company":…, "email":…, "website":…} — the ACR author block'},
+            'contact': {'type': 'string', 'description': 'Contact email (author.email fallback)'},
+            'methods': {'type': 'string', 'description': 'Evaluation methods used (default: honest automated-screening note)'},
+            'notes': {'type': 'string', 'description': 'Additional notes to include'},
+            'overrides': {'type': 'object', 'description': 'Criterion → adherence level set by a qualified human: {"1.1.1": "supports", "1.2.2": "not_applicable", …} (hyphenated forms accepted)'},
+            'output_path': {'type': 'string', 'description': 'save the OpenACR YAML here (optional)'},
+            'lang': {'type': 'string', 'enum': ['es', 'en'], 'description': 'Document language (default en)'},
+        }, 'required': ['product']},
+    },
+    {
         'name': 'a11y_contrast_dom',
         'description': ('REAL contrast of an element against whatever is behind it (image, '
                         'gradient, video, photo): loads the page in Chromium, screenshots the '
@@ -956,6 +989,19 @@ _PARAM_DOCS = {
  ('a11y_generate_vpat', 'reviewer'): '{"name":…, "credential":…, "review_date":…} to prefill the signature block',
  ('a11y_generate_vpat', 'output_path'): 'Local path to save the VPAT HTML (omit to receive it inline)',
  ('a11y_generate_vpat', 'lang'): 'Document language (default en)',
+ ('a11y_generate_openacr', 'product'): 'Product name as it must appear in the OpenACR',
+ ('a11y_generate_openacr', 'pack'): 'a11y_evidence output (evidence pack); alternative to reports',
+ ('a11y_generate_openacr', 'reports'): 'Audit report objects to bundle (when pack is not given, the pack is built here first)',
+ ('a11y_generate_openacr', 'product_version'): 'Product version',
+ ('a11y_generate_openacr', 'report_date'): 'ACR report date ISO (default: today)',
+ ('a11y_generate_openacr', 'product_description'): 'Product description paragraph',
+ ('a11y_generate_openacr', 'author'): '{"name":…, "company":…, "email":…, "website":…} — the ACR author block',
+ ('a11y_generate_openacr', 'contact'): 'Contact email (author.email fallback)',
+ ('a11y_generate_openacr', 'methods'): 'Evaluation methods used (default: honest automated-screening note)',
+ ('a11y_generate_openacr', 'notes'): 'Additional notes to include',
+ ('a11y_generate_openacr', 'overrides'): 'Criterion → adherence level set by a qualified human: {"1.1.1": "supports", "1.2.2": "not_applicable", …} (hyphenated forms accepted)',
+ ('a11y_generate_openacr', 'output_path'): 'Local path to save the OpenACR YAML (omit to receive it inline)',
+ ('a11y_generate_openacr', 'lang'): 'Document language (default en)',
  ('a11y_contrast_dom', 'url'): 'Page URL where the element lives (http/https or file://)',
  ('a11y_contrast_dom', 'selector'): 'CSS selector of the text element to measure',
  ('a11y_contrast_dom', 'text_color'): 'Text color (default: computed from the element)',
@@ -986,6 +1032,7 @@ _ROUTING = {
  'a11y_aria_live_snippet': 'Diagnostics aid to inject in a browser; not an audit by itself.',
  'a11y_generate_declaration': 'Legal statement generator; drive inaccessible_content from audit findings and a11y_evidence.',
  'a11y_generate_vpat': 'The US/ADA counterpart of a11y_generate_declaration; feed it the a11y_evidence pack — levels stay Not Evaluated until a qualified human sets them.',
+ 'a11y_generate_openacr': 'The machine-readable (GSA OpenACR YAML) sibling of a11y_generate_vpat — emit both from the same pack: humans read the VPAT, procurement systems parse the OpenACR.',
  'a11y_contrast_dom': 'Use instead of a11y_contrast_image when the text lives in a live page (captures and measures it automatically); for flat pairs use a11y_contrast_pair.',
 }
 
@@ -1025,6 +1072,7 @@ _ANN = {
     'a11y_criterion':        ('WCAG criterion explained', True, False),
     'a11y_journey_verdict':  ('Blindfold journey verdict', True, False),
     'a11y_generate_vpat':    ('VPAT 2.5 report (WCAG edition)', False, False),
+    'a11y_generate_openacr': ('OpenACR YAML report (GSA)', False, False),
     'a11y_contrast_dom':     ('Live-element contrast sampling', True, True),
     'a11y_vtt_check':        ('WebVTT caption quality', True, True),
     'a11y_audit_pdf':        ('PDF accessibility screening', True, False),
@@ -1041,7 +1089,7 @@ _ANN = {
 _RO_OVERRIDE = {'a11y_ledger': False, 'a11y_forms': False}
 _IDEM_OVERRIDE = {'a11y_ledger': False, 'a11y_forms': False}
 _RETURNS = {
-    'a11y_audit_url': 'Returns JSON: {mode, url|file, score 0-100, findings [{criterion, severity, signal, issue, remediation}], summary {high, medium, low}, limits, score_note}.',
+    'a11y_audit_url': 'Returns JSON: {mode, url|file, score 0-100, findings [{criterion, severity, signal, issue, remediation}], summary {high, medium, low}, limits, score_note, overlay_widgets? (detected third-party overlay scripts — data, not a WCAG finding)}.',
     'a11y_audit_dom': 'Returns JSON: {mode, url, score 0-100, findings [{criterion, severity, signal, issue, remediation}], summary, score_note} — same shape as the static audit.',
     'a11y_contrast_pair': 'Returns JSON: {text, background, ratio, verdicts [{criterion, level, threshold, passes}], aa_suggestion?}.',
     'a11y_contrast_image': 'Returns JSON: {worst_ratio, median_ratio, p95_ratio, area_passes_aa_normal_text_4_5, worst_zone, sampled_pixels}.',
@@ -1066,6 +1114,7 @@ _RETURNS = {
     'a11y_journey_verdict': 'Returns JSON: {verdict pass|partial|fail|blocked, score 0-100, findings [{criterion, severity, signal, issue, remediation, step}], summary, rules} — writes a file only when output_path is given.',
     'a11y_generate_declaration': 'Returns {html, summary} — the accessible legal statement; writes a file only when output_path is given.',
     'a11y_generate_vpat': 'Returns {html, summary {level: count}, levels {code: level}, pack_sha256, draft} — the VPAT draft; writes a file only when output_path is given.',
+    'a11y_generate_openacr': 'Returns {yaml, summary {level: count}, levels {code: level}, pack_sha256, format, draft} — the OpenACR YAML draft; writes a file only when output_path is given.',
     'a11y_contrast_dom': 'Returns JSON: {url, selector, text_color, worst_ratio, median_ratio, p95_ratio, area_passes_aa_normal_text_4_5, worst_zone?, sampled_pixels, interpretation}.',
     'a11y_wcag3_preview': 'Returns JSON: {mode, draft, disclaimer, mapping_note, no_score, conformance_model, outcomes [{outcome, draft_url, findings, severity, signals, criteria_22}], counts, unmapped} — never a score.',
     'a11y_route': 'Returns JSON: {route, steps [{step, tool, why}], alternates, prompts, cli, note} — the ordered tool sequence for the goal. Diagnosis mode (url/html passed): {mode: diagnose, vitals {score, summary, signals}, symptoms [{symptom, evidence}], steps [...], guarantee} — evidence orders the exams, severity breaks ties.',
@@ -1078,6 +1127,7 @@ _USAGE = {
     'a11y_journey_verdict': 'Run only after a real blindfold attempt (the blindfold-task prompt): the verdict prices the walk, it does not replace it.',
     'a11y_evidence': 'Run after the audits you trust, and pass verified codes from the manual checklist — agent-verified never erases an automated-fail.',
     'a11y_generate_vpat': 'Run after the audits you trust; a qualified human must set the final levels (overrides) and sign before publishing — the machine fills Remarks, never the claim.',
+    'a11y_generate_openacr': 'Run after the audits you trust; validate and render in the GSA OpenACR editor (gsa.github.io/openacr-editor) — a qualified human must set the final adherence levels before publishing.',
     'a11y_wcag3_preview': 'Run after any audit when the team asks "what about WCAG 3?"; re-baseline on each W3C draft publication (roughly March/September).',
 }
 for _t in TOOLS:
@@ -1364,6 +1414,26 @@ def invoke(name, args):
                                'summary': res['summary'],
                                'pack_sha256': res['pack_sha256'], 'draft': True})
             return {'content': [{'type': 'text', 'text': res['html']}]}
+        except Exception as e:  # noqa: BLE001
+            return {'content': [{'type': 'text', 'text': f'error: {e}'}], 'isError': True}
+    if name == 'a11y_generate_openacr':
+        try:
+            res = openacr_fn(pack=args.get('pack'), reports=args.get('reports'),
+                             product=args['product'],
+                             product_version=args.get('product_version'),
+                             report_date=args.get('report_date'),
+                             description=args.get('product_description'),
+                             author=args.get('author'), contact=args.get('contact'),
+                             methods=args.get('methods'), notes=args.get('notes'),
+                             overrides=args.get('overrides'), lang=args.get('lang', 'en'),
+                             output_path=args.get('output_path'))
+            if 'error' in res:
+                return {'content': [{'type': 'text', 'text': res['error']}], 'isError': True}
+            if args.get('output_path'):
+                return _content({'saved_to': args['output_path'],
+                               'summary': res['summary'],
+                               'pack_sha256': res['pack_sha256'], 'draft': True})
+            return {'content': [{'type': 'text', 'text': res['yaml']}]}
         except Exception as e:  # noqa: BLE001
             return {'content': [{'type': 'text', 'text': f'error: {e}'}], 'isError': True}
     if name == 'a11y_contrast_dom':

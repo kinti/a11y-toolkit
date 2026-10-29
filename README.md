@@ -10,7 +10,7 @@
 [![MCP](https://img.shields.io/badge/Model%20Context%20Protocol-server-purple)](https://modelcontextprotocol.io)
 [![Sponsor](https://img.shields.io/badge/Sponsor-%E2%9D%A4-pink)](https://github.com/sponsors/kinti)
 
-33 MCP tools, 6 prompts and a skill covering the whole WCAG 2.2 loop: audit, fix,
+34 MCP tools, 6 prompts and a skill covering the whole WCAG 2.2 loop: audit, fix,
 document, watch, hand off — and now blindfold usability testing, where the agent
 attempts real tasks perceiving only what a screen reader exposes. 51 of 55 A/AA criteria carry automated signals (93%), every
 finding ships with a concrete remediation your agent can apply, and the rendered tools
@@ -62,7 +62,7 @@ traps, reflow, forms) additionally need Playwright:
 | Runs with zero dependencies at core, speaks es/en, any browser you have | Heavy runtimes | Zero dependencies |
 
 <!-- TOOLS:BEGIN -->
-## The tools (33)
+## The tools (34)
 
 Full reference — descriptions, arguments, return shapes and behavior — in [docs/tools.md](docs/tools.md). All tools accept `lang` (`en`|`es`) unless noted; output is JSON unless noted. Generated from `server.TOOLS` by `scripts/gen_readme.py`.
 
@@ -80,6 +80,7 @@ Full reference — descriptions, arguments, return shapes and behavior — in [d
 | [`a11y_suggest_color`](docs/tools.md#a11y_suggest_color) | Fix & contrast | Nearest passing color |
 | [`a11y_generate_declaration`](docs/tools.md#a11y_generate_declaration) | Document | Accessibility statement (EAA/RD 1112) |
 | [`a11y_generate_vpat`](docs/tools.md#a11y_generate_vpat) | Document | VPAT 2.5 report (WCAG edition) |
+| [`a11y_generate_openacr`](docs/tools.md#a11y_generate_openacr) | Document | OpenACR YAML report (GSA) |
 | [`a11y_badge`](docs/tools.md#a11y_badge) | Document | Honest SVG badge |
 | [`a11y_snapshot`](docs/tools.md#a11y_snapshot) | Watch (regressions) | A11y snapshot + tab order |
 | [`a11y_diff`](docs/tools.md#a11y_diff) | Watch (regressions) | Snapshot regression diff |

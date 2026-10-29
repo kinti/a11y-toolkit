@@ -67,6 +67,7 @@
   "iframe_title_rem": "Add a descriptive title to the iframe (screen readers announce it on arrival).",
   "images_of_text": "{n} images that appear to be rendered text (very long alt{ej2}). Review (1.4.5).",
   "images_of_text_rem": "Except for logotypes, present text as real text (1.4.5): it rescales, reflows and translates; an image does not.",
+  "overlay_widgets_note": "A third-party accessibility overlay widget was detected (see overlay_widgets). Overlays do not make a site accessible — see the community Overlay Fact Sheet (overlayfactsheet.com). Reported as information for procurement diligence, not as a WCAG finding.",
   "img_no_alt": "{n} <img> without an alt attribute (not even alt=\"\").",
   "img_no_alt_rem": "Add alt to every <img>: descriptive text when it conveys information, alt=\"\" when decorative. Same requirement for <input type=\"image\"> and <area>.",
   "input_img_alt": "<input type=\"image\"> without alt (image button with no name).",
@@ -435,6 +436,14 @@
    "eaa": "Service accessibility information",
    "rd1112": "Accessibility Declaration"
   }
+ },
+ "openacr_txt": {
+  "chapter_note": "WCAG 2.2 success criteria; adherence derived from the evidence pack (its sha256 is referenced in every remark); single web component.",
+  "error_level": "unknown level in overrides: {n} (use supports, partially_supports, does_not_support, not_applicable, not_evaluated)",
+  "error_no_pack": "missing pack/reports: pass an a11y_evidence pack (or audit reports to build it here)",
+  "legal_disclaimer": "The information herein is provided in good faith based on the analysis at the time of the review and does not represent a legally-binding claim. Reported errors will be re-evaluated and corrected.",
+  "method_default": "Automated screening with the a11y-toolkit engine plus manual review where noted; automated testing covers only part of WCAG — the remarks cite the remaining human effort per criterion.",
+  "notes_draft": "DRAFT — adherence levels pending a qualified human; generated from a verifiable evidence pack."
  },
  "vpat_levels": {
   "does_not_support": "Does Not Support",

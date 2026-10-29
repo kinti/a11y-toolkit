@@ -191,3 +191,38 @@ assert 'did NOT measure contrast' in r_nm['score_note']
 r_nm_es = audit_html('<button>x</button>', lang='es')
 assert 'NO midió contraste' in r_nm_es['score_note']
 print('honradez estática: not_measured (17) + score_note explícito ✓')
+
+
+# ── overlays de terceros: dato del informe, JAMÁS un finding ──────────────────
+# detección por dominio del script (UserWay/accessiBe/…): diligencia de compra
+con_overlay = ('<!doctype html><html lang="es"><head><title>t</title></head><body>'
+               '<main><h1>Inicio</h1></main>'
+               '<script src="https://cdn.userway.org/widget.js"></script>'
+               '</body></html>')
+r_ov = audit_html(con_overlay)
+assert 'overlay_widgets' in r_ov, 'UserWay no detectado'
+assert r_ov['overlay_widgets'][0]['vendor'] == 'UserWay'
+assert 'userway.org' in r_ov['overlay_widgets'][0]['evidence']
+assert 'overlayfact' in r_ov['overlay_widgets_note']
+# NO es un hallazgo: ni findings, ni score, ni señal — ningún criterio WCAG dice
+# "no uses overlays"; la posición pública es comunitaria (overlayfactsheet.com)
+assert not any('overlay' in h['signal'] for h in r_ov['findings'])
+limpia_mismo_score = audit_html(con_overlay.replace(
+    '<script src="https://cdn.userway.org/widget.js"></script>', ''))
+assert r_ov['score'] == limpia_mismo_score['score'], 'el dato de overlay tocó el score'
+assert 'overlay_widgets' not in limpia_mismo_score, 'falso positivo sin overlay'
+# segundo vendor (accessiBe vía acsbapp) + nota en inglés
+r_acsb = audit_html('<html><head><title>t</title></head><body>'
+                    '<script src="https://acsbapp.com/js/app.js"></script></body></html>',
+                    lang='en')
+assert r_acsb['overlay_widgets'][0]['vendor'] == 'accessiBe'
+assert 'Overlay Fact Sheet' in r_acsb['overlay_widgets_note']
+# dedupe: dos scripts del mismo vendor cuentan una vez
+r_dos = audit_html('<html><body><script src="https://x.userway.org/a.js"></script>'
+                   '<script src="https://cdn.userway.org/b.js"></script></body></html>')
+assert len(r_dos['overlay_widgets']) == 1, r_dos['overlay_widgets']
+# un script normal (analytics) no dispara nada
+r_ga = audit_html('<html><body><script src="https://www.googletagmanager.com/gtm.js">'
+                  '</script></body></html>')
+assert 'overlay_widgets' not in r_ga
+print('overlays: detección por dominio (dato, no finding, score intacto, dedupe) ✓')

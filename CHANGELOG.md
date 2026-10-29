@@ -1,5 +1,29 @@
 # Changelog
 
+## 5.19.0 — pendiente — "the overlay tell + the procurement YAML"
+
+- **`a11y_generate_openacr` (tool 34) + `a11ytoolkit openacr`** — OpenACR
+  (GSA open standard, VPAT-derived) generator: the evidence pack becomes a
+  machine-readable ACR in YAML (chapters success_criteria_level_a/_aa, one
+  `web` component per criterion, 55 criteria). Same honesty rule as the
+  VPAT: the machine fills the adherence `notes`, never the level — every
+  criterion starts at `not-evaluated` unless an automated fail forces
+  `does-not-support`; a qualified human sets levels via `overrides`
+  (VPAT vocabulary; hyphenated OpenACR forms accepted). Fixed-schema YAML
+  emitter where JSON escaping is valid YAML double-quoted style: zero
+  dependencies AND no injection — user text can never break the document.
+  Every remark cites the pack sha256 (tamper-evidence chain). US federal
+  procurement and GSA buyers parse OpenACR; humans keep the VPAT.
+- **Overlay widget detection in the static audit** — `a11y_audit_url`
+  (and `audit_site` pages) now fingerprint third-party accessibility
+  overlay scripts (accessiBe, UserWay, AudioEye, EqualWeb, FACIL'ITI) by
+  script domain and report them as `overlay_widgets` + a localized note
+  citing the community Overlay Fact Sheet. Deliberately NOT a WCAG
+  finding and score-neutral: no success criterion says "don't use
+  overlays" — it is procurement-diligence data, detection ≠ judgment.
+  SaaS layering: products can add their own overlay-guide link via the
+  existing locale `use_overlay()` mechanism.
+
 ## 5.18.1 — pendiente — "3.9 grammar guard"
 
 - **Fix: v5.18.0 was broken on Python ≤3.11** — one `_DIAG` lambda in

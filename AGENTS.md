@@ -5,7 +5,7 @@ Rules for coding agents (and humans) contributing to this repository.
 ## What this codebase is
 
 A zero-dependency (stdlib-only) WCAG 2.2 accessibility engine + MCP server
-(33 tools) + CLI. Python 3.9+. The engine runs as an MCP server, a CLI
+(34 tools) + CLI. Python 3.9+. The engine runs as an MCP server, a CLI
 (`a11ytoolkit`), and is vendored by a11y.es (production). Zero telemetry is a
 product promise — never add phone-home code.
 

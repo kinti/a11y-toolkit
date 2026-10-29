@@ -8,7 +8,7 @@ Every tool, complete — description, arguments, and behavior annotations, gener
 
 <sub>read-only · network</sub>
 
-Express WCAG 2.2 audit of a URL or an HTML string: 20+ automated signals with a weighted 0-100 score — images without alt (1.1.1), controls without accessible names (4.1.2), form fields without labels (3.3.2), missing autocomplete on user-data fields (1.3.5), click handlers on non-interactive elements (2.1.1), unknown ARIA roles and broken aria-labelledby (4.1.2), duplicated unnamed landmarks, timed meta refresh (2.2.1), missing skip mechanism (2.4.1), lang/title (3.1.1, 2.4.2), heading structure (1.3.1), blocked zoom (1.4.4), captions (1.2.2), autoplay audio (1.4.2), generic/duplicated link text (2.4.4), target=_blank without warning (3.2.5), positive tabindex (2.4.3), aria-hidden on focusable elements, tables without th, duplicate ids, duplicate accesskeys. Each finding includes concrete remediation. Filter, not verdict: automation covers ~1/3 of WCAG; query a11y_criterion for what a criterion means. — Prefer a11y_audit_dom when JS renders the content or contrast/2.5.8/focus matter; use pages for light multi-page sampling. Static CANNOT measure class/var() CSS contrast (1.4.3): the report's not_measured says so — a 100 is never 'contrast is fine'. Returns JSON: {mode, url|file, score 0-100, findings [{criterion, severity, signal, issue, remediation}], summary {high, medium, low}, limits, score_note}.
+Express WCAG 2.2 audit of a URL or an HTML string: 20+ automated signals with a weighted 0-100 score — images without alt (1.1.1), controls without accessible names (4.1.2), form fields without labels (3.3.2), missing autocomplete on user-data fields (1.3.5), click handlers on non-interactive elements (2.1.1), unknown ARIA roles and broken aria-labelledby (4.1.2), duplicated unnamed landmarks, timed meta refresh (2.2.1), missing skip mechanism (2.4.1), lang/title (3.1.1, 2.4.2), heading structure (1.3.1), blocked zoom (1.4.4), captions (1.2.2), autoplay audio (1.4.2), generic/duplicated link text (2.4.4), target=_blank without warning (3.2.5), positive tabindex (2.4.3), aria-hidden on focusable elements, tables without th, duplicate ids, duplicate accesskeys. Each finding includes concrete remediation. Filter, not verdict: automation covers ~1/3 of WCAG; query a11y_criterion for what a criterion means. — Prefer a11y_audit_dom when JS renders the content or contrast/2.5.8/focus matter; use pages for light multi-page sampling. Static CANNOT measure class/var() CSS contrast (1.4.3): the report's not_measured says so — a 100 is never 'contrast is fine'. Returns JSON: {mode, url|file, score 0-100, findings [{criterion, severity, signal, issue, remediation}], summary {high, medium, low}, limits, score_note, overlay_widgets? (detected third-party overlay scripts — data, not a WCAG finding)}.
 
 
 **Arguments**
@@ -255,6 +255,41 @@ Generates a VPAT 2.5 (WCAG edition) accessibility conformance report in accessib
 - `reviewer`: {"name":…, "credential":…, "review_date":…} to prefill the signature block.
 
 - `output_path`: save the VPAT HTML here (optional).
+
+- `lang` — one of ['es', 'en']: Document language (default en).
+
+#### `a11y_generate_openacr`
+
+<sub>mutates state</sub>
+
+Generates an OpenACR (the GSA open standard, VPAT-derived) accessibility conformance report in machine-readable YAML from an a11y_evidence pack (or raw audit reports): the full 55-criterion WCAG 2.2 A/AA matrix as chapters with one web component per criterion, adherence levels starting at not-evaluated (automated fails force does-not-support, review-level signals partially-supports) and notes auto-filled from the pack (status, measured values, remaining human effort, sha256). Same honesty rule as a11y_generate_vpat: the machine fills notes, a qualified human sets levels via overrides (supports, partially_supports, …; hyphenated OpenACR forms accepted). OpenACR is what US federal procurement and GSA buyers parse — emit it from the same pack as the human-readable VPAT. — The machine-readable (GSA OpenACR YAML) sibling of a11y_generate_vpat — emit both from the same pack: humans read the VPAT, procurement systems parse the OpenACR. Returns {yaml, summary {level: count}, levels {code: level}, pack_sha256, format, draft} — the OpenACR YAML draft; writes a file only when output_path is given. Run after the audits you trust; validate and render in the GSA OpenACR editor (gsa.github.io/openacr-editor) — a qualified human must set the final adherence levels before publishing.
+
+
+**Arguments**
+
+- `product` *(required)*: Product name as it must appear in the OpenACR.
+
+- `pack`: a11y_evidence output (evidence pack); alternative to reports.
+
+- `reports`: Audit report objects to bundle (when pack is not given, the pack is built here first).
+
+- `product_version`: Product version.
+
+- `report_date`: ACR report date ISO (default: today).
+
+- `product_description`: Product description paragraph.
+
+- `author`: {"name":…, "company":…, "email":…, "website":…} — the ACR author block.
+
+- `contact`: Contact email (author.email fallback).
+
+- `methods`: Evaluation methods used (default: honest automated-screening note).
+
+- `notes`: Additional notes to include.
+
+- `overrides`: Criterion → adherence level set by a qualified human: {"1.1.1": "supports", "1.2.2": "not_applicable", …} (hyphenated forms accepted).
+
+- `output_path`: save the OpenACR YAML here (optional).
 
 - `lang` — one of ['es', 'en']: Document language (default en).
 

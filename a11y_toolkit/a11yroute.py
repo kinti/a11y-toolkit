@@ -136,6 +136,8 @@ ROUTES = [
           'the pack first: the VPAT derives from evidence'),
          ('a11y_generate_vpat', 'borrador VPAT 2.5: la máquina rellena, la persona firma',
           'VPAT 2.5 draft: the machine fills, the human signs'),
+         ('a11y_generate_openacr', 'OpenACR YAML (GSA): el ACR máquina que parsea el procurement',
+          'OpenACR YAML (GSA): the machine-readable ACR procurement parses'),
      ],
      'cli': 'a11ytoolkit vpat pack.json --product "Acme" -o vpat.html',
      'prompts': []},

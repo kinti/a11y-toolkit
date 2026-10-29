@@ -42,6 +42,7 @@ All output is English by default; pass `--lang es` (or the `lang: "es"` MCP argu
 | "full evaluation / conformance / WCAG-EM" | the `conformance-wcagem` prompt — three tiers, escalate one at a time; protocol in `references/wcagem-guide.md` |
 | "produce something a human auditor can sign" | `a11y_evidence`: the verifiable pack (criteria matrix + hashed artifacts + empty signature block). Vendor-neutral — any qualified human |
 | "a VPAT for the US market (ADA)" | `a11y_generate_vpat`: VPAT 2.5 (WCAG edition) draft from the pack — Remarks auto-filled, levels Not Evaluated until a qualified human sets them (`overrides`) and signs (hash-referenced). Draft until signed |
+| "a machine-readable ACR for US procurement (GSA OpenACR)" | `a11y_generate_openacr`: OpenACR YAML from the same pack — chapters A/AA, hyphenated adherence levels in the YAML, human sets them via `overrides` (same vocabulary as the VPAT). Render/validate in the GSA OpenACR editor |
 | "export findings as ACT Rules / EARL" | `a11ytoolkit earl --from-audit audit.json -o earl.json` (curated ACT map; failures asserted, absence never asserted as pass) |
 | "FIX it for me" (zoom blocked, missing autocomplete, missing lang/title) | `a11y_autofix`: deterministic safe fixes + the accessible form-error layer (3.3.1/3.3.3, skips forms with their own handling); judgment fixes come back as `not_applied` + remediation. Never promise overlay-style full fixes |
 | "does it scroll sideways on mobile?" (1.4.10) | `a11y_reflow` (320px viewport, real overflow + offenders) — axe/Lighthouse don't automate this |

@@ -40,7 +40,8 @@ def build():
     L.append('# a11y-toolkit')
     L.append('')
     L.append('> The accessibility layer for AI coding agents: a zero-dependency '
-             'Python engine (MCP server, 33 tools + 6 prompts, CLI `a11ytoolkit`, '
+             f'Python engine (MCP server, {len(server.TOOLS)} tools + '
+             f'{len(server._PROMPTS)} prompts, CLI `a11ytoolkit`, '
              'MIT) that audits, fixes, documents and watches WCAG 2.2 — and never '
              'signs conformance: the machine finds, the human signs. Bilingual '
              'es/en output. Runs anywhere MCP runs.')

@@ -67,6 +67,7 @@
   "iframe_title_rem": "Añade title descriptivo al iframe (lo anuncian los lectores al llegar a él).",
   "images_of_text": "{n} imágenes que parecen ser texto renderizado (alt muy largo{ej2}). Revisar (1.4.5).",
   "images_of_text_rem": "Salvo logotipos, presenta el texto como texto real (1.4.5): se re escala, se re-fluye y se traduce; una imagen no.",
+  "overlay_widgets_note": "Se ha detectado un widget de accesibilidad de terceros (overlay; véase overlay_widgets). Un overlay no hace accesible un sitio — véase el Overlay Fact Sheet comunitario (overlayfactsheet.com). Se informa como dato para la diligencia de compra, no como hallazgo WCAG.",
   "img_no_alt": "{n} <img> sin atributo alt (ni siquiera alt=\"\").",
   "img_no_alt_rem": "Añade alt a cada <img>: texto descriptivo si aporta información, alt=\"\" si es decorativa. En <input type=\"image\"> y <area> es igual de obligatorio.",
   "input_img_alt": "<input type=\"image\"> sin alt (botón gráfico sin nombre).",
@@ -435,6 +436,14 @@
    "eaa": "Información de accesibilidad del servicio",
    "rd1112": "Declaración de Accesibilidad"
   }
+ },
+ "openacr_txt": {
+  "chapter_note": "Criterios de éxito de WCAG 2.2; la adhesión se deriva del pack de evidencia (su sha256 se cita en cada remark); un único componente web.",
+  "error_level": "nivel desconocido en overrides: {n} (usa supports, partially_supports, does_not_support, not_applicable, not_evaluated)",
+  "error_no_pack": "falta pack/reports: pasa un pack de a11y_evidence (o informes de auditoría para construirlo aquí)",
+  "legal_disclaimer": "La información se facilita de buena fe según el análisis realizado en el momento de la revisión y no constituye una declaración vinculante. Los errores comunicados se reevaluarán y corregirán.",
+  "method_default": "Cribado automatizado con el motor a11y-toolkit más revisión manual donde se indica; los tests automáticos cubren solo una parte de WCAG — los remarks citan el esfuerzo humano restante por criterio.",
+  "notes_draft": "BORRADOR — niveles de adhesión pendientes de una persona cualificada; generado desde un pack de evidencia verificable."
  },
  "vpat_levels": {
   "does_not_support": "No lo soporta",

@@ -265,6 +265,19 @@ T = a11yi18n.pair('audit')  # locales/<lang>.json — community-editable
 # Aviso de ventana nueva: texto que lo indica o icono con nombre
 _BLANK_HINT = re.compile(r'nueva|nuevo|ventana|pesta|tab\b|window|external|externo|exterior', re.I)
 
+# Widgets de accesibilidad de terceros ("overlays"): detección por dominio del
+# script cargado. NO es un fallo WCAG (ningún criterio dice "no uses overlays";
+# la posición pública es comunitaria: overlayfactsheet.com) — se reporta como
+# dato del informe para la diligencia de compra. Detección ≠ juicio: la página
+# puede seguir teniendo fallos reales, y esto no toca score ni findings.
+_OVERLAY_WIDGETS = (
+    ('accessiBe', ('accessibe.com', 'acsbapp.com')),
+    ('UserWay', ('userway.org',)),
+    ('AudioEye', ('audioeye.com',)),
+    ('EqualWeb', ('equalweb.com',)),
+    ("FACIL'ITI", ('facil-iti.com', 'facil-iti.org')),
+)
+
 
 def _t(lang, key, n=None):
     """Message by key; `{"one","other"}` entries resolve via the locale's
@@ -289,6 +302,7 @@ class _Auditor(HTMLParser):
         self.title = ''
         self._in_title = False
         self._in_script = False
+        self._script_srcs = []   # src de cada <script>: huella de overlays de terceros
         self._in_style = False
         self.headings = []        # (nivel, texto)
         self._heading_level = None
@@ -542,6 +556,8 @@ class _Auditor(HTMLParser):
             self._in_title = True
         elif tag == 'script':
             self._in_script = True
+            if a.get('src'):
+                self._script_srcs.append(a['src'])
         elif tag == 'style':
             self._in_style = True
         elif tag == 'link':
@@ -1549,7 +1565,7 @@ def audit_html(html_text, url='(html)', lang='en'):
     reading = _reading_level(' '.join(p._visible_text),
                              page_lang if page_lang in ('es', 'en') else lang)
 
-    return {
+    res = {
         'mode': 'static',
         'url': url,
         'reading_level': reading,
@@ -1561,6 +1577,19 @@ def audit_html(html_text, url='(html)', lang='en'):
         'findings': findings,
         'limits': _t(lang, 'limits'),
     }
+    # overlays detectados: dato del informe (diligencia de compra), nunca un
+    # hallazgo — no hay criterio WCAG que anclar y el score no se toca
+    overlays, _seen = [], set()
+    for _src in p._script_srcs:
+        _low = _src.lower()
+        for _vendor, _pats in _OVERLAY_WIDGETS:
+            if _vendor not in _seen and any(_p in _low for _p in _pats):
+                _seen.add(_vendor)
+                overlays.append({'vendor': _vendor, 'evidence': _src[:180]})
+    if overlays:
+        res['overlay_widgets'] = overlays
+        res['overlay_widgets_note'] = _t(lang, 'overlay_widgets_note')
+    return res
 
 
 # ── redirect policy hook ───────────────────────────────────────────────────
