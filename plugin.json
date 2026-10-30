@@ -1,0 +1,23 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "a11y-toolkit",
+  "version": "5.20.0",
+  "description": "WCAG 2.2 accessibility for agents: 34 MCP tools + CLI. Audits, contrast fixing, SHA-256-sealed evidence packs, SARIF, EARL/ACT, and a CI ratchet where only NEW findings block.",
+  "author": {
+    "name": "Jesús Quintana",
+    "url": "https://jquin.net"
+  },
+  "homepage": "https://a11y.es",
+  "repository": "https://github.com/kinti/a11y-toolkit",
+  "license": "MIT",
+  "keywords": [
+    "accessibility",
+    "wcag22",
+    "a11y",
+    "mcp",
+    "contrast",
+    "eaa",
+    "sarif",
+    "evidence"
+  ]
+}

@@ -125,7 +125,9 @@ Full reference — descriptions, arguments, return shapes and behavior — in [d
 
 Works with **any MCP-capable client** — Claude Code/Desktop, Cursor, Windsurf, VS Code,
 Codex CLI, OpenCode, ZCode, Zed, Cline, Continue, Kimi Code… See
-[docs/clients.md](docs/clients.md) for every verified config format.
+[docs/clients.md](docs/clients.md) for every verified config format. Composing it
+with the popular servers (Playwright, GitHub, Filesystem, Fetch…) —
+[docs/interop.md](docs/interop.md).
 
 ```bash
 claude mcp add a11y-toolkit -- uvx --from a11y-toolkit a11y-toolkit-mcp
@@ -154,7 +156,7 @@ Everything else works with zero dependencies.
 
 ```bash
 git clone https://github.com/kinti/a11y-toolkit && cd a11y-toolkit
-./skill/install-skill.sh     # → ~/.zcode/skills and ~/.claude/skills
+./skills/install-skill.sh     # → ~/.zcode/skills and ~/.claude/skills
 ```
 
 ## Agent hook — `a11ytoolkit init`
@@ -275,7 +277,7 @@ third of all WCAG once AAA and the genuinely-human checks are counted) **— the
 rest needs a human**.
 The `audit-page` prompt and the skill have the agent check what it can (keyboard,
 focus, zoom, announced errors) using [the manual
-checklist](skill/a11y-toolkit/references/wcag22-manual-checklist.md). A filter, not
+checklist](skills/a11y-toolkit/references/wcag22-manual-checklist.md). A filter, not
 a verdict. The remaining human work is priced per criterion — MIN 23 (read and
 confirm), MED 19 (verify in the browser), MAX 13 (real interaction and judgment);
 [full table](docs/effort-class-table.md). And the evidence pack is the handoff object

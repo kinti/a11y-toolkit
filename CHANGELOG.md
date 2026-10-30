@@ -1,5 +1,16 @@
 # Changelog
 
+## 5.21.0 — pendiente — "an agent plugin, properly"
+
+- **Agent Plugins 1.0.0 compliance** (the Cursor/open-plugins standard,
+  backed by Cursor/Microsoft/OpenAI/Amazon/Vercel): `plugin.json` manifest +
+  `mcp.json` (stdio, uvx launch — the same official registry command) at the
+  repo root, and `skill/` renamed to `skills/` so `skills/*/SKILL.md` is
+  discoverable as a plugin component. `versionar.py` now bumps plugin.json
+  with every release so the manifest never drifts. Cursor (and any
+  Agent-Plugins-compatible client) can now install the whole toolkit —
+  34 tools + the skill — as a one-click plugin.
+
 ## 5.20.0 — pendiente — "verify it yourself"
 
 - **`scripts/verify_pack.py` — the independent evidence-pack verifier.**

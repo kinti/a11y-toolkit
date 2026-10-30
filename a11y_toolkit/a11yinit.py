@@ -101,7 +101,7 @@ def main(argv):
     print('\nMCP config (any MCP client that accepts stdio servers):')
     print(json.dumps(MCP_CONFIG, indent=2))
     print('\nOptional — the agent skill (audit→fix→document→watch loop):')
-    print('  curl -fsSL https://raw.githubusercontent.com/kinti/a11y-toolkit/main/skill/install-skill.sh | bash')
+    print('  curl -fsSL https://raw.githubusercontent.com/kinti/a11y-toolkit/main/skills/install-skill.sh | bash')
     return 0
 
 

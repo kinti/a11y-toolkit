@@ -57,6 +57,14 @@ def main():
     json.dump(d, open(sj, 'w'), indent=2, ensure_ascii=False)
     open(sj, 'a').write('\n')
     print('  ✓ server.json: versión y paquete')
+    # plugin.json (estándar Agent Plugins) viaja versionado con el resto
+    pj = os.path.join(AQUI, 'plugin.json')
+    if os.path.exists(pj):
+        d = json.load(open(pj))
+        d['version'] = nueva
+        json.dump(d, open(pj, 'w'), indent=2, ensure_ascii=False)
+        open(pj, 'a').write('\n')
+        print('  ✓ plugin.json: versión (Agent Plugins)')
     # test_mcp derives its version assertion from server.VERSION: nothing to bump there.
 
     print('— suites rápidas:')
