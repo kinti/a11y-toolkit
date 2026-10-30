@@ -64,6 +64,16 @@ def main():
 
     print('== 2. Agregado por criterio (el peor estado gana, honesto)')
     p_falla, p_limpia = _pack('falla'), _pack('limpia')
+    # pack MANUAL con la fila del criterio duplicada (revisión 30-oct): la
+    # prevalencia cuenta SAMPLES, no filas — y jamás k>n bajo la raíz de Wilson
+    p_dupe = json.loads(json.dumps(p_falla))
+    p_dupe['criteria'].append(dict(p_dupe['criteria'][0]))
+    informe_d = a11ywcagem.aggregate(PLAN, [p_dupe, p_limpia])
+    fila_d = next(c for c in informe_d['criteria']
+                  if c['criterion'].startswith('1.1.1'))
+    check('fila duplicada en un pack cuenta UNA sample (prevalencia 0.5)',
+          fila_d['samples_failing'] == 1 and fila_d['prevalence'] == 0.5,
+          str(fila_d))
     informe = a11ywcagem.aggregate(PLAN, [p_falla, p_limpia])
     estados = {c['criterion'].split(' ')[0]: c['status'] for c in informe['criteria']}
     check('1.1.1 falla en una muestra → fail en el agregado',
@@ -95,6 +105,43 @@ def main():
         check('exit 0 y informe escrito', r.returncode == 0 and inf, r.stderr[-200:])
         check('el CLI imprime el sello raíz', informe['sha256'][:12] in r.stdout
               or inf.get('sha256', '').startswith(informe['sha256'][:8]))
+
+    print('== 5. Capa estadística (a11ydistrib): prevalencia + intervalos, /2')
+    informe2 = a11ywcagem.aggregate(PLAN, [p_falla, p_limpia], lang='es')
+    check('formato sube a /2 con la capa estadística',
+          informe2['format'] == 'a11y-wcagem-report/2')
+    fila_111 = next(c for c in informe2['criteria']
+                    if c['criterion'].startswith('1.1.1'))
+    check('prevalencia observada 1/2 en el criterio que falló',
+          fila_111['prevalence'] == 0.5, str(fila_111.get('prevalence')))
+    ci = fila_111['prevalence_ci95_wilson']
+    check('Wilson acota la prevalencia dentro de [0,1] y la contiene',
+          isinstance(ci, list) and ci[0] <= 0.5 <= ci[1] and ci[0] >= 0)
+    inf = informe2['inference']
+    check('bloque inference: 2 páginas, envolvente lo≤hi',
+          inf['sample_pages'] == 2 and inf['ci95_mean_envelope'][0]
+          <= inf['ci95_mean_envelope'][1])
+    check('bandas de minutos como rango (jamás un punto oculto)',
+          isinstance(inf['observed_total_minutes'], list)
+          and len(inf['observed_total_minutes']) == 2)
+    check('sin estimated_pages no hay proyección inventada',
+          'projection' not in inf)
+    check('nota es en español', 'Estadística' in inf['note'])
+    check('el sello raíz CUBRE la capa estadística',
+          a11ywcagem.verify_report(informe2)[0] is True)
+    roto2 = json.loads(json.dumps(informe2))
+    roto2['inference']['ci95_mean_envelope'] = [0.0, 0.0]
+    check('mutar la inferencia rompe el sello',
+          a11ywcagem.verify_report(roto2)[0] is False)
+    plan_n = {**PLAN, 'estimated_pages': 50}
+    proy = a11ywcagem.aggregate(plan_n, [p_falla, p_limpia])
+    check('estimated_pages=50 → proyección declarada (figura del evaluador)',
+          proy['inference']['projection']['pages'] == 50
+          and 'evaluator figure' in proy['inference']['projection']['declared_by'])
+    ok_ep, _ = a11ywcagem.validate_plan({**PLAN, 'estimated_pages': 1})
+    check('estimated_pages < len(sample) se rechaza', not ok_ep)
+    ok_ep2, _ = a11ywcagem.validate_plan({**PLAN, 'estimated_pages': 2})
+    check('estimated_pages = len(sample) es válido', ok_ep2)
 
     print(f"\n{'ALL OK' if not FAILS else 'FAILURES: ' + ', '.join(FAILS)}")
     return 1 if FAILS else 0

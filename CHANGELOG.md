@@ -1,5 +1,56 @@
 # Changelog
 
+## 5.25.0 — pendiente — "the ecosystem corpus + honest intervals"
+
+- **Supply-chain hardening (Socket PyPI review, 84)**: the five scanner
+  findings audited against the actual 5.24.0 sdist — one was real and is
+  GONE: the CLDR plural rule was `eval()`'d (`a11yi18n.plural_category`),
+  which made a community-editable locale pack (or a third-party
+  `use_overlay()` pack) a code-execution vector. It is now parsed by an
+  AST whitelist (`eval_plural_rule`: comparisons, and/or/not, % + - *,
+  int/float, `n` — anything else raises, never executes; 11 hostile
+  payloads pinned as rejected in test_locales, plus a repo-wide no-eval
+  pin). The other four findings are declared capabilities, not defects:
+  `SECURITY.md` (new, ships in the sdist via MANIFEST.in) documents
+  filesystem/network/subprocess/env usage with the exact why — subprocess
+  is list-argv only (`git` under `--changed`, macOS `sips` fallback), the
+  runtime engine reads zero environment variables, and every w3.org URL
+  is a static documentation link in the knowledge catalog.
+- **`a11ycorpus.py` + `corpus/` v2026.10.0 — the versioned audit corpus
+  (VK-LSVD translation)**: the sealed mutant exam frozen as a DATASET
+  RELEASE. 18 mutants (one per operator, 13 criteria) + 3 placebo
+  controls, byte-frozen pages + `cases.jsonl` with the sealed ground
+  truth + `MANIFEST.json` sealing every file hash (a11y-corpus/1) +
+  `results/reference.json` — this engine's own baseline published WITH
+  the dataset (kill 1.0, 0 false positives, 3 additional findings
+  honestly reported-not-scored). The evaluation contract is
+  ENGINE-NEUTRAL: one JSON line per case with WCAG criterion codes, so
+  axe, Lighthouse, IBM or any evaluator can be scored by the same
+  harness (`corpus evaluate` → kill rate, placebo false positives,
+  per-criterion confusion; JSONL or a JSON array, both accepted). A
+  published version is never edited (D22): changes ship as a new
+  version + changelog entry, every hash sealed. CLI `a11ytoolkit corpus
+  build|verify|evaluate|reference`. The recipe is VK-LSVD's: dataset +
+  baselines + neutral contract = ecosystem gravity.
+- **`a11ydistrib.py` — the statistics layer of WCAG-EM aggregation (HEGM
+  translation)**: WCAG-EM reports stop publishing naked point estimates.
+  Every criterion row in `a11ywcagem` now carries its sample prevalence
+  with a Wilson score interval (what a random unaudited page may hold);
+  the report gains an `inference` block — per-page human effort modeled
+  as a zero-inflated mixture (declared point mass at zero + exponential
+  tail + gaussian body, pure-Python EM with declared init) plus a seeded
+  percentile bootstrap over BOTH minute bands (minutes are a range per
+  criterion everywhere; the interval is the declared OUTER ENVELOPE,
+  never a point that hides the range), and a site projection when the
+  plan declares `estimated_pages`. HEGM's own failure catalog is
+  imported as fit validations: dead component, collapsed variance,
+  single distinct value — a fit that trips one NEVER publishes an
+  interval; the rejection and the bootstrap fallback are declared in the
+  output (D21). On small samples the mixture honestly refuses more often
+  than it fits; that is the finding, not an embarrassment. Format bumped
+  to a11y-wcagem-report/2 (seal unchanged, covers the new block).
+  Statistics over the sample, never conformance.
+
 ## 5.24.0 — pendiente — "one audit per template (twin-page fingerprints)"
 
 - **`a11yfingerprints.py` + CLI `fingerprints`** — multi-hash template

@@ -27,6 +27,8 @@ import guards. Output es/en; wire keys English (`a11y-evidence-pack/2`).
 | `a11yplan.py` | Remediation plan: findings → ordered fix route (batches by shared cause, declared phases infrastructure → design-system → instances → redesign-zone, minute ranges from declared assumptions or pack effort pricing, root-sealed; deterministic heuristic, the human reorders) — CLI, not a tool. |
 | `a11ywcagem.py` | WCAG-EM 2.0 mode: validated evaluation plan (scope/target/baseline/sample) + one sealed pack per sample → aggregated report, worst-status-wins per criterion, root sha256 over the pack seals, the standard's step trace; no conformance claims, random selection stays with the evaluator — CLI, not a tool. |
 | `a11yfingerprints.py` | Multi-hash template fingerprints (twin-page detection): three independent views per region (structure / classes / attributes, text always excluded, id-referencing volatile attrs excluded by design), template = the structure view, localized divergence {page, region, view} against the representative, one-representative-per-template sample suggestion (WCAG-EM Step 3 helper) — deterministic hashlib-only, CLI + suite, not a tool. |
+| `a11ydistrib.py` | Statistics layer for WCAG-EM aggregation (HEGM translation): Wilson intervals for per-criterion prevalence, zero-inflated mixture (δ0 + Exp + Gauss over the positives) fitted by deterministic EM with declared init, HEGM's failure catalog imported as fit validations (dead component / collapsed variance / single distinct value — a broken fit never publishes an interval, the rejection is declared), seeded percentile bootstrap over the lo/hi minute bands publishing the outer envelope — statistics over the sample, never conformance. |
+| `a11ycorpus.py` | Versioned audit corpus (VK-LSVD translation): freezes a mutant-bank exam as a dataset release — pages + cases.jsonl (sealed ground truth keyed by WCAG criterion, engine-neutral) + hash-sealed MANIFEST + published reference baseline from this engine; `evaluate` scores any third-party submission (kill rate, placebo false positives, per-criterion confusion); a published version is never edited (D12 applied to data). CLI-only infrastructure, not a tool. |
 | `a11yopenacr.py` | OpenACR (GSA) generator: pack → machine-readable ACR YAML (fixed-schema emitter, JSON escaping = valid YAML, no dependency), same honesty rule as the VPAT; hyphenated adherence levels in the YAML. |
 | `a11yi18n.py` | Locale-pack loader: community `locales/<lang>.json` catalogs, English fallback, CLDR plurals, product overlays. |
 | `a11yinit.py` | `a11ytoolkit init` — installs the AGENTS.md agent hook in user projects. |
@@ -149,6 +151,28 @@ change (see 4.0.1); internal dev docs don't.
   footer identical"), and the audit budget collapses to one representative
   per template (WCAG-EM Step 3). Cross-industry translation: multi-hash
   identification from industrial recommender systems.
+
+- **D21 — A broken fit never publishes an interval (distribution over
+  mean, validated)**: the mean lies in silence on zero-inflated,
+  long-tailed per-page numbers (most pages clean, a few catastrophic —
+  HEGM's exact territory, ICDM 2026). `a11ydistrib.py` models the full
+  distribution, but its EM mixture can fail exactly the way HEGM's own
+  catalog documents (dead component, collapsed variance, single distinct
+  value). Those failures are IMPORTED as validations, not patched away:
+  a fit that trips one is declared in the output with its reasons and
+  the interval falls back to the seeded bootstrap. Hiding a bad fit
+  behind a floor or a re-roll would be the statistical version of
+  claiming conformance.
+
+- **D22 — Frozen beats regenerated (a published corpus version is never
+  edited)**: the mutant generator evolves with the engine; a benchmark
+  that silently changed underneath a published score is broken. The
+  corpus ships pages as files, seals every hash in a versioned MANIFEST
+  (same tamper-evidence DNA as the evidence pack), and changes ship as a
+  NEW version with a changelog entry — D12 applied to data, not code.
+  The evaluation contract is engine-neutral (WCAG criterion codes, not
+  our signal names): anybody's evaluator can be scored, ours included,
+  by the same harness (`results/reference.json` ships WITH the dataset).
 
 ## Trap catalogue (each class cost a bug — recognize the class)
 

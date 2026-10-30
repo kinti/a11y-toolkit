@@ -29,6 +29,7 @@
   a11ytoolkit route --goal "gate my PR"                     # which tools for the task
   a11ytoolkit route --file page.html                        # diagnosis: read the page, order the exams
   a11ytoolkit mutants --seed 7 --n 12                       # the engine's sealed self-exam
+  a11ytoolkit corpus build && a11ytoolkit corpus verify     # versioned audit corpus (dataset + baselines)
   a11ytoolkit fingerprints page1.html page2.html --dir p/  # twin-page detection (one audit per template)
 """
 
@@ -48,6 +49,7 @@ from . import a11ycrit
 from . import a11ydiff
 from . import a11ysarif
 from . import a11ywcagem
+from . import a11ycorpus
 from . import a11yplan
 from . import contrast
 from . import a11ystatement
@@ -73,6 +75,7 @@ SUBCOMMANDS = {
     'criterion': (a11ycrit, None),
     'sarif': (a11ysarif, None),
     'wcagem': (a11ywcagem, None),
+    'corpus': (a11ycorpus, None),
     'plan': (a11yplan, None),
     'fix': (a11yfix, None),
     'kbd': (a11ydom, 'kbd_main'),

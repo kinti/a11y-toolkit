@@ -1,0 +1,64 @@
+{
+ "contract": {
+  "scoring": "kill = expected criterion flagged on a mutant; any flag on a placebo = false positive by construction",
+  "submission": "JSONL {case_id, criteria_found: [WCAG codes]}"
+ },
+ "counts": {
+  "cases": 21,
+  "criteria_covered": [
+   "1.1.1",
+   "1.2.2",
+   "1.3.1",
+   "1.3.5",
+   "1.4.4",
+   "2.1.1",
+   "2.2.1",
+   "2.4.2",
+   "2.4.3",
+   "3.1.1",
+   "3.2.5",
+   "3.3.2",
+   "4.1.2"
+  ],
+  "mutants": 18,
+  "placebos": 3
+ },
+ "date": "2026-10-30",
+ "files": {
+  "CHANGELOG.md": "dec2ab2e5b813682f28c4a56af77379a27967b985bee550f35e2378c84be5a73",
+  "cases.jsonl": "e61fce09842809a6cd4ceb78c8564bca48fa0f658bdee6e807d8d6e4e97f6514",
+  "pages/m7-0.html": "d82ac0500bf4806f20087224cda796d90116f238d5e40b33899bdfe9deff6187",
+  "pages/m7-1.html": "8be4474d8392ec70d611a04b06a5c4f1eb1467c48c2609003d2de920980b05f1",
+  "pages/m7-10.html": "37d6344d30a93565590e1841ddcff3db363a68e938c91756be999cd176975945",
+  "pages/m7-11.html": "f3c499d76acd99417e3b2400a04b3e1c54f1320b74af824412dae6fe4716556f",
+  "pages/m7-12.html": "d8fc1924c809f3ba87e38e2e83684f3a0d9678a3323c94ca160d761dd1cffd48",
+  "pages/m7-13.html": "1cb8c4661ae2dfd64d45e4688c07c1a5c9f438b7055e7ff3263f3c6a2a824506",
+  "pages/m7-14.html": "3b1cf54a44a3cc5a3cc94a7caacd819ae774d753780ebb20c42abeb58ab5abf6",
+  "pages/m7-15.html": "153969b9546605ba8cf0b758ffcb9a00763c37827304ca9a775d52378f708844",
+  "pages/m7-16.html": "db025ad3be0e2ebaa7ae5423ceb316aac8f3377c5a6fdcdf1e53c0ab8e9b67fb",
+  "pages/m7-17.html": "ea5a158dc925a4470d9aacb35600d0f0f86d9c77ca3571b38ad55c68821f5349",
+  "pages/m7-2.html": "23a1ee33bfd773d78a6c7e264f8611132ebba66fde12fb9b7c1a08fecde74883",
+  "pages/m7-3.html": "eb5b9473332c8dcb3497c4f9514be8551cefced5499036d1b3d77d73cf9115e2",
+  "pages/m7-4.html": "ab9096f872d30bda6a833ffb62e77d7c845acb16485e24b53f29fc73eb1fda29",
+  "pages/m7-5.html": "43ddd52ebcf249831fc3c0088d340b210d04a4921143e262d40c244ef220f522",
+  "pages/m7-6.html": "0bc55a60b805a9a1dc7843c207fc4492f2c801a644884ec6fbf2320f0459e7bd",
+  "pages/m7-7.html": "71cc604d48f0611f639aeb04011f67a226ee44fdbb5d39e3dd936c19b6eb817c",
+  "pages/m7-8.html": "81c331f5d2c150cc30ad6d8f055e4727f6c83d34f4e45945ef62b727b812119c",
+  "pages/m7-9.html": "cd2b09e89a5c55212e1a3fba5c7c2e7744e5d3a24474b2dcac079fa752fe4ee4",
+  "pages/p7-0.html": "13d5ebe00d7b321141837685d0bd07ba49504cfb2c1c5111d47633971db5eff9",
+  "pages/p7-1.html": "8457165a5bedcbb731f53ce81989a4117aeb3113ed7d872de3f16002b291dc47",
+  "pages/p7-2.html": "bb6c81abb0c0aafec40611a925fc589b3a642652a089e91c977bb664c4c8473d",
+  "results/reference.json": "3bd47eaedc1e202f9b438e1b357443c76ec958a5f250b30ffeb10460775c7add"
+ },
+ "format": "a11y-corpus/1",
+ "generator": {
+  "n_per_seed": 18,
+  "seeds": [
+   7
+  ],
+  "source": "a11ymutants (sealed exam)"
+ },
+ "license_note": "pages are engine-generated fixtures (MIT, same as the toolkit); no third-party crawl ships here",
+ "sha256": "d21e4dbe65c3fe7f96d7fbe0bc549665217c7bde18cb8fff30decdc15050cc7a",
+ "version": "2026.10.0"
+}

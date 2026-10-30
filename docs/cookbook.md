@@ -194,3 +194,24 @@ you if a "twin" quietly drifted (`{page, region, view}`: header diverges in
 classes while the footer stays identical). Same skeleton does not guarantee
 identical findings after rendering: the suggestion feeds the WCAG-EM plan,
 the evaluator still owns the sample.
+
+## 14. Score ANY engine against the frozen corpus
+
+You want to know how another evaluator (a competitor's, a new LLM agent's,
+your own fork) behaves on KNOWN ground truth — not on pages where nobody
+knows the answer. The corpus is the sealed exam frozen as a dataset: pages
+with one injected violation each, placebo controls where any finding is a
+false positive by construction.
+
+```bash
+uvx --from a11y-toolkit a11ytoolkit corpus verify corpus   # every hash + the seal
+# run YOUR evaluator on corpus/pages/*.html, then one JSON line per case:
+# {"case_id": "m7-0", "criteria_found": ["1.1.1"]}
+uvx --from a11y-toolkit a11ytoolkit corpus evaluate --submission mine.jsonl corpus
+```
+
+The reference baseline ships with the dataset (`results/reference.json`:
+this engine, kill 1.0, zero false positives). A submission that flags
+nothing scores exactly 0.0 — and one that invents criteria on the placebo
+pages is exposed by construction. The contract is criterion codes, not
+tool rule ids: axe, Lighthouse or a human with a checklist can all play.

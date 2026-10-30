@@ -1,0 +1,6 @@
+include LICENSE
+include SECURITY.md
+include CHANGELOG.md
+recursive-include a11y_toolkit/locales *.json
+include a11y_toolkit/arialive.js
+recursive-include tests *.py *.gz

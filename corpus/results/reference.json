@@ -1,0 +1,94 @@
+{
+ "additional_findings_on_mutants": {
+  "count": 3,
+  "note": "reported, not scored: only placebo flags are false positives by construction",
+  "sample": [
+   {
+    "additional_criteria": [
+     "1.2.3"
+    ],
+    "case_id": "m7-0"
+   },
+   {
+    "additional_criteria": [
+     "4.1.3"
+    ],
+    "case_id": "m7-11"
+   },
+   {
+    "additional_criteria": [
+     "4.1.3"
+    ],
+    "case_id": "m7-16"
+   }
+  ]
+ },
+ "cases_without_submission": [],
+ "control_pages": 3,
+ "engine": {
+  "name": "a11y-toolkit",
+  "version": "5.24.0"
+ },
+ "false_positives": [],
+ "format": "a11y-corpus-evaluation/1",
+ "kill_rate": 1.0,
+ "killed": 18,
+ "missed_detail": [],
+ "mutants": 18,
+ "per_criterion": {
+  "1.1.1": {
+   "expected": 1,
+   "killed": 1
+  },
+  "1.2.2": {
+   "expected": 1,
+   "killed": 1
+  },
+  "1.3.1": {
+   "expected": 2,
+   "killed": 2
+  },
+  "1.3.5": {
+   "expected": 1,
+   "killed": 1
+  },
+  "1.4.4": {
+   "expected": 1,
+   "killed": 1
+  },
+  "2.1.1": {
+   "expected": 1,
+   "killed": 1
+  },
+  "2.2.1": {
+   "expected": 1,
+   "killed": 1
+  },
+  "2.4.2": {
+   "expected": 1,
+   "killed": 1
+  },
+  "2.4.3": {
+   "expected": 1,
+   "killed": 1
+  },
+  "3.1.1": {
+   "expected": 2,
+   "killed": 2
+  },
+  "3.2.5": {
+   "expected": 1,
+   "killed": 1
+  },
+  "3.3.2": {
+   "expected": 1,
+   "killed": 1
+  },
+  "4.1.2": {
+   "expected": 4,
+   "killed": 4
+  }
+ },
+ "submission_name": "a11y-toolkit reference",
+ "unknown_case_ids": []
+}

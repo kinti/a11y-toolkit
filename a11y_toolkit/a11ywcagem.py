@@ -9,6 +9,12 @@ sampled and reported. This module does the machine half honestly:
   report     → per-criterion rollup ACROSS the sample (Step 5), sealed with
                a root hash over the pack seals
 
+Since a11y-wcagem-report/2 the rollup carries its STATISTICS layer
+(a11ydistrib, the HEGM translation): per-criterion failure prevalence with a
+Wilson interval (what a random unaudited page may hold), and per-page human
+effort as a zero-inflated mixture + seeded bootstrap — intervals over the
+sample, never claims about the site.
+
 What it deliberately does NOT do: claim conformance. The report carries
 evidence-status per criterion (the worst across the sample wins), the
 priced human work that remains, and the standard's step trace. Random
@@ -23,6 +29,8 @@ import argparse
 import hashlib
 import json
 import sys
+
+from .a11ydistrib import effort_inference, wilson_interval
 
 # El worst peor gana al agregar samples; never-flagged en TODAS no es pass
 # (es "ninguna señal saltó en esta sample"), exactamente como el pack.
@@ -75,15 +83,28 @@ def validate_plan(plan):
                            f"{'/'.join(_TYPES)} (WCAG-EM 3.1-3.3)")
         if not m.get('url') and not m.get('file'):
             return False, f"sample {m['id']}: url o file requeridos"
+    if plan.get('estimated_pages') is not None:
+        ep = plan['estimated_pages']
+        # la proyección es una FIGURA del evaluador, no una medición — pero
+        # proyectar sobre menos páginas que la muestra propia es sin sentido
+        if not isinstance(ep, int) or isinstance(ep, bool) or ep < len(sample):
+            return False, (f'estimated_pages debe ser entero ≥ len(sample) '
+                           f'({len(sample)}) para proyectar el esfuerzo')
     return True, ''
 
 
-def aggregate(plan, packs):
+def aggregate(plan, packs, lang='en', inference_seed=7):
     """Plan válido + packs sellados → report agregado con sello raíz.
 
     Regla de agregado por criterio: el PEOR worst de todas las samples
     (un fallo en cualquier página muestreada es un fallo del report).
     agent-verified no borra un fail (misma honestidad que el pack).
+
+    Desde /2: cada criterio lleva su prevalencia en la muestra con intervalo
+    Wilson (qué puede contener una página NO muestreada), y el reporte lleva
+    el bloque `inference` del esfuerzo (a11ydistrib, traducción HEGM:
+    mezcla cero-inflada + bootstrap sembrado sobre las bandas lo/hi de
+    minutos). Estadística sobre la muestra, jamás conformidad.
     """
     ok, err = validate_plan(plan)
     if not ok:
@@ -93,10 +114,15 @@ def aggregate(plan, packs):
 
     codes, names, effort = set(), {}, {'MIN': 0, 'MED': 0, 'MAX': 0}
     worst = {}       # code → peor worst
-    fail_counts = {}        # code → cuántas samples fallaron
+    fail_counts = {}        # code → cuántas SAMPLES fallaron (no filas)
     for pack in packs:
+        seen = set()   # un criterio aparece UNA vez por pack; duplicados de un
+        # pack manual no deben inflar prevalencia ni esfuerzo (cuentan 1 sample)
         for c in pack.get('criteria', []):
             code = c['criterion'].split(' ')[0]
+            if code in seen:
+                continue
+            seen.add(code)
             codes.add(code)
             names[code] = c['criterion']
             st = c['status']
@@ -110,16 +136,41 @@ def aggregate(plan, packs):
 
     criteria = []
     for code in sorted(codes, key=lambda x: tuple(int(n) for n in x.split('.'))):
+        k = fail_counts.get(code, 0)
         row = {'criterion': names[code], 'status': worst[code],
-               'samples_failing': fail_counts.get(code, 0),
+               'samples_failing': k,
                'total_samples': len(packs)}
+        # estadística de la muestra: prevalencia observada + banda Wilson
+        row['prevalence'] = round(k / len(packs), 4) if packs else 0.0
+        row['prevalence_ci95_wilson'] = wilson_interval(k, len(packs))
         if worst[code] == 'not-flagged':
             row['note'] = ('no signal fired on ANY sampled page — explicitly '
                            'NOT pass; the human still owns this criterion')
         criteria.append(row)
 
+    # esfuerzo por página: ambas bandas del rango de minutos por criterio
+    # (el agente-verificado ya está pagado, no cuenta — misma regla arriba);
+    # un pack manual puede traer la fila duplicada o el rango invertido: se
+    # deduplica por código y el rango se normaliza (min/max es idempotente)
+    lo_pages, hi_pages = [], []
+    for pack in packs:
+        seen, lo, hi = set(), 0, 0
+        for c in pack.get('criteria', []):
+            if c.get('status') == 'agent-verified':
+                continue
+            code = c['criterion'].split(' ')[0]
+            if code in seen:
+                continue
+            seen.add(code)
+            mins = c.get('effort', {}).get('minutes')
+            if isinstance(mins, (list, tuple)) and len(mins) == 2:
+                lo += min(mins)
+                hi += max(mins)
+        lo_pages.append(lo)
+        hi_pages.append(hi)
+
     report = {
-        'format': 'a11y-wcagem-report/1',
+        'format': 'a11y-wcagem-report/2',
         'method': 'WCAG-EM 2.0 (W3C Group Note, 2026-07-23)',
         'product': plan['product'],
         'conformance_target': plan['conformance_target'],
@@ -132,6 +183,9 @@ def aggregate(plan, packs):
         'summary': {s: sum(1 for c in criteria if c['status'] == s)
                     for s in _RANK},
         'effort_pending': effort,
+        'inference': effort_inference(
+            lo_pages, hi_pages, seed=inference_seed,
+            projected_pages=plan.get('estimated_pages'), lang=lang),
         'packs': [{'sample': m['id'], 'type': m['type'],
                    'sha256': p['sha256'], 'format': p.get('format')}
                   for m, p in zip(plan['sample'], packs)],
@@ -156,20 +210,26 @@ def main(argv):
     ap.add_argument('--plan', required=True, help='evaluation plan JSON (scope + sample set)')
     ap.add_argument('--packs', nargs='+', required=True,
                     help='evidence pack JSON per sample, in plan.sample order')
+    ap.add_argument('--lang', default='en', choices=['en', 'es'],
+                    help='inference note language (report data stays English)')
     ap.add_argument('-o', '--out', default='wcagem-report.json')
     a = ap.parse_args(argv)
     plan = json.load(open(a.plan, encoding='utf-8'))
     packs = [json.load(open(p, encoding='utf-8')) for p in a.packs]
     try:
-        report = aggregate(plan, packs)
+        report = aggregate(plan, packs, lang=a.lang)
     except ValueError as e:
         print(json.dumps({'error': str(e)}))
         return 2
     with open(a.out, 'w', encoding='utf-8') as f:
         json.dump(report, f, ensure_ascii=False, indent=1)
+    inf = report['inference']
     print(json.dumps({'report': a.out, 'sha256': report['sha256'],
                       'criteria': len(report['criteria']),
-                      'summary': report['summary']}, ensure_ascii=False))
+                      'summary': report['summary'],
+                      'effort_ci95_envelope_per_page': inf['ci95_mean_envelope'],
+                      'projection': inf.get('projection')},
+                     ensure_ascii=False))
     return 0
 
 

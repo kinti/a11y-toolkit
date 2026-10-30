@@ -18,6 +18,7 @@ Design (documented in docs/i18n.md):
   Brand voice without forking the engine.
 """
 
+import ast
 import json
 import os
 import re
@@ -79,11 +80,70 @@ def pair(namespace):
     return {lang: pack(lang).get(namespace, {}) for lang in ('es', 'en')}
 
 
+# ── reglas plurales CLDR SIN eval ───────────────────────────────────────────
+# Un locale pack es DATO (community-editable por diseño, y use_overlay() puede
+# capar encima un pack de un tercero): dato jamás se convierte en código. La
+# gramática CLDR es comparaciones y módulos sobre n — se evalúa con un AST de
+# lista blanca; cualquier constructo fuera de esa gramática levanta ValueError.
+_CLDR_COMPARE = {ast.Eq: lambda a, b: a == b, ast.NotEq: lambda a, b: a != b,
+                 ast.Lt: lambda a, b: a < b, ast.LtE: lambda a, b: a <= b,
+                 ast.Gt: lambda a, b: a > b, ast.GtE: lambda a, b: a >= b}
+_CLDR_BINOP = {ast.Mod: lambda a, b: a % b, ast.Add: lambda a, b: a + b,
+               ast.Sub: lambda a, b: a - b, ast.Mult: lambda a, b: a * b}
+
+
+def eval_plural_rule(rule, n):
+    """Evalúa 'n != 1', 'n % 10 == 1 and n % 100 != 11'… SIN eval dinámico.
+
+    Lista blanca AST: BoolOp(And/Or), Not, Compare (== != < <= > >=),
+    BinOp (% + - *), enteros/flotantes y el nombre `n`. TODO lo demás
+    (llamadas, atributos, subíndices, imports…) → ValueError."""
+    if not isinstance(rule, str) or not rule or len(rule) > 120:
+        raise ValueError('plural rule must be a short non-empty string')
+    tree = ast.parse(rule, mode='eval')
+
+    def ev(node):
+        if isinstance(node, ast.Expression):
+            return ev(node.body)
+        if isinstance(node, ast.BoolOp) and isinstance(node.op, (ast.And, ast.Or)):
+            vals = (ev(v) for v in node.values)
+            return all(vals) if isinstance(node.op, ast.And) else any(vals)
+        if isinstance(node, ast.UnaryOp) and isinstance(node.op, ast.Not):
+            return not ev(node.operand)
+        if isinstance(node, ast.Compare):
+            left = ev(node.left)
+            for op, comp in zip(node.ops, node.comparators):
+                fn = _CLDR_COMPARE.get(type(op))
+                if fn is None:
+                    raise ValueError('operator not in the CLDR subset')
+                right = ev(comp)
+                if not fn(left, right):
+                    return False
+                left = right          # encadenadas: a < b < c
+            return True
+        if isinstance(node, ast.BinOp) and type(node.op) in _CLDR_BINOP:
+            return _CLDR_BINOP[type(node.op)](ev(node.left), ev(node.right))
+        if (isinstance(node, ast.Constant)
+                and isinstance(node.value, (int, float))
+                and not isinstance(node.value, bool)):
+            return node.value
+        if isinstance(node, ast.Name) and node.id == 'n':
+            return n
+        raise ValueError('construct not in the CLDR subset: %s'
+                         % type(node).__name__)
+
+    result = ev(tree)
+    if not isinstance(result, bool):
+        raise ValueError('plural rule must be a predicate (a comparison), '
+                         'not a bare value')
+    return result
+
+
 def plural_category(lang, n):
     """'one' or 'other' per the locale's `_meta.plural` CLDR expression."""
     rule = pack(lang).get('_meta', {}).get('plural', 'n != 1')
     try:
-        return 'one' if eval(rule, {'__builtins__': {}}, {'n': n}) else 'other'  # noqa: S307
+        return 'one' if eval_plural_rule(rule, n) else 'other'
     except Exception:
         return 'other'
 
