@@ -1,5 +1,14 @@
 # Changelog
 
+## 5.25.1 — pendiente — "mcpName (registry requirement)"
+
+- **npm/package.json gains `mcpName: io.github.kinti/a11y-toolkit`**: the
+  official MCP registry now validates the npm package during publish and
+  rejects it without the field (400 "missing required 'mcpName' field").
+  JSON-only patch — no engine change; the npm version is immutable, so the
+  field ships as its own patch release (PyPI+npm stay version-aligned via
+  versionar, as always).
+
 ## 5.25.0 — pendiente — "the ecosystem corpus + honest intervals"
 
 - **Supply-chain hardening (Socket PyPI review, 84)**: the five scanner
