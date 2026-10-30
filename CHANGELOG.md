@@ -1,6 +1,14 @@
 # Changelog
 
-## 5.22.2 — pendiente — "the self-contained npm package (this time for real)"
+## 5.22.3 — pendiente — "npm package hygiene"
+
+- npm package metadata catches up with the self-contained reality: the
+  description no longer says "launcher via uv" (the engine ships inside),
+  `bugs` URL added, and **LICENSE now travels in the tarball** (whitelist
+  + workflow). Verified with `npm pack --dry-run` before sealing — the
+  packaging protocol born from the 5.22.1 lesson.
+
+## 5.22.2 — 2026-10-30 — "the self-contained npm package (this time for real)"
 
 - The 5.22.1 tarball shipped WITHOUT the engine: npm's `files` whitelist
   excluded `a11y_toolkit/` even though the workflow bundled it. Now the
