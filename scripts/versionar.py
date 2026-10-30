@@ -16,7 +16,7 @@ import subprocess
 import sys
 
 AQUI = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-RAPIDAS = ['tests/test_contrast.py', 'tests/test_audit.py', 'tests/test_v32.py', 'tests/test_wcag3.py', 'tests/test_route.py', 'tests/test_mutants.py', 'tests/test_verify_pack.py', 'tests/test_solido.py']
+RAPIDAS = ['tests/test_contrast.py', 'tests/test_audit.py', 'tests/test_v32.py', 'tests/test_wcag3.py', 'tests/test_route.py', 'tests/test_mutants.py', 'tests/test_verify_pack.py', 'tests/test_npm_wrapper.py', 'tests/test_solido.py']
 
 
 def bump_fichero(ruta, ancla, nuevo_valor, etiqueta):
@@ -53,10 +53,18 @@ def main():
     d = json.load(open(sj))
     assert d['version'] == actual, f'server.json estaba en {d["version"]}, no en {actual} — revisa a mano'
     d['version'] = nueva
-    d['packages'][0]['version'] = nueva
+    for p in d.get('packages', []):
+        p['version'] = nueva
     json.dump(d, open(sj, 'w'), indent=2, ensure_ascii=False)
     open(sj, 'a').write('\n')
-    print('  ✓ server.json: versión y paquete')
+    print('  ✓ server.json: versión y TODOS los paquetes')
+    npj = os.path.join(AQUI, 'npm', 'package.json')
+    if os.path.exists(npj):
+        d = json.load(open(npj))
+        d['version'] = nueva
+        json.dump(d, open(npj, 'w'), indent=2)
+        open(npj, 'a').write('\n')
+        print('  ✓ npm/package.json: versión (lanzador Node)')
     # plugin.json (estándar Agent Plugins) viaja versionado con el resto
     pj = os.path.join(AQUI, 'plugin.json')
     if os.path.exists(pj):

@@ -1,0 +1,36 @@
+{
+  "name": "@kinti/a11y-toolkit",
+  "version": "5.20.0",
+  "description": "Zero-dependency WCAG 2.2 accessibility engine (34 MCP tools + CLI): audits, contrast fixing, SHA-256-sealed evidence packs, SARIF, EARL/ACT, CI ratchet. Node launcher; the engine itself is Python via uv.",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/kinti/a11y-toolkit.git"
+  },
+  "homepage": "https://a11y.es",
+  "author": "Jes\u00fas Quintana",
+  "bin": {
+    "a11y-toolkit": "./bin/a11y-toolkit.cjs",
+    "a11y-toolkit-mcp": "./bin/a11y-toolkit-mcp.cjs"
+  },
+  "files": [
+    "bin/",
+    "lib/",
+    "README.md"
+  ],
+  "keywords": [
+    "accessibility",
+    "wcag",
+    "wcag22",
+    "a11y",
+    "mcp",
+    "mcp-server",
+    "contrast",
+    "eaa",
+    "sarif",
+    "agent"
+  ],
+  "engines": {
+    "node": ">=16"
+  }
+}

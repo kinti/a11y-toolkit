@@ -125,7 +125,9 @@ Full reference — descriptions, arguments, return shapes and behavior — in [d
 
 Works with **any MCP-capable client** — Claude Code/Desktop, Cursor, Windsurf, VS Code,
 Codex CLI, OpenCode, ZCode, Zed, Cline, Continue, Kimi Code… See
-[docs/clients.md](docs/clients.md) for every verified config format. Composing it
+Node-native? `npx -y @kinti/a11y-toolkit mcp…` — the npm launcher runs the
+same engine via uv ([npm/](npm/)). [docs/clients.md](docs/clients.md) for every
+verified config format. Composing it
 with the popular servers (Playwright, GitHub, Filesystem, Fetch…) —
 [docs/interop.md](docs/interop.md).
 

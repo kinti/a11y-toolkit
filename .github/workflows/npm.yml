@@ -1,0 +1,21 @@
+# Publica el lanzador npm (@kinti/a11y-toolkit) al etiquetar una release.
+# El motor sigue siendo Python/PyPI; esto es SOLO la puerta Node.
+# Requiere el secreto NPM_TOKEN (npmjs.com → Access Tokens → Automation).
+name: publish npm launcher
+on:
+  push:
+    tags: ['v*']
+
+jobs:
+  npm:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          registry-url: 'https://registry.npmjs.org'
+      - name: Publish
+        run: npm publish ./npm --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

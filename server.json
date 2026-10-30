@@ -32,6 +32,29 @@
           "value": "a11y-toolkit-mcp"
         }
       ]
+    },
+    {
+      "registryType": "npm",
+      "registryBaseUrl": "https://registry.npmjs.org",
+      "identifier": "@kinti/a11y-toolkit",
+      "version": "5.20.0",
+      "transport": {
+        "type": "stdio"
+      },
+      "packageArguments": [
+        {
+          "type": "positional",
+          "value": "-y"
+        },
+        {
+          "type": "positional",
+          "value": "@kinti/a11y-toolkit"
+        },
+        {
+          "type": "positional",
+          "value": "a11y-toolkit-mcp"
+        }
+      ]
     }
   ]
 }

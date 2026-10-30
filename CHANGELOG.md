@@ -2,6 +2,13 @@
 
 ## 5.21.0 — pendiente — "an agent plugin, properly"
 
+- **npm launcher: `@kinti/a11y-toolkit`** — a 2KB Node wrapper so the whole
+  npx-first MCP ecosystem gets a working one-liner (`npx -y
+  @kinti/a11y-toolkit a11y-toolkit-mcp`). The engine stays Python/stdlib;
+  the wrapper runs it via uv and, if uv is missing, prints the exact
+  install line for the user's OS. server.json now carries BOTH packages
+  (PyPI + npm); versionar bumps them together; publishes on tag via
+  `.github/workflows/npm.yml` (needs the NPM_TOKEN secret).
 - **Agent Plugins 1.0.0 compliance** (the Cursor/open-plugins standard,
   backed by Cursor/Microsoft/OpenAI/Amazon/Vercel): `plugin.json` manifest +
   `mcp.json` (stdio, uvx launch — the same official registry command) at the
