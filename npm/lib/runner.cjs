@@ -6,9 +6,14 @@
 const { spawn } = require('child_process');
 
 const UVX = process.platform === 'win32' ? 'uvx.exe' : 'uvx';
+// Pin de versión: el launcher SIEMPRE ejecuta la versión del motor con la
+// que se publicó (la de este package.json, que versionar bumbea con cada
+// release). Reproducible y auditable: nada de "descarga la última" en
+// tiempo de ejecución.
+const VERSION = require('../package.json').version;
 
 function run(entry) {
-  const args = ['--from', 'a11y-toolkit', entry, ...process.argv.slice(2)];
+  const args = ['--from', `a11y-toolkit==${VERSION}`, entry, ...process.argv.slice(2)];
   const child = spawn(UVX, args, { stdio: 'inherit' });
   child.on('error', (e) => {
     if (e.code === 'ENOENT') {

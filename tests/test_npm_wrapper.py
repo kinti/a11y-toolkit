@@ -32,7 +32,9 @@ def main():
     runner = open(os.path.join(ROOT, 'npm', 'lib', 'runner.cjs')).read()
     check('CLI llama a a11ytoolkit', "run('a11ytoolkit')" in cli)
     check('MCP llama a a11y-toolkit-mcp', "run('a11y-toolkit-mcp')" in mcp)
-    check('runner usa uvx --from a11y-toolkit', "'--from'" in runner and "'a11y-toolkit'" in runner)
+    check('runner pina la versión (patrón + origen package.json)',
+          'a11y-toolkit==${VERSION}' in runner and "require('../package.json').version" in runner,
+          'el pin debe derivar de package.json en runtime')
     check('runner explica cómo instalar uv (sin ENOENT críptico)',
           'astral.sh/uv' in runner and 'ENOENT' in runner)
     check('passthrough de argumentos', 'process.argv.slice(2)' in runner)

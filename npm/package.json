@@ -8,10 +8,10 @@
     "url": "git+https://github.com/kinti/a11y-toolkit.git"
   },
   "homepage": "https://a11y.es",
-  "author": "Jes\u00fas Quintana",
+  "author": "Jesús Quintana",
   "bin": {
-    "a11y-toolkit": "./bin/a11y-toolkit.cjs",
-    "a11y-toolkit-mcp": "./bin/a11y-toolkit-mcp.cjs"
+    "a11y-toolkit": "bin/a11y-toolkit.cjs",
+    "a11y-toolkit-mcp": "bin/a11y-toolkit-mcp.cjs"
   },
   "files": [
     "bin/",
