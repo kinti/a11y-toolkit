@@ -1,6 +1,6 @@
 {
   "name": "@kinti/a11y-toolkit",
-  "version": "5.23.0",
+  "version": "5.24.0",
   "description": "Zero-dependency WCAG 2.2 accessibility engine (34 MCP tools + CLI): audits, contrast fixing, SHA-256-sealed evidence packs, SARIF, EARL/ACT, CI ratchet. Self-contained: the pure-stdlib Python engine ships inside and runs via python3 \u2014 no downloads, no installs.",
   "license": "MIT",
   "repository": {
