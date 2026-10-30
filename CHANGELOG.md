@@ -1,5 +1,14 @@
 # Changelog
 
+## 5.22.0 — pendiente — "the cookbook"
+
+- **`docs/cookbook.md`** — ten start-to-finish recipes (audit → fix → seal
+  → document → CI → hear → disprove), every command verified against the
+  real CLI (four doc-bugs caught and fixed by that verification: vpat/openacr
+  take `--reports`, disprove takes `--file`, declaration takes `--output`).
+  The last roadmap doc after interop.md: now a newcomer can go from zero to
+  a sealed pack with copy-paste. Linked from the README.
+
 ## 5.21.0 — pendiente — "an agent plugin, properly"
 
 - **npm launcher: `@kinti/a11y-toolkit`** — a 2KB Node wrapper so the whole

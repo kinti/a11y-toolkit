@@ -130,6 +130,8 @@ same engine via uv ([npm/](npm/)). [docs/clients.md](docs/clients.md) for every
 verified config format. Composing it
 with the popular servers (Playwright, GitHub, Filesystem, Fetch…) —
 [docs/interop.md](docs/interop.md).
+Start-to-finish recipes (audit → fix → seal → CI):
+[docs/cookbook.md](docs/cookbook.md).
 
 ```bash
 claude mcp add a11y-toolkit -- uvx --from a11y-toolkit a11y-toolkit-mcp
