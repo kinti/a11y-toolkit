@@ -1,6 +1,24 @@
 # Changelog
 
-## 5.22.3 — pendiente — "npm package hygiene"
+## 5.22.3 — pendiente — "WCAG-EM mode + Cursor rules + VS Code (the three adds)"
+
+- **`a11ywcagem.py` + CLI `wcagem`** — the WCAG-EM 2.0 layer: a validated
+  evaluation plan (scope, conformance target, support baseline, sample set)
+  plus one sealed pack per sample aggregate into a root-sealed report
+  (sha over the pack seals). Worst-status-wins per criterion across the
+  sample, priced human work, the standard's step trace — and zero
+  conformance claims: random selection (3.2) stays with the evaluator.
+  Tests in every gate; recipe 11 in the cookbook; ticket 22 closed.
+- **Cursor rules + commands** (`rules/a11y-toolkit.mdc`,
+  `commands/a11y-audit.md`) — the two Agent Plugins components we were
+  missing: contextual discipline while writing HTML/CSS, and a
+  slash-command audit flow.
+- **VS Code extension v0.1** (`vscode/`) — audit the open file or the
+  branch diff from the editor, findings in the Problems panel, powered by
+  the self-contained npm package (no config, no telemetry). Ships as
+  source; Marketplace publish needs the kinti publisher account.
+
+## 5.22.3-npm — "npm package hygiene"
 
 - npm package metadata catches up with the self-contained reality: the
   description no longer says "launcher via uv" (the engine ships inside),

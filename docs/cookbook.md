@@ -124,3 +124,28 @@ uvx --from a11y-toolkit a11ytoolkit earl --from-audit audit.json -o earl.json   
 SARIF lands in GitHub code scanning (the Action does it for you); EARL
 traces every finding to its published ACT rule — and never asserts a
 `pass` the machine cannot know.
+
+## 11. A full evaluation, the WCAG-EM way
+
+When the question is "is the WHOLE product accessible" (a tender, an audit,
+a regulator), one page is not an answer — a sample is:
+
+```bash
+# 1) plan: scope + conformance target + sample set (you choose the sample:
+#    structured pages, random picks, complete processes)
+cat > plan.json <<'P'
+{"product": {"name": "Acme Site", "url": "https://acme.example", "scope": "whole product"},
+ "conformance_target": "WCAG 2.2 AA",
+ "support_baseline": ["NVDA + Chrome", "VoiceOver + Safari"],
+ "sample": [
+   {"id": "home", "url": "https://acme.example/", "type": "common-view", "why": "landing"},
+   {"id": "checkout", "url": "https://acme.example/checkout", "type": "process", "why": "complete process"}]}
+P
+# 2) one sealed pack per sample (recipes 1-4)
+# 3) the aggregated WCAG-EM report, root-sealed over the pack seals
+uvx --from a11y-toolkit a11ytoolkit wcagem --plan plan.json --packs home.json checkout.json
+```
+
+The report rolls every criterion up ACROSS the sample (a failure anywhere
+is a failure of the report), prices the human work that remains, and never
+claims conformance — that signature is a person's, not a tool's.

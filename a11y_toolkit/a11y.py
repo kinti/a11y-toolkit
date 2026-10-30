@@ -46,6 +46,7 @@ from . import a11ybudget
 from . import a11ycrit
 from . import a11ydiff
 from . import a11ysarif
+from . import a11ywcagem
 from . import contrast
 from . import a11ystatement
 from . import a11yjourney
@@ -68,6 +69,7 @@ SUBCOMMANDS = {
     'diff': (a11ydiff, 'diff'),
     'criterion': (a11ycrit, None),
     'sarif': (a11ysarif, None),
+    'wcagem': (a11ywcagem, None),
     'fix': (a11yfix, None),
     'kbd': (a11ydom, 'kbd_main'),
     'scroll': (a11yscroll, None),

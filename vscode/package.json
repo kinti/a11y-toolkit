@@ -1,0 +1,20 @@
+{
+  "name": "a11y-toolkit",
+  "displayName": "a11y-toolkit — WCAG 2.2 audits in the editor",
+  "description": "Audit the open HTML file (or just what your branch changed) against WCAG 2.2 with the a11y-toolkit engine. Zero config, honest findings.",
+  "version": "0.1.0",
+  "publisher": "kinti",
+  "license": "MIT",
+  "repository": {"type": "git", "url": "https://github.com/kinti/a11y-toolkit"},
+  "homepage": "https://a11y.es",
+  "engines": {"vscode": "^1.80.0"},
+  "categories": ["Linters", "Testing"],
+  "activationEvents": [],
+  "main": "./extension.js",
+  "contributes": {
+    "commands": [
+      {"command": "a11y.auditFile", "title": "a11y: Audit current file (WCAG 2.2)", "category": "a11y-toolkit"},
+      {"command": "a11y.auditChanged", "title": "a11y: Audit what changed in this branch", "category": "a11y-toolkit"}
+    ]
+  }
+}
