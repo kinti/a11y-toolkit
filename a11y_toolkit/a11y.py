@@ -29,6 +29,7 @@
   a11ytoolkit route --goal "gate my PR"                     # which tools for the task
   a11ytoolkit route --file page.html                        # diagnosis: read the page, order the exams
   a11ytoolkit mutants --seed 7 --n 12                       # the engine's sealed self-exam
+  a11ytoolkit fingerprints page1.html page2.html --dir p/  # twin-page detection (one audit per template)
 """
 
 import sys
@@ -60,6 +61,7 @@ from . import a11yinit
 from . import a11ywcag3
 from . import a11yroute
 from . import a11ymutants
+from . import a11yfingerprints
 
 SUBCOMMANDS = {
     'pair': (contrast, 'pair'),
@@ -95,6 +97,7 @@ SUBCOMMANDS = {
     'wcag3': (a11ywcag3, None),
     'route': (a11yroute, None),
     'mutants': (a11ymutants, None),
+    'fingerprints': (a11yfingerprints, None),
 }
 
 

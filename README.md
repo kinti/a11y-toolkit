@@ -221,6 +221,7 @@ a11ytoolkit wcag3 --from-audit audit.json                      # WCAG 3 draft pr
 a11ytoolkit route --goal "gate my PR"                          # which tools for the task
 a11ytoolkit route --file page.html                             # diagnosis: the page orders the exams
 a11ytoolkit mutants --seed 7 --n 12                            # the engine's sealed self-exam
+a11ytoolkit fingerprints pages/*.html -o templates.json        # twin pages → one audit per template
 ```
 
 ## Coverage: 51 of 55 WCAG 2.2 A/AA criteria (93%)

@@ -168,3 +168,29 @@ uvx --from a11y-toolkit a11ytoolkit plan --report audit.json --from-pack pack.js
 Each batch carries its minute range and the running total; grouping savings
 are a declared optimistic bound, not a promise. The order is a heuristic —
 reorder it, re-seal it, make it yours.
+
+## 13. One audit per template (don't audit 340 twins)
+
+You crawled 500 pages and the report says the same menu is broken 340
+times. WCAG-EM Step 3 says audit one page per template — but nothing told
+you which pages share a template. Fingerprints hash each page from three
+independent views (skeleton / classes / attributes), ignoring text and
+per-page noise (ids, urls, tokens), so twins stay twins:
+
+```bash
+uvx --from a11y-toolkit a11ytoolkit fingerprints --dir pages/ -o templates.json
+# sample_suggestion: one representative per detected template
+```
+
+A real run over 4 pages (3 product twins + a contact page):
+
+```
+pages: 4   templates: 2
+sample: ["pages/contact.html", "pages/product-1.html"]
+```
+
+Audit the representatives, not the twins — and the `divergence` list tells
+you if a "twin" quietly drifted (`{page, region, view}`: header diverges in
+classes while the footer stays identical). Same skeleton does not guarantee
+identical findings after rendering: the suggestion feeds the WCAG-EM plan,
+the evaluator still owns the sample.

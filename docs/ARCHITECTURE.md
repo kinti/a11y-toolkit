@@ -26,6 +26,7 @@ import guards. Output es/en; wire keys English (`a11y-evidence-pack/2`).
 | `a11yvpat.py` | VPAT 2.5 (WCAG edition) generator: pack → accessible HTML VPAT, machine fills Remarks, human sets levels (overrides), signature references pack sha256. |
 | `a11yplan.py` | Remediation plan: findings → ordered fix route (batches by shared cause, declared phases infrastructure → design-system → instances → redesign-zone, minute ranges from declared assumptions or pack effort pricing, root-sealed; deterministic heuristic, the human reorders) — CLI, not a tool. |
 | `a11ywcagem.py` | WCAG-EM 2.0 mode: validated evaluation plan (scope/target/baseline/sample) + one sealed pack per sample → aggregated report, worst-status-wins per criterion, root sha256 over the pack seals, the standard's step trace; no conformance claims, random selection stays with the evaluator — CLI, not a tool. |
+| `a11yfingerprints.py` | Multi-hash template fingerprints (twin-page detection): three independent views per region (structure / classes / attributes, text always excluded, id-referencing volatile attrs excluded by design), template = the structure view, localized divergence {page, region, view} against the representative, one-representative-per-template sample suggestion (WCAG-EM Step 3 helper) — deterministic hashlib-only, CLI + suite, not a tool. |
 | `a11yopenacr.py` | OpenACR (GSA) generator: pack → machine-readable ACR YAML (fixed-schema emitter, JSON escaping = valid YAML, no dependency), same honesty rule as the VPAT; hyphenated adherence levels in the YAML. |
 | `a11yi18n.py` | Locale-pack loader: community `locales/<lang>.json` catalogs, English fallback, CLDR plurals, product overlays. |
 | `a11yinit.py` | `a11ytoolkit init` — installs the AGENTS.md agent hook in user projects. |
@@ -135,6 +136,19 @@ change (see 4.0.1); internal dev docs don't.
   breaks ties, the rendered deepener closes the plan, and the guarantee is
   explicit in every response: the full catalog stays one route(goal) away.
   The goal-routing behavior for plain goals is unchanged.
+- **D20 — Identify by intersection, localize by view (multi-hash
+  fingerprints)**: a single hash of a page breaks the moment a csrf token,
+  a per-page id or a timestamp changes — every periodic audit becomes
+  either a full rebuild (expensive) or a frozen snapshot that lies.
+  `a11yfingerprints.py` hashes every page from three independent
+  normalizations (structure / classes / attributes), always excluding text
+  and the id-referencing volatile attributes, so volatile noise can never
+  split a template. The template IS the structure view (a declared rule,
+  not fuzzy similarity); the views that diverge against the representative
+  localize the change ({page, region, view} — "header diverges in classes,
+  footer identical"), and the audit budget collapses to one representative
+  per template (WCAG-EM Step 3). Cross-industry translation: multi-hash
+  identification from industrial recommender systems.
 
 ## Trap catalogue (each class cost a bug — recognize the class)
 

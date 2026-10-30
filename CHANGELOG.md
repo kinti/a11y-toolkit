@@ -1,5 +1,25 @@
 # Changelog
 
+## 5.24.0 — pendiente — "one audit per template (twin-page fingerprints)"
+
+- **`a11yfingerprints.py` + CLI `fingerprints`** — multi-hash template
+  fingerprints: every page hashed from three independent views (structure /
+  classes / attributes) per landmark region, text always excluded and the
+  id-referencing volatile attributes (id, for, name, href, src, aria-*
+  references…) excluded by design — csrf tokens and per-page ids can never
+  split a template. The template IS the structure view (a declared rule,
+  not fuzzy similarity); inside a template each page is compared
+  view-by-view against the representative, so divergence is localized
+  ({page, region, view}: "header diverges in classes, footer identical"),
+  and `sample_suggestion` collapses the audit budget to one representative
+  per template — the WCAG-EM Step 3 helper. Deterministic hashlib-only,
+  hostile-HTML tolerant, cross-process determinism pinned by test.
+  CLI-only like the sealed exam (D17 — the tool count does not move);
+  tests in every gate; recipe 13 in the cookbook; D20 in ARCHITECTURE.
+  Cross-industry origin: multi-hash identification from industrial
+  recommender systems (one hash breaks with one token; several independent
+  hashes identify by intersection).
+
 ## 5.23.0 — pendiente — "the fix plan" (in tree, awaiting seal)
 
 - **`a11yplan.py` + CLI `plan`** — findings → ordered fix route: batches by
