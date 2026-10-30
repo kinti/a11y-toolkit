@@ -26,15 +26,32 @@ def main():
     check('bins declarados', set(pkg['bin']) == {'a11y-toolkit', 'a11y-toolkit-mcp'})
     check('files cubre bin y lib', {'bin/', 'lib/'} <= set(pkg['files']))
 
+    print('== 1b. autocontenido END-TO-END (empaqueta y ejecuta como el workflow)')
+    import shutil, subprocess
+    shutil.copytree(os.path.join(ROOT, 'a11y_toolkit'), os.path.join(ROOT, 'npm', 'a11y_toolkit'),
+                    ignore=shutil.ignore_patterns('__pycache__'), dirs_exist_ok=True)
+    try:
+        r = subprocess.run(['node', os.path.join(ROOT, 'npm', 'bin', 'a11y-toolkit.cjs'),
+                            'pair', '#767676', '#ffffff'],
+                           capture_output=True, text=True, timeout=120)
+        ok = r.returncode == 0 and '"ratio"' in r.stdout
+        check('bin Node → motor interno (pair real, sin uv ni red)', ok,
+              (r.stderr or r.stdout)[:150])
+    finally:
+        shutil.rmtree(os.path.join(ROOT, 'npm', 'a11y_toolkit'), ignore_errors=True)
+
     print('== 2. bins')
     cli = open(os.path.join(ROOT, 'npm', 'bin', 'a11y-toolkit.cjs')).read()
     mcp = open(os.path.join(ROOT, 'npm', 'bin', 'a11y-toolkit-mcp.cjs')).read()
     runner = open(os.path.join(ROOT, 'npm', 'lib', 'runner.cjs')).read()
-    check('CLI llama a a11ytoolkit', "run('a11ytoolkit')" in cli)
-    check('MCP llama a a11y-toolkit-mcp', "run('a11y-toolkit-mcp')" in mcp)
-    check('runner pina la versión (patrón + origen package.json)',
-          'a11y-toolkit==${VERSION}' in runner and "require('../package.json').version" in runner,
-          'el pin debe derivar de package.json en runtime')
+    check('CLI ejecuta el módulo del motor', "run('a11y_toolkit.a11y')" in cli)
+    check('MCP ejecuta el módulo del servidor', "run('a11y_toolkit.server')" in mcp)
+    check('runner ejecuta el motor INTERNO (python3 -m, sin red)',
+          "'-m'" in runner and 'a11y_toolkit' in runner and 'PYTHONPATH' in runner)
+    check('fallback uvx pineado (origen package.json)',
+          'a11y-toolkit==${VERSION}' in runner and "require('../package.json').version" in runner)
+    check('sin python3 ni uv: mensaje con la línea de instalación',
+          'astral.sh/uv' in runner and 'ENOENT' in runner)
     check('runner explica cómo instalar uv (sin ENOENT críptico)',
           'astral.sh/uv' in runner and 'ENOENT' in runner)
     check('passthrough de argumentos', 'process.argv.slice(2)' in runner)

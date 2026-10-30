@@ -1,36 +1,44 @@
 #!/usr/bin/env node
-/* Shared launcher: runs the a11y-toolkit engine through uv (uvx).
- * The engine is Python (stdlib-only); this wrapper only opens the Node
- * door. If uv is missing, we say exactly how to get it — no cryptic
- * spawn errors. */
-const { spawn } = require('child_process');
+/* Launcher: runs the SELF-CONTAINED engine that ships inside this package
+ * (a11y_toolkit/, pure-stdlib Python). No downloads at runtime when a
+ * python3 (>=3.9) exists; falls back to a version-pinned uvx when it does
+ * not. Zero install, zero network, reproducible by construction. */
+const { spawn, spawnSync } = require('child_process');
+const path = require('path');
 
+const ENGINE = path.join(__dirname, '..');          // where a11y_toolkit/ lives
+const PY = process.platform === 'win32' ? 'python' : 'python3';
 const UVX = process.platform === 'win32' ? 'uvx.exe' : 'uvx';
-// Pin de versión: el launcher SIEMPRE ejecuta la versión del motor con la
-// que se publicó (la de este package.json, que versionar bumbea con cada
-// release). Reproducible y auditable: nada de "descarga la última" en
-// tiempo de ejecución.
-const VERSION = require('../package.json').version;
+const VERSION = require('../package.json').version;  // pinned fallback, same release
+
+function pythonOk() {
+  try {
+    const r = spawnSync(PY, ['-c', 'import sys; sys.exit(0 if sys.version_info >= (3, 9) else 1)']);
+    return r.status === 0;
+  } catch { return false; }
+}
 
 function run(entry) {
-  const args = ['--from', `a11y-toolkit==${VERSION}`, entry, ...process.argv.slice(2)];
-  const child = spawn(UVX, args, { stdio: 'inherit' });
+  const args = process.argv.slice(2);
+  if (pythonOk()) {
+    const child = spawn(PY, ['-m', entry, ...args],
+                        { stdio: 'inherit', env: { ...process.env, PYTHONPATH: ENGINE } });
+    child.on('close', (c) => process.exit(c === null ? 1 : c));
+    return;
+  }
+  const SCRIPTS = { 'a11y_toolkit.a11y': 'a11ytoolkit', 'a11y_toolkit.server': 'a11y-toolkit-mcp' };
+  const child = spawn(UVX, ['--from', `a11y-toolkit==${VERSION}`, SCRIPTS[entry] || entry], { stdio: 'inherit' });
   child.on('error', (e) => {
     if (e.code === 'ENOENT') {
-      console.error('a11y-toolkit: "uvx" (uv) is not installed.');
-      console.error('');
-      console.error('The engine is Python; this launcher runs it via uv. Install uv (one line):');
-      console.error('  macOS/Linux: curl -LsSf https://astral.sh/uv/install.sh | sh');
-      console.error('  macOS (brew): brew install uv');
-      console.error('  Windows (PowerShell): powershell -c "irm https://astral.sh/uv/install.ps1 | iex"');
-      console.error('  or:  pip install uv');
-      console.error('');
-      console.error('Then run this command again. https://github.com/kinti/a11y-toolkit');
+      console.error('a11y-toolkit: needs python3 (>=3.9) or uv.');
+      console.error('  uv (one line): curl -LsSf https://astral.sh/uv/install.sh | sh');
+      console.error('  or python3:    https://www.python.org/downloads/');
+      console.error('https://github.com/kinti/a11y-toolkit');
       process.exit(1);
     }
     throw e;
   });
-  child.on('close', (code) => process.exit(code === null ? 1 : code));
+  child.on('close', (c) => process.exit(c === null ? 1 : c));
 }
 
 module.exports = { run };

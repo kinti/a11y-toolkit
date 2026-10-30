@@ -18,6 +18,8 @@ jobs:
         with:
           node-version: '22'
           registry-url: 'https://registry.npmjs.org'
+      - name: Bundle the engine (self-contained package)
+        run: cp -r a11y_toolkit npm/a11y_toolkit
       - name: Publish
         run: npm publish ./npm --access public --provenance
         env:

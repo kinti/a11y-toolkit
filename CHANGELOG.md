@@ -1,6 +1,16 @@
 # Changelog
 
-## 5.22.0 — pendiente — "the cookbook"
+## 5.22.1 — pendiente — "the self-contained npm package"
+
+- **The npm package now carries the engine inside** (a11y_toolkit/, pure
+  stdlib): `npx -y @kinti/a11y-toolkit …` runs the bundled Python directly
+  via `python3 -m` — zero downloads at runtime, zero uv requirement, offline
+  by construction. Falls back to the version-pinned uvx when python3 is
+  absent. Pinned end-to-end by tests (a real `pair` through the Node bin).
+  The CI bundles the engine into the tarball at publish time; the published
+  npm tarball is now self-contained like the PyPI one.
+
+## 5.22.0 — 2026-10-30 — "the cookbook"
 
 - **`docs/cookbook.md`** — ten start-to-finish recipes (audit → fix → seal
   → document → CI → hear → disprove), every command verified against the
