@@ -1,6 +1,6 @@
 # Changelog
 
-## 5.22.3 — pendiente — "WCAG-EM mode + Cursor rules + VS Code (the three adds)"
+## 5.22.3 — pendiente — "the three adds (WCAG-EM, Cursor rules, VS Code) + npm hygiene"
 
 - **`a11ywcagem.py` + CLI `wcagem`** — the WCAG-EM 2.0 layer: a validated
   evaluation plan (scope, conformance target, support baseline, sample set)
@@ -18,7 +18,6 @@
   the self-contained npm package (no config, no telemetry). Ships as
   source; Marketplace publish needs the kinti publisher account.
 
-## 5.22.3-npm — "npm package hygiene"
 
 - npm package metadata catches up with the self-contained reality: the
   description no longer says "launcher via uv" (the engine ships inside),
