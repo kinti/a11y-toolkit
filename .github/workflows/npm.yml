@@ -6,6 +6,9 @@ on:
   push:
     tags: ['v*']
 
+permissions:
+  id-token: write   # habilita trusted publishing (OIDC) cuando se configure en npm
+
 jobs:
   npm:
     runs-on: ubuntu-latest
