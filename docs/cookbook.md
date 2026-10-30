@@ -149,3 +149,22 @@ uvx --from a11y-toolkit a11ytoolkit wcagem --plan plan.json --packs home.json ch
 The report rolls every criterion up ACROSS the sample (a failure anywhere
 is a failure of the report), prices the human work that remains, and never
 claims conformance — that signature is a person's, not a tool's.
+
+## 12. From findings to a fix ROUTE (the plan)
+
+A list of 40 findings is an inventory; nobody answers "in what order?".
+The plan groups findings by shared cause and orders the batches with a
+declared heuristic — infrastructure first (it reprices everything else),
+design-system decisions next (one theme change kills many contrast
+findings), instances after, pages piling up signals flagged for a redesign
+pass:
+
+```bash
+uvx --from a11y-toolkit a11ytoolkit plan --report audit.json -o fix-plan.json
+# better minutes: price with the evidence pack's effort table
+uvx --from a11y-toolkit a11ytoolkit plan --report audit.json --from-pack pack.json
+```
+
+Each batch carries its minute range and the running total; grouping savings
+are a declared optimistic bound, not a promise. The order is a heuristic —
+reorder it, re-seal it, make it yours.

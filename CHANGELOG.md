@@ -1,5 +1,16 @@
 # Changelog
 
+## 5.23.0 — pendiente — "the fix plan" (in tree, awaiting seal)
+
+- **`a11yplan.py` + CLI `plan`** — findings → ordered fix route: batches by
+  shared cause, declared phase ordering (infrastructure → design-system →
+  instances; redesign zones flagged last), minute ranges from declared
+  severity assumptions or the evidence pack's effort pricing, cumulative
+  totals, declared grouping savings, root seal. Deterministic, no ML, no
+  network; the human reorders. Cross-industry origin: planning over
+  evolving state (arXiv 2607.02115), translated into an auditable
+  heuristic. Tests in every gate; recipe 12 in the cookbook.
+
 ## 5.22.3 — pendiente — "the three adds (WCAG-EM, Cursor rules, VS Code) + npm hygiene"
 
 - **`a11ywcagem.py` + CLI `wcagem`** — the WCAG-EM 2.0 layer: a validated

@@ -24,6 +24,7 @@ import guards. Output es/en; wire keys English (`a11y-evidence-pack/2`).
 | `a11yevidence.py` | Evidence pack builder (`a11y-evidence-pack/2`): 55-criterion matrix, effort per row, SHA-256 chain, embedded bodies. |
 | `a11ycrit.py` | Knowledge catalog: `_C` (56 criteria, es/en), `_EFFORT` (55 A/AA effort classes), `effort()`. |
 | `a11yvpat.py` | VPAT 2.5 (WCAG edition) generator: pack → accessible HTML VPAT, machine fills Remarks, human sets levels (overrides), signature references pack sha256. |
+| `a11yplan.py` | Remediation plan: findings → ordered fix route (batches by shared cause, declared phases infrastructure → design-system → instances → redesign-zone, minute ranges from declared assumptions or pack effort pricing, root-sealed; deterministic heuristic, the human reorders) — CLI, not a tool. |
 | `a11ywcagem.py` | WCAG-EM 2.0 mode: validated evaluation plan (scope/target/baseline/sample) + one sealed pack per sample → aggregated report, worst-status-wins per criterion, root sha256 over the pack seals, the standard's step trace; no conformance claims, random selection stays with the evaluator — CLI, not a tool. |
 | `a11yopenacr.py` | OpenACR (GSA) generator: pack → machine-readable ACR YAML (fixed-schema emitter, JSON escaping = valid YAML, no dependency), same honesty rule as the VPAT; hyphenated adherence levels in the YAML. |
 | `a11yi18n.py` | Locale-pack loader: community `locales/<lang>.json` catalogs, English fallback, CLDR plurals, product overlays. |

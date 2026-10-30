@@ -16,7 +16,7 @@ import subprocess
 import sys
 
 AQUI = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-RAPIDAS = ['tests/test_contrast.py', 'tests/test_audit.py', 'tests/test_v32.py', 'tests/test_wcag3.py', 'tests/test_route.py', 'tests/test_mutants.py', 'tests/test_verify_pack.py', 'tests/test_npm_wrapper.py', 'tests/test_wcagem.py', 'tests/test_solido.py']
+RAPIDAS = ['tests/test_contrast.py', 'tests/test_audit.py', 'tests/test_v32.py', 'tests/test_wcag3.py', 'tests/test_route.py', 'tests/test_mutants.py', 'tests/test_verify_pack.py', 'tests/test_npm_wrapper.py', 'tests/test_wcagem.py', 'tests/test_plan.py', 'tests/test_solido.py']
 
 
 def bump_fichero(ruta, ancla, nuevo_valor, etiqueta):
