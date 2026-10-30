@@ -1,6 +1,13 @@
 # Changelog
 
-## 5.22.1 — pendiente — "the self-contained npm package"
+## 5.22.2 — pendiente — "the self-contained npm package (this time for real)"
+
+- The 5.22.1 tarball shipped WITHOUT the engine: npm's `files` whitelist
+  excluded `a11y_toolkit/` even though the workflow bundled it. Now the
+  whitelist includes it (94 engine files verified via `npm pack --dry-run`
+  before sealing — the test the 5.22.1 seal deserved).
+
+## 5.22.1 — 2026-10-30 — "the self-contained npm package"
 
 - **The npm package now carries the engine inside** (a11y_toolkit/, pure
   stdlib): `npx -y @kinti/a11y-toolkit …` runs the bundled Python directly
