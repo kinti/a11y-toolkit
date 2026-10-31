@@ -2,6 +2,19 @@
 
 ## 5.25.2 — pendiente — "the slim sdist + the serious badges"
 
+- **Tasteful star nudge (CLI `fix`, once per machine)**: after a fix writes a
+  file, stderr gets one line — "if it saved you time, a star helps other
+  auditors find it". Never in CI, silenced with `A11Y_NO_STAR_NUDGE=1`,
+  stdout JSON stays machine-parseable. The explicit star-gate idea was
+  rejected: starjacking with extra steps.
+- **README in Spanish** (`README.es.md`) with a language switcher at the top
+  of both; **README conversion optics** — the demo GIF and quickstart come
+  first, the 15-badge trust row moved to its own "Trust, verified" section;
+  **Human in the Loop** badge added next to the thesis line.
+- **Cookbook fixes** — three recipes used subcommands that don't exist
+  (`dom`, `sr`) or a script that doesn't ship in the package
+  (`verify_pack.py` under uvx); the repeated 22× uvx prefix is now a
+  one-line runner; every recipe verified against the CLI.
 - **Tests stay OUT of the sdist** (`MANIFEST.in`: `prune tests`) — the
   published artifact ships the product; tests live at the release tag.
   sdist 1598KB → ~290KB, and three scanner claim-surface categories
