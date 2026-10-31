@@ -73,10 +73,20 @@ landed. **Nobody announces changes** (no live regions) in seven of nine.
 And three of Spain's biggest sites **block third-party auditing outright**
 (403) — the same door every consultant's tool hits.
 
-Update 2026-10-31 (re-run): seven of nine scores held; Movistar moved to 98,
-RTVE to 16 (60 images without alt, 202 hidden focusable links), and the
-focusable-but-hidden pattern to three of nine (El Mundo, Iberia, RTVE). Sites
-drift within days — audits belong in CI.
+Update 2026-10-31 (re-runs, every number verified by us unless noted):
+Movistar 98 (was 92) — reproduced. RTVE 28 (was 26; the pinned v5.15.0 and the
+current engine agree) — signature findings re-verified on sealed captures:
+61 images without alt (served and rendered; the Oct-5 archive copy shows 60),
+~199 focusable elements hidden with aria-hidden, and the page's only h1
+exists inside an HTML comment (`<!-- <h1>NO RADIO</h1> -->`). An earlier
+version of this note quoted RTVE at 16, taken from a third-party re-run
+without reproducing it; that number came from crawl mode (`--pages 1`) and
+does not reproduce in the single-page mode used for this table. The lesson is
+the table's own argument: a score is a function of tool version, mode and
+date — publish all three or publish nothing. The focusable-but-hidden
+pattern holds today in El Mundo (203 elements, score 62 unchanged), Iberia
+(205, score 40 unchanged) and RTVE — three of nine auditable, from five of
+nine on October 26. Sites drift within days — audits belong in CI.
 
 And the key contrast, again: IKEA Spain scores 60 here — "passable" — and
 0/100 in the blindfold journey. **The static sweep approves the shop window;
