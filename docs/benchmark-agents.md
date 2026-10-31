@@ -61,7 +61,7 @@ request per site, October 26, 2026; numbers identical on an October 25 re-run):
 | Commerce | IKEA Spain | 60 | unlabeled fields, uncaptioned video |
 | Gov | Seguridad Social | 58 | zoom capped, focusable-hidden |
 | Air | Iberia | **40** | **205 focusable buttons hidden with aria-hidden** |
-| Public TV/Radio | RTVE | **26** | **61 images without alt, 200 hidden focusable links, no h1** |
+| Public TV/Radio | RTVE | **26** | **205 focusable elements hidden with aria-hidden; the page's only h1 is commented out; 5 alts truncated at parse time (see Oct-31 notes: the images carry informative alt — the earlier "61 without alt" were lazy-load placeholders, corrected below)** |
 | News | El País | — | blocked (403 to agents) |
 | Commerce | El Corte Inglés | — | blocked (403) |
 | Banking | BBVA | — | blocked (403) |
