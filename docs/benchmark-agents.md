@@ -85,6 +85,11 @@ different things, and you need both.
 
 ## Scope, honestly
 
+- **The journey verdict is task-usability evidence, not conformance.** WCAG
+  is the normative limit and the static audit is what speaks it (IKEA: 60,
+  mixed); nothing here claims any site fails WCAG because a task failed.
+  The journey measures what a conformance floor cannot see: whether a real
+  task is completable non-visually.
 - Two live journeys + one fixture, one task each: a method demonstration,
   not a market survey.
 - Static scores are a filter, not a verdict: automation covers about a
