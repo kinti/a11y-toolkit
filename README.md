@@ -1,5 +1,7 @@
 # a11y-toolkit — the accessibility layer for AI coding agents
 
+**English** · [Español](README.es.md)
+
 > WCAG 2.2 for your coding agent — audit, fix, document and watch. Zero dependencies, es/en.
 
 [![CI](https://github.com/kinti/a11y-toolkit/actions/workflows/ci.yml/badge.svg)](https://github.com/kinti/a11y-toolkit/actions/workflows/ci.yml)
@@ -7,7 +9,6 @@
 [![npm](https://img.shields.io/npm/v/%40kinti%2Fa11y-toolkit)](https://www.npmjs.com/package/@kinti/a11y-toolkit)
 [![Downloads](https://img.shields.io/pypi/dm/a11y-toolkit)](https://pypistats.org/packages/a11y-toolkit)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
-[![Python 3.9+](https://img.shields.io/badge/python-3.9%2B-blue.svg)](pyproject.toml)
 [![MCP](https://img.shields.io/badge/Model%20Context%20Protocol-server-purple)](https://modelcontextprotocol.io)
 [![Sponsor](https://img.shields.io/badge/Sponsor-%E2%9D%A4-pink)](https://github.com/sponsors/kinti)
 [![Supply chain](https://img.shields.io/badge/supply%20chain-audited%20by%20Socket-blueviolet)](https://socket.dev/pypi/package/a11y-toolkit/overview)
