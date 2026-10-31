@@ -33,6 +33,10 @@ ADA siguen llegando, y los agentes de IA escriben ya la mayor parte de la web.
 Un escaneo no es una defensa: **la máquina encuentra, la persona firma**.
 
 <p align="center">
+  <a href="https://madebyhuman.iamjarl.com"><img src="https://madebyhuman.iamjarl.com/badges/loop-white.svg" alt="Human in the Loop — las personas guían y curan el proceso; cada artefacto de conformidad lo firma una persona" height="34"></a>
+</p>
+
+<p align="center">
   <img src="docs/demo.gif" alt="a11y-toolkit en acción: auditoría (nota 64), color que aprueba más cercano, re-auditoría (94) — salida real de la herramienta" width="720">
 </p>
 

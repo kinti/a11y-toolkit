@@ -30,6 +30,10 @@ and AI agents now write most of the web. A scan is not a defence: the machine fi
 the human signs.
 
 <p align="center">
+  <a href="https://madebyhuman.iamjarl.com"><img src="https://madebyhuman.iamjarl.com/badges/loop-white.svg" alt="Human in the Loop — humans guide and curate the process; every conformance artifact is signed by a person" height="34"></a>
+</p>
+
+<p align="center">
   <img src="docs/demo.gif" alt="a11y-toolkit in action: audit (score 64), nearest passing color, re-audit (94) — real tool output" width="720">
 </p>
 
