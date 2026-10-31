@@ -88,6 +88,24 @@ pattern holds today in El Mundo (203 elements, score 62 unchanged), Iberia
 (205, score 40 unchanged) and RTVE — three of nine auditable, from five of
 nine on October 26. Sites drift within days — audits belong in CI.
 
+Update 2026-10-31, second addendum — **the "images without alt" signature,
+examined to the end.** Against the author's own page source: 830 images, 644
+carry informative alt, 126 carry alt="" (declared decorative), and the 60
+without the attribute are almost entirely 1×1 transparent lazy-load
+placeholder GIFs (data: URIs) plus one JS template artifact — not content
+images. In the rendered accessibility tree — the contract a screen reader
+consumes — **108 image nodes are exposed and all 108 carry an accessible
+name**: the placeholders never surface unnamed. The static rule remains
+ACT-true on the served HTML, but under this project's doctrine (WCAG applies
+to the rendered experience) it does not reach the user. The image findings
+that DO reach the tree: five alts truncated at parse time by unescaped quotes
+(including one whose full text — a survivor's quote — is destroyed into empty
+attributes) and two mute video links. Consequence for the tool itself: the
+static img_no_alt signal must annotate data-URI placeholders as
+verify-in-rendered-pass instead of reporting them flat — engine backlog.
+The static score above includes that placeholder-driven high finding; the
+rendered pass is the authority on experience.
+
 And the key contrast, again: IKEA Spain scores 60 here — "passable" — and
 0/100 in the blindfold journey. **The static sweep approves the shop window;
 the blind user cannot buy.** Task-based and rule-based testing measure
