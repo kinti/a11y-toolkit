@@ -1,8 +1,13 @@
 # Cookbook — real recipes, start to finish
 
 Copy-paste workflows for the whole loop: **audit → fix → document → watch**.
-Every recipe runs with `uvx` (no clone, no venv) — swap `uvx --from
-a11y-toolkit` for `npx -y @kinti/a11y-toolkit` if you live in Node.
+Define the runner once and every recipe stays short (swap the uvx line for
+`npx -y @kinti/a11y-toolkit` if you live in Node):
+
+```bash
+at() { uvx --from a11y-toolkit a11ytoolkit "$@"; }   # bash/zsh, this session
+```
+
 Single-page reference: [tools.md](tools.md) · compositions with other MCP
 servers: [interop.md](interop.md).
 
@@ -10,8 +15,8 @@ servers: [interop.md](interop.md).
 
 ```bash
 URL=https://example.com
-uvx --from a11y-toolkit a11ytoolkit audit --url $URL > audit.json
-uvx --from a11y-toolkit a11ytoolkit route --url $URL   # what to run next, and why
+at audit --url $URL > audit.json
+at route --url $URL        # what to run next, and why
 ```
 
 `audit.json` carries `score`, `findings[]` (each with `criterion`,
@@ -21,48 +26,52 @@ your next moves by what the page actually has (forms? menus? video?).
 
 ## 2. The rendered pass: what the browser actually shows
 
-Static HTML is half the truth. Contrast over gradients, keyboard traps,
-focus visibility, target sizes — those live in the rendered DOM:
+Static HTML is half the truth. The rendered checks are one subcommand each
+(first run: `python3 -m playwright install chromium`; any browser you have —
+Chromium, Firefox, WebKit, Chrome, Edge):
 
 ```bash
-uvx --from a11y-toolkit a11ytoolkit dom --url $URL --browser chromium > dom.json
+at kbd $URL            > kbd.json        # keyboard traps (2.1.2)
+at contrast-dom $URL --selector "a, button"   # real text-over-anything contrast
+at reflow $URL         > reflow.json     # 320px sideways scroll (1.4.10)
+at forms $URL/contact  > forms.json      # error identification (3.3.1/3.3.3)
 ```
 
-(First run: `python3 -m playwright install chromium`. The same pass catches
-the failures axe marks *incomplete*: e.g. gov.uk's 3.91:1 search button,
-criterion 1.4.3.)
+The same pass catches the failures axe marks *incomplete*: e.g. gov.uk's
+3.91:1 search button, criterion 1.4.3.
 
 ## 3. Fixing a contrast failure the honest way
 
 ```bash
 # measure the pair (verdicts per criterion + nearest passing color)
-uvx --from a11y-toolkit a11ytoolkit pair "#767676" "#ffffff"
-# text sits on a photo/gradients? sample the REAL background pixels
-uvx --from a11y-toolkit a11ytoolkit image hero.jpg --text "#fff" --region 120,40,420,90
+at pair "#767676" "#ffffff"
+# text sits on a photo/gradient? sample the REAL background pixels
+at image hero.jpg --text "#fff" --region 120,40,420,90
 ```
 
 `pair` composites alpha over the background and suggests the nearest color
-that passes; `image` screenshots the region with text made transparent and
-measures only the background that was actually behind the glyphs.
+that passes; `image` measures only the background that was actually behind
+the glyphs.
 
 ## 4. Seal the evidence (the handoff object)
 
 ```bash
-uvx --from a11y-toolkit a11ytoolkit evidence audit.json dom.json --snapshot snap.json -o pack.json
-uvx --from a11y-toolkit python scripts/verify_pack.py pack.json  # or the standalone verifier
+at evidence audit.json kbd.json --snapshot snap.json -o pack.json
+curl -sLO https://raw.githubusercontent.com/kinti/a11y-toolkit/main/scripts/verify_pack.py
+python3 verify_pack.py pack.json     # 0 = the seal holds; needs no toolkit
 ```
 
 The pack is `a11y-evidence-pack/2`: the 55-criterion matrix, per-artifact
 SHA-256, the whole-pack seal, and the priced human work that remains
 (MIN/MED/MAX minutes). Anyone re-verifies it without installing us — that
-is the point.
+is the point (the verifier is one standalone stdlib file).
 
 ## 5. The documents a human signs
 
 ```bash
-uvx --from a11y-toolkit a11ytoolkit vpat --reports audit.json dom.json --product "Acme Site" -o vpat.html
-uvx --from a11y-toolkit a11ytoolkit openacr --reports audit.json dom.json -o openacr.yaml
-uvx --from a11y-toolkit a11ytoolkit declaration --entity "Acme" --url https://acme.example \
+at vpat --reports audit.json --product "Acme Site" -o vpat.html
+at openacr --reports audit.json --product "Acme Site" -o openacr.yaml
+at declaration --entity "Acme" --url https://acme.example \
      --status partial --framework eaa --lang en --output declaration.html
 ```
 
@@ -74,9 +83,9 @@ levels. Drafts, not conformance — by design.
 
 ```bash
 # first run: accept today as the baseline
-uvx --from a11y-toolkit a11ytoolkit audit --url $URL | uvx --from a11y-toolkit a11ytoolkit budget --init > budget.json
+at audit --url $URL | at budget --init > budget.json
 # every run after: only NEW findings block
-uvx --from a11y-toolkit a11ytoolkit budget --budget budget.json --audit audit.json
+at budget --budget budget.json --audit audit.json
 ```
 
 Exit 0 = GO, exit 2 = blocked. Fixes lower the baseline; regressions scream.
@@ -86,7 +95,7 @@ Prefer zero-config? The official Action wraps all of this:
 ## 7. Only what my PR touched
 
 ```bash
-uvx --from a11y-toolkit a11ytoolkit audit --changed [--base main]
+at audit --changed [--base main]
 ```
 
 Audits the HTML your branch touched — untracked new pages included, and
@@ -95,19 +104,15 @@ passing.
 
 ## 8. Hear the page like a screen reader does
 
-```bash
-uvx --from a11y-toolkit a11ytoolkit sr --url $URL > transcript.json
-```
-
-The linearized announcements (roles, names, states) — what a blind user
-actually hears, as data. For the full experience, the blindfold journey
-walks a real task perceiving only this:
-[journey-example.md](journey-example.md).
+The linearized announcements (roles, names, states) are the MCP tool
+`a11y_sr_transcript` — ask your agent: *"transcribe what a screen reader
+announces on $URL"*. For the full experience, the blindfold journey walks a
+real task perceiving only that: [journey-example.md](journey-example.md).
 
 ## 9. Prove a negative (or catch a liar)
 
 ```bash
-uvx --from a11y-toolkit a11ytoolkit disprove --file audit.json --url $URL
+at disprove --file audit.json --url $URL
 ```
 
 Re-runs every finding against the live page and marks each confirmed or
@@ -117,8 +122,8 @@ all fall here.
 ## 10. Machine readers: SARIF + EARL
 
 ```bash
-uvx --from a11y-toolkit a11ytoolkit sarif --from-audit audit.json -o a11y.sarif   # code scanning
-uvx --from a11y-toolkit a11ytoolkit earl --from-audit audit.json -o earl.json     # W3C EARL 1.0/ACT
+at sarif --from-audit audit.json -o a11y.sarif   # code scanning
+at earl --from-audit audit.json -o earl.json     # W3C EARL 1.0/ACT
 ```
 
 SARIF lands in GitHub code scanning (the Action does it for you); EARL
@@ -143,12 +148,14 @@ cat > plan.json <<'P'
 P
 # 2) one sealed pack per sample (recipes 1-4)
 # 3) the aggregated WCAG-EM report, root-sealed over the pack seals
-uvx --from a11y-toolkit a11ytoolkit wcagem --plan plan.json --packs home.json checkout.json
+at wcagem --plan plan.json --packs home.json checkout.json -o report.json
 ```
 
 The report rolls every criterion up ACROSS the sample (a failure anywhere
-is a failure of the report), prices the human work that remains, and never
-claims conformance — that signature is a person's, not a tool's.
+is a failure of the report) and prices the human work that remains — now
+with honest intervals: per-criterion prevalence (Wilson) and per-page
+effort as a declared range, never a naked point. It never claims
+conformance; that signature is a person's, not a tool's.
 
 ## 12. From findings to a fix ROUTE (the plan)
 
@@ -160,9 +167,9 @@ findings), instances after, pages piling up signals flagged for a redesign
 pass:
 
 ```bash
-uvx --from a11y-toolkit a11ytoolkit plan --report audit.json -o fix-plan.json
+at plan --report audit.json -o fix-plan.json
 # better minutes: price with the evidence pack's effort table
-uvx --from a11y-toolkit a11ytoolkit plan --report audit.json --from-pack pack.json
+at plan --report audit.json --from-pack pack.json
 ```
 
 Each batch carries its minute range and the running total; grouping savings
@@ -178,7 +185,7 @@ independent views (skeleton / classes / attributes), ignoring text and
 per-page noise (ids, urls, tokens), so twins stay twins:
 
 ```bash
-uvx --from a11y-toolkit a11ytoolkit fingerprints --dir pages/ -o templates.json
+at fingerprints --dir pages/ -o templates.json
 # sample_suggestion: one representative per detected template
 ```
 
@@ -191,9 +198,7 @@ sample: ["pages/contact.html", "pages/product-1.html"]
 
 Audit the representatives, not the twins — and the `divergence` list tells
 you if a "twin" quietly drifted (`{page, region, view}`: header diverges in
-classes while the footer stays identical). Same skeleton does not guarantee
-identical findings after rendering: the suggestion feeds the WCAG-EM plan,
-the evaluator still owns the sample.
+classes while the footer stays identical).
 
 ## 14. Score ANY engine against the frozen corpus
 
@@ -204,10 +209,10 @@ with one injected violation each, placebo controls where any finding is a
 false positive by construction.
 
 ```bash
-uvx --from a11y-toolkit a11ytoolkit corpus verify corpus   # every hash + the seal
+at corpus verify corpus   # every hash + the seal
 # run YOUR evaluator on corpus/pages/*.html, then one JSON line per case:
 # {"case_id": "m7-0", "criteria_found": ["1.1.1"]}
-uvx --from a11y-toolkit a11ytoolkit corpus evaluate --submission mine.jsonl corpus
+at corpus evaluate --submission mine.jsonl corpus
 ```
 
 The reference baseline ships with the dataset (`results/reference.json`:
