@@ -39,10 +39,6 @@ Static audits, contrast math, PDF/DOCX screening and the evidence pack run with
 traps, reflow, forms) additionally need Playwright:
 `pip install playwright && playwright install chromium`.
 
-## Trust, verified
-
-Every badge below is a live, click-through credential — none decorative:
-
 [![CI](https://github.com/kinti/a11y-toolkit/actions/workflows/ci.yml/badge.svg)](https://github.com/kinti/a11y-toolkit/actions/workflows/ci.yml)
 [![PyPI](https://img.shields.io/pypi/v/a11y-toolkit)](https://pypi.org/project/a11y-toolkit/)
 [![npm](https://img.shields.io/npm/v/%40kinti%2Fa11y-toolkit)](https://www.npmjs.com/package/@kinti/a11y-toolkit)

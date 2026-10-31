@@ -43,10 +43,6 @@ pack de evidencia corren con **cero dependencias**. Las herramientas renderizada
 además Playwright:
 `pip install playwright && playwright install chromium`.
 
-## Confianza, verificada
-
-Cada badge de esta fila es una credencial viva y pulsable — ninguna decorativa:
-
 [![CI](https://github.com/kinti/a11y-toolkit/actions/workflows/ci.yml/badge.svg)](https://github.com/kinti/a11y-toolkit/actions/workflows/ci.yml)
 [![PyPI](https://img.shields.io/pypi/v/a11y-toolkit)](https://pypi.org/project/a11y-toolkit/)
 [![npm](https://img.shields.io/npm/v/%40kinti%2Fa11y-toolkit)](https://www.npmjs.com/package/@kinti/a11y-toolkit)
