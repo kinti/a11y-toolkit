@@ -1,6 +1,6 @@
 # a11y-toolkit — the accessibility layer for AI coding agents
 
-**English** · [Español](README.es.md)
+<p align="center">🌐 <strong>English</strong> · <a href="README.es.md">Español</a></p>
 
 > WCAG 2.2 for your coding agent — audit, fix, document and watch. Zero dependencies, es/en.
 

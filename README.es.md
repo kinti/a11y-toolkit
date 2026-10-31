@@ -3,7 +3,7 @@
 > WCAG 2.2 para tu agente de código — auditar, corregir, documentar y vigilar.
 > Cero dependencias, salida es/en.
 
-**English** · [Español](README.es.md)
+<p align="center">🌐 <strong>Español</strong> · <a href="README.md">English</a></p>
 
 [![CI](https://github.com/kinti/a11y-toolkit/actions/workflows/ci.yml/badge.svg)](https://github.com/kinti/a11y-toolkit/actions/workflows/ci.yml)
 [![PyPI](https://img.shields.io/pypi/v/a11y-toolkit)](https://pypi.org/project/a11y-toolkit/)
