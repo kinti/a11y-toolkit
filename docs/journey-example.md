@@ -111,5 +111,7 @@ is told there are 52 floor lamps and shown none of them. Verdict: blocked,
 This is the finding class only a task-based method catches: every element
 exists, every widget is reachable in isolation, and rule-scanners see a
 working page — while the content the task needs is simply not there for a
-blind user. The evidence is reproducible: load the pages with an
-accessibility-tree inspector and look for a product name or a price.
+blind user on October 5, 2026. The evidence was reproducible that day:
+load the pages with an accessibility-tree inspector and look for a product name or a price.
+
+Update 2026-10-31: the site corrected this. The same blindfold protocol re-run today passes at 100 (product names, prices, ratings and add-to-cart buttons are now in the tree). See docs/benchmark-agents.md for the re-run.

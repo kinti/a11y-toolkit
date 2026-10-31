@@ -242,7 +242,7 @@
   "reduced_motion_ignored_rem": "Envuelve las animaciones en @media (prefers-reduced-motion: reduce) { animation: none } — o paúsala con la API Animation. El usuario pidió menos movimiento; respóndelo.",
   "reflow_fail": "{n} elementos desbordan a {w}px de ancho (scroll horizontal): {det}. Con reflujo correcto, a 320px no hay scroll en una dimensión (1.4.10).",
   "reflow_fail_rem": "Usa layouts fluidos (flex/grid, max-width en vez de width fija) y media queries: el contenido debe reflujo a 320px sin scroll horizontal. Los excepciones: tablas de datos, mapas, gráficos.",
-  "state_contrast": "{n} controles con contraste insuficiente en estado :focus/:hover (<3:1): {det}. Revisar.",
+  "state_contrast": "{n} controles con contraste insuficiente en estado :focus/:hover (4.5:1 texto normal, 3:1 texto grande/UI): {det}. Revisar.",
   "state_contrast_rem": "El texto del control también necesita contraste cuando está enfocado o con el puntero encima (1.4.3); los controles DESACTIVADOS están exentos por WCAG. Ajusta los colores de :focus y :hover.",
   "target_small": "{n} controles con área de toque menor de 24×24 px (WCAG 2.2, 2.5.8): {det}.",
   "target_small_rem": "Da a los controles al menos 24×24 px CSS (mejor 44×44) con padding o min-width/min-height. Excepciones: enlaces inline equivalentes y espaciado suficiente alrededor."

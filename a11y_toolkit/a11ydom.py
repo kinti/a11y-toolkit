@@ -144,6 +144,28 @@ _JS = r'''(maxEj) => {
     return s.visibility !== 'hidden' && s.display !== 'none' && parseFloat(s.opacity || '1') > 0.05
       && !el.closest('[aria-hidden="true"]');
   };
+  const visText = el => {
+    if (!vis(el)) return false;
+    const s = getComputedStyle(el);
+    const ti = parseFloat(s.textIndent) || 0;
+    if (ti < -100 && (['hidden', 'clip'].includes(s.overflow) || ['hidden', 'clip'].includes(s.overflowX) || ['hidden', 'clip'].includes(s.overflowY))) return false;
+    if (s.position === 'absolute' && (s.clip !== 'auto' || s.clipPath !== 'none')) {
+      const r = el.getBoundingClientRect();
+      if (r.width <= 2 && r.height <= 2) return false;
+    }
+    return true;
+  };
+  const hasVisibleText = el => {
+    const walker = document.createTreeWalker(el, NodeFilter.SHOW_TEXT);
+    let n;
+    while ((n = walker.nextNode())) {
+      const txt = (n.nodeValue || '').trim();
+      if (!txt) continue;
+      const p = n.parentElement;
+      if (p && visText(p)) return true;
+    }
+    return false;
+  };
   const path = el => {
     let p = el.tagName.toLowerCase();
     if (el.id) return '#' + el.id;
@@ -212,6 +234,7 @@ _JS = r'''(maxEj) => {
       }
       if (!el || el.closest('script, style, noscript, svg title')) continue;
       if (!vis(el)) continue;
+      if (!visText(el)) continue;
       // text_ de solo símbolos (±±±@@) o UN carácter ASCII (X de cerrar):
       // contenido no verbal — sin requisito. CUALQUIER letra/dígito de
       // cualquier alfabeto (CJK, cirílico, árabe…) ES text_ verbal
@@ -518,8 +541,10 @@ _JS = r'''(maxEj) => {
     if (fgf && !bgf.image) {
       const fs = parseFloat(s.fontSize) || 16;
       const isLarge = fs >= 24 || (fs >= 18.66 && (parseInt(s.fontWeight) || 400) >= 700);
+      const hasText = hasVisibleText(el);
+      const threshold = !hasText ? 3.0 : (isLarge ? 3.0 : 4.5);
       const rf2 = ratioOf(over(fgf, bgf), bgf);
-      if (rf2 < (isLarge ? 3.0 : 4.5) && out.focusContrast.length < 20)
+      if (rf2 < threshold && out.focusContrast.length < 20)
         out.focusContrast.push({ example: path(el), ratio: Math.round(rf2 * 100) / 100 });
     }
     // (2.4.11 por parada se cubre abajo con la causa raíz)

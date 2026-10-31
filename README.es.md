@@ -271,8 +271,8 @@ Comparado mensualmente contra axe-core 4.10 en páginas reales
 ([metodología y resultados](bench/README.md)). Benchmark de agentes por
 tareas en sitios en vivo, incluyendo una muestra estratificada de las páginas
 más importantes de España ([método y
-resultados](docs/benchmark-agents.md)). Encontró un fallo WCAG real en gov.uk
-que axe no reporta (botón azul a 3.91:1, verificado a mano). Sacó de dentro
+resultados](docs/benchmark-agents.md)). Encontró un hallazgo de contraste en gov.uk
+que axe deja incompleto (botón de búsqueda a 3.91:1; la revisión manual mostró que la parte visible es un icono que supera el umbral 3:1 de no-texto, así que no es un fallo de conformidad). Sacó de dentro
 nuestros propios falsos positivos (skip links ocultos, campos honeypot,
 enlaces genéricos de contexto único, accname de image-alt — cada uno con su
 fixture de regresión).
@@ -300,9 +300,9 @@ uno de infraestructura.
 Así que construí la herramienta que siempre quise al lado en una auditoría.
 No otro escáner — escáneres hay. Un juego de herramientas que hace la mitad
 del trabajo, dice exactamente dónde se para, y empaqueta el resto para la
-persona que firma. El fallo de gov.uk que has leído arriba no es un caso de
-benchmark sintético: este motor lo encontró, y yo lo confirmé con mis propios
-ojos antes de escribirlo.
+persona que firma. El hallazgo de gov.uk que has leído arriba no es un caso de
+benchmark sintético: este motor lo encontró, y la revisión manual es lo que
+cazó el falso positivo antes de que saliera como afirmación.
 
 Si te ahorra una tarde, deja una estrella — ayuda de verdad a que el próximo
 auditor lo encuentre. Si no, abre un issue y dime qué falta.

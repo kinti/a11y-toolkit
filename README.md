@@ -257,8 +257,8 @@ this engine. The service is a separate codebase; this repository is the engine.
 Benchmarked against axe-core 4.10 on real pages monthly ([methodology and
 results](bench/README.md)). Task-based agent benchmark on live sites,
 including a stratified sample of Spain's most important pages
-([method and results](docs/benchmark-agents.md)). Found a real WCAG failure on gov.uk that axe does not
-report (blue button at 3.91:1, manually verified). Drove out our own false positives
+([method and results](docs/benchmark-agents.md)). Found a contrast finding on gov.uk that axe leaves incomplete
+(search button at 3.91:1; manual review showed the visible part is an icon that passes the 3:1 non-text threshold, so it is not a conformance failure). Drove out our own false positives
 (hidden skip links, honeypot fields, single-context generic links, image-alt accname
 — each with a regression fixture).
 
@@ -282,9 +282,9 @@ an infrastructure one.
 
 So I built the tool I always wanted next to me on an audit. Not another scanner —
 scanners exist. A toolkit that does half the work, says exactly where it stops, and
-packages the rest for the person who signs. The gov.uk failure you read about above
-is not a synthetic benchmark case: this engine found it, and I confirmed it with my
-own eyes before writing it down.
+packages the rest for the person who signs. The gov.uk finding you read about above
+is not a synthetic benchmark case: this engine found it, and the manual review is what
+caught the false positive before it shipped as a claim.
 
 If it saves you an afternoon, leave a star — it genuinely helps the next auditor
 find it. If it doesn't, open an issue and tell me what is missing.

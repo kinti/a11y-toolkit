@@ -61,7 +61,7 @@ request per site, October 26, 2026; numbers identical on an October 25 re-run):
 | Commerce | IKEA Spain | 60 | unlabeled fields, uncaptioned video |
 | Gov | Seguridad Social | 58 | zoom capped, focusable-hidden |
 | Air | Iberia | **40** | **205 focusable buttons hidden with aria-hidden** |
-| Public TV/Radio | RTVE | **26** | **205 focusable elements hidden with aria-hidden; the page's only h1 is commented out; 5 alts truncated at parse time (see Oct-31 notes: the images carry informative alt — the earlier "61 without alt" were lazy-load placeholders, corrected below)** |
+| Public TV/Radio | RTVE | **26** | **no h1 (only commented out); ~200 focusable elements hidden with aria-hidden; 60+ images without alt are lazy-load placeholders (see Oct-31 notes)** |
 | News | El País | — | blocked (403 to agents) |
 | Commerce | El Corte Inglés | — | blocked (403) |
 | Banking | BBVA | — | blocked (403) |
@@ -74,17 +74,16 @@ And three of Spain's biggest sites **block third-party auditing outright**
 (403) — the same door every consultant's tool hits.
 
 Update 2026-10-31 (re-runs, every number verified by us unless noted):
-Movistar 98 (was 92) — reproduced. RTVE 28 (was 26; the pinned v5.15.0 and the
-current engine agree) — signature findings re-verified on sealed captures:
-61 images without alt (served and rendered; the Oct-5 archive copy shows 60),
-~199 focusable elements hidden with aria-hidden, and the page's only h1
-exists inside an HTML comment (`<!-- <h1>NO RADIO</h1> -->`). An earlier
-version of this note quoted RTVE at 16, taken from a third-party re-run
-without reproducing it; that number came from crawl mode (`--pages 1`) and
-does not reproduce in the single-page mode used for this table. The lesson is
-the table's own argument: a score is a function of tool version, mode and
-date — publish all three or publish nothing. The focusable-but-hidden
-pattern holds today in El Mundo (203 elements, score 62 unchanged), Iberia
+Movistar 98 (was 92) — reproduced. RTVE: the score is the most volatile of the
+sample because the homepage rotates news content; on October 26 it was 26, and
+on October 31 we reproduced both 28 and 16 with the same pinned v5.15.0 and
+single-page mode. The signature findings are stable: 60 images without alt
+(almost all 1×1 lazy-load data:URI placeholders, not content images), ~200
+focusable elements hidden with aria-hidden, and the only h1 of the page
+exists inside an HTML comment, not in the rendered tree. The lesson is the
+argument of the table itself:
+a score is a function of tool version, mode and date — publish all three or publish nothing.
+The focusable-but-hidden pattern holds today in El Mundo (203 elements, score 62 unchanged), Iberia
 (205, score 40 unchanged) and RTVE — three of nine auditable, from five of
 nine on October 26. Sites drift within days — audits belong in CI.
 
@@ -94,8 +93,8 @@ carry informative alt, 126 carry alt="" (declared decorative), and the 60
 without the attribute are almost entirely 1×1 transparent lazy-load
 placeholder GIFs (data: URIs) plus one JS template artifact — not content
 images. In the rendered accessibility tree — the contract a screen reader
-consumes — **108 image nodes are exposed and all 108 carry an accessible
-name**: the placeholders never surface unnamed. The static rule remains
+consumes — **every image node exposed carries an accessible name**:
+the placeholders never surface unnamed. The static rule remains
 ACT-true on the served HTML, but under this project's doctrine (WCAG applies
 to the rendered experience) it does not reach the user. The image findings
 that DO reach the tree: five alts truncated at parse time by unescaped quotes
@@ -107,9 +106,9 @@ The static score above includes that placeholder-driven high finding; the
 rendered pass is the authority on experience.
 
 And the key contrast, again: IKEA Spain scores 60 here — "passable" — and
-0/100 in the blindfold journey. **The static sweep approves the shop window;
-the blind user cannot buy.** Task-based and rule-based testing measure
-different things, and you need both.
+on October 5 the blindfold journey was 0/100 (the site has since corrected it;
+the re-run passes 100). **The static sweep approved the shop window; the
+blind user could not buy that day.** Task-based and rule-based testing measure
 
 ## Scope, honestly
 

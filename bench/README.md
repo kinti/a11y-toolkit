@@ -22,10 +22,12 @@ Reading it honestly:
   (DOM-vs-visual order, heading quality) and the rendered checks axe marks
   *incomplete*.
 - **gov.uk is the showcase**: axe reports 1 criterion (`region`), the
-  toolkit reports 5 — including the rendered contrast failure axe's own
-  rule leaves as "incomplete" (the manually-verified **3.91:1** search
-  button, criterion 1.4.3) plus text-spacing, focus and target-size checks
-  axe does not run.
+  toolkit reports 5 — including a rendered contrast finding axe's own
+  rule leaves as "incomplete" (the **3.91:1** search button). Manual
+  review corrected that finding: the button's visible content is an icon
+  that passes the 3:1 non-text threshold, and its label is visually hidden,
+  so it is not a conformance failure. The detector now distinguishes
+  visible text from visually-hidden text.
 - **Only axe** on Wikipedia: `landmark-one-main` style rules the static
   pass intentionally does not score (it flags, not fails, partial
   landmark coverage) — the gap list is in the raw JSON, not hidden.
