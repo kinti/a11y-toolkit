@@ -3,4 +3,9 @@ include SECURITY.md
 include CHANGELOG.md
 recursive-include a11y_toolkit/locales *.json
 include a11y_toolkit/arialive.js
-recursive-include tests *.py *.gz
+# tests stay OUT of the sdist (they live at the release tag): the published
+# artifact ships the product — a slim artifact makes fewer scanner claims to
+# answer and every remaining one maps 1:1 to a SECURITY.md row.
+# `prune` beats omission: setuptools merges SOURCES.txt incrementally and
+# never removes old entries, so stale manifests kept re-adding tests/
+prune tests

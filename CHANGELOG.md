@@ -1,5 +1,27 @@
 # Changelog
 
+## 5.25.2 — pendiente — "the slim sdist + the serious badges"
+
+- **Tests stay OUT of the sdist** (`MANIFEST.in`: `prune tests`) — the
+  published artifact ships the product; tests live at the release tag.
+  sdist 1598KB → ~290KB, and three scanner claim-surface categories
+  (env, eval literal, most of shell) dissolve because the code truly
+  leaves the artifact. LESSON: setuptools merges SOURCES.txt
+  incrementally and never removes entries — plain omission re-added
+  tests from stale manifests; `prune` is impermeable (verified with a
+  rebuild without cleaning).
+- **Filesystem boundary pinned** (test_solido): the engine opens ZERO
+  hardcoded absolute paths and never touches the user's home — the
+  verified answer to the scanner's "Filesystem access" category, now
+  unable to regress silently. SECURITY.md rows expanded (namespaces are
+  format identifiers, never fetched; arialive.js is browser-only UI).
+- **OpenSSF Scorecard workflow** (weekly + push to main, published
+  results) — the industry-standard supply-chain score joins the README
+  badge row, next to: Socket (audited), npm version, ACT Rules 20/20,
+  releases OIDC provenance signed, dependencies zero, Python versions,
+  GitHub release. The score starts wherever it starts and climbs with
+  real fixes per release — the house never paints the meter.
+
 ## 5.25.1 — pendiente — "mcpName (registry requirement)"
 
 - **npm/package.json gains `mcpName: io.github.kinti/a11y-toolkit`**: the

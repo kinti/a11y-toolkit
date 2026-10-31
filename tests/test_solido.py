@@ -254,6 +254,23 @@ for _f in _tracked:
     with open(os.path.join(ROOT, _f), 'rb') as _fh:
         assert _aguja not in _fh.read().lower(), f'nombre de ubicación interna publicado en {_f}'
 
+# ---------- 5b. frontera de ficheros (la respuesta VERIFICADA al aviso
+# "Filesystem access" de los escáneres de supply-chain): el motor no abre
+# rutas absolutas propias ni toca el home del usuario — solo los argumentos,
+# sus defaults documentados y el catálogo de locales empaquetado ----------
+_frontera = []
+for _f2 in sorted(os.listdir(os.path.join(ROOT, 'a11y_toolkit'))):
+    if not _f2.endswith('.py'):
+        continue
+    with open(os.path.join(ROOT, 'a11y_toolkit', _f2), encoding='utf-8') as _fh2:
+        for _i2, _l2 in enumerate(_fh2, 1):
+            if ("open('/" in _l2 or 'open("/' in _l2 or "open('~" in _l2
+                    or "open('~" in _l2 or 'expanduser' in _l2 or 'Path.home' in _l2):
+                _frontera.append(f'{_f2}:{_i2}')
+assert not _frontera, \
+    f'open() con ruta absoluta/home fuera de la frontera declarada (SECURITY.md): {_frontera}'
+print('  frontera de ficheros: cero rutas absolutas/own-home en open() ✓')
+
 print('INVARIANTES OK ✓ (catálogo parejo, _rem completo, versiones alineadas, '
       f'conteos = {len(server.TOOLS)}+{len(server._PROMPTS)} en todas las superficies, '
       'fuzz hostil sin caídas, superficie interna limpia)')
