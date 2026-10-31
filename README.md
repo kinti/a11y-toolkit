@@ -4,21 +4,9 @@
 
 > WCAG 2.2 for your coding agent — audit, fix, document and watch. Zero dependencies, es/en.
 
-[![CI](https://github.com/kinti/a11y-toolkit/actions/workflows/ci.yml/badge.svg)](https://github.com/kinti/a11y-toolkit/actions/workflows/ci.yml)
-[![PyPI](https://img.shields.io/pypi/v/a11y-toolkit)](https://pypi.org/project/a11y-toolkit/)
-[![npm](https://img.shields.io/npm/v/%40kinti%2Fa11y-toolkit)](https://www.npmjs.com/package/@kinti/a11y-toolkit)
-[![Downloads](https://img.shields.io/pypi/dm/a11y-toolkit)](https://pypistats.org/packages/a11y-toolkit)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
-[![MCP](https://img.shields.io/badge/Model%20Context%20Protocol-server-purple)](https://modelcontextprotocol.io)
-[![Sponsor](https://img.shields.io/badge/Sponsor-%E2%9D%A4-pink)](https://github.com/sponsors/kinti)
-[![Supply chain](https://img.shields.io/badge/supply%20chain-audited%20by%20Socket-blueviolet)](https://socket.dev/pypi/package/a11y-toolkit/overview)
-[![OpenSSF Scorecard](https://api.securityscorecards.dev/projects/github.com/kinti/a11y-toolkit/badge)](https://scorecard.dev/viewer/?uri=github.com/kinti/a11y-toolkit)
-[![OpenSSF Best Practices](https://www.bestpractices.dev/projects/16107/badge)](https://www.bestpractices.dev/en/projects/16107)
-[![ACT Rules](https://img.shields.io/badge/ACT%20Rules-20%2F20%20consistent-brightgreen)](https://github.com/kinti/a11y-toolkit/blob/main/docs/act-report-summary.md)
-[![Releases](https://img.shields.io/badge/releases-OIDC%20provenance%20signed-blue)](.github/workflows/publish.yml)
-[![Dependencies](https://img.shields.io/badge/dependencies-zero-blue)](pyproject.toml)
-[![Python Versions](https://img.shields.io/pypi/pyversions/a11y-toolkit)](https://pypi.org/project/a11y-toolkit/)
-[![GitHub Release](https://img.shields.io/github/v/release/kinti/a11y-toolkit)](https://github.com/kinti/a11y-toolkit/releases)
+<p align="center">
+  <img src="docs/demo.gif" alt="a11y-toolkit in action: audit (score 64), nearest passing color, re-audit (94) — real tool output" width="720">
+</p>
 
 34 MCP tools, 6 prompts and a skill covering the whole WCAG 2.2 loop: audit, fix,
 document, watch, hand off — and now blindfold usability testing, where the agent
@@ -32,10 +20,6 @@ the human signs.
 
 <p align="center">
   <a href="https://madebyhuman.iamjarl.com"><img src="https://madebyhuman.iamjarl.com/badges/loop-white.svg" alt="Human in the Loop — humans guide and curate the process; every conformance artifact is signed by a person" height="34"></a>
-</p>
-
-<p align="center">
-  <img src="docs/demo.gif" alt="a11y-toolkit in action: audit (score 64), nearest passing color, re-audit (94) — real tool output" width="720">
 </p>
 
 ## Quickstart
@@ -54,6 +38,26 @@ Static audits, contrast math, PDF/DOCX screening and the evidence pack run with
 **zero dependencies**. The rendered tools (real contrast over images, keyboard
 traps, reflow, forms) additionally need Playwright:
 `pip install playwright && playwright install chromium`.
+
+## Trust, verified
+
+Every badge below is a live, click-through credential — none decorative:
+
+[![CI](https://github.com/kinti/a11y-toolkit/actions/workflows/ci.yml/badge.svg)](https://github.com/kinti/a11y-toolkit/actions/workflows/ci.yml)
+[![PyPI](https://img.shields.io/pypi/v/a11y-toolkit)](https://pypi.org/project/a11y-toolkit/)
+[![npm](https://img.shields.io/npm/v/%40kinti%2Fa11y-toolkit)](https://www.npmjs.com/package/@kinti/a11y-toolkit)
+[![Downloads](https://img.shields.io/pypi/dm/a11y-toolkit)](https://pypistats.org/packages/a11y-toolkit)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![MCP](https://img.shields.io/badge/Model%20Context%20Protocol-server-purple)](https://modelcontextprotocol.io)
+[![Sponsor](https://img.shields.io/badge/Sponsor-%E2%9D%A4-pink)](https://github.com/sponsors/kinti)
+[![Supply chain](https://img.shields.io/badge/supply%20chain-audited%20by%20Socket-blueviolet)](https://socket.dev/pypi/package/a11y-toolkit/overview)
+[![OpenSSF Scorecard](https://api.securityscorecards.dev/projects/github.com/kinti/a11y-toolkit/badge)](https://scorecard.dev/viewer/?uri=github.com/kinti/a11y-toolkit)
+[![OpenSSF Best Practices](https://www.bestpractices.dev/projects/16107/badge)](https://www.bestpractices.dev/en/projects/16107)
+[![ACT Rules](https://img.shields.io/badge/ACT%20Rules-20%2F20%20consistent-brightgreen)](https://github.com/kinti/a11y-toolkit/blob/main/docs/act-report-summary.md)
+[![Releases](https://img.shields.io/badge/releases-OIDC%20provenance%20signed-blue)](.github/workflows/publish.yml)
+[![Dependencies](https://img.shields.io/badge/dependencies-zero-blue)](pyproject.toml)
+[![Python Versions](https://img.shields.io/pypi/pyversions/a11y-toolkit)](https://pypi.org/project/a11y-toolkit/)
+[![GitHub Release](https://img.shields.io/github/v/release/kinti/a11y-toolkit)](https://github.com/kinti/a11y-toolkit/releases)
 
 ## Features
 
