@@ -143,3 +143,35 @@ from a11y_toolkit.a11yaudit import CRIT  # noqa: E402
 assert len(CRIT['es']) == 51, f'README claims 51 criteria, CRIT has {len(CRIT["es"])}'
 
 print('CLI SMOKE OK ✓ (todos los subcomandos, inyección bloqueada, 26 criterios verificados)')
+
+# ── star nudge: una vez por máquina, stderr, jamás en CI, silenciable ────────
+# (revisión 31-oct: el gate explícito se descartó — sería starjacking con
+# extra pasos; lo ético máximo es el aviso post-valor, una vez, no bloqueante)
+_tmp_nudge = tempfile.mkdtemp()
+_env_nudge = dict(os.environ, PYTHONPATH=ROOT, TMPDIR=_tmp_nudge)
+_del_env = {k: _env_nudge.pop(k) for k in ('A11Y_NO_STAR_NUDGE', 'CI',
+            'GITHUB_ACTIONS', 'GITLAB_CI', 'CONTINUOUS_INTEGRATION', 'TF_BUILD')
+            if k in _env_nudge}
+_nudge_out = os.path.join(_tmp_nudge, 'fixed.html')
+
+_r1 = subprocess.run([sys.executable, '-m', 'a11y_toolkit.a11y', 'fix', '--file', FIX,
+                      '-o', _nudge_out], capture_output=True, text=True,
+                     timeout=180, env=_env_nudge)
+assert _r1.returncode == 0 and 'star helps other auditors' in _r1.stderr, _r1.stderr[-200:]
+_j = json.loads(_r1.stdout)   # el stdout JSON queda LIMPIO: el aviso va a stderr
+assert _j.get('file') == _nudge_out
+_r2 = subprocess.run([sys.executable, '-m', 'a11y_toolkit.a11y', 'fix', '--file', FIX,
+                      '-o', _nudge_out + '.2'], capture_output=True, text=True,
+                     timeout=180, env=_env_nudge)
+assert 'star helps' not in _r2.stderr, 'el aviso se repite (marcador no funciona)'
+_env_silent = dict(_env_nudge, A11Y_NO_STAR_NUDGE='1', TMPDIR=tempfile.mkdtemp())
+_r3 = subprocess.run([sys.executable, '-m', 'a11y_toolkit.a11y', 'fix', '--file', FIX,
+                      '-o', os.path.join(_tmp_nudge, 'fixed3.html')], capture_output=True,
+                     text=True, timeout=180, env=_env_silent)
+assert 'star helps' not in _r3.stderr, 'A11Y_NO_STAR_NUDGE no silencia'
+_env_ci = dict(_env_nudge, CI='1', TMPDIR=tempfile.mkdtemp())
+_r4 = subprocess.run([sys.executable, '-m', 'a11y_toolkit.a11y', 'fix', '--file', FIX,
+                      '-o', os.path.join(_tmp_nudge, 'fixed4.html')], capture_output=True,
+                     text=True, timeout=180, env=_env_ci)
+assert 'star helps' not in _r4.stderr, 'el aviso no debe disparar en CI'
+print('STAR NUDGE OK ✓ (una vez por máquina, stderr limpio para JSON, silenciable, CI mudo)')

@@ -306,6 +306,32 @@ def autofix(html_text, lang=None, title=None, url='(html)', form_errors=True):
     return {'fixed_html': fixed, 'applied': applied, 'not_applied': not_applied}
 
 
+def _star_nudge_once():
+    """Thank the operator once per machine after a real fix lands — never in
+    CI, never blocking, silence with A11Y_NO_STAR_NUDGE=1. The marker lives in
+    the system temp dir (never the user's home: the filesystem-boundary pin in
+    test_solido applies), so a cleaned tmp dir may show it again — that is the
+    honest maximum without telemetry."""
+    import os
+    if os.environ.get('A11Y_NO_STAR_NUDGE'):
+        return
+    if any(os.environ.get(k) for k in ('CI', 'GITHUB_ACTIONS', 'GITLAB_CI',
+                                       'CONTINUOUS_INTEGRATION', 'TF_BUILD')):
+        return
+    import tempfile
+    marker = os.path.join(tempfile.gettempdir(), 'a11y-toolkit-star-nudge')
+    try:
+        if os.path.exists(marker):
+            return
+        with open(marker, 'w', encoding='utf-8') as fh:
+            fh.write('thanked\n')
+    except OSError:
+        return
+    print('If a11y-toolkit saved you time, a star helps other auditors find '
+          'it: github.com/kinti/a11y-toolkit  (shown once; '
+          'A11Y_NO_STAR_NUDGE=1 silences)', file=sys.stderr)
+
+
 def main(argv):
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument('--file', required=True)
@@ -321,6 +347,9 @@ def main(argv):
             f.write(res['fixed_html'])
         print(json.dumps({'file': a.out, 'applied': res['applied'],
                           'not_applied': res['not_applied']}, ensure_ascii=False, indent=1))
+        # human-facing thank-you goes to stderr AFTER the JSON: piped stdout
+        # stays machine-parseable, and only a real fix (a file written) asks
+        _star_nudge_once()
     else:
         print(res['fixed_html'])
     return 0

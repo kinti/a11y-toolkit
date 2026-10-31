@@ -47,6 +47,14 @@
   is list-argv only (`git` under `--changed`, macOS `sips` fallback), the
   runtime engine reads zero environment variables, and every w3.org URL
   is a static documentation link in the knowledge catalog.
+- **Tasteful star nudge (CLI `fix`, once per machine)**: after a fix writes a
+  file, stderr gets one line — "if it saved you time, a star helps other
+  auditors find it". Never in CI (env-detected), silenced with
+  `A11Y_NO_STAR_NUDGE=1`, marker in the system temp dir (never the user's
+  home — the filesystem-boundary pin applies), stdout JSON stays
+  machine-parseable (the line goes to stderr). The explicit star-gate idea
+  was rejected: it would be starjacking with extra steps and contradicts
+  the zero-telemetry promise.
 - **`a11ycorpus.py` + `corpus/` v2026.10.0 — the versioned audit corpus
   (VK-LSVD translation)**: the sealed mutant exam frozen as a DATASET
   RELEASE. 18 mutants (one per operator, 13 criteria) + 3 placebo
