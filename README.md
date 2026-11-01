@@ -244,11 +244,6 @@ a11ytoolkit annotate page.html --report r.json -o marked.html  # per-element mar
 a11ytoolkit criteria --list --level AA --new-in 2.2            # the offline Quick Ref, filterable
 ```
 
-## Try it live
-
-The [Lince panel](https://lince.a11y.es/panel) runs this engine in the browser: audit any page,
-see every finding marked ON its element, fix on the copy with a live re-audit, and generate the
-evidence pack — no account, nothing stored.
 
 
 ## Coverage: 51 of 55 WCAG 2.2 A/AA criteria (93%)

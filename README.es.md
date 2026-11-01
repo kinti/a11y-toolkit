@@ -255,11 +255,6 @@ a11ytoolkit criteria --list --level AA --new-in 2.2            # el Quick Ref of
 a11ytoolkit corpus verify corpus                               # el corpus congelado, verificado
 ```
 
-## Pruébalo en vivo
-
-El [panel de Lince](https://lince.a11y.es/panel) ejecuta este motor en el navegador: audita cualquier
-página, ve cada hallazgo marcado EN su elemento, arregla sobre la copia con re-auditoría en vivo y
-genera el pack de evidencia — sin cuenta, sin guardar nada.
 
 
 ## Cobertura: 51 de 55 criterios WCAG 2.2 A/AA (93%)
