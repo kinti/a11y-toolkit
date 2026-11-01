@@ -41,3 +41,22 @@ make test   # all suites; red means the invariant you touched is load-bearing
 ```
 
 The accessibility rule applies to this repo too: it must audit clean.
+
+## VITAL: publish every change (founder rule, 2026-11-01)
+
+**Any change to public capabilities MUST ship with its publication in the
+SAME commit** — no exceptions, no "later":
+
+1. **CHANGELOG.md** — entry in the `pendiente` section at the top (what
+   it is, which pattern it comes from, what it does NOT do).
+2. **README.md AND README.es.md** — both, always: if the change adds or
+   alters a user-facing capability, it goes in the command examples
+   block; if it changes numbers or coverage claims, those lines update
+   too. The Spanish README is a full sibling, never a stale translation.
+3. If it alters architecture: **docs/ARCHITECTURE.md** (the module map is
+   pinned by test_solido).
+4. If it touches deployment of the SaaS: **deploy/README.md** the same
+   day (the tunnel-era lesson: a runbook describing a dead architecture
+   cost an hour of diagnosis).
+
+Red means the publication invariant you touched is load-bearing.
