@@ -247,8 +247,20 @@ a11ytoolkit route --goal "gate my PR"                          # qué herramient
 a11ytoolkit route --file page.html                             # diagnóstico: la página ordena
 a11ytoolkit mutants --seed 7 --n 12                            # el autoexamen sellado del motor
 a11ytoolkit fingerprints pages/*.html -o templates.json        # gemelas → una auditoría por plantilla
+a11ytoolkit audit --url pagina.html --standard en301549        # cláusula EN 301 549 en cada hallazgo
+a11ytoolkit scope audit.json --standard 508 -o alcance.json    # árbol GSA, excepciones WCAG
+a11ytoolkit scope audit.json --solicitation anexo.txt          # anexo de licitación listo (es/en)
+a11ytoolkit annotate pagina.html --report r.json -o copia.html # marcas por elemento en copia exacta
+a11ytoolkit criteria --list --level AA --new-in 2.2            # el Quick Ref offline, filtrable
 a11ytoolkit corpus verify corpus                               # el corpus congelado, verificado
 ```
+
+## Pruébalo en vivo
+
+El [panel de Lince](https://lince.a11y.es/panel) ejecuta este motor en el navegador: audita cualquier
+página, ve cada hallazgo marcado EN su elemento, arregla sobre la copia con re-auditoría en vivo y
+genera el pack de evidencia — sin cuenta, sin guardar nada.
+
 
 ## Cobertura: 51 de 55 criterios WCAG 2.2 A/AA (93%)
 

@@ -237,7 +237,19 @@ a11ytoolkit route --goal "gate my PR"                          # which tools for
 a11ytoolkit route --file page.html                             # diagnosis: the page orders the exams
 a11ytoolkit mutants --seed 7 --n 12                            # the engine's sealed self-exam
 a11ytoolkit fingerprints pages/*.html -o templates.json        # twin pages → one audit per template
+a11ytoolkit audit --url page.html --standard en301549          # EN 301 549 clause on every finding
+a11ytoolkit scope audit.json --standard 508 -o scope.json      # GSA applicability tree, WCAG exceptions
+a11ytoolkit scope audit.json --solicitation annex.txt          # tender-ready accessibility annex (es/en)
+a11ytoolkit annotate page.html --report r.json -o marked.html  # per-element marks on a byte-exact copy
+a11ytoolkit criteria --list --level AA --new-in 2.2            # the offline Quick Ref, filterable
 ```
+
+## Try it live
+
+The [Lince panel](https://lince.a11y.es/panel) runs this engine in the browser: audit any page,
+see every finding marked ON its element, fix on the copy with a live re-audit, and generate the
+evidence pack — no account, nothing stored.
+
 
 ## Coverage: 51 of 55 WCAG 2.2 A/AA criteria (93%)
 
