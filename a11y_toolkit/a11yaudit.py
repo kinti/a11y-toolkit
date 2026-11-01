@@ -37,6 +37,18 @@ _CONTROLS = ('a', 'button', 'summary')
 _VOID = {'area', 'base', 'br', 'col', 'embed', 'hr', 'img', 'input', 'link',
          'meta', 'param', 'source', 'track', 'wbr'}
 
+# ── kernel de anotación por elemento (a11yannotate) ────────────────────────
+# Fuente única de la identidad de elemento: la comparten el auditor (que
+# graba rutas mientras parsea) y el localizador de a11yannotate (que vuelve a
+# parsear el MISMO html para inyectar marcas). Mismo algoritmo, mismo orden.
+VOID_TAGS = _VOID
+
+
+def path_segment(tag, nth):
+    """Segmento de ruta CSS determinista (nth SIEMPRE: los id duplicados no
+    pueden romper la identidad)."""
+    return f'{tag}:nth-of-type({nth})'
+
 # roles que convierten cualquier elemento en campo etiquetable (e086e5)
 _ROLE_FIELDS = {'textbox', 'searchbox', 'spinbutton', 'combobox', 'listbox',
                 'checkbox', 'radio', 'switch', 'search'}
@@ -296,8 +308,20 @@ class _Auditor(HTMLParser):
                     'form', 'input', 'select', 'textarea', 'table')
 
     def __init__(self):
+        # ── anotación por elemento (kernel a11yannotate) ──────────────────
+        # identidad determinista: cada elemento del parseo recibe su ruta
+        # CSS (tag:nth-of-type(n) desde la raíz). id(attrs) es estable dentro
+        # del parseo (cada attrs es un dict nuevo) → los recolectores pueden
+        # resolver la ruta de LO QUE COGIERON sin cambiar sus tuplas.
+        self._path_stack = []      # [(tag, path, {tag: nth})] del elemento abierto
+        self._elem_paths = {}      # id(attrs) → ruta del elemento
         super().__init__(convert_charrefs=True)
         self.imgs_no_alt = []
+        # elementos (attrs) detrás de cada ejemplo, para el kernel de anotación
+        self.imgs_no_alt_elems = []
+        self.iframes_no_title_elems = []
+        self.placeholder_only_elems = []
+        self.autocomplete_elems = []
         self.controls_by_kind = {}          # tag → lista de atributos de controles sin nombre
         self.fields_no_label = []
         self.iframes_no_title = []
@@ -508,6 +532,19 @@ class _Auditor(HTMLParser):
     def handle_starttag(self, tag, attrs):
         a = dict(attrs)
         self.elements += 1
+        # ruta determinista del elemento (kernel de anotación): nth-of-type
+        # SIEMPRE (los id duplicados no pueden romper la ruta) y los void no
+        # abren pila (no tienen handle_endtag)
+        if self._path_stack:
+            _parent = self._path_stack[-1]
+            _parent[2][tag] = _parent[2].get(tag, 0) + 1
+            _seg = path_segment(tag, _parent[2][tag])
+            _path = _parent[1] + '>' + _seg
+        else:
+            _path = path_segment(tag, 1)
+        self._elem_paths[id(a)] = _path
+        if tag not in VOID_TAGS:
+            self._path_stack.append((tag, _path, {}))
         # rasgos estructurales para el scope de aplicabilidad (a11yscope):
         # evidencia POSITIVA — cero <video> habilita proponer 1.2.x como no
         # aplicable; la ausencia de señal jamás cuenta como ausencia de
@@ -644,6 +681,7 @@ class _Auditor(HTMLParser):
                         kind in ('email', 'tel')
                         or _PERSONAL_DATA.search((a.get('name') or '') + ' ' + (a.get('id') or ''))):
                     self.missing_autocomplete.append(f'input type={kind} name={a.get("name") or "?"}'[:44])
+                    self.autocomplete_elems.append(a)
         if tag == 'input' and 'autocomplete' in a and 'disabled' not in a \
                 and (a.get('aria-disabled') or '').strip().lower() != 'true' and not _hidden:
             # ABNF exacta de la regla ACT 73f2c2 (HTML autofill): [section-*]?
@@ -912,6 +950,16 @@ class _Auditor(HTMLParser):
             self.positive_tabindices.append((tag, int(ti)))
 
     def handle_endtag(self, tag):
+        # pila de rutas del kernel: pop normal si casa; si hay anidamiento
+        # malformado, se descarta hasta el que casa; suelto, se ignora
+        if self._path_stack:
+            if self._path_stack[-1][0] == tag:
+                self._path_stack.pop()
+            else:
+                for _i in range(len(self._path_stack) - 1, -1, -1):
+                    if self._path_stack[_i][0] == tag:
+                        del self._path_stack[_i:]
+                        break
         if tag not in _VOID:
             self._depth = max(0, self._depth - 1)
             if self._el_stack:
@@ -1234,6 +1282,7 @@ def audit_html(html_text, url='(html)', lang='en', standard=None, target=None):
         lb, al, ti = _name_sources(a)
         if not (al or lb or ti):
             p.imgs_no_alt.append((a.get('src') or a.get('aria-label') or '(role=img)')[:100])
+            p.imgs_no_alt_elems.append(a)
     for a, hidden in p.inputs_image:
         if hidden:
             continue
@@ -1249,6 +1298,7 @@ def audit_html(html_text, url='(html)', lang='en', standard=None, target=None):
         lb, al, ti = _name_sources(a)
         if not ((a.get('title') or '').strip() or al or lb):
             p.iframes_no_title.append((a.get('src') or '')[:100])
+            p.iframes_no_title_elems.append(a)
     for kind, a, text, img_attrs, hidden in p.controls_raw:
         # input submit/reset/button llevan valor por defecto del navegador;
         # disabled/hidden quedan fuera. El value de un <button> NO es su
@@ -1319,6 +1369,7 @@ def audit_html(html_text, url='(html)', lang='en', standard=None, target=None):
         if not (lb or al or ti or en_label
                 or (a.get('id') and a['id'] in p._labels_for)):
             p.placeholder_only.append(f'{tag}[placeholder="{(a.get("placeholder") or "")[:30]}"]')
+            p.placeholder_only_elems.append(a)
 
     findings = []
 
@@ -1326,6 +1377,9 @@ def audit_html(html_text, url='(html)', lang='en', standard=None, target=None):
         h = {'severity': severity, 'criterion': _crit(lang, code), 'signal': key_msg,
              'issue': _t(lang, key_msg, n=fmt.get('n')).format(**fmt)}
         h['remediation'] = _t(lang, key_msg + '_rem').format(**fmt)
+        paths = fmt.pop('paths', None)
+        if paths:
+            h['paths'] = paths[:5]
         findings.append(h)
 
     def add_ej(severity, code, key_msg, examples, **fmt):
@@ -1333,7 +1387,10 @@ def audit_html(html_text, url='(html)', lang='en', standard=None, target=None):
         findings[-1]['examples'] = examples[:5]
 
     if p.imgs_no_alt:
-        add_ej('high', '1.1.1', 'img_no_alt', p.imgs_no_alt, n=len(p.imgs_no_alt))
+        _p_img = [p._elem_paths[id(_a)] for _a in p.imgs_no_alt_elems
+                  if id(_a) in p._elem_paths][:5]
+        add_ej('high', '1.1.1', 'img_no_alt', p.imgs_no_alt,
+               n=len(p.imgs_no_alt), paths=_p_img)
     if p.input_img_no_alt:
         add('high', '1.1.1', 'input_img_alt', n=p.input_img_no_alt)
     for tag, controls in p.controls_by_kind.items():
@@ -1357,7 +1414,8 @@ def audit_html(html_text, url='(html)', lang='en', standard=None, target=None):
         # (idioma, título, bypass, encabezados) no aplican (ACT b5c3f8/3e12e1)
         pass
     elif not p.lang:
-        add('medium', '3.1.1', 'lang_missing')
+        add('medium', '3.1.1', 'lang_missing',
+            paths=[path_segment('html', 1)])
     elif p.lang.lower().split('-')[0] not in _LANG_CODES:
         add('medium', '3.1.1', 'lang_invalid', lang=p.lang)
     elif p.lang_region_invalid:
@@ -1372,7 +1430,10 @@ def audit_html(html_text, url='(html)', lang='en', standard=None, target=None):
                       'untitled document', 'sin nombre', 'document'):
         add('low', '2.4.2', 'title_generic', t=t_clean)
     if p.iframes_no_title:
-        add_ej('medium', '4.1.2', 'iframe_title', p.iframes_no_title, n=len(p.iframes_no_title))
+        add_ej('medium', '4.1.2', 'iframe_title', p.iframes_no_title,
+               n=len(p.iframes_no_title),
+               paths=[p._elem_paths[id(_a)] for _a in p.iframes_no_title_elems
+                      if id(_a) in p._elem_paths][:5])
     if p.videos and p.videos_with_captions < p.videos:
         add('medium', '1.2.2', 'video_captions', n=p.videos - p.videos_with_captions)
     if p.viewport:
@@ -1488,7 +1549,9 @@ def audit_html(html_text, url='(html)', lang='en', standard=None, target=None):
                n=len(p.roles_without_state), example=', '.join(p.roles_without_state[:4]))
     if p.missing_autocomplete:
         add_ej('medium', '1.3.5', 'autocomplete', p.missing_autocomplete,
-               n=len(p.missing_autocomplete), example=', '.join(p.missing_autocomplete[:4]))
+               n=len(p.missing_autocomplete), example=', '.join(p.missing_autocomplete[:4]),
+               paths=[p._elem_paths[id(_a)] for _a in p.autocomplete_elems
+                      if id(_a) in p._elem_paths][:5])
     if p.autocomplete_invalid:
         add_ej('medium', '1.3.5', 'autocomplete_invalid', p.autocomplete_invalid,
                n=len(p.autocomplete_invalid), example=', '.join(p.autocomplete_invalid[:4]))
@@ -1508,7 +1571,9 @@ def audit_html(html_text, url='(html)', lang='en', standard=None, target=None):
     # forms deep-dive
     if p.placeholder_only:
         add_ej('high', '3.3.2', 'placeholder_only', p.placeholder_only,
-               n=len(p.placeholder_only), example=', '.join(p.placeholder_only[:3]))
+               n=len(p.placeholder_only), example=', '.join(p.placeholder_only[:3]),
+               paths=[p._elem_paths[id(_a)] for _a in p.placeholder_only_elems
+                      if id(_a) in p._elem_paths][:5])
     if p.required_no_indication:
         add_ej('low', '3.3.2', 'required_no_indication', p.required_no_indication,
                n=len(p.required_no_indication), example=', '.join(p.required_no_indication[:3]))
@@ -1579,9 +1644,11 @@ def audit_html(html_text, url='(html)', lang='en', standard=None, target=None):
     reading = _reading_level(' '.join(p._visible_text),
                              page_lang if page_lang in ('es', 'en') else lang)
 
+    import hashlib as _hl
     res = {
         'mode': 'static',
         'url': url,
+        'source_sha256': _hl.sha256(html_text.encode('utf-8', 'replace')).hexdigest(),
         'reading_level': reading,
         'score': compute_score(findings),
         'score_note': _t(lang, 'score_note'),
