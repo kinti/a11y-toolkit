@@ -35,8 +35,13 @@ python3 tests/test_dom.py && python3 tests/test_mcp.py          # full suites
   rule and what makes it a *violation* vs "needs review".
 - **The rendered audit** (`a11y_toolkit/a11ydom.py`): fewer "review" cases, better
   selectors, state-contrast checks.
-- **Translations**: the output catalogs are plain dictionaries — adding
-  languages is welcome (open an issue first to agree on the code).
+- **Translations**: the designed first contribution — one JSON file per
+  language, validated mechanically by `tests/test_locales.py`, no code
+  involved. Claim an
+  [open locale issue](https://github.com/kinti/a11y-toolkit/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22)
+  or use the *Add a language* issue template; the step-by-step guide is
+  [docs/i18n.md](../docs/i18n.md). The ladder from there: docs → bug fix →
+  feature. Human translation only — machine translation is rejected.
 - **Docs and real-world reports**: audits of real sites that found real issues
   (redact as needed) are the best marketing this project can have.
 

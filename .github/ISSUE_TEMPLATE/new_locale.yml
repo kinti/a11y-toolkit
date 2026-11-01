@@ -1,0 +1,34 @@
+name: 🌍 Add a language (translation)
+description: Translate the engine's message catalog to a new language — a single-file PR, no code involved
+labels: [good first issue, help wanted]
+body:
+  - type: dropdown
+    id: language
+    attributes:
+      label: Language you are claiming
+      description: >
+        Claim it by picking it here so nobody duplicates the work. For a
+        variant, use the code in the comments (e.g. pt-PT vs pt-BR). BCP-47
+        code becomes the filename: a11y_toolkit/locales/<code>.json
+      options:
+        - French (fr)
+        - Portuguese — Brazil (pt-BR)
+        - German (de)
+        - Italian (it)
+        - Galician (gl)
+        - Catalan (ca)
+        - Basque (eu)
+        - Another language (write the BCP-47 code in a comment)
+    validations:
+      required: true
+  - type: checkboxes
+    attributes:
+      label: The four steps (full guide in docs/i18n.md)
+      description: Partial translations cannot merge (the gate requires completeness), but the fallback chain means an open PR never breaks anything.
+      options:
+        - label: I copied `a11y_toolkit/locales/_template.json` to `a11y_toolkit/locales/<code>.json` and filled `_meta` (name, native, plural rule, dir)
+        - label: I translated every value keeping the `{placeholders}` (like `{n}`) exactly as they are
+        - label: `python3 tests/test_locales.py` passes locally (or I let CI check it)
+        - label: This is human translation — no machine translation (the catalog is the product's voice)
+    validations:
+      required: true

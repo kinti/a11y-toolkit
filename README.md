@@ -204,6 +204,14 @@ axe-core's locales — with validation axe-core doesn't have. Guide:
 [docs/i18n.md](docs/i18n.md). Downstream products can layer brand wording via
 overlays without forking.
 
+**Claim an open language:** French, Brazilian Portuguese and German have seeded
+issues under [`good first issue`](https://github.com/kinti/a11y-toolkit/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22)
+— one JSON file, mechanical validation, credit in the README and in the release
+notes. Any other language: use the
+[Add a language template](https://github.com/kinti/a11y-toolkit/issues/new?template=new_locale.yml).
+Human translation only — machine translation is rejected; the catalog IS the
+product's voice.
+
 ## CLI — same engine, one command
 
 Install it with `pip install a11y-toolkit` (or `uv tool install a11y-toolkit`).
@@ -354,6 +362,24 @@ Next, roughly in this order:
 - [ ] Publish the monthly axe-core benchmark results from CI, run over real pages
 - [ ] Screen-reader transcript cross-checks against NVDA and VoiceOver output
 - [ ] More verified client configs (JetBrains AI, Gemini CLI), same treatment as [docs/clients.md](docs/clients.md)
+
+## Community
+
+- **Questions, ideas, show & tell** → [Discussions](https://github.com/kinti/a11y-toolkit/discussions)
+- **First contribution** → the [`good first issue` queue](https://github.com/kinti/a11y-toolkit/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22) — translations are the designed entry point: no code, one file, validated mechanically ([guide](docs/i18n.md))
+- **Bugs and features** → the [issue templates](https://github.com/kinti/a11y-toolkit/issues/new/choose)
+
+A practical ladder: **translate → docs → bug → feature**. Everything you ship
+is credited below and in the release notes.
+
+## Contributors
+
+| Contributor | Contributions |
+|---|---|
+| [@kinti](https://github.com/kinti) | Engine, tests, docs, audits — everything so far |
+
+The next name here is probably a translator's: claim an open locale issue and
+your language ships in the next release with your name on it.
 
 ## Author
 

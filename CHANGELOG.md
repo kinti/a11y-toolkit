@@ -21,6 +21,16 @@
 - **`criteria --list --filters`**: the offline Quick Ref — `--level`,
   `--new-in 2.2` (the nine 2.2 SC), `--signal-filter yes|no`,
   `--standard en301549 --target` (clause per row), `--json`.
+- **Community invitation layer** (from the community-growth research: the
+  entry point must be concrete and labeled the way the good-first-issue
+  indexes crawl): the **"Add a language (translation)" issue template**
+  (pre-labeled `good first issue` + `help wanted`), **Community +
+  Contributors sections in both READMEs** (contribution ladder:
+  translate → docs → bug → feature; credit promised per release), and the
+  CONTRIBUTING translations bullet rewritten to point at the seeded locale
+  issues (fr, pt-BR, de). What it does NOT do: no external translation
+  platform (Crowdin/Weblate deliberately deferred until 3+ languages — plain
+  git/PR by design), no contributor bot.
 
 ## 5.26.0 — pendiente — "EN 301 549 + applicability scope"
 

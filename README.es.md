@@ -213,6 +213,14 @@ que los locales de axe-core — con una validación que axe-core no tiene. Guía
 [docs/i18n.md](docs/i18n.md). Los productos derivados pueden superponer su voz
 de marca vía overlays sin hacer fork.
 
+**Reclama un idioma abierto:** francés, portugués de Brasil y alemán tienen
+issues sembradas con [`good first issue`](https://github.com/kinti/a11y-toolkit/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22)
+— un JSON, validación mecánica, crédito en este README y en las notas de cada
+release. Cualquier otro idioma: usa la
+[plantilla «Añade un idioma»](https://github.com/kinti/a11y-toolkit/issues/new?template=new_locale.yml).
+Solo traducción humana — la traducción automática se rechaza; el catálogo ES
+la voz del producto.
+
 ## CLI — el mismo motor, un comando
 
 Instálalo con `pip install a11y-toolkit` (o `uv tool install a11y-toolkit`).
@@ -376,6 +384,24 @@ Siguiente, más o menos en este orden:
 - [ ] Publicar los resultados mensuales del benchmark axe-core desde CI, sobre páginas reales
 - [ ] Contrastes de la transcripción de lector contra la salida de NVDA y VoiceOver
 - [ ] Más configuraciones de cliente verificadas (JetBrains AI, Gemini CLI), mismo tratamiento que [docs/clients.md](docs/clients.md)
+
+## Comunidad
+
+- **Preguntas, ideas, show & tell** → [Discussions](https://github.com/kinti/a11y-toolkit/discussions)
+- **Primera contribución** → la cola de [`good first issue`](https://github.com/kinti/a11y-toolkit/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22) — las traducciones son la puerta de entrada diseñada: sin código, un fichero, validación mecánica ([guía](docs/i18n.md))
+- **Bugs y features** → las [plantillas de issue](https://github.com/kinti/a11y-toolkit/issues/new/choose)
+
+Una escalera práctica: **traducir → docs → bug → feature**. Todo lo que
+aportes sale acreditado abajo y en las notas de la release.
+
+## Contribuidores
+
+| Contribuidor | Contribuciones |
+|---|---|
+| [@kinti](https://github.com/kinti) | Motor, tests, docs, auditorías — todo lo habido |
+
+El próximo nombre aquí seguramente es de un traductor: reclama una issue de
+locale abierta y tu idioma sale en la próxima release con tu nombre puesto.
 
 ## Autor
 
