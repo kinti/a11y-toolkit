@@ -39,6 +39,7 @@ All output is English by default; pass `--lang es` (or the `lang: "es"` MCP argu
 | "what does the W3C validator say?" | `a11y_html_validate` (Nu parser: doctype, structure, authoritative alt/lang/role; self-hosted vnu for sensitive pages) |
 | "does the form explain what went wrong?" (3.3.1/3.3.3) | `a11y_forms`: fills invalid data, really submits, judges error identification/announcement in the post-submit DOM |
 | "record what I verified by hand/agent" | pass `verified` (criterion codes) to `a11y_evidence`: they become agent-verified in the matrix; automated-fail never erases |
+| "which criteria actually apply to this product?" | `a11y_scope`: applicability from what the audit SAW (features block) — machine proposes structural exclusions (no video → 1.2.x, no forms → 3.3.x), human confirms via `answers`; only confirmed exclusions become not-applicable downstream, each with its reason. `standard=en301549` adds EN 301 549 V4.1.1 clauses (EAA procurement, Canada ICT) |
 | "full evaluation / conformance / WCAG-EM" | the `conformance-wcagem` prompt — three tiers, escalate one at a time; protocol in `references/wcagem-guide.md` |
 | "produce something a human auditor can sign" | `a11y_evidence`: the verifiable pack (criteria matrix + hashed artifacts + empty signature block). Vendor-neutral — any qualified human |
 | "a VPAT for the US market (ADA)" | `a11y_generate_vpat`: VPAT 2.5 (WCAG edition) draft from the pack — Remarks auto-filled, levels Not Evaluated until a qualified human sets them (`overrides`) and signs (hash-referenced). Draft until signed |

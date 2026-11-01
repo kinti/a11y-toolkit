@@ -9,7 +9,7 @@
   <img src="docs/demo.gif" alt="a11y-toolkit en acción: auditoría (nota 64), color aprobatorio más cercano, re-auditoría (94) — salida real de la herramienta" width="720">
 </p>
 
-34 herramientas MCP, 6 prompts y una skill que cubren todo el ciclo WCAG 2.2:
+35 herramientas MCP, 6 prompts y una skill que cubren todo el ciclo WCAG 2.2:
 auditar, corregir, documentar, vigilar y entregar — y ahora también pruebas de
 usabilidad «a ciegas», donde el agente intenta tareas reales percibiendo solo lo
 que expone un lector de pantalla. 51 de los 55 criterios A/AA llevan señales
@@ -80,7 +80,7 @@ además Playwright:
 | Cero dependencias en el núcleo, habla es/en, cualquier navegador que tengas | Runtimes pesados | Cero dependencias |
 
 <!-- TOOLS:BEGIN -->
-## Las herramientas (34)
+## Las herramientas (35)
 
 Referencia completa — descripciones, argumentos, formas de retorno y
 comportamiento — en [docs/tools.md](docs/tools.md). Todas las herramientas
@@ -124,6 +124,7 @@ traducción puede ir a la zaga del inglés, que es la fuente canónica.
 | [`a11y_ledger`](docs/tools.md#a11y_ledger) | Cobertura y evidencia | Libro de cobertura (persistente) |
 | [`a11y_wcag3_preview`](docs/tools.md#a11y_wcag3_preview) | Cobertura y evidencia | Vista previa borrador WCAG 3 (sin score) |
 | [`a11y_route`](docs/tools.md#a11y_route) | Enrutado | Router de herramientas (objetivo o página → pasos) |
+| [`a11y_scope`](docs/tools.md#a11y_scope) | Cobertura y evidencia | Alcance de aplicabilidad (la máquina propone, la persona confirma; cláusulas EN 301 549) |
 <!-- TOOLS:END -->
 
 ## Los 6 prompts

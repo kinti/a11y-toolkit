@@ -15,6 +15,7 @@ AQUI = os.path.dirname(os.path.abspath(__file__))
 RAIZ = os.path.dirname(AQUI)
 sys.path.insert(0, RAIZ)
 
+from a11y_toolkit import server as _server
 from a11y_toolkit.a11yaudit import audit_html
 from a11y_toolkit.a11ybadge import badge
 from a11y_toolkit.contrast import pair
@@ -132,7 +133,8 @@ h1 .dot{{color:#3fb950}}
 
     snap('<span class="p">$</span>', 500)
     escribe('claude mcp add a11y-toolkit -- uvx --from a11y-toolkit a11y-toolkit-mcp',
-            '<span class="ok">✓ a11y-toolkit registered</span>  <span class="c">(34 tools · 6 prompts)</span>',
+            f'<span class="ok">✓ a11y-toolkit registered</span>  '
+            f'<span class="c">({len(_server.TOOLS)} tools · {len(_server._PROMPTS)} prompts)</span>',
             hold=1100)
     salida_audit = (f'<span class="warn">score: {score_antes}/100</span>   '
                     f'<span class="bad">high: {summary["high"]}</span>  '

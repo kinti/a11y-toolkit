@@ -43,7 +43,7 @@ CATEGORIAS = [
                       'a11y_scroll', 'a11y_sr_transcript', 'a11y_reduced_motion',
                       'a11y_forced_colors', 'a11y_vtt_check']),
     ('Coverage & evidence', ['a11y_evidence', 'a11y_disprove', 'a11y_ledger',
-                             'a11y_wcag3_preview']),
+                             'a11y_wcag3_preview', 'a11y_scope']),
     ('Routing', ['a11y_route']),
 ]
 

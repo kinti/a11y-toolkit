@@ -77,18 +77,29 @@ def _remarks(row, finding, pack_sha):
 def generate_openacr(pack=None, reports=None, product='', product_version=None,
                      report_date=None, description=None, author=None, contact=None,
                      methods=None, notes=None, overrides=None, lang='en',
-                     output_path=None):
+                     scope=None, output_path=None):
     """Pack (o informes) → OpenACR YAML (GSA) + resumen.
 
     overrides: {'1.1.1': 'supports', …} — niveles fijados por una persona
     cualificada; se aceptan además las formas con guion del propio formato
-    ('partially-supports'). Ganan sobre la derivación automática."""
+    ('partially-supports'). Ganan sobre la derivación automática (scope
+    incluido: una exclusión confirmada puede revertirse a mano).
+
+    scope: salida de a11y_scope — las exclusiones CONFIRMADAS por humano
+    salen como not-applicable con su razón; las propuestas nunca."""
     t = _t(lang)
     if pack is None:
         if not reports:
             return {'error': t['error_no_pack']}
         from .a11yevidence import build_pack
-        pack = build_pack(reports)
+        pack = build_pack(reports, scope=scope)
+    elif scope is not None:
+        # pack ya construido + scope: aplicar las exclusiones confirmadas
+        # (jamás silencio — el CLI lo promete)
+        if not isinstance(scope, dict):
+            return {'error': t['error_scope']}
+        from .a11yevidence import apply_scope
+        pack = apply_scope(pack, scope, lang=lang)
     if not isinstance(pack, dict) or 'criteria' not in pack:
         return {'error': t['error_no_pack']}
     overrides = {k: str(v).replace('-', '_') for k, v in (overrides or {}).items()}
@@ -182,18 +193,21 @@ def main(argv):
     ap.add_argument('--methods', help='evaluation methods used')
     ap.add_argument('--notes', help='additional notes')
     ap.add_argument('--overrides', help='JSON: {"1.1.1": "supports", …}')
+    ap.add_argument('--scope', help='a11y_scope output JSON: confirmed exclusions '
+                    'become not-applicable (proposals never)')
     ap.add_argument('--lang', default='en', choices=['en', 'es'])
     ap.add_argument('-o', '--out')
     a = ap.parse_args(argv)
     pack = json.load(open(a.pack, encoding='utf-8')) if a.pack else None
     reports = [json.load(open(f, encoding='utf-8')) for f in a.reports] if a.reports else None
+    scope = json.load(open(a.scope, encoding='utf-8')) if a.scope else None
     res = generate_openacr(pack=pack, reports=reports, product=a.product,
                            product_version=a.product_version, report_date=a.report_date,
                            description=a.description,
                            author=json.loads(a.author) if a.author else None,
                            contact=a.contact, methods=a.methods, notes=a.notes,
                            overrides=json.loads(a.overrides) if a.overrides else None,
-                           lang=a.lang, output_path=a.out)
+                           scope=scope, lang=a.lang, output_path=a.out)
     if 'error' in res:
         print(res['error'])
         return 1

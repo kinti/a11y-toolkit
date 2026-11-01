@@ -41,6 +41,8 @@ Tools:
   - a11y_wcag3_preview(report, lang?)           re-group findings under the WCAG 3
                                                   Working Draft outcomes (no score)
   - a11y_route(goal, lang?)                     the router: goal → ordered tools (start here)
+  - a11y_scope(reports, standard?, …)           applicability scope: machine proposes,
+                                                 human confirms (EN 301 549 clauses)
 
 Prompts: audit-page, fix-contrast, pre-deploy-check, declaration-eaa,
          conformance-wcagem, blindfold-task.
@@ -81,6 +83,7 @@ from .a11yopenacr import generate_openacr as openacr_fn  # noqa: E402
 from .a11ydom import contrast_dom as contrast_dom_fn  # noqa: E402
 from .a11ywcag3 import preview as wcag3_preview_fn  # noqa: E402
 from .a11yroute import route as route_fn  # noqa: E402
+from .a11yscope import build_scope as scope_fn  # noqa: E402
 
 try:
     from .arialive_js import ARIALIVE_JS  # installed as a module (pip)
@@ -146,6 +149,8 @@ TOOLS = [
             'pages': {'type': 'integer', 'minimum': 1, 'maximum': 20, 'description': 'light same-domain crawl: audit up to N pages, aggregated by score and recurring signals (default 1, max 20)'},
             'lang': {'type': 'string', 'enum': ['es', 'en'], 'description': 'output language (en default)'},
             'timeout': {'type': 'number', 'description': 'fetch timeout seconds (30 default)'},
+            'standard': {'type': 'string', 'enum': ['en301549'], 'description': 'add the EN 301 549 V4.1.1 (2026) clause to every finding plus a standard block (EAA procurement, Canada ICT standard)'},
+            'target': {'type': 'string', 'enum': ['web', 'documents', 'software'], 'description': 'EN 301 549 target: web=9.x clauses (default), documents=10.x, software=11.x'},
         }},
     },
     {
@@ -167,6 +172,8 @@ TOOLS = [
             'auth_state': {'type': 'string', 'description': 'Path to a Playwright storage_state JSON (exported session) to audit behind login — local file, never uploaded'},
             'browser': {'type': 'string', 'enum': ['auto', 'chromium', 'firefox', 'webkit', 'chrome', 'msedge'], 'description': 'Browser engine (auto = detect the first available)'},
             'color_scheme': {'type': 'string', 'enum': ['light', 'dark'], 'description': 'Emulate prefers-color-scheme: run the contrast pass in dark mode too — dark themes fail where light passes (nobody audits both)'},
+            'standard': {'type': 'string', 'enum': ['en301549'], 'description': 'add the EN 301 549 V4.1.1 (2026) clause to every finding plus a standard block'},
+            'target': {'type': 'string', 'enum': ['web', 'documents', 'software'], 'description': 'EN 301 549 target: web=9.x clauses (default), documents=10.x, software=11.x'},
         },
 'required': ['url']},
     },
@@ -375,8 +382,36 @@ TOOLS = [
             'reports': {'type': 'array', 'items': {'type': 'object'},
                          'description': 'audit report objects (any mode)'},
             'snapshot': {'type': 'object', 'description': 'a11y_snapshot output (optional)'},
+            'scope': {'type': 'object', 'description': 'a11y_scope output: human-confirmed exclusions become not-applicable rows with their reason (machine proposals never exclude)'},
             'reviewer': {'type': 'object', 'description': '{"name":…, "credential":…, "review_date":…} to prefill the signature block'},
             'verified': {'type': 'array', 'items': {'type': 'string'}, 'description': 'Criterion codes an agent/human verified against this sample (manual checklist protocol) — they become agent-verified in the matrix; automated-fail stays fail'},
+        }, 'required': ['reports']},
+    },
+    {
+        'name': 'a11y_scope',
+        'description': ('Semi-automatic applicability scoping — the layer between the audit '
+                        'and the conformance claim (the pattern of the Government of Canada '
+                        'CIO wizard for EN 301 549, informed by the audit instead of 118 '
+                        'hand-answered questions). Reads the features block of the reports '
+                        '(media elements, form controls — positive evidence of what the audit '
+                        'SAW) and proposes the structural exclusions: no video anywhere → '
+                        '1.2.x proposed-excluded, no form controls → 3.3.x proposed-excluded. '
+                        'The machine PROPOSES, the human CONFIRMS via answers '
+                        '{"1.2.4": {"status": "excluded", "reason": "…"}} — only confirmed '
+                        'exclusions may become not-applicable downstream (a11y_evidence, '
+                        'a11y_generate_vpat, a11y_generate_openacr); a proposal never '
+                        'excludes. standard=en301549 adds the EN 301 549 V4.1.1 (2026) '
+                        'clause to every row (9.x web / 10.x documents / 11.x software — '
+                        'numbering verified 55/55 A/AA) and the EN-only families (5, 6, 7, '
+                        '8, 12, 13) as honest applicability rows this toolkit does not '
+                        'evaluate. Live counter: N of 55 criteria in scope.'),
+        'inputSchema': {'type': 'object', 'properties': {
+            'reports': {'type': 'array', 'items': {'type': 'object'},
+                         'description': 'audit report objects (any mode; reports carrying the features block power the machine proposals)'},
+            'standard': {'type': 'string', 'enum': ['wcag22', 'en301549'], 'description': 'wcag22 (default) or en301549: adds clause refs + EN families'},
+            'target': {'type': 'string', 'enum': ['web', 'documents', 'software'], 'description': 'ICT target: web=9.x clauses (default), documents=10.x, software=11.x'},
+            'answers': {'type': 'object', 'description': 'human confirmations keyed by criterion code: {"1.2.4": {"status": "excluded", "reason": "no live media"}} — status in-scope|proposed-excluded|excluded'},
+            'lang': {'type': 'string', 'enum': ['es', 'en'], 'description': 'output language (en default)'},
         }, 'required': ['reports']},
     },
     {
@@ -535,6 +570,7 @@ TOOLS = [
             'notes': {'type': 'string', 'description': 'Additional notes to include'},
             'overrides': {'type': 'object', 'description': 'Criterion → conformance level set by a qualified human: {"1.1.1": "supports", "1.2.2": "not_applicable", …}'},
             'reviewer': {'type': 'object', 'description': '{"name":…, "credential":…, "review_date":…} to prefill the signature block'},
+            'scope': {'type': 'object', 'description': 'a11y_scope output: human-confirmed exclusions become Not Applicable with their reason (machine proposals never); overrides still win'},
             'output_path': {'type': 'string', 'description': 'save the VPAT HTML here (optional)'},
             'lang': {'type': 'string', 'enum': ['es', 'en'], 'description': 'Document language (default en)'},
         }, 'required': ['product']},
@@ -566,6 +602,7 @@ TOOLS = [
             'methods': {'type': 'string', 'description': 'Evaluation methods used (default: honest automated-screening note)'},
             'notes': {'type': 'string', 'description': 'Additional notes to include'},
             'overrides': {'type': 'object', 'description': 'Criterion → adherence level set by a qualified human: {"1.1.1": "supports", "1.2.2": "not_applicable", …} (hyphenated forms accepted)'},
+            'scope': {'type': 'object', 'description': 'a11y_scope output: human-confirmed exclusions become not-applicable with their reason (machine proposals never); overrides still win'},
             'output_path': {'type': 'string', 'description': 'save the OpenACR YAML here (optional)'},
             'lang': {'type': 'string', 'enum': ['es', 'en'], 'description': 'Document language (default en)'},
         }, 'required': ['product']},
@@ -986,6 +1023,16 @@ _PARAM_DOCS = {
  ('a11y_generate_vpat', 'methods'): 'Evaluation methods used (default: honest automated-screening note)',
  ('a11y_generate_vpat', 'notes'): 'Additional notes to include',
  ('a11y_generate_vpat', 'overrides'): 'Criterion → conformance level set by a qualified human: {"1.1.1": "supports", "1.2.2": "not_applicable", …}',
+ ('a11y_generate_vpat', 'scope'): 'a11y_scope output: human-confirmed exclusions become Not Applicable with their reason (proposals never)',
+ ('a11y_scope', 'reports'): 'Audit report objects (any mode; the features block powers machine proposals)',
+ ('a11y_scope', 'standard'): 'wcag22 (default) or en301549: clause refs + EN families (5, 6, 7, 8, 12, 13)',
+ ('a11y_scope', 'target'): 'ICT target: web=9.x clauses (default), documents=10.x, software=11.x',
+ ('a11y_scope', 'answers'): 'Human confirmations keyed by criterion code: {"1.2.4": {"status": "excluded", "reason": "no live media"}}',
+ ('a11y_audit_url', 'standard'): 'Add the EN 301 549 V4.1.1 (2026) clause to every finding (EAA procurement, Canada ICT)',
+ ('a11y_audit_url', 'target'): 'EN 301 549 target: web=9.x (default), documents=10.x, software=11.x',
+ ('a11y_audit_dom', 'standard'): 'Add the EN 301 549 V4.1.1 (2026) clause to every finding',
+ ('a11y_audit_dom', 'target'): 'EN 301 549 target: web=9.x (default), documents=10.x, software=11.x',
+ ('a11y_evidence', 'scope'): 'a11y_scope output: human-confirmed exclusions become not-applicable rows (proposals never)',
  ('a11y_generate_vpat', 'reviewer'): '{"name":…, "credential":…, "review_date":…} to prefill the signature block',
  ('a11y_generate_vpat', 'output_path'): 'Local path to save the VPAT HTML (omit to receive it inline)',
  ('a11y_generate_vpat', 'lang'): 'Document language (default en)',
@@ -1029,6 +1076,7 @@ _ROUTING = {
  'a11y_badge': 'Scope: the honest SVG seal for audited sites; the machine-readable bundle is a11y_evidence.',
  'a11y_criterion': 'Knowledge lookup; does not fetch or audit anything — includes the official Understanding WCAG 2.2 link for the criterion.',
  'a11y_evidence': 'The tier-3 handoff object; feed it every audit report you have.',
+ 'a11y_scope': 'The applicability layer before conformance: run after the audits, confirm the machine proposals via answers, then feed the scope here — a11y_evidence/vpat/openacr turn confirmed exclusions into not-applicable with their reason.',
  'a11y_aria_live_snippet': 'Diagnostics aid to inject in a browser; not an audit by itself.',
  'a11y_generate_declaration': 'Legal statement generator; drive inaccessible_content from audit findings and a11y_evidence.',
  'a11y_generate_vpat': 'The US/ADA counterpart of a11y_generate_declaration; feed it the a11y_evidence pack — levels stay Not Evaluated until a qualified human sets them.',
@@ -1081,6 +1129,7 @@ _ANN = {
     'a11y_forced_colors':    ('forced-colors survival heuristic', True, True),
     'a11y_wcag3_preview':    ('WCAG 3 draft preview (no score)', True, False),
     'a11y_route':            ('Tool router (goal or page to steps)', True, True),
+    'a11y_scope':            ('Applicability scope (semi-automatic)', True, False),
 }
 # TDQS hygiene: annotations must match reality, and every description states
 # its return shape and when (not) to use the tool. a11y_ledger.record mutates
@@ -1118,6 +1167,7 @@ _RETURNS = {
     'a11y_contrast_dom': 'Returns JSON: {url, selector, text_color, worst_ratio, median_ratio, p95_ratio, area_passes_aa_normal_text_4_5, worst_zone?, sampled_pixels, interpretation}.',
     'a11y_wcag3_preview': 'Returns JSON: {mode, draft, disclaimer, mapping_note, no_score, conformance_model, outcomes [{outcome, draft_url, findings, severity, signals, criteria_22}], counts, unmapped} — never a score.',
     'a11y_route': 'Returns JSON: {route, steps [{step, tool, why}], alternates, prompts, cli, note} — the ordered tool sequence for the goal. Diagnosis mode (url/html passed): {mode: diagnose, vitals {score, summary, signals}, symptoms [{symptom, evidence}], steps [...], guarantee} — evidence orders the exams, severity breaks ties.',
+    'a11y_scope': 'Returns JSON: {format: a11y-scope/1, standard, target, criteria [{criterion, level, status, clause?, evidence?, reason?}], counters, en301549_families?, sha256} — statuses in-scope|proposed-excluded|excluded; only human-confirmed exclusions count downstream.',
 }
 _USAGE = {
     'a11y_forms': 'Use on test/staging forms, or forms you own: invalid data is REALLY submitted. Do not run against production forms that trigger real emails, orders or leads.',
@@ -1129,6 +1179,7 @@ _USAGE = {
     'a11y_generate_vpat': 'Run after the audits you trust; a qualified human must set the final levels (overrides) and sign before publishing — the machine fills Remarks, never the claim.',
     'a11y_generate_openacr': 'Run after the audits you trust; validate and render in the GSA OpenACR editor (gsa.github.io/openacr-editor) — a qualified human must set the final adherence levels before publishing.',
     'a11y_wcag3_preview': 'Run after any audit when the team asks "what about WCAG 3?"; re-baseline on each W3C draft publication (roughly March/September).',
+    'a11y_scope': 'Run after the audits, before any conformance artifact: confirm the machine proposals via answers, then pass the scope to a11y_evidence — only human-confirmed exclusions become not-applicable, and each exclusion carries its reason.',
 }
 for _t in TOOLS:
     _title, _ro, _ow = _ANN[_t['name']]
@@ -1149,6 +1200,24 @@ def _content(obj):
     if isinstance(obj, dict) and 'error' in obj:
         r['isError'] = True
     return r
+
+
+def _enrich_standard(res, standard, target, lang):
+    """Post-hoc EN 301 549 enrichment for report shapes that don't pass
+    through audit_html (site crawl, rendered): adds the standard block and a
+    clause ref to every finding. standard=None → res unchanged."""
+    if standard != 'en301549' or not isinstance(res, dict) or 'error' in res:
+        return res
+    from . import a11yen301549 as _enstd
+    pages = res.get('reports') if 'reports' in res else [res]
+    tgt = target or _enstd.target_for_mode(res.get('mode', 'static'))
+    res['standard'] = _enstd.standard_block(tgt, lang)
+    for pg in pages:
+        for h in pg.get('findings', []):
+            cl = _enstd.clause_for(h.get('criterion', '').split(' ')[0], tgt)
+            if cl:
+                h['clause'] = cl
+    return res
 
 
 def invoke(name, args):
@@ -1184,22 +1253,31 @@ def invoke(name, args):
         try:
             if args.get('html'):
                 return _content(audit_html_fn(args['html'], args.get('url') or '(html)',
-                                            lang=args.get('lang', 'en')))
+                                            lang=args.get('lang', 'en'),
+                                            standard=args.get('standard'),
+                                            target=args.get('target')))
             if args.get('pages', 1) > 1:
-                return _content(audit_site_fn(args['url'], max_pages=args['pages'],
-                                            timeout=args.get('timeout', 30),
-                                            lang=args.get('lang', 'en')))
+                res = audit_site_fn(args['url'], max_pages=args['pages'],
+                                    timeout=args.get('timeout', 30),
+                                    lang=args.get('lang', 'en'))
+                res = _enrich_standard(res, args.get('standard'),
+                                       args.get('target'), args.get('lang', 'en'))
+                return _content(res)
             return _content(audit_url_fn(args['url'], timeout=args.get('timeout', 30),
-                                       lang=args.get('lang', 'en')))
+                                       lang=args.get('lang', 'en'),
+                                       standard=args.get('standard'),
+                                       target=args.get('target')))
         except Exception as e:  # noqa: BLE001
             return {'content': [{'type': 'text', 'text': f'error: {e}'}], 'isError': True}
     if name == 'a11y_audit_dom':
         try:
-            return _content(audit_dom_url(args['url'], timeout=args.get('timeout', 45),
-                                        lang=args.get('lang', 'en'),
-                                        auth_state=args.get('auth_state'),
-                                        browser=args.get('browser', 'auto'),
-                                        color_scheme=args.get('color_scheme', 'light')))
+            res = audit_dom_url(args['url'], timeout=args.get('timeout', 45),
+                                lang=args.get('lang', 'en'),
+                                auth_state=args.get('auth_state'),
+                                browser=args.get('browser', 'auto'),
+                                color_scheme=args.get('color_scheme', 'light'))
+            return _content(_enrich_standard(res, args.get('standard'),
+                                             args.get('target'), args.get('lang', 'en')))
         except ImportError:
             return {'content': [{'type': 'text',
                                  'text': 'Playwright not installed: pip install playwright && playwright install chromium (or use a11y_audit_url for the zero-dependency static audit)'}],
@@ -1274,7 +1352,16 @@ def invoke(name, args):
         try:
             return _content(build_pack_fn(args['reports'], snapshot=args.get('snapshot'),
                                         reviewer=args.get('reviewer'),
-                                        verified=args.get('verified')))
+                                        verified=args.get('verified'),
+                                        scope=args.get('scope')))
+        except Exception as e:  # noqa: BLE001
+            return {'content': [{'type': 'text', 'text': f'error: {e}'}], 'isError': True}
+    if name == 'a11y_scope':
+        try:
+            return _content(scope_fn(args['reports'], standard=args.get('standard', 'wcag22'),
+                                     target=args.get('target', 'web'),
+                                     answers=args.get('answers'),
+                                     lang=args.get('lang', 'en')))
         except Exception as e:  # noqa: BLE001
             return {'content': [{'type': 'text', 'text': f'error: {e}'}], 'isError': True}
     if name == 'a11y_autofix':
@@ -1405,7 +1492,8 @@ def invoke(name, args):
                           description=args.get('product_description'),
                           contact=args.get('contact'), methods=args.get('methods'),
                           notes=args.get('notes'), overrides=args.get('overrides'),
-                          reviewer=args.get('reviewer'), lang=args.get('lang', 'en'),
+                          reviewer=args.get('reviewer'), scope=args.get('scope'),
+                          lang=args.get('lang', 'en'),
                           output_path=args.get('output_path'))
             if 'error' in res:
                 return {'content': [{'type': 'text', 'text': res['error']}], 'isError': True}
@@ -1425,7 +1513,8 @@ def invoke(name, args):
                              description=args.get('product_description'),
                              author=args.get('author'), contact=args.get('contact'),
                              methods=args.get('methods'), notes=args.get('notes'),
-                             overrides=args.get('overrides'), lang=args.get('lang', 'en'),
+                             overrides=args.get('overrides'), scope=args.get('scope'),
+                             lang=args.get('lang', 'en'),
                              output_path=args.get('output_path'))
             if 'error' in res:
                 return {'content': [{'type': 'text', 'text': res['error']}], 'isError': True}

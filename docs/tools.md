@@ -23,6 +23,10 @@ Express WCAG 2.2 audit of a URL or an HTML string: 20+ automated signals with a 
 
 - `timeout`: fetch timeout seconds (30 default).
 
+- `standard` — one of ['en301549']: add the EN 301 549 V4.1.1 (2026) clause to every finding plus a standard block (EAA procurement, Canada ICT standard).
+
+- `target` — one of ['web', 'documents', 'software']: EN 301 549 target: web=9.x clauses (default), documents=10.x, software=11.x.
+
 #### `a11y_audit_dom`
 
 <sub>read-only · network</sub>
@@ -43,6 +47,10 @@ Deep RENDERED WCAG audit via local Playwright/Chromium: real computed text contr
 - `browser` — one of ['auto', 'chromium', 'firefox', 'webkit', 'chrome', 'msedge']: Browser engine (auto = detect the first available).
 
 - `color_scheme` — one of ['light', 'dark']: Emulate prefers-color-scheme: run the contrast pass in dark mode too — dark themes fail where light passes (nobody audits both).
+
+- `standard` — one of ['en301549']: add the EN 301 549 V4.1.1 (2026) clause to every finding plus a standard block.
+
+- `target` — one of ['web', 'documents', 'software']: EN 301 549 target: web=9.x clauses (default), documents=10.x, software=11.x.
 
 #### `a11y_audit_pdf`
 
@@ -254,6 +262,8 @@ Generates a VPAT 2.5 (WCAG edition) accessibility conformance report in accessib
 
 - `reviewer`: {"name":…, "credential":…, "review_date":…} to prefill the signature block.
 
+- `scope`: a11y_scope output: human-confirmed exclusions become Not Applicable with their reason (machine proposals never); overrides still win.
+
 - `output_path`: save the VPAT HTML here (optional).
 
 - `lang` — one of ['es', 'en']: Document language (default en).
@@ -288,6 +298,8 @@ Generates an OpenACR (the GSA open standard, VPAT-derived) accessibility conform
 - `notes`: Additional notes to include.
 
 - `overrides`: Criterion → adherence level set by a qualified human: {"1.1.1": "supports", "1.2.2": "not_applicable", …} (hyphenated forms accepted).
+
+- `scope`: a11y_scope output: human-confirmed exclusions become not-applicable with their reason (machine proposals never); overrides still win.
 
 - `output_path`: save the OpenACR YAML here (optional).
 
@@ -574,6 +586,8 @@ Builds the verifiable evidence pack: the machine→human handoff object for WCAG
 
 - `snapshot`: a11y_snapshot output (optional).
 
+- `scope`: a11y_scope output: human-confirmed exclusions become not-applicable rows with their reason (machine proposals never exclude).
+
 - `reviewer`: {"name":…, "credential":…, "review_date":…} to prefill the signature block.
 
 - `verified`: Criterion codes an agent/human verified against this sample (manual checklist protocol) — they become agent-verified in the matrix; automated-fail stays fail.
@@ -624,6 +638,25 @@ WCAG 3 demo — the view layer nobody ships: takes an audit report and re-groups
 - `report` *(required)*: audit report object with a findings list (from a11y_audit_url, a11y_audit_dom, a11y_disprove, …).
 
 - `lang` — one of ['es', 'en']: Output language (en default).
+
+#### `a11y_scope`
+
+<sub>read-only</sub>
+
+Semi-automatic applicability scoping — the layer between the audit and the conformance claim (the pattern of the Government of Canada CIO wizard for EN 301 549, informed by the audit instead of 118 hand-answered questions). Reads the features block of the reports (media elements, form controls — positive evidence of what the audit SAW) and proposes the structural exclusions: no video anywhere → 1.2.x proposed-excluded, no form controls → 3.3.x proposed-excluded. The machine PROPOSES, the human CONFIRMS via answers {"1.2.4": {"status": "excluded", "reason": "…"}} — only confirmed exclusions may become not-applicable downstream (a11y_evidence, a11y_generate_vpat, a11y_generate_openacr); a proposal never excludes. standard=en301549 adds the EN 301 549 V4.1.1 (2026) clause to every row (9.x web / 10.x documents / 11.x software — numbering verified 55/55 A/AA) and the EN-only families (5, 6, 7, 8, 12, 13) as honest applicability rows this toolkit does not evaluate. Live counter: N of 55 criteria in scope. — The applicability layer before conformance: run after the audits, confirm the machine proposals via answers, then feed the scope here — a11y_evidence/vpat/openacr turn confirmed exclusions into not-applicable with their reason. Returns JSON: {format: a11y-scope/1, standard, target, criteria [{criterion, level, status, clause?, evidence?, reason?}], counters, en301549_families?, sha256} — statuses in-scope|proposed-excluded|excluded; only human-confirmed exclusions count downstream. Run after the audits, before any conformance artifact: confirm the machine proposals via answers, then pass the scope to a11y_evidence — only human-confirmed exclusions become not-applicable, and each exclusion carries its reason.
+
+
+**Arguments**
+
+- `reports` *(required)*: audit report objects (any mode; reports carrying the features block power the machine proposals).
+
+- `standard` — one of ['wcag22', 'en301549']: wcag22 (default) or en301549: adds clause refs + EN families.
+
+- `target` — one of ['web', 'documents', 'software']: ICT target: web=9.x clauses (default), documents=10.x, software=11.x.
+
+- `answers`: human confirmations keyed by criterion code: {"1.2.4": {"status": "excluded", "reason": "no live media"}} — status in-scope|proposed-excluded|excluded.
+
+- `lang` — one of ['es', 'en']: output language (en default).
 
 ## Routing
 

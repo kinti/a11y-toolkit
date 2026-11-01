@@ -253,7 +253,8 @@
   "not_flagged": "not-flagged ≠ pass: no automated signal fired on this sample",
   "notice": "This pack is evidence, not conformance: it says what machines found and what remains for a human. A conformance claim requires the signature block completed by a qualified person who reviewed the manual list.",
   "reviewer_note": "any countersignature must reference pack.sha256 and state which criteria the human reviewed beyond the automated matrix",
-  "verified": "verified against this sample per the manual checklist protocol"
+  "verified": "verified against this sample per the manual checklist protocol",
+  "not_applicable_note": "Out of applicability scope: human-confirmed exclusion (see the scope artifact)."
  },
  "fix": {
   "between": "Enter a number between %a and %b.",
@@ -443,7 +444,8 @@
   "error_no_pack": "missing pack/reports: pass an a11y_evidence pack (or audit reports to build it here)",
   "legal_disclaimer": "The information herein is provided in good faith based on the analysis at the time of the review and does not represent a legally-binding claim. Reported errors will be re-evaluated and corrected.",
   "method_default": "Automated screening with the a11y-toolkit engine plus manual review where noted; automated testing covers only part of WCAG — the remarks cite the remaining human effort per criterion.",
-  "notes_draft": "DRAFT — adherence levels pending a qualified human; generated from a verifiable evidence pack."
+  "notes_draft": "DRAFT — adherence levels pending a qualified human; generated from a verifiable evidence pack.",
+  "error_scope": "scope must be an object (a11y-scope/1 JSON) — got something else"
  },
  "vpat_levels": {
   "does_not_support": "Does Not Support",
@@ -498,7 +500,8 @@
   "standards_section": "Applicable Standards/Guidelines",
   "table_caption": "Table 1: WCAG 2.2 (A/AA) conformance criteria",
   "title": "VPAT® 2.5 Accessibility Conformance Report — WCAG edition",
-  "version": "Version"
+  "version": "Version",
+  "error_scope": "scope must be an object (a11y-scope/1 JSON) — got something else"
  },
  "vtt": {
   "limits": "Screening of caption CONTENT (1.2.2): not a substitute for human review of accuracy, speaker identification or audio description.",
@@ -521,5 +524,43 @@
   "model_tags": "Core requirement tags in the draft: physical harm, risk, barrier and friction (per the W3C introduction; they qualify requirements, not findings).",
   "model_tiers": "Reporting tiers 1-6, where tier 3 corresponds to conformance. Counts and thresholds are still to be determined by the W3C.",
   "no_score": "No score, tier or conformance level is produced on purpose: the draft's tier thresholds are still to be determined by the W3C."
+ },
+ "scope": {
+  "notice": "Machine proposals are not exclusions: 'proposed-excluded' rows need a human answer before anything downstream (evidence pack, VPAT, OpenACR) may treat the criterion as not applicable.",
+  "mapping_note": "Clause numbers mirror WCAG 2.2 success-criterion numbering in clauses 9 (web), 10 (non-web documents) and 11 (non-web software) of EN 301 549 V4.1.1 (2026); verified 55/55 A/AA against the standard's official applicability wizard. AAA is not claimed.",
+  "evidence_media_absent": "No video, audio or track elements in the audited sample (embeds checked too) — confirm this holds for the whole product before excluding.",
+  "evidence_media_present": "Media elements present in the audited sample.",
+  "evidence_media_embedded": "Embedded content (iframe/embed/object) may carry media the static audit cannot see — media applicability needs a human call.",
+  "evidence_live_human": "Media is present; live vs prerecorded cannot be told statically — a human decides whether live captions apply.",
+  "evidence_forms_absent": "No form controls (input, select, textarea, form) in the audited sample — confirm this holds for the whole product before excluding.",
+  "evidence_forms_present": "Form controls present in the audited sample.",
+  "no_features_note": "These reports predate the features block, so no machine proposals were emitted: without positive evidence of what the audit saw, nothing is proposed.",
+  "not_applicable_note": "Out of applicability scope: human-confirmed exclusion (see the scope artifact).",
+  "families": {
+   "generic": {
+    "title": "Generic requirements",
+    "note": "Closed functionality, biometrics, conversion, tactile parts, toggles, key repeat — mostly non-web territory; a human answers whether any apply."
+   },
+   "rtt": {
+    "title": "ICT supporting real-time bidirectional communication",
+    "note": "Applies to products with real-time voice/text communication (RTT, relay, caller ID)."
+   },
+   "video_capabilities": {
+    "title": "ICT with video capabilities",
+    "note": "Applies to products that transmit, convert or record video with synchronized audio."
+   },
+   "hardware": {
+    "title": "Hardware",
+    "note": "Physical device requirements (reach, force, tactile parts, indicators)."
+   },
+   "products_info": {
+    "title": "Information about products and services",
+    "note": "Product and service information in digital form must be accessible — applies to any product with public documentation."
+   },
+   "relay_emergency": {
+    "title": "ICT providing relay or emergency service access",
+    "note": "Applies to relay services and emergency-communication ICT."
+   }
+  }
  }
 }

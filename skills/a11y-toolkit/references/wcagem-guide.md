@@ -31,6 +31,9 @@ structured + random sampling, human-verified results.
 
 ## Tier 3 — CONFORMANCE (human in the loop)
 
+- Applicability before conformance: run `a11y_scope` on the audit reports — the features
+  block proposes the structural exclusions (media, forms), the human confirms them,
+  and only confirmed exclusions become not-applicable (with reason) in the pack.
 - Compile the WCAG-EM report: scope, sample (structured + random), all
   results with the triple above, dates, evaluator names — a human evaluator
   signs it. The toolkit compiles; the human certifies.

@@ -55,25 +55,41 @@ def _help_uri(criterion_text):
     return _BASE + slug if slug else 'https://www.w3.org/TR/WCAG22/'
 
 
-def from_report(report, driver_version='3.2.0'):
+def from_report(report, driver_version='3.2.0', standard=None, target=None):
     """Informe(s) del auditor → dict SARIF 2.1.0.
 
     Acepta un informe individual (audit_html/audit_url) o uno 'site'
-    (con la lista 'reports')."""
+    (con la lista 'reports'). Con standard='en301549' cada regla gana
+    properties/tags con su cláusula EN 301 549 V4.1.1 (9.x web por defecto,
+    10.x documents, 11.x software) — filtrable en code scanning."""
+    from . import a11yen301549 as _enstd
     pages = report.get('reports') if 'reports' in report else [report]
     rules = {}
     results = []
+    _tgt = target or _enstd.target_for_mode(report.get('mode', 'static'))
     for pg in pages:
         url = pg.get('url', '(html)')
         for h in pg.get('findings', []):
             code = h['criterion'].split(' ')[0]
             rule_id = f'WCAG-{code}-{normalize_signal(h.get("signal", ""))}'
             if rule_id not in rules:
-                rules[rule_id] = {
+                rule = {
                     'id': rule_id,
                     'shortDescription': {'text': h['criterion']},
                     'helpUri': _help_uri(h['criterion']),
                 }
+                # target explícito = mandato del usuario: recalcula SIEMPRE
+                # (las cláusulas embebidas pueden ser de otro target); sin
+                # target, la embebida manda (misma fuente, misma pasada)
+                clause = (_enstd.clause_for(code, _tgt) if target
+                          else (h.get('clause') or _enstd.clause_for(code, _tgt)))
+                if standard == 'en301549' and clause:
+                    rule['properties'] = {
+                        'standard': _enstd.STANDARD_NAME,
+                        'en301549': clause,
+                        'tags': [f'en301549:{clause}', 'wcag22:' + code],
+                    }
+                rules[rule_id] = rule
             message = h['issue']
             if h.get('remediation'):
                 message += ' — Fix: ' + h['remediation']
@@ -111,6 +127,12 @@ def main(argv):
     ap.add_argument('-o', '--out', default='a11y.sarif')
     ap.add_argument('--pages', type=int, default=1)
     ap.add_argument('--lang', default='en', choices=['en', 'es'])
+    ap.add_argument('--standard', choices=['en301549'], default=None,
+                    help='añade cláusula EN 301 549 V4.1.1 a cada regla '
+                         '(properties + tags, filtrable en code scanning)')
+    ap.add_argument('--target', choices=['web', 'documents', 'software'],
+                    default=None, help='target EN: web=9.x, documents=10.x, '
+                    'software=11.x (default: según el modo del informe)')
     a = ap.parse_args(argv)
     if a.from_audit:
         with open(a.from_audit, encoding='utf-8') as f:
@@ -124,7 +146,7 @@ def main(argv):
     if 'error' in report:
         print(json.dumps(report))
         return 1
-    sarif = from_report(report)
+    sarif = from_report(report, standard=a.standard, target=a.target)
     with open(a.out, 'w', encoding='utf-8') as f:
         json.dump(sarif, f, ensure_ascii=False, indent=1)
     summary = report.get('summary', {'high': 0, 'medium': 0, 'low': 0})

@@ -291,6 +291,10 @@ def _crit(lang, code):
 
 
 class _Auditor(HTMLParser):
+    # rasgos contados para el scope (evidencia positiva de aplicabilidad)
+    FEATURE_TAGS = ('video', 'audio', 'track', 'embed', 'object', 'iframe',
+                    'form', 'input', 'select', 'textarea', 'table')
+
     def __init__(self):
         super().__init__(convert_charrefs=True)
         self.imgs_no_alt = []
@@ -422,6 +426,7 @@ class _Auditor(HTMLParser):
         self.has_search = False
         self.has_sitemap = False
         self.gestures = []            # touchmove/drag handlers (2.5.1)
+        self.features = {}            # tag → n (rasgos de aplicabilidad)
         self.motions = []           # deviceorientation/devicemotion (2.5.4)
         self.orientation_locks = [] # screen.orientation.lock / orientation MQ (1.3.4)
         self.videos_descriptions = 0   # videos WITH descriptions track
@@ -503,6 +508,15 @@ class _Auditor(HTMLParser):
     def handle_starttag(self, tag, attrs):
         a = dict(attrs)
         self.elements += 1
+        # rasgos estructurales para el scope de aplicabilidad (a11yscope):
+        # evidencia POSITIVA — cero <video> habilita proponer 1.2.x como no
+        # aplicable; la ausencia de señal jamás cuenta como ausencia de
+        # contenido. input type=hidden no es un campo visible.
+        if tag in self.FEATURE_TAGS:
+            if tag == 'input' and (a.get('type') or '').strip().lower() == 'hidden':
+                pass
+            else:
+                self.features[tag] = self.features.get(tag, 0) + 1
         if a.get('id'):
             self.ids[a['id']] = self.ids.get(a['id'], 0) + 1
         if self.root_tag is None:
@@ -1169,7 +1183,7 @@ def _not_measured(lang='en'):
     } for c in sorted(RENDERED_ONLY)]
 
 
-def audit_html(html_text, url='(html)', lang='en'):
+def audit_html(html_text, url='(html)', lang='en', standard=None, target=None):
     """Analiza una cadena HTML y devuelve el informe de hallazgos (es/en)."""
     p = _Auditor()
     try:
@@ -1577,6 +1591,20 @@ def audit_html(html_text, url='(html)', lang='en'):
         'findings': findings,
         'limits': _t(lang, 'limits'),
     }
+    # rasgos de aplicabilidad (evidencia positiva para a11yscope): cuentan
+    # lo que el parser VIO, no lo que dejó de señalar. Va SIEMPRE (vacío es
+    # evidencia: el parser corrió y no vio ninguno) — un informe sin bloque
+    # es un informe viejo y a11yscope no propone nada sobre él.
+    res['features'] = dict(sorted(p.features.items()))
+    # --standard en301549: cláusula EN por hallazgo + bloque del estándar
+    if standard == 'en301549':
+        from . import a11yen301549 as _enstd
+        _tgt = target or _enstd.target_for_mode('static')
+        res['standard'] = _enstd.standard_block(_tgt, lang)
+        for h in findings:
+            _cl = _enstd.clause_for(h['criterion'].split(' ')[0], _tgt)
+            if _cl:
+                h['clause'] = _cl
     # overlays detectados: dato del informe (diligencia de compra), nunca un
     # hallazgo — no hay criterio WCAG que anclar y el score no se toca
     overlays, _seen = [], set()
@@ -1676,7 +1704,7 @@ _T_SCHEME = {
 }
 
 
-def audit_url(url, timeout=30, lang='en'):
+def audit_url(url, timeout=30, lang='en', standard=None, target=None):
     if url.split(':')[0].lower() not in ('http', 'https'):
         return {'error': _T_SCHEME.get(lang, _T_SCHEME['es'])}
     try:
@@ -1685,7 +1713,7 @@ def audit_url(url, timeout=30, lang='en'):
         return {'error': str(e)}
     except Exception as e:  # noqa: BLE001
         return {'error': _t(lang, 'fetch_error').format(e=e)}
-    return audit_html(html_text, url, lang=lang)
+    return audit_html(html_text, url, lang=lang, standard=standard, target=target)
 
 
 _LOC = re.compile(r'<loc>\s*([^<\s]+)\s*</loc>', re.I)
@@ -1910,6 +1938,22 @@ def audit_changed(base='HEAD', lang='en', cwd='.'):
     }
 
 
+def _apply_standard(res, standard, target, lang):
+    """ Enriquecimiento post-hoc EN 301 549 (site crawl, --changed): añade
+    bloque standard y cláusula por hallazgo. standard=None → res intacto."""
+    if standard != 'en301549' or not isinstance(res, dict) or 'error' in res:
+        return res
+    from . import a11yen301549 as _enstd
+    _tgt = target or _enstd.target_for_mode(res.get('mode', 'static'))
+    res['standard'] = _enstd.standard_block(_tgt, lang)
+    for _pg in res.get('reports', [res]):
+        for h in _pg.get('findings', []):
+            _cl = _enstd.clause_for(h.get('criterion'), _tgt)
+            if _cl:
+                h['clause'] = _cl
+    return res
+
+
 def main(argv):
     ap = argparse.ArgumentParser(description=__doc__)
     g = ap.add_mutually_exclusive_group(required=True)
@@ -1924,25 +1968,38 @@ def main(argv):
                     help='crawl ligero mismo dominio (1 = solo la página)')
     ap.add_argument('--no-sitemap', action='store_true',
                     help='descubre por enlaces, sin leer el sitemap')
+    ap.add_argument('--standard', choices=['en301549'], default=None,
+                    help='añade a cada hallazgo su cláusula EN 301 549 V4.1.1 '
+                         '(9.x web por defecto)')
+    ap.add_argument('--target', choices=['web', 'documents', 'software'],
+                    default=None, help='target EN: web=9.x, documents=10.x, '
+                    'software=11.x (default: según el modo)')
     a = ap.parse_args(argv)
     if a.changed:
         res = audit_changed(base=a.base, lang=a.lang)
         if 'error' in res:
             print(json.dumps(res))
             return 1
+        res = _apply_standard(res, a.standard, a.target, a.lang)
         print(json.dumps(res, ensure_ascii=False, indent=1))
         return 2 if res.get('blocking') else 0
     if a.url:
         try:
             res = (audit_site(a.url, max_pages=a.pages, lang=a.lang,
                               from_sitemap=not a.no_sitemap)
-                   if a.pages > 1 else audit_url(a.url, lang=a.lang))
+                   if a.pages > 1 else audit_url(a.url, lang=a.lang,
+                                                 standard=a.standard,
+                                                 target=a.target))
         except Exception as e:  # noqa: BLE001
             print(json.dumps({'error': f'no se pudo descargar: {e}'}))
             return 1
     else:
         with open(a.file, encoding='utf-8', errors='replace') as f:
-            res = audit_html(f.read(), a.file, lang=a.lang)
+            res = audit_html(f.read(), a.file, lang=a.lang,
+                             standard=a.standard, target=a.target)
+    # site/changed no pasan por audit_html: enriquecer post-hoc para que
+    # --standard nunca se descarte en silencio en NINGUNA ruta del CLI
+    res = _apply_standard(res, a.standard, a.target, a.lang)
     print(json.dumps(res, ensure_ascii=False, indent=1))
     return 0
 

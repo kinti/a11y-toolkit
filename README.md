@@ -8,7 +8,7 @@
   <img src="docs/demo.gif" alt="a11y-toolkit in action: audit (score 64), nearest passing color, re-audit (94) — real tool output" width="720">
 </p>
 
-34 MCP tools, 6 prompts and a skill covering the whole WCAG 2.2 loop: audit, fix,
+35 MCP tools, 6 prompts and a skill covering the whole WCAG 2.2 loop: audit, fix,
 document, watch, hand off — and now blindfold usability testing, where the agent
 attempts real tasks perceiving only what a screen reader exposes. 51 of 55 A/AA criteria carry automated signals (93%), every
 finding ships with a concrete remediation your agent can apply, and the rendered tools
@@ -76,7 +76,7 @@ traps, reflow, forms) additionally need Playwright:
 | Runs with zero dependencies at core, speaks es/en, any browser you have | Heavy runtimes | Zero dependencies |
 
 <!-- TOOLS:BEGIN -->
-## The tools (34)
+## The tools (35)
 
 Full reference — descriptions, arguments, return shapes and behavior — in [docs/tools.md](docs/tools.md). All tools accept `lang` (`en`|`es`) unless noted; output is JSON unless noted. Generated from `server.TOOLS` by `scripts/gen_readme.py`.
 
@@ -115,6 +115,7 @@ Full reference — descriptions, arguments, return shapes and behavior — in [d
 | [`a11y_disprove`](docs/tools.md#a11y_disprove) | Coverage & evidence | Disprover: re-verify findings |
 | [`a11y_ledger`](docs/tools.md#a11y_ledger) | Coverage & evidence | Coverage ledger (persistent) |
 | [`a11y_wcag3_preview`](docs/tools.md#a11y_wcag3_preview) | Coverage & evidence | WCAG 3 draft preview (no score) |
+| [`a11y_scope`](docs/tools.md#a11y_scope) | Coverage & evidence | Applicability scope (semi-automatic) |
 | [`a11y_route`](docs/tools.md#a11y_route) | Routing | Tool router (goal or page to steps) |
 <!-- TOOLS:END -->
 

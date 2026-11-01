@@ -253,7 +253,8 @@
   "not_flagged": "sin señal ≠ pasa: ninguna señal automática saltó en esta muestra",
   "notice": "Este pack es evidencia, no conformidad: dice qué encontró la máquina y qué queda para una persona. Una declaración de conformidad requiere el bloque de firma completo, de una persona cualificada que haya revisado la lista manual.",
   "reviewer_note": "cualquier contrafirma debe referenciar pack.sha256 e indicar qué criterios revisó la persona más allá de la matriz automática",
-  "verified": "verificado sobre esta muestra según el protocolo del checklist manual"
+  "verified": "verificado sobre esta muestra según el protocolo del checklist manual",
+  "not_applicable_note": "Fuera del alcance de aplicabilidad: exclusión confirmada por una persona (ver el artefacto de alcance)."
  },
  "fix": {
   "between": "Escribe un número entre %a y %b.",
@@ -443,7 +444,8 @@
   "error_no_pack": "falta pack/reports: pasa un pack de a11y_evidence (o informes de auditoría para construirlo aquí)",
   "legal_disclaimer": "La información se facilita de buena fe según el análisis realizado en el momento de la revisión y no constituye una declaración vinculante. Los errores comunicados se reevaluarán y corregirán.",
   "method_default": "Cribado automatizado con el motor a11y-toolkit más revisión manual donde se indica; los tests automáticos cubren solo una parte de WCAG — los remarks citan el esfuerzo humano restante por criterio.",
-  "notes_draft": "BORRADOR — niveles de adhesión pendientes de una persona cualificada; generado desde un pack de evidencia verificable."
+  "notes_draft": "BORRADOR — niveles de adhesión pendientes de una persona cualificada; generado desde un pack de evidencia verificable.",
+  "error_scope": "scope debe ser un objeto (JSON a11y-scope/1) — llegó otra cosa"
  },
  "vpat_levels": {
   "does_not_support": "No lo soporta",
@@ -498,7 +500,8 @@
   "standards_section": "Pautas/estándares aplicables",
   "table_caption": "Tabla 1: Criterios de conformidad WCAG 2.2 (A/AA)",
   "title": "Informe de conformidad de accesibilidad VPAT® 2.5 — edición WCAG",
-  "version": "Versión"
+  "version": "Versión",
+  "error_scope": "scope debe ser un objeto (JSON a11y-scope/1) — llegó otra cosa"
  },
  "vtt": {
   "limits": "Cribado del CONTENIDO de los subtítulos (1.2.2): no sustituye la revisión humana de precisión, identificación de hablantes ni audiodescripción.",
@@ -521,5 +524,43 @@
   "model_tags": "Etiquetas de los requisitos core del borrador: physical harm, risk, barrier y friction (según la introducción del W3C; califican requisitos, no hallazgos).",
   "model_tiers": "Tiers de reporte 1-6, donde el tier 3 corresponde a la conformidad. Recuentos y umbrales están aún por determinar por el W3C.",
   "no_score": "No se produce puntuación, tier ni nivel de conformidad a propósito: los umbrales de los tiers del borrador están aún por determinar por el W3C."
+ },
+ "scope": {
+  "notice": "Las propuestas de la máquina no son exclusiones: las filas 'proposed-excluded' necesitan respuesta humana antes de que algo aguas abajo (pack de evidencia, VPAT, OpenACR) pueda tratar el criterio como no aplicable.",
+  "mapping_note": "La numeración de cláusulas espeja la de los criterios WCAG 2.2 en las cláusulas 9 (web), 10 (documentos no web) y 11 (software no web) de EN 301 549 V4.1.1 (2026); verificado 55/55 A/AA contra el asistente oficial de aplicabilidad del estándar. No se reclama nada sobre AAA.",
+  "evidence_media_absent": "Ni vídeo, ni audio, ni track en la muestra auditada (embeds comprobados también) — confirma que aplica a todo el producto antes de excluir.",
+  "evidence_media_present": "Hay elementos de medios en la muestra auditada.",
+  "evidence_media_embedded": "Contenido embebido (iframe/embed/object) puede portar medios que la auditoría estática no ve — la aplicabilidad de medios requiere decisión humana.",
+  "evidence_live_human": "Hay medios; en directo vs pregrabado no se distingue en estático — una persona decide si aplican los subtítulos en directo.",
+  "evidence_forms_absent": "Sin controles de formulario (input, select, textarea, form) en la muestra auditada — confirma que aplica a todo el producto antes de excluir.",
+  "evidence_forms_present": "Hay controles de formulario en la muestra auditada.",
+  "no_features_note": "Estos informes son previos al bloque de rasgos, así que no se emitió ninguna propuesta: sin evidencia positiva de lo que la auditoría vio, no se propone nada.",
+  "not_applicable_note": "Fuera del alcance de aplicabilidad: exclusión confirmada por una persona (ver el artefacto de alcance).",
+  "families": {
+   "generic": {
+    "title": "Requisitos genéricos",
+    "note": "Funcionalidad cerrada, biometría, conversión, partes táctiles, conmutadores, repetición de teclas — mayormente territorio no web; una persona responde si alguno aplica."
+   },
+   "rtt": {
+    "title": "TIC que soporta comunicación bidireccional en tiempo real",
+    "note": "Aplica a productos con comunicación de voz/texto en tiempo real (RTT, relé, identificación de llamadas)."
+   },
+   "video_capabilities": {
+    "title": "TIC con capacidades de vídeo",
+    "note": "Aplica a productos que transmiten, convierten o graban vídeo con audio sincronizado."
+   },
+   "hardware": {
+    "title": "Hardware",
+    "note": "Requisitos de dispositivo físico (alcance, fuerza, partes táctiles, indicadores)."
+   },
+   "products_info": {
+    "title": "Información sobre productos y servicios",
+    "note": "La información de productos y servicios en forma digital debe ser accesible — aplica a cualquier producto con documentación pública."
+   },
+   "relay_emergency": {
+    "title": "TIC que proporciona acceso a servicios de relé o emergencias",
+    "note": "Aplica a servicios de relé y TIC de comunicación de emergencia."
+   }
+  }
  }
 }

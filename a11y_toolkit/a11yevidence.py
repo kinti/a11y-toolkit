@@ -43,11 +43,45 @@ MANUAL_AA = [
 ]
 
 _STATES = ('automated-fail', 'automated-review', 'not-flagged', 'manual-only',
-            'agent-verified', 'not-run')
+            'agent-verified', 'not-run', 'not-applicable')
 
 
 def _canon(obj):
     return json.dumps(obj, ensure_ascii=False, sort_keys=True, separators=(',', ':'))
+
+
+def apply_scope(pack, scope, lang='en'):
+    """Aplica un a11y-scope/1 a un pack YA construido (VPAT/OpenACR con
+    pack + scope): las exclusiones CONFIRMADAS por humano pasan sus filas a
+    not-applicable con su razón. Las propuestas jamás. Devuelve una copia —
+    el sha256 del pack original queda intacto (el sello sella el pack; el
+    scope viaja aparte con su propio sello)."""
+    from . import a11yi18n
+    tx = a11yi18n.pack(lang).get('evidence', {})
+    note_base = tx.get('not_applicable_note') or a11yi18n.pack('en')['evidence']['not_applicable_note']
+    excluded = {}
+    rows = scope.get('criteria') if isinstance(scope.get('criteria'), list) else []
+    for row in rows:
+        if not isinstance(row, dict) or row.get('status') != 'excluded':
+            continue
+        crit = row.get('criterion')
+        if not isinstance(crit, str) or not crit:
+            continue
+        reason = row.get('reason')
+        excluded[crit.split(' ')[0]] = reason if isinstance(reason, str) else ''
+    out = dict(pack)
+    criteria = []
+    for row in pack.get('criteria', []):
+        code = (row.get('criterion') or '').split(' ')[0] if isinstance(row, dict) else ''
+        if code in excluded:
+            note = note_base + (f' {excluded[code]}' if excluded[code] else '')
+            row = {**row, 'status': 'not-applicable', 'note': note,
+                   'scope_reason': excluded[code] or None}
+            row.pop('effort', None)   # fuera de alcance: cero trabajo humano
+        criteria.append(row)
+    out['criteria'] = criteria
+    out['summary'] = {e: sum(1 for m in criteria if m.get('status') == e) for e in _STATES}
+    return out
 
 
 def _sha256(obj):
@@ -55,7 +89,7 @@ def _sha256(obj):
 
 
 def build_pack(reports, snapshot=None, reviewer=None, notes=None, verified=None,
-               sr_transcript=None, lang='en'):
+               sr_transcript=None, lang='en', scope=None):
     """Informes (lista de dicts JSON) → paquete de evidencia verificable.
 
     verificados: lista de códigos de criterio ("1.4.1", "3.3.1"…) que un
@@ -63,7 +97,11 @@ def build_pack(reports, snapshot=None, reviewer=None, notes=None, verified=None,
     (protocolo del checklist del skill). El criterio pasa a estado
     'agent-verified' — salvo que una señal automática diera fail, que
     permanece como fail (el fallo no se borra verificando). La fuente
-    (agente/humano, fecha) queda registrada en el bloque verificacion."""
+    (agente/humano, fecha) queda registrada en el bloque verificacion.
+
+    alcance (a11y_scope): las exclusiones CONFIRMADAS por una persona pasan
+    a 'not-applicable' con su razón; las propuestas de la máquina jamás
+    excluyen (a11y-scope/1 las marca 'proposed-excluded' y aquí no entran)."""
     now = datetime.now(timezone.utc).isoformat(timespec='seconds')
     from . import a11yi18n
     tx = a11yi18n.pack(lang).get('evidence', {})
@@ -94,6 +132,24 @@ def build_pack(reports, snapshot=None, reviewer=None, notes=None, verified=None,
                 touched[code] = state
 
     verified = {v.split(' ')[0] for v in (verified or [])}
+
+    # exclusiones confirmadas por humano (a11y-scope/1): código → razón.
+    # Solo status 'excluded' — una 'proposed-excluded' NO descuenta aquí.
+    # Filas malformadas (scope editado a mano, JSON hostil) se saltan, como
+    # los hallazgos malformados: la entrada sucia jamás tira el pack.
+    excluded = {}
+    if scope is not None and not isinstance(scope, dict):
+        raise ValueError('scope must be an object (a11y-scope/1 JSON)')
+    if isinstance(scope, dict) and scope.get('format') == 'a11y-scope/1':
+        rows = scope.get('criteria')
+        for row in rows if isinstance(rows, list) else []:
+            if not isinstance(row, dict) or row.get('status') != 'excluded':
+                continue
+            crit = row.get('criterion')
+            if not isinstance(crit, str) or not crit:
+                continue
+            reason = row.get('reason')
+            excluded[crit.split(' ')[0]] = reason if isinstance(reason, str) else ''
     # extraer valores medidos clave de los hallazgos (ratio, ejemplos)
     values = {}
     for inf in reports:
@@ -122,6 +178,16 @@ def build_pack(reports, snapshot=None, reviewer=None, notes=None, verified=None,
     matrix = []
     _manual_codes = {m.split(' ')[0] for m in MANUAL_AA}
     for code in codes_aa:
+        if code in excluded:
+            # aplicabilidad confirmada fuera de alcance por una persona: no
+            # queda trabajo humano ni estado de máquina — solo la razón
+            note = tx['not_applicable_note']
+            if excluded[code]:
+                note = f"{note} {excluded[code]}"
+            matrix.append({'criterion': f"{code} {(_CAT[code][1].get(language) or _CAT[code][1]['en'])[0]}",
+                           'status': 'not-applicable', 'note': note,
+                           'scope_reason': excluded[code] or None})
+            continue
         if code in _manual_codes:
             continue  # covered by the manual-only rows appended below
         state = touched.get(code, 'not-flagged')
@@ -155,7 +221,9 @@ def build_pack(reports, snapshot=None, reviewer=None, notes=None, verified=None,
         if code in values:
             entry['value'] = values[code]
         matrix.append(entry)
-    manual_remaining = [m for m in MANUAL_AA if m.split(' ')[0] not in verified]
+    manual_remaining = [m for m in MANUAL_AA
+                        if m.split(' ')[0] not in verified
+                        and m.split(' ')[0] not in excluded]
     # los not-run son adicionalmente "pendientes" (la máquina no miró)
     for name in manual_remaining:
         code = name.split(' ')[0]
@@ -170,6 +238,11 @@ def build_pack(reports, snapshot=None, reviewer=None, notes=None, verified=None,
                                 'why': ef['why']}
         matrix.append(row)
     for code in sorted(verified):
+        # una exclusión confirmada gana a una verificación previa: el
+        # criterio fuera de alcance no puede reaparecer como verificado
+        # (fila doble, niveles contradictorios en VPAT/OpenACR)
+        if code in excluded:
+            continue
         if any(code in m for m in MANUAL_AA) and not any(m.startswith(code) for m in manual_remaining):
             row = {'criterion': f"{code} {(_CAT[code][1].get(language) or _CAT[code][1]['en'])[0]}",
                    'status': 'agent-verified',
@@ -220,6 +293,27 @@ def build_pack(reports, snapshot=None, reviewer=None, notes=None, verified=None,
         artifacts.append({'type': 'sr_transcript', 'url': sr_transcript.get('url'),
                            'sha256': _sha256(sr_transcript), 'announcements': sr_transcript.get('total', 0),
                            'linearized': sr_transcript.get('announcements', [])[:50]})
+    scope_block = None
+    if isinstance(scope, dict) and scope.get('format') == 'a11y-scope/1':
+        artifacts.append({'type': 'scope:a11y', 'sha256': _sha256(scope),
+                           'standard': scope.get('standard'), 'target': scope.get('target'),
+                           'body': scope})  # embedded: pack self-verifying
+        cnt = scope.get('counters', {})
+        scope_block = {
+            'format': 'a11y-scope/1',
+            'standard': scope.get('standard'),
+            'target': scope.get('target'),
+            'in_scope': cnt.get('in_scope'),
+            'proposed_excluded': cnt.get('proposed_excluded'),
+            'excluded': cnt.get('excluded'),
+            # lo que aguas abajo (VPAT/OpenACR) puede tratar como N/A:
+            # SOLO exclusiones humanas, con su razón
+            'not_applicable': {r['criterion'].split(' ')[0]: r.get('reason')
+                               for r in (scope.get('criteria') if isinstance(scope.get('criteria'), list) else [])
+                               if isinstance(r, dict) and r.get('status') == 'excluded'
+                               and isinstance(r.get('criterion'), str) and r.get('criterion')},
+            'sha256': scope.get('sha256'),
+        }
 
     pack = {
         'format': 'a11y-evidence-pack/2',
@@ -228,6 +322,7 @@ def build_pack(reports, snapshot=None, reviewer=None, notes=None, verified=None,
         'tool': 'a11y-toolkit (github.com/kinti/a11y-toolkit)',
         'summary': summary,
         'effort_pending': pending_effort,
+        'scope': scope_block,
         'criteria': matrix,
         'manual_pending': [m['criterion'] for m in matrix if m['status'] == 'manual-only'],
         'verification': ({'source': 'agent', 'protocol': 'skill manual checklist'}
@@ -254,13 +349,16 @@ def main(argv):
     ap = argparse.ArgumentParser(description='Evidence pack (verifiable handoff)')
     ap.add_argument('reports', nargs='+', help='audit report JSON files (any mode)')
     ap.add_argument('--snapshot', help='a11y snapshot JSON (optional)')
+    ap.add_argument('--scope', help='a11y_scope output JSON: confirmed exclusions '
+                    'become not-applicable rows (proposals never exclude)')
     ap.add_argument('--reviewer', help='JSON: {"name":…, "credential":…, "review_date":…}')
     ap.add_argument('-o', '--out', default='evidence-pack.json')
     a = ap.parse_args(argv)
     reports = [json.load(open(f, encoding='utf-8')) for f in a.reports]
     snapshot = json.load(open(a.snapshot, encoding='utf-8')) if a.snapshot else None
+    scope = json.load(open(a.scope, encoding='utf-8')) if a.scope else None
     reviewer = json.loads(a.reviewer) if a.reviewer else None
-    pack = build_pack(reports, snapshot=snapshot, reviewer=reviewer)
+    pack = build_pack(reports, snapshot=snapshot, reviewer=reviewer, scope=scope)
     with open(a.out, 'w', encoding='utf-8') as f:
         json.dump(pack, f, ensure_ascii=False, indent=1)
     print(json.dumps({'pack': a.out, 'sha256': pack['sha256'],

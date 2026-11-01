@@ -111,11 +111,23 @@ assert m_intro and int(m_intro.group(1)) == len(server.TOOLS), f'README intro di
 assert int(m_intro.group(2)) == len(server._PROMPTS), f'README prompts: {m_intro.group(2)} vs {len(server._PROMPTS)}'
 assert m_tabla and int(m_tabla.group(1)) == len(server.TOOLS), f'README tabla: {m_tabla and m_tabla.group(1)} vs {len(server.TOOLS)}'
 vis = open(os.path.join(ROOT, 'docs', 'gen-visuals.py'), encoding='utf-8').read()
-m_gif = re.search(r'\((\d+) tools · (\d+) prompts\)', vis)
-assert m_gif and int(m_gif.group(1)) == len(server.TOOLS) and int(m_gif.group(2)) == len(server._PROMPTS), \
-    f'GIF dice {m_gif and m_gif.groups()}, hay {len(server.TOOLS)}+{len(server._PROMPTS)} — regenera docs/gen-visuals.py'
+# el banner del GIF se deriva de server.TOOLS (drift imposible): el pin exige
+# la derivación misma, no el número — un literal aquí volvería a caducar
+assert '{len(_server.TOOLS)} tools · {len(_server._PROMPTS)} prompts' in vis, \
+    'el banner del GIF debe derivarse de server.TOOLS/_PROMPTS en docs/gen-visuals.py'
 doc_server = server.__doc__
 assert all(t['name'] in doc_server for t in server.TOOLS), 'docstring del server incompleto'
+
+# superficies con conteo no generadas (AGENTS, reglas Cursor/VS Code, npm):
+# todo "NN tools" que aparezca debe decir el número real de server.TOOLS
+for _path in ('AGENTS.md', os.path.join('rules', 'a11y-toolkit.mdc'),
+              os.path.join('npm', 'package.json')):
+    _txt = open(os.path.join(ROOT, _path), encoding='utf-8').read()
+    _nums = {int(_n) for _n in re.findall(r'(\d+) (?:Mcp |MCP |)tools', _txt)}
+    assert _nums <= {len(server.TOOLS)}, \
+        f'{_path} dice tools={_nums}, hay {len(server.TOOLS)} — conteo derivado'
+assert 'a11y_scope' in open(os.path.join(ROOT, 'skills', 'a11y-toolkit', 'SKILL.md'),
+                            encoding='utf-8').read(), 'la skill no conoce a11y_scope'
 
 # ---------- 3b. tool schema hygiene (the Glama/TDQS penalties, pinned) ----------
 for _t in server.TOOLS:

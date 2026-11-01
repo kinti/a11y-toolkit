@@ -31,6 +31,8 @@
   a11ytoolkit mutants --seed 7 --n 12                       # the engine's sealed self-exam
   a11ytoolkit corpus build && a11ytoolkit corpus verify     # versioned audit corpus (dataset + baselines)
   a11ytoolkit fingerprints page1.html page2.html --dir p/  # twin-page detection (one audit per template)
+  a11ytoolkit audit --url https://web --standard en301549   # EN 301 549 clause on every finding
+  a11ytoolkit scope audit.json -o scope.json --standard en301549  # applicability: machine proposes, human confirms
 """
 
 import sys
@@ -64,6 +66,7 @@ from . import a11ywcag3
 from . import a11yroute
 from . import a11ymutants
 from . import a11yfingerprints
+from . import a11yscope
 
 SUBCOMMANDS = {
     'pair': (contrast, 'pair'),
@@ -101,6 +104,7 @@ SUBCOMMANDS = {
     'route': (a11yroute, None),
     'mutants': (a11ymutants, None),
     'fingerprints': (a11yfingerprints, None),
+    'scope': (a11yscope, None),
 }
 
 

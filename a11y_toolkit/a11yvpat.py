@@ -36,6 +36,8 @@ _STATUS_TO_LEVEL = {
     'not-run': 'not_evaluated',
     'manual-only': 'not_evaluated',
     'agent-verified': 'not_evaluated',
+    # exclusión de aplicabilidad confirmada por humano (pack con scope)
+    'not-applicable': 'not_applicable',
 }
 
 TXT = a11yi18n.pair('vpat_txt')  # locales/<lang>.json — community-editable
@@ -100,18 +102,29 @@ def _wcag_order(code):
 def generate_vpat(pack=None, reports=None, product='', product_version=None,
                  report_date=None, description=None, contact=None, methods=None,
                  notes=None, overrides=None, reviewer=None, lang='en',
-                 verified=None, output_path=None):
+                 verified=None, scope=None, output_path=None):
     """Pack (o informes) → HTML VPAT 2.5 accesible + resumen.
 
     overrides: {'1.1.1': 'supports', …} — niveles fijados por una persona
-    cualificada; ganan sobre la derivación automática."""
+    cualificada; ganan sobre la derivación automática (scope incluido:
+    una exclusion confirmada puede revertirse a mano si el humano lo decide).
+
+    scope: salida de a11y_scope — las exclusiones CONFIRMADAS por humano
+    salen como Not Applicable con su razón; las propuestas nunca."""
     t = _t(lang)
     if pack is None:
         if not reports:
             return {'error': t['error_no_pack']}
         from .a11yevidence import build_pack
         pack = build_pack(reports, verified=verified,
-                          reviewer=reviewer)
+                          reviewer=reviewer, scope=scope)
+    elif scope is not None:
+        # pack ya construido + scope: aplicar las exclusiones confirmadas
+        # (jamás silencio — el CLI lo promete)
+        if not isinstance(scope, dict):
+            return {'error': t['error_scope']}
+        from .a11yevidence import apply_scope
+        pack = apply_scope(pack, scope, lang=lang)
     if not isinstance(pack, dict) or 'criteria' not in pack:
         return {'error': t['error_no_pack']}
     overrides = overrides or {}
@@ -215,16 +228,19 @@ def main(argv):
     ap.add_argument('--notes', help='notes')
     ap.add_argument('--overrides', help='JSON: {"1.1.1": "does_not_support", …}')
     ap.add_argument('--reviewer', help='JSON: {"name":…, "credential":…, "review_date":…}')
+    ap.add_argument('--scope', help='a11y_scope output JSON: confirmed exclusions '
+                    'become Not Applicable (proposals never)')
     ap.add_argument('--lang', default='en', choices=['en', 'es'])
     ap.add_argument('-o', '--out')
     a = ap.parse_args(argv)
     pack = json.load(open(a.pack, encoding='utf-8')) if a.pack else None
     reports = [json.load(open(f, encoding='utf-8')) for f in a.reports] if a.reports else None
+    scope = json.load(open(a.scope, encoding='utf-8')) if a.scope else None
     res = generate_vpat(pack=pack, reports=reports, product=a.product, report_date=a.report_date,
                        description=a.description, contact=a.contact, methods=a.methods,
                        notes=a.notes, overrides=json.loads(a.overrides) if a.overrides else None,
                        reviewer=json.loads(a.reviewer) if a.reviewer else None,
-                       lang=a.lang, output_path=a.out)
+                       scope=scope, lang=a.lang, output_path=a.out)
     if 'error' in res:
         print(res['error'])
         return 1

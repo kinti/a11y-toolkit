@@ -7,7 +7,7 @@ read this. Every claim here that can be pinned by a test IS pinned by
 ## What this is
 
 a11y-toolkit is the machine half of WCAG 2.2 conformance work: an MCP server
-(34 tools + 6 prompts) and a CLI (`a11ytoolkit`) that audit, fix, document,
+(35 tools + 6 prompts) and a CLI (`a11ytoolkit`) that audit, fix, document,
 watch and hand off accessibility findings. The human half is priced, not
 guessed. Zero dependencies at the core; Playwright/Pillow optional behind
 import guards. Output es/en; wire keys English (`a11y-evidence-pack/2`).
@@ -16,7 +16,7 @@ import guards. Output es/en; wire keys English (`a11y-evidence-pack/2`).
 
 | Module | One line |
 |---|---|
-| `server.py` | MCP stdio server: 34 tools, 6 prompts, routing/annotations dicts. VERSION lives here. |
+| `server.py` | MCP stdio server: 35 tools, 6 prompts, routing/annotations dicts. VERSION lives here. |
 | `a11y.py` | CLI dispatcher (`SUBCOMANDOS` dict → module mains). |
 | `a11yaudit.py` | Static auditor: 50+ signals, `CRIT` name maps, weighted 0-100 score, sitemap crawl (`audit_site` / `evaluate_site`). |
 | `a11ydom.py` | Rendered auditor (Playwright): shadow DOM, state contrast, target size, reflow, keyboard walk, forms, hover, sr_transcript; browser pool + auto-detection; `_TD` catalog. |
@@ -34,6 +34,8 @@ import guards. Output es/en; wire keys English (`a11y-evidence-pack/2`).
 | `a11yinit.py` | `a11ytoolkit init` — installs the AGENTS.md agent hook in user projects. |
 | `a11yact.py` | ACT Rules interop: curated signal → ACT rule map (`ACT_MAP`, partial by design) + EARL 1.0 JSON-LD export (failures only, never asserts pass). |
 | `a11yroute.py` | Tool 33: the router — goal in plain language → ordered tools with why (deterministic word-boundary index over 18 routes es/en, honest `start` fallback) + sequential diagnosis (url/html): the cheap static pass is the vitals, its symptoms (forms, menus, video, animation, svg) order the next exams by expected yield — severity only breaks ties, the plan never replaces the catalog. |
+| `a11yen301549.py` | EN 301 549 V4.1.1 (2026) standard data: SC→clause numbering identity (9.x web / 10.x documents / 11.x software, verified 55/55 A/AA against the standard's official applicability wizard), EN-only families (5, 6, 7, 8, 12, 13) as honest rows, mode→target derivation — pure data, no evaluation. |
+| `a11yscope.py` | Tool 35: semi-automatic applicability scope (`a11y-scope/1`) — reads the reports' features block (positive evidence: media elements, form controls) and proposes structural exclusions (no video → 1.2.x, no forms → 3.3.x; embeds leave media undetermined), human confirms via answers, only confirmed exclusions become not-applicable downstream (evidence pack / VPAT / OpenACR); with standard=en301549 every row carries its EN clause and the families appear — machine proposes, human confirms, a proposal never excludes. |
 | `a11ymutants.py` | The engine's sealed self-exam (WCAG mutation testing): seeded regenerable clean pages, 18 operators derived from the signal→criterion map (one violation per mutant), sealed answer log, placebo pages (any finding = false positive by construction), kill-rate exam — CLI + suite, not a tool. |
 | `a11ywcag3.py` | WCAG 3 preview: re-groups 2.2 findings under the Sept-2026 draft's 46 outcomes (`_OUTCOMES`, exact names) via a curated criterion→outcome map — no score, no tier, no conformance claim (W3C has no official cross-map). |
 | `a11yvtt.py` | WebVTT caption quality (1.2.2): parses the real .vtt — malformed/empty/overlapping/too-fast cues (>21 cps), coverage vs duration. |

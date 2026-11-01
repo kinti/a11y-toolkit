@@ -1,5 +1,38 @@
 # Changelog
 
+## 5.26.0 — pendiente — "EN 301 549 + applicability scope"
+
+- **`a11y_scope` (tool 35) — semi-automatic applicability scoping** (the
+  pattern of the Government of Canada CIO wizard for EN 301 549, informed
+  by the audit instead of 118 hand-answered questions): the reports'
+  new `features` block is positive evidence of what the audit SAW — zero
+  media elements proposes 1.2.x excluded, zero form controls proposes
+  3.3.x; embedded iframes leave media undetermined (nothing proposed);
+  reports without the block emit zero proposals. The machine PROPOSES
+  (`proposed-excluded`), the human CONFIRMS (`answers`), and only
+  confirmed exclusions flow downstream — each with its reason. Live
+  counter: N of 55 in scope (the mirror of the wizard's "Total Clauses").
+- **EN 301 549 V4.1.1 (2026) as an output of the engine**: `--standard
+  en301549` on audit (CLI + MCP) adds the clause to every finding
+  (9.x web / 10.x documents / 11.x software; pdf/docx default to 10.x)
+  and a standard block; SARIF rules gain `en301549` properties + tags
+  (filterable in code scanning). The SC↔clause numbering identity was
+  verified against the standard's official applicability wizard: 55/55
+  A/AA mirrored in clauses 9, 10 AND 11. AAA is not claimed. The EN-only
+  families (5, 6, 7, 8, 12, 13) appear in the scope as honest rows this
+  toolkit does not evaluate.
+- **Scope sealed inside the evidence chain**: `evidence --scope` embeds the
+  scope artifact (sha256) and turns confirmed exclusions into
+  `not-applicable` rows with their reason; VPAT/OpenACR render them as
+  Not Applicable (overrides still win); `apply_scope` applies a scope to
+  an already-built pack without touching its seal.
+- **Honesty rule, pinned**: a machine proposal never excludes anything —
+  only a human answer does (49 checks in tests/test_scope.py, including
+  8 regressions from an independent review).
+- **GIF banner now derives from `server.TOOLS`** (count drift impossible);
+  AGENTS.md / Cursor rules / npm description re-pinned to 35 tools by the
+  solido suite.
+
 ## 5.25.2 — pendiente — "the slim sdist + the serious badges"
 
 - **Tasteful star nudge (CLI `fix`, once per machine)**: after a fix writes a
