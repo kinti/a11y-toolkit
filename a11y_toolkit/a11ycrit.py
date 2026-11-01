@@ -19,6 +19,10 @@ import sys
 
 # Enlace oficial Understanding WCAG 2.2 por criterio (w3.org, índice 2026-10).
 # Fuente: https://www.w3.org/WAI/WCAG22/Understanding/ — los 86 criterios.
+# Success criteria introduced in WCAG 2.2 (for --new-in filters)
+NEW_IN_22 = {'2.4.11', '2.4.12', '2.4.13', '2.5.7', '2.5.8',
+             '3.2.6', '3.3.7', '3.3.8', '3.3.9'}
+
 _UNDERSTANDING = {
     '1.1.1': 'non-text-content',
     '1.2.1': 'audio-only-and-video-only-prerecorded',
@@ -1005,8 +1009,35 @@ def main(argv):
     ap.add_argument('--signal', help='engine signal id (e.g. kbd_trap) instead of a criterion code')
     ap.add_argument('--lang', default='en', choices=['en', 'es'])
     ap.add_argument('--list', action='store_true')
+    ap.add_argument('--level', choices=['A', 'AA', 'AAA'],
+                    help='--list: filter by conformance level')
+    ap.add_argument('--new-in', dest='new_in', metavar='VERSION',
+                    help='--list: only criteria introduced in the given version (e.g. 2.2)')
+    ap.add_argument('--signal-filter', dest='signal_filter', choices=['yes', 'no'],
+                    help='--list: only criteria with (yes) or without (no) an automated signal')
+    ap.add_argument('--json', action='store_true', help='--list: machine-readable output')
     a = ap.parse_args(argv)
     if a.list or not (a.code or a.signal):
+        if a.level or a.new_in or a.signal_filter:
+            from .a11yevidence import MANUAL_AA  # lazy: avoids the import cycle
+            no_signal = {m.split(' ')[0] for m in MANUAL_AA}
+            rows = []
+            for code, (level, loc) in sorted(_C.items()):
+                if a.level and level != a.level:
+                    continue
+                if a.new_in and code not in NEW_IN_22:
+                    continue
+                if a.signal_filter == 'yes' and code in no_signal:
+                    continue
+                if a.signal_filter == 'no' and code not in no_signal:
+                    continue
+                rows.append({'code': code, 'level': level,
+                             'name': (loc.get(a.lang) or loc['en'])[0],
+                             'new_in_22': code in NEW_IN_22,
+                             'signal': code not in no_signal})
+            print(json.dumps({'count': len(rows), 'criteria': rows},
+                             ensure_ascii=False, indent=1))
+            return 0
         print(json.dumps({'available_criteria': sorted(_C)}, indent=1))
         return 0
     print(json.dumps(criterion(a.code, a.lang, signal=a.signal), ensure_ascii=False, indent=1))

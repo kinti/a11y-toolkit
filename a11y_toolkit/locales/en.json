@@ -562,5 +562,36 @@
     "note": "Applies to relay services and emergency-communication ICT."
    }
   }
+ },
+ "sol": {
+  "annex_title": "Accessibility requirements annex (for tender/contract use)",
+  "req_intro": "The ICT product or service shall comply with {standard}, conformance level AA, in the following success criteria:",
+  "principle": "Principle {n} — {name}",
+  "excl_title": "Requirements excluded by scope (with human-confirmed reason):",
+  "excl_item": "{clause} — excluded — {reason}",
+  "evidence_title": "Evidence the supplier shall provide:",
+  "evidence_items": [
+   "Accessibility audit report with identified engine and date",
+   "Accessibility statement covering the delivered product",
+   "Verifiable evidence pack (SHA-256 chain), accepted formats"
+  ],
+  "note": "This annex is generated from an applicability scope artifact; the machine proposes and a named person confirms. Verify clause numbers against the current published standard text before awarding.",
+  "chapter_list": "Additional applicable chapters: {chapters}"
+ },
+ "std508": {
+  "q_public": "Is the electronic content public-facing?",
+  "q_official": "Is it an official agency communication that is not public-facing?",
+  "q_authoring": "Is the software also an authoring tool?",
+  "q_web": "Is it web-based?",
+  "exc_title": "WCAG success criteria not applicable to non-web content (Revised 508, E203/E204):",
+  "ch_title": "Revised 508 chapters that apply beyond WCAG:",
+  "ch_502": "502 Interoperability with assistive technology",
+  "ch_503": "503 Application (platform/software requirements)",
+  "ch_504": "504 Authoring tools",
+  "ch_602": "602 Support documentation",
+  "ch_603": "603 Support services",
+  "ch_302": "302 Functional performance criteria",
+  "ans_human": "human answer pending",
+  "ans_machine": "answered by the audit (web target)"
  }
 }

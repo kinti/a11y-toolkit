@@ -32,7 +32,7 @@ import json
 import sys
 from datetime import datetime, timezone
 
-STANDARDS = ('wcag22', 'en301549')
+STANDARDS = ('wcag22', 'en301549', '508')
 STATUS_ORDER = ('in-scope', 'proposed-excluded', 'excluded')
 
 # Criterios cuya aplicabilidad depende de un rasgo ESTRUCTURAL detectable:
@@ -100,7 +100,7 @@ def _forms_present(feats, findings_codes):
 
 
 def build_scope(reports, standard='wcag22', target='web', answers=None,
-                lang='en'):
+                lang='en', targets=None):
     """Informes (lista de dicts) + respuestas humanas → alcance a11y-scope/1."""
     if standard not in STANDARDS:
         raise ValueError(f"standard must be one of {STANDARDS}, got {standard!r}")
@@ -109,6 +109,10 @@ def build_scope(reports, standard='wcag22', target='web', answers=None,
     from .a11ycrit import _C
     tx = pack(lang).get('scope', {}) or {}
 
+    if targets:
+        targets = [x for x in targets if x in ('web', 'documents', 'software')] or [target]
+    else:
+        targets = [target]
     reports = [r for r in reports if isinstance(r, dict)]
     findings_codes = set()
     for rep in reports:
@@ -136,7 +140,9 @@ def build_scope(reports, standard='wcag22', target='web', answers=None,
         name = (_C[code][1].get(lang) or _C[code][1]['en'])[0]
         row = {'criterion': f'{code} {name}', 'level': _C[code][0]}
         if standard == 'en301549':
-            row['clause'] = enstd.clause_for(code, target)
+            row['clause'] = enstd.clause_for(code, targets[0])
+            if len(targets) > 1:
+                row['clauses'] = {tg: enstd.clause_for(code, tg) for tg in targets}
 
         ans = answers.get(code)
         if isinstance(ans, str):        # abreviatura: "excluded"/"in-scope"
@@ -171,6 +177,20 @@ def build_scope(reports, standard='wcag22', target='web', answers=None,
                 row['evidence'] = tx.get('evidence_forms_present')
         criteria.append(row)
 
+    std508_block = None
+    if standard == '508':
+        from . import a11y508
+        app = a11y508.applicability(target=targets[0], answers=answers)
+        for row in criteria:
+            code = row['criterion'].split(' ')[0]
+            if code in app['wcag_exceptions'] and row['status'] != 'excluded':
+                row['status'] = 'proposed-excluded'
+                row['evidence_source'] = 'machine:508'
+                row['evidence'] = ('Not applicable to non-web content/software per '
+                                   'Revised 508 E203/E204 (web-based: '
+                                   + app['web_based']['answer'] + ')')
+        std508_block = app
+
     counters = {
         'criteria': len(criteria),
         'in_scope': sum(1 for r in criteria if r['status'] == 'in-scope'),
@@ -184,6 +204,7 @@ def build_scope(reports, standard='wcag22', target='web', answers=None,
         counters['en_clauses_applicable'] = counters['in_scope'] + counters['excluded']
 
     scope = {
+        'section508': std508_block,
         'format': 'a11y-scope/1',
         'lang': lang,
         'generated': datetime.now(timezone.utc).isoformat(timespec='seconds'),
@@ -216,6 +237,61 @@ def build_scope(reports, standard='wcag22', target='web', answers=None,
     return scope
 
 
+PRINCIPLES = {
+    '1': {'en': 'Perceivable', 'es': 'Perceptible'},
+    '2': {'en': 'Operable', 'es': 'Operable'},
+    '3': {'en': 'Understandable', 'es': 'Comprensible'},
+    '4': {'en': 'Robust', 'es': 'Robusto'},
+}
+
+
+def solicitation(scope, lang='es'):
+    """Scope artifact → procurement annex text (ART's solicitation-language
+    pattern): the normative clause list grouped by principle, confirmed
+    exclusions with their reason, and the evidence the supplier shall
+    provide. The machine generates from data; clause numbers must be
+    checked against the published standard before award (stated in text)."""
+    from .a11yi18n import pack
+    tx = pack(lang).get('sol', {})
+    std = scope.get('standard') or 'WCAG 2.2 (A/AA)'
+    tgt = scope.get('target') or 'web'
+    prefix = {'web': '9', 'documents': '10', 'software': '11'}.get(tgt)
+
+    lines = []
+    lines.append(tx['annex_title'])
+    lines.append('')
+    lines.append(tx['req_intro'].format(standard=std))
+    in_scope = [r for r in scope.get('criteria', []) if r.get('status') == 'in-scope']
+    excluded = [r for r in scope.get('criteria', []) if r.get('status') == 'excluded']
+    cur = None
+    for row in in_scope:
+        code = row['criterion'].split(' ')[0]
+        pr = code.split('.')[0]
+        if pr != cur:
+            cur = pr
+            name = PRINCIPLES.get(pr, {}).get(lang) or PRINCIPLES.get(pr, {}).get('en', '')
+            lines.append('')
+            lines.append(tx['principle'].format(n=pr, name=name))
+        clause = (prefix + '.' + code) if (std.startswith('EN') and prefix) else code
+        lines.append('  - ' + clause + ' — ' + row['criterion'].split(' ', 1)[1])
+    if excluded:
+        lines.append('')
+        lines.append(tx['excl_title'])
+        for row in excluded:
+            code = row['criterion'].split(' ')[0]
+            clause = (prefix + '.' + code) if (std.startswith('EN') and prefix) else code
+            reason = row.get('reason') or ''
+            lines.append('  - ' + tx['excl_item'].format(clause=clause, reason=reason))
+    lines.append('')
+    lines.append(tx['evidence_title'])
+    for item in tx['evidence_items']:
+        lines.append('  - ' + item)
+    if scope.get('standard', '').startswith('EN'):
+        lines.append('')
+        lines.append(tx['note'])
+    return '\n'.join(lines)
+
+
 def main(argv):
     from .a11yen301549 import TARGETS
     ap = argparse.ArgumentParser(description='Applicability scope (semi-automatic)')
@@ -228,15 +304,27 @@ def main(argv):
                     '{"1.2.4": {"status": "excluded", "reason": "…"}}')
     ap.add_argument('--lang', default='en', choices=('es', 'en'))
     ap.add_argument('-o', '--out', default='scope.json')
+    ap.add_argument('--targets', default=None,
+                    help='comma-separated ICT targets for combined scope (e.g. web,documents)')
+    ap.add_argument('--solicitation', metavar='FILE',
+                    help='also write the procurement annex text (from this scope)')
     a = ap.parse_args(argv)
     reports = [json.load(open(f, encoding='utf-8')) for f in a.reports]
     answers = json.load(open(a.answers, encoding='utf-8')) if a.answers else None
+    targets = [x.strip() for x in a.targets.split(',')] if a.targets else None
     scope = build_scope(reports, standard=a.standard, target=a.target,
-                        answers=answers, lang=a.lang)
+                        answers=answers, lang=a.lang, targets=targets)
     with open(a.out, 'w', encoding='utf-8') as f:
         json.dump(scope, f, ensure_ascii=False, indent=1)
+    if a.solicitation:
+        text = solicitation(scope, lang=a.lang)
+        with open(a.solicitation, 'w', encoding='utf-8') as f:
+            f.write(text + '\n')
+        annex_note = {'solicitation': a.solicitation}
+    else:
+        annex_note = {}
     print(json.dumps({'scope': a.out, 'sha256': scope['sha256'],
-                      'counters': scope['counters']}, ensure_ascii=False))
+                      'counters': scope['counters'], **annex_note}, ensure_ascii=False))
     return 0
 
 

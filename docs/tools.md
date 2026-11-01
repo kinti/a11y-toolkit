@@ -650,11 +650,13 @@ Semi-automatic applicability scoping — the layer between the audit and the con
 
 - `reports` *(required)*: audit report objects (any mode; reports carrying the features block power the machine proposals).
 
-- `standard` — one of ['wcag22', 'en301549']: wcag22 (default) or en301549: adds clause refs + EN families.
+- `standard` — one of ['wcag22', 'en301549', '508']: wcag22 (default), en301549 (clause refs + EN families) or 508 (GSA applicability tree + WCAG exceptions).
 
 - `target` — one of ['web', 'documents', 'software']: ICT target: web=9.x clauses (default), documents=10.x, software=11.x.
 
-- `answers`: human confirmations keyed by criterion code: {"1.2.4": {"status": "excluded", "reason": "no live media"}} — status in-scope|proposed-excluded|excluded.
+- `targets`: combined scope across ICT targets (like GSA ART multi-item); rows carry a clauses dict per target.
+
+- `answers`: human confirmations keyed by criterion code (or 508:<question> for Section 508 product questions): status in-scope|proposed-excluded|excluded.
 
 - `lang` — one of ['es', 'en']: output language (en default).
 

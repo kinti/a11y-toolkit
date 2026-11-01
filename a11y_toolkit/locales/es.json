@@ -562,5 +562,36 @@
     "note": "Aplica a servicios de relé y TIC de comunicación de emergencia."
    }
   }
+ },
+ "sol": {
+  "annex_title": "Anexo de requisitos de accesibilidad (para pliego/contrato)",
+  "req_intro": "El producto o servicio TIC deberá cumplir {standard}, nivel AA, en los criterios de éxito siguientes:",
+  "principle": "Principio {n} — {name}",
+  "excl_title": "Requisitos excluidos por alcance (con razón confirmada por persona):",
+  "excl_item": "{clause} — excluido — {reason}",
+  "evidence_title": "Evidencia que deberá aportar el proveedor:",
+  "evidence_items": [
+   "Informe de auditoría de accesibilidad con motor y fecha identificados",
+   "Declaración de accesibilidad que cubra el producto entregado",
+   "Pack de evidencia verificable (cadena SHA-256), en formatos aceptados"
+  ],
+  "note": "Este anexo se genera a partir de un alcance de aplicabilidad; la máquina propone y una persona identificada confirma. Verifica los números de cláusula contra el texto vigente del estándar antes de la adjudicación.",
+  "chapter_list": "Capítulos adicionales aplicables: {chapters}"
+ },
+ "std508": {
+  "q_public": "¿El contenido electrónico es de acceso público?",
+  "q_official": "¿Es comunicación oficial de agencia sin acceso público?",
+  "q_authoring": "¿El software es además herramienta de autoría?",
+  "q_web": "¿Es basado en web?",
+  "exc_title": "Criterios WCAG no aplicables a contenido no web (Revised 508, E203/E204):",
+  "ch_title": "Capítulos del Revised 508 que aplican además de WCAG:",
+  "ch_502": "502 Interoperabilidad con tecnología de asistencia",
+  "ch_503": "503 Aplicación (requisitos de plataforma/software)",
+  "ch_504": "504 Herramientas de autoría",
+  "ch_602": "602 Documentación de soporte",
+  "ch_603": "603 Servicios de soporte",
+  "ch_302": "302 Criterios de rendimiento funcional",
+  "ans_human": "respuesta humana pendiente",
+  "ans_machine": "respondido por la auditoría (target web)"
  }
 }

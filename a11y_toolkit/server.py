@@ -408,9 +408,10 @@ TOOLS = [
         'inputSchema': {'type': 'object', 'properties': {
             'reports': {'type': 'array', 'items': {'type': 'object'},
                          'description': 'audit report objects (any mode; reports carrying the features block power the machine proposals)'},
-            'standard': {'type': 'string', 'enum': ['wcag22', 'en301549'], 'description': 'wcag22 (default) or en301549: adds clause refs + EN families'},
+            'standard': {'type': 'string', 'enum': ['wcag22', 'en301549', '508'], 'description': 'wcag22 (default), en301549 (clause refs + EN families) or 508 (GSA applicability tree + WCAG exceptions)'},
             'target': {'type': 'string', 'enum': ['web', 'documents', 'software'], 'description': 'ICT target: web=9.x clauses (default), documents=10.x, software=11.x'},
-            'answers': {'type': 'object', 'description': 'human confirmations keyed by criterion code: {"1.2.4": {"status": "excluded", "reason": "no live media"}} — status in-scope|proposed-excluded|excluded'},
+            'targets': {'type': 'array', 'items': {'type': 'string', 'enum': ['web', 'documents', 'software']}, 'description': 'combined scope across ICT targets (like GSA ART multi-item); rows carry a clauses dict per target'},
+            'answers': {'type': 'object', 'description': 'human confirmations keyed by criterion code (or 508:<question> for Section 508 product questions): status in-scope|proposed-excluded|excluded'},
             'lang': {'type': 'string', 'enum': ['es', 'en'], 'description': 'output language (en default)'},
         }, 'required': ['reports']},
     },
@@ -1361,6 +1362,7 @@ def invoke(name, args):
             return _content(scope_fn(args['reports'], standard=args.get('standard', 'wcag22'),
                                      target=args.get('target', 'web'),
                                      answers=args.get('answers'),
+                                     targets=args.get('targets'),
                                      lang=args.get('lang', 'en')))
         except Exception as e:  # noqa: BLE001
             return {'content': [{'type': 'text', 'text': f'error: {e}'}], 'isError': True}
