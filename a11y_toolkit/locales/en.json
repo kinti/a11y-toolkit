@@ -576,7 +576,10 @@
    "Verifiable evidence pack (SHA-256 chain), accepted formats"
   ],
   "note": "This annex is generated from an applicability scope artifact; the machine proposes and a named person confirms. Verify clause numbers against the current published standard text before awarding.",
-  "chapter_list": "Additional applicable chapters: {chapters}"
+  "chapter_list": "Additional applicable chapters: {chapters}",
+  "req_num": "R{n}",
+  "trace_title": "Generated from applicability scope sha256:{sha} · engine {engine}. Verify clause numbers against the current published standard text before awarding.",
+  "chapters_in_annex": "Chapters that also apply (declared, not evaluated by this tool):"
  },
  "std508": {
   "q_public": "Is the electronic content public-facing?",
@@ -592,6 +595,8 @@
   "ch_603": "603 Support services",
   "ch_302": "302 Functional performance criteria",
   "ans_human": "human answer pending",
-  "ans_machine": "answered by the audit (web target)"
+  "ans_machine": "answered by the audit (web target)",
+  "exc_reason": "Not applicable to non-web content/software per Revised 508 E203/E204 (web-based: {answer})",
+  "exempt_reason": "Content exempt per Revised 508 (not public-facing and not an official agency communication) — human answers public_facing={public}, official_comm={official}"
  }
 }

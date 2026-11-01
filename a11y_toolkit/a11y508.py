@@ -39,6 +39,27 @@ HARDWARE_CHAPTERS = ('302', '402', '403', '404', '405', '406', '407', '408',
 STANDARD_NAME = 'Section 508 (Revised, 2017)'
 
 
+HARDWARE_BASE = ('302', '404', '405', '406', '407', '409', '410', '411', '602', '603')
+
+
+def hardware_chapters(conditions):
+    """Conditional hardware chapters per the GSA tree.
+    conditions: dict of booleans — kiosk, biometrics, display_screens,
+    two_way_voice, multimedia."""
+    chapters = list(HARDWARE_BASE)
+    if conditions.get('kiosk'):
+        chapters.append('402')
+    if conditions.get('biometrics'):
+        chapters.append('403')
+    if conditions.get('display_screens'):
+        chapters.append('408')
+    if conditions.get('two_way_voice'):
+        chapters.append('412')
+    if conditions.get('multimedia'):
+        chapters.extend(['413', '414', '415'])
+    return sorted(set(chapters))
+
+
 def applicability(target='web', answers=None):
     """Product questions → applicability dict for a 508 scope.
 
@@ -73,9 +94,13 @@ def applicability(target='web', answers=None):
     if target == 'software' and authoring == 'yes':
         chapters.append(AUTHORING_CHAPTER)
 
+    content_exempt = (target in ('web', 'documents')
+                      and public == 'no' and official == 'no')
+
     return {
         'standard': STANDARD_NAME,
         'target': target,
+        'content_exempt': content_exempt,
         'web_based': {'answer': web_based, 'source': web_src, 'reason': web_reason},
         'public_facing': {'answer': public, 'source': public_src, 'reason': public_reason},
         'official_comm': {'answer': official, 'source': official_src, 'reason': official_reason},

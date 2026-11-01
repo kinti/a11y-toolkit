@@ -108,6 +108,7 @@ def build_scope(reports, standard='wcag22', target='web', answers=None,
     from .a11yi18n import pack
     from .a11ycrit import _C
     tx = pack(lang).get('scope', {}) or {}
+    tx508 = pack(lang).get('std508', {}) or {}
 
     if targets:
         targets = [x for x in targets if x in ('web', 'documents', 'software')] or [target]
@@ -181,14 +182,21 @@ def build_scope(reports, standard='wcag22', target='web', answers=None,
     if standard == '508':
         from . import a11y508
         app = a11y508.applicability(target=targets[0], answers=answers)
+
         for row in criteria:
             code = row['criterion'].split(' ')[0]
-            if code in app['wcag_exceptions'] and row['status'] != 'excluded':
+            if row['status'] == 'excluded':
+                continue
+            if app['content_exempt']:
                 row['status'] = 'proposed-excluded'
                 row['evidence_source'] = 'machine:508'
-                row['evidence'] = ('Not applicable to non-web content/software per '
-                                   'Revised 508 E203/E204 (web-based: '
-                                   + app['web_based']['answer'] + ')')
+                row['evidence'] = tx508['exempt_reason'].format(
+                    public=app['public_facing']['answer'],
+                    official=app['official_comm']['answer'])
+            elif code in app['wcag_exceptions']:
+                row['status'] = 'proposed-excluded'
+                row['evidence_source'] = 'machine:508'
+                row['evidence'] = tx508['exc_reason'].format(answer=app['web_based']['answer'])
         std508_block = app
 
     counters = {
@@ -222,15 +230,20 @@ def build_scope(reports, standard='wcag22', target='web', answers=None,
     if standard == 'en301549':
         fam_rows = []
         for fam in enstd.family_rows(lang):
-            status = 'human-review'
-            if fam['family'] in ('6', '7', '8') and target == 'web':
-                # un producto web no lleva RTT/transmisión de vídeo/hardware:
-                # propuesta de la MISMA lógica que usa el wizard oficial
-                status = 'proposed-excluded'
-            if fam['family'] == '12':
-                status = 'in-scope'
-            fam_rows.append({**fam, 'status': status,
-                             'evaluated_by_toolkit': False})
+            def _status_for(tg):
+                if fam['family'] == '12':
+                    return 'in-scope'
+                if fam['family'] in ('6', '7', '8') and tg == 'web':
+                    # un producto web no lleva RTT/transmisión de vídeo/hardware:
+                    # propuesta de la MISMA lógica que usa el wizard oficial
+                    return 'proposed-excluded'
+                return 'human-review'
+            status = _status_for(targets[0])
+            row_f = {**fam, 'status': status,
+                     'evaluated_by_toolkit': False}
+            if len(targets) > 1:
+                row_f['status_per_target'] = {tg: _status_for(tg) for tg in targets}
+            fam_rows.append(row_f)
         scope['en301549_families'] = fam_rows
     # el sello excluye el reloj: re-emitir el mismo alcance → mismo sha
     scope['sha256'] = _sha256({k: v for k, v in scope.items() if k != 'generated'})
@@ -263,7 +276,9 @@ def solicitation(scope, lang='es'):
     lines.append(tx['req_intro'].format(standard=std))
     in_scope = [r for r in scope.get('criteria', []) if r.get('status') == 'in-scope']
     excluded = [r for r in scope.get('criteria', []) if r.get('status') == 'excluded']
+    tx508 = pack(lang).get('std508', {}) or {}
     cur = None
+    n_req = 0
     for row in in_scope:
         code = row['criterion'].split(' ')[0]
         pr = code.split('.')[0]
@@ -272,8 +287,29 @@ def solicitation(scope, lang='es'):
             name = PRINCIPLES.get(pr, {}).get(lang) or PRINCIPLES.get(pr, {}).get('en', '')
             lines.append('')
             lines.append(tx['principle'].format(n=pr, name=name))
+        n_req += 1
         clause = (prefix + '.' + code) if (std.startswith('EN') and prefix) else code
-        lines.append('  - ' + clause + ' — ' + row['criterion'].split(' ', 1)[1])
+        req_id = tx['req_num'].format(n=n_req)
+        lines.append('  ' + req_id + ' — ' + clause + ' — ' + row['criterion'].split(' ', 1)[1])
+    std508 = scope.get('section508')
+    if std508:
+        # excepciones mandadas por el ESTÁNDAR (E203/E204): sección propia,
+        # distinta de las exclusiones confirmadas por persona. Solo si hay.
+        if std508.get('wcag_exceptions'):
+            lines.append('')
+            lines.append(tx508['exc_title'])
+            for code in std508['wcag_exceptions']:
+                lines.append('  - WCAG ' + code + ' — ' + tx508['exc_reason'].format(
+                    answer=(std508.get('web_based') or {}).get('answer', '?')))
+        chapters = std508.get('chapters', [])
+        if chapters:
+            lines.append('')
+            lines.append(tx.get('chapters_in_annex', 'Chapters that also apply:'))
+            names = {'302': tx508.get('ch_302'), '502': tx508.get('ch_502'),
+                     '504': tx508.get('ch_504'), '602': tx508.get('ch_602'),
+                     '603': tx508.get('ch_603')}
+            for ch in chapters:
+                lines.append('  - ' + (names.get(ch) or ch))
     if excluded:
         lines.append('')
         lines.append(tx['excl_title'])
@@ -286,8 +322,12 @@ def solicitation(scope, lang='es'):
     lines.append(tx['evidence_title'])
     for item in tx['evidence_items']:
         lines.append('  - ' + item)
+    # trazabilidad: el anexo se genera DESDE un alcance sellado concreto
+    lines.append('')
+    from .server import VERSION as engine_version
+    lines.append(tx['trace_title'].format(sha=(scope.get('sha256') or '')[:16],
+                                          engine=engine_version))
     if scope.get('standard', '').startswith('EN'):
-        lines.append('')
         lines.append(tx['note'])
     return '\n'.join(lines)
 

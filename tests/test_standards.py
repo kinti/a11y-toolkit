@@ -153,6 +153,77 @@ with tempfile.TemporaryDirectory() as td:
     annex = open(ap_, encoding='utf-8').read()
     check('anexo con cláusulas y evidencia', '9.' in annex and 'auditoría' in annex.lower())
 
+
+print('== 9. F1: exención de contenido (árbol GSA fiel)')
+ans_exempt = {'508:public_facing': {'answer': 'no'},
+              '508:official_comm': {'answer': 'no'}}
+sc_ex = build_scope([R], standard='508', target='web',
+                    answers=ans_exempt, lang='en')
+b_ex = sc_ex['section508']
+check('content_exempt=True (no público + no oficial)',
+      b_ex['content_exempt'] is True)
+check('los 55 criterios propuestos fuera con la respuesta humana',
+      sc_ex['counters']['proposed_excluded'] == 55
+      and 'human answers public_facing=no, official_comm=no'
+          in sc_ex['criteria'][0]['evidence'])
+check('razones 508 por catálogo (es)',
+      'Revised 508' in sc_ex['criteria'][0]['evidence'])
+sc_es = build_scope([R], standard='508', target='web',
+                    answers=ans_exempt, lang='es')
+check('razones 508 en es', 'exento según Revised 508'
+      in sc_es['criteria'][0]['evidence']
+      or 'exento' in sc_es['criteria'][0]['evidence'])
+# official=yes + public=no → el contenido APLICA (comunicación oficial)
+sc_off = build_scope([R], standard='508', target='web',
+                     answers={'508:public_facing': {'answer': 'no'},
+                              '508:official_comm': {'answer': 'yes'}}, lang='en')
+check('comunicación oficial → el contenido aplica',
+      sc_off['section508']['content_exempt'] is False)
+
+print('== 10. F2: anexo sólido con 508 (excepciones, capítulos, trazabilidad, numeración)')
+r_hw = audit_html(DOC)
+sc_hw = build_scope([r_hw], standard='508', target='web', lang='en')
+annex = solicitation(sc_hw, lang='en')
+check('requisitos numerados R1…', 'R1 —' in annex and 'R2 —' in annex)
+check('web target: sin sección de excepciones (vacía se omite)',
+      'E203/E204' not in annex)
+check('capítulos declarados en el anexo', '602' in annex)
+# target documents: excepciones E203/E204 listadas en el anexo
+r_docs = audit_html(DOC)
+sc_docs = build_scope([r_docs], standard='508', target='documents', lang='en')
+annex_docs = solicitation(sc_docs, lang='en')
+check('excepciones 508 en sección propia (documents)',
+      'WCAG 2.4.1' in annex_docs and 'E203/E204' in annex_docs)
+check('trazabilidad: sha del alcance + motor',
+      'sha256:' in annex and 'engine' in annex)
+from a11y_toolkit.server import VERSION as ENG_V
+check('versión del motor en la trazabilidad', ENG_V in annex)
+
+print('== 11. F3: familias con estado por target')
+sc_mt = build_scope([R], standard='en301549', target='web',
+                    targets=['web', 'documents'], lang='en')
+fam6 = next(f for f in sc_mt['en301549_families'] if f['family'] == '6')
+check('familia 6 con status_per_target',
+      fam6.get('status_per_target') == {'web': 'proposed-excluded',
+                                        'documents': 'human-review'},
+      str(fam6.get('status_per_target')))
+
+print('== 12. F4: criteria --list --standard en301549')
+out4 = subprocess.run([sys.executable, '-m', 'a11y_toolkit.a11ycrit', '--list',
+                       '--level', 'AA', '--standard', 'en301549',
+                       '--target', 'documents', '--lang', 'en'],
+                      capture_output=True, text=True)
+d4 = json.loads(out4.stdout)
+first = d4['criteria'][0]
+check('cláusula 10.x en las filas', first['clause'].startswith('10.'),
+      str(first.get('clause')))
+out5 = subprocess.run([sys.executable, '-m', 'a11y_toolkit.a11ycrit', '--list',
+                       '--level', 'AA', '--standard', 'en301549', '--lang', 'en'],
+                      capture_output=True, text=True)
+d5 = json.loads(out5.stdout)
+check('sin --target → 9.x por defecto',
+      d5['criteria'][0]['clause'].startswith('9.'))
+
 if failures:
     print(f'STANDARDS: {len(failures)} fallos — {failures}')
     sys.exit(1)

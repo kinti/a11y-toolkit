@@ -1015,6 +1015,10 @@ def main(argv):
                     help='--list: only criteria introduced in the given version (e.g. 2.2)')
     ap.add_argument('--signal-filter', dest='signal_filter', choices=['yes', 'no'],
                     help='--list: only criteria with (yes) or without (no) an automated signal')
+    ap.add_argument('--standard', choices=['en301549'],
+                    help='--list: add the EN 301 549 clause per row (with --target)')
+    ap.add_argument('--target', choices=['web', 'documents', 'software'], default='web',
+                    help='--list: target for the EN clause (with --standard en301549)')
     ap.add_argument('--json', action='store_true', help='--list: machine-readable output')
     a = ap.parse_args(argv)
     if a.list or not (a.code or a.signal):
@@ -1031,10 +1035,14 @@ def main(argv):
                     continue
                 if a.signal_filter == 'no' and code not in no_signal:
                     continue
-                rows.append({'code': code, 'level': level,
-                             'name': (loc.get(a.lang) or loc['en'])[0],
-                             'new_in_22': code in NEW_IN_22,
-                             'signal': code not in no_signal})
+                row = {'code': code, 'level': level,
+                       'name': (loc.get(a.lang) or loc['en'])[0],
+                       'new_in_22': code in NEW_IN_22,
+                       'signal': code not in no_signal}
+                if a.standard:
+                    from .a11yen301549 import clause_for as _cf
+                    row['clause'] = _cf(code, a.target)
+                rows.append(row)
             print(json.dumps({'count': len(rows), 'criteria': rows},
                              ensure_ascii=False, indent=1))
             return 0
