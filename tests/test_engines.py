@@ -109,4 +109,23 @@ with contextlib.redirect_stdout(io.StringIO()):
 assert code == 1, code
 print('8. CLI: insufficient engines → exit 1 ✓')
 
-print('OK test_engines: 9 checks')
+# --- 9. live smoke: the REAL capture path launches (auto-skip without
+#        Playwright) — the hermetic checks above mock capture, so only this
+#        pins the wiring between matrix() and a11ydiff.snapshot(engine=)
+try:
+    import playwright  # noqa: F401
+except ImportError:
+    print('SKIP live engines smoke: Playwright no instalado')
+    sys.exit(0)
+
+import tempfile  # noqa: E402
+_fixture = os.path.join(tempfile.mkdtemp(), 'engines_smoke.html')
+with open(_fixture, 'w', encoding='utf-8') as f:
+    f.write('<!doctype html><html lang="en"><head><meta charset="utf-8">'
+            '<title>Engines smoke</title></head><body><main>'
+            '<a href="#1">One</a><button>Two</button></main></body></html>')
+r = matrix('file://' + _fixture, engines=['chromium'], capture=None)
+assert 'error' not in r
+assert any(e['engine'] == 'chromium' for e in r['engines_ok']), r['engines_failed']
+print('9. live smoke: snapshot(engine=chromium) lanza de verdad ✓')
+print('OK test_engines: 10 checks')

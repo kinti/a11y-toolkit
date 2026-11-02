@@ -80,7 +80,7 @@ def snapshot(url, output=None, auth_state=None, engine='chromium'):
     from playwright.sync_api import sync_playwright
     with sync_playwright() as p:
         launch = _LAUNCHERS.get(engine or 'chromium', _LAUNCHERS['chromium'])
-        nav = launch()
+        nav = launch(p)
         ctx = nav.new_context(storage_state=auth_state) if auth_state else nav
         page = ctx.new_page() if auth_state else nav.new_page()
         page.goto(url, wait_until='networkidle', timeout=45000)
