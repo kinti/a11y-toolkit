@@ -261,6 +261,12 @@ a11ytoolkit scope audit.json --solicitation anexo.txt          # anexo de licita
 a11ytoolkit annotate pagina.html --report r.json -o copia.html # marcas por elemento en copia exacta
 a11ytoolkit criteria --list --level AA --new-in 2.2            # el Quick Ref offline, filtrable
 a11ytoolkit wizard --url https://client.web --lang es          # guiado: 3 preguntas → norma, auditoría, alcance, anexo
+
+## Cobertura de estándares
+
+Qué ley de cada mercado sirve cada comando: [docs/standards-coverage.md](docs/standards-coverage.md)
+— EN 301 549 (UE-27 + EEE + Canadá), Section 508 (EE.UU. federal), RGAA 4.1
+(Francia), WCAG directo (Latam y la práctica ADA) — un motor, la norma de más de 27 países.
 a11ytoolkit corpus verify corpus                               # el corpus congelado, verificado
 ```
 

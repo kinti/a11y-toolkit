@@ -252,6 +252,13 @@ a11ytoolkit annotate page.html --report r.json -o marked.html  # per-element mar
 a11ytoolkit criteria --list --level AA --new-in 2.2            # the offline Quick Ref, filterable
 a11ytoolkit wizard --url https://client.web --lang es          # guided: 3 questions → standard, audit, scope, annex
 ```
+## Standards coverage
+
+Which market's law each command serves: [docs/standards-coverage.md](docs/standards-coverage.md)
+— EN 301 549 (EU-27 + EEA + Canada), Section 508 (US federal), RGAA 4.1
+(France), WCAG-direct (Latin America and most ADA practice) — one engine,
+the standard of 27+ countries.
+
 
 
 
