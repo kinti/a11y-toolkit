@@ -149,7 +149,7 @@ TOOLS = [
             'pages': {'type': 'integer', 'minimum': 1, 'maximum': 20, 'description': 'light same-domain crawl: audit up to N pages, aggregated by score and recurring signals (default 1, max 20)'},
             'lang': {'type': 'string', 'enum': ['es', 'en'], 'description': 'output language (en default)'},
             'timeout': {'type': 'number', 'description': 'fetch timeout seconds (30 default)'},
-            'standard': {'type': 'string', 'enum': ['en301549'], 'description': 'add the EN 301 549 V4.1.1 (2026) clause to every finding plus a standard block (EAA procurement, Canada ICT standard)'},
+            'standard': {'type': 'string', 'enum': ['en301549', 'rgaa'], 'description': 'en301549: EN clause per finding (EAA procurement, Canada ICT) · rgaa: French RGAA criterion per finding'},
             'target': {'type': 'string', 'enum': ['web', 'documents', 'software'], 'description': 'EN 301 549 target: web=9.x clauses (default), documents=10.x, software=11.x'},
         }},
     },
@@ -408,7 +408,7 @@ TOOLS = [
         'inputSchema': {'type': 'object', 'properties': {
             'reports': {'type': 'array', 'items': {'type': 'object'},
                          'description': 'audit report objects (any mode; reports carrying the features block power the machine proposals)'},
-            'standard': {'type': 'string', 'enum': ['wcag22', 'en301549', '508'], 'description': 'wcag22 (default), en301549 (clause refs + EN families) or 508 (GSA applicability tree + WCAG exceptions)'},
+            'standard': {'type': 'string', 'enum': ['wcag22', 'en301549', '508', 'rgaa'], 'description': 'wcag22 (default), en301549 (clause refs + EN families), 508 (GSA tree + WCAG exceptions) or rgaa (French 106-criterion checklist)'},
             'target': {'type': 'string', 'enum': ['web', 'documents', 'software'], 'description': 'ICT target: web=9.x clauses (default), documents=10.x, software=11.x'},
             'targets': {'type': 'array', 'items': {'type': 'string', 'enum': ['web', 'documents', 'software']}, 'description': 'combined scope across ICT targets (like GSA ART multi-item); rows carry a clauses dict per target'},
             'answers': {'type': 'object', 'description': 'human confirmations keyed by criterion code (or 508:<question> for Section 508 product questions): status in-scope|proposed-excluded|excluded'},

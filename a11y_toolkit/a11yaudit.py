@@ -1672,6 +1672,13 @@ def audit_html(html_text, url='(html)', lang='en', standard=None, target=None):
             _cl = _enstd.clause_for(h['criterion'].split(' ')[0], _tgt)
             if _cl:
                 h['clause'] = _cl
+    elif standard == 'rgaa':
+        from . import a11yrgaa as _rg
+        res['standard'] = _rg.standard_block(lang)
+        for h in findings:
+            _rgaa = _rg.rgaa_for_sc(h['criterion'].split(' ')[0])
+            if _rgaa:
+                h['rgaa'] = _rgaa
     # overlays detectados: dato del informe (diligencia de compra), nunca un
     # hallazgo — no hay criterio WCAG que anclar y el score no se toca
     overlays, _seen = [], set()
@@ -2035,7 +2042,7 @@ def main(argv):
                     help='crawl ligero mismo dominio (1 = solo la página)')
     ap.add_argument('--no-sitemap', action='store_true',
                     help='descubre por enlaces, sin leer el sitemap')
-    ap.add_argument('--standard', choices=['en301549'], default=None,
+    ap.add_argument('--standard', choices=['en301549', 'rgaa'], default=None,
                     help='añade a cada hallazgo su cláusula EN 301 549 V4.1.1 '
                          '(9.x web por defecto)')
     ap.add_argument('--target', choices=['web', 'documents', 'software'],

@@ -224,6 +224,25 @@ d5 = json.loads(out5.stdout)
 check('sin --target → 9.x por defecto',
       d5['criteria'][0]['clause'].startswith('9.'))
 
+
+print('== 13. RGAA: el dato abierto del gobierno francés')
+from a11y_toolkit import a11yrgaa                                    # noqa: E402
+check('106 criterios en 13 temas', len(a11yrgaa.CRITERIA) == 106
+      and len(a11yrgaa.TOPICS) == 13)
+check('sin markdown en títulos (flatten)', all('](' not in c['title'] for c in a11yrgaa.CRITERIA))
+check('todos con mapeo WCAG', all(c['wcag'] for c in a11yrgaa.CRITERIA))
+check('puente mecánico: 1.1.1 → 19 criterios RGAA',
+      len(a11yrgaa.rgaa_for_sc('1.1.1')) == 19)
+check('criterio completo accesible',
+      a11yrgaa.criterion('1.1')['tests'] and a11yrgaa.criterion('1.1')['title'])
+r_rgaa = audit_html(DOC, standard='rgaa', lang='es')
+check('audit rgaa: bloque standard + hallazgos con criterios RGAA',
+      r_rgaa['standard']['name'].startswith('RGAA 4.1')
+      and all(h.get('rgaa') for h in r_rgaa['findings']))
+sc_rg = build_scope([r_rgaa], standard='rgaa', lang='es')
+check('scope rgaa: 106 filas en alcance', sc_rg['counters']['criteria'] == 106)
+check('scope rgaa: norma nombrada', sc_rg['standard'] == 'RGAA 4.1 (France)')
+
 if failures:
     print(f'STANDARDS: {len(failures)} fallos — {failures}')
     sys.exit(1)

@@ -23,7 +23,7 @@ Express WCAG 2.2 audit of a URL or an HTML string: 20+ automated signals with a 
 
 - `timeout`: fetch timeout seconds (30 default).
 
-- `standard` — one of ['en301549']: add the EN 301 549 V4.1.1 (2026) clause to every finding plus a standard block (EAA procurement, Canada ICT standard).
+- `standard` — one of ['en301549', 'rgaa']: en301549: EN clause per finding (EAA procurement, Canada ICT) · rgaa: French RGAA criterion per finding.
 
 - `target` — one of ['web', 'documents', 'software']: EN 301 549 target: web=9.x clauses (default), documents=10.x, software=11.x.
 
@@ -650,7 +650,7 @@ Semi-automatic applicability scoping — the layer between the audit and the con
 
 - `reports` *(required)*: audit report objects (any mode; reports carrying the features block power the machine proposals).
 
-- `standard` — one of ['wcag22', 'en301549', '508']: wcag22 (default), en301549 (clause refs + EN families) or 508 (GSA applicability tree + WCAG exceptions).
+- `standard` — one of ['wcag22', 'en301549', '508', 'rgaa']: wcag22 (default), en301549 (clause refs + EN families), 508 (GSA tree + WCAG exceptions) or rgaa (French 106-criterion checklist).
 
 - `target` — one of ['web', 'documents', 'software']: ICT target: web=9.x clauses (default), documents=10.x, software=11.x.
 

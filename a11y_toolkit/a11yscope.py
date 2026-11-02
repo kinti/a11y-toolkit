@@ -32,7 +32,7 @@ import json
 import sys
 from datetime import datetime, timezone
 
-STANDARDS = ('wcag22', 'en301549', '508')
+STANDARDS = ('wcag22', 'en301549', '508', 'rgaa')
 STATUS_ORDER = ('in-scope', 'proposed-excluded', 'excluded')
 
 # Criterios cuya aplicabilidad depende de un rasgo ESTRUCTURAL detectable:
@@ -178,6 +178,11 @@ def build_scope(reports, standard='wcag22', target='web', answers=None,
                 row['evidence'] = tx.get('evidence_forms_present')
         criteria.append(row)
 
+    if standard == 'rgaa':
+        from . import a11yrgaa
+        criteria = [{'criterion': c['num'] + ' ' + c['title'],
+                     'status': 'in-scope'} for c in a11yrgaa.CRITERIA]
+
     std508_block = None
     if standard == '508':
         from . import a11y508
@@ -217,7 +222,9 @@ def build_scope(reports, standard='wcag22', target='web', answers=None,
         'lang': lang,
         'generated': datetime.now(timezone.utc).isoformat(timespec='seconds'),
         'tool': 'a11y-toolkit (github.com/kinti/a11y-toolkit)',
-        'standard': enstd.STANDARD_NAME if standard == 'en301549' else 'WCAG 2.2 (A/AA)',
+        'standard': (enstd.STANDARD_NAME if standard == 'en301549'
+                 else a11yrgaa.STANDARD_NAME if standard == 'rgaa'
+                 else 'WCAG 2.2 (A/AA)'),
         'target': target,
         'features_observed': feats if features_seen else None,
         'features_evidence': bool(features_seen),
