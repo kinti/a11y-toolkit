@@ -15,6 +15,8 @@ Tools:
   - a11y_snapshot(url)                            interactive elements + tab order
   - a11y_locate(html, query, role?, multiple?)    element by accessible name →
                                                   deterministic route, honest refusal
+  - a11y_patches(html, lang?)                    sealed patch-set of the
+                                                  deterministic fixes (sha-keyed)
   - a11y_diff(a, b)                               regression diff between snapshots
   - a11y_diff_urls(url_a, url_b)                  staging vs production in one call
   - a11y_aria_live_snippet(lang?)                 injectable live-region monitor
@@ -71,6 +73,7 @@ from .a11yvalidate import validate_url, validate_html  # noqa: E402
 from .a11yevidence import build_pack as build_pack_fn  # noqa: E402
 from .a11ydiff import snapshot as snapshot_fn, diff as diff_fn  # noqa: E402
 from .a11ylocate import locate as locate_fn  # noqa: E402
+from .a11ypatches import build as patches_build_fn, apply_patches as patches_apply_fn  # noqa: E402
 from .a11ycrit import criterion as criterion_fn  # noqa: E402
 from .a11yjourney import verdict as journey_verdict_fn  # noqa: E402
 from .a11yvtt import vtt_check as vtt_check_fn  # noqa: E402
@@ -173,6 +176,24 @@ TOOLS = [
             'multiple': {'type': 'boolean', 'description': 'list every exact match instead of refusing (default false)'},
             'lang': {'type': 'string', 'enum': ['es', 'en'], 'description': 'output language (en default)'},
         }, 'required': ['html', 'query']},
+    },
+    {
+        'name': 'a11y_patches',
+        'description': ('Sealed patch-set of the deterministic safe fixes: build runs '
+                        'a11y_autofix once and records WHICH fixes were applied to WHICH '
+                        'page (SHA-256-keyed, format a11y-patches/1, engine version '
+                        'stamped); verify re-checks a set against a page — the same page '
+                        'must reproduce the same fixes, a different page is stale (sets '
+                        'never blind-apply). The artifact an agent or CI applies upstream: '
+                        'fixing the original web is the client job, the engine hands over '
+                        'the evidence.'),
+        'inputSchema': {'type': 'object', 'properties': {
+            'html': {'type': 'string', 'description': 'raw HTML'},
+            'action': {'type': 'string', 'enum': ['build', 'verify'], 'description': 'build: run autofix and seal the record (default); verify: check patch_set against this html'},
+            'patch_set': {'type': 'object', 'description': 'a11y-patches/1 artifact (verify only)'},
+            'lang': {'type': 'string', 'enum': ['es', 'en'], 'description': 'output language (en default)'},
+            'title': {'type': 'string', 'description': 'title for the fixed copy (build only)'},
+        }, 'required': ['html']},
     },
     {
         'name': 'a11y_audit_dom',
@@ -1128,6 +1149,7 @@ _ANN = {
     'a11y_scroll':           ('Infinite-scroll audit', True, True),
     'a11y_snapshot':         ('A11y snapshot + tab order', True, True),
     'a11y_locate':           ('Locate element by accessible name', True, True),
+    'a11y_patches':          ('Sealed patch-set (sha-keyed)', True, False),
     'a11y_diff':             ('Snapshot regression diff', True, False),
     'a11y_diff_urls':        ('Staging vs production diff', True, True),
     'a11y_contrast_pair':    ('Contrast ratio + verdicts', True, False),
@@ -1323,6 +1345,12 @@ def invoke(name, args):
                                   role=args.get('role'),
                                   multiple=bool(args.get('multiple', False)),
                                   lang=args.get('lang', 'en')))
+    if name == 'a11y_patches':
+        if args.get('action') == 'verify':
+            return _content(patches_apply_fn(args['html'], args.get('patch_set'),
+                                             lang=args.get('lang', 'en')))
+        return _content(patches_build_fn(args['html'], lang=args.get('lang', 'en'),
+                                         title=args.get('title')))
     if name == 'a11y_diff':
         def _load(v):
             v = v.strip()

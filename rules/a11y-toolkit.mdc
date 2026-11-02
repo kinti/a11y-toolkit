@@ -6,7 +6,7 @@ alwaysApply: false
 
 # Accessibility rules (a11y-toolkit)
 
-The a11y-toolkit MCP server (36 tools) is connected: prefer its verdicts over
+The a11y-toolkit MCP server (37 tools) is connected: prefer its verdicts over
 guesswork. These rules hold while writing; the tools verify after.
 
 1. **Every new `<img>` gets a meaningful `alt`** (decorative → `alt=""`).

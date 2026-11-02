@@ -683,5 +683,11 @@
   "loc_multiple": "Varias coincidencias exactas: todas quedan en matches[] (multiple=true).",
   "loc_partial": "Sin nombre accesible exacto \"{q}\": se devuelve la mejor coincidencia parcial. Revísala antes de actuar.",
   "loc_partial_ambiguous": "{n} coincidencias parciales, ninguna exacta para \"{q}\": inspecciona matches[]."
+ },
+ "patches": {
+  "pat_bad_format": "No es un artefacto a11y-patches/1: la verificación se niega a juzgarlo.",
+  "pat_stale": "Esta página no es la que generó el patch-set (SHA-256 distinto): el set se invalida solo y no se aplica nada.",
+  "pat_mismatch": "La misma página ya no produce los mismos arreglos (drift del motor o set manipulado): no se aplica nada; compara reproduced[] con recorded[].",
+  "pat_reproduced": "Cada arreglo del set se reprodujo exacto en esta página: se devuelve el HTML arreglado para revisión."
  }
 }

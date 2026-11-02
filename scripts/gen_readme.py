@@ -33,7 +33,7 @@ CATEGORIAS = [
     ('Audit', ['a11y_audit_url', 'a11y_audit_dom', 'a11y_audit_pdf', 'a11y_docx_screen']),
     ('Locate', ['a11y_locate']),
     ('Blindfold testing', ['a11y_journey_verdict']),
-    ('Fix & contrast', ['a11y_autofix', 'a11y_contrast_pair', 'a11y_contrast_image',
+    ('Fix & contrast', ['a11y_autofix', 'a11y_patches', 'a11y_contrast_pair', 'a11y_contrast_image',
                         'a11y_contrast_dom', 'a11y_suggest_color']),
     ('Document', ['a11y_generate_declaration', 'a11y_generate_vpat',
                   'a11y_generate_openacr', 'a11y_badge']),

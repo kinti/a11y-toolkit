@@ -38,6 +38,7 @@
   a11ytoolkit scope audit.json -o scope.json --standard en301549  # applicability: machine proposes, human confirms
   a11ytoolkit annotate page.html --report r.json -o copy.html  # per-element marks on a copy
   a11ytoolkit locate --file page.html --query "Submit"     # element by accessible name → route
+  a11ytoolkit patches --file page.html -o patches.json     # sealed fix record (verify with --verify)
 """
 
 import sys
@@ -74,6 +75,7 @@ from . import a11yfingerprints
 from . import a11yscope
 from . import a11yannotate
 from . import a11ylocate
+from . import a11ypatches
 from . import a11yengines
 from . import a11ytrace
 from . import a11ypatterns
@@ -117,6 +119,7 @@ SUBCOMMANDS = {
     'scope': (a11yscope, None),
     'annotate': (a11yannotate, None),
     'locate': (a11ylocate, None),
+    'patches': (a11ypatches, None),
     'engines': (a11yengines, None),
     'trace': (a11ytrace, None),
     'patterns': (a11ypatterns, None),

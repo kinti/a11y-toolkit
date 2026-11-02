@@ -1,6 +1,15 @@
 # Changelog
 
 ## main — pendiente — "per-element annotation + standards workbench"
+- **`a11y_patches` — sealed patch-sets of the deterministic fixes**
+  (deal-flow pick, the "signed repairs verified after updates" demand):
+  `build` runs autofix once and seals the record — format `a11y-patches/1`,
+  source SHA-256, engine version, what was applied AND what was declined.
+  `verify` re-runs the deterministic fixes and cross-checks: same page →
+  same fixes or nothing applies; different page → the set declares itself
+  `stale` (patches never blind-apply); divergence → `mismatch` with both
+  lists. Serves the doctrine "fixing the original web is the client's job":
+  the agent takes the JSON upstream. Tool #37, CLI `a11ytoolkit patches`.
 - **`a11y_locate` — find an element by its accessible name** (deal-flow pick,
   "Semantic Locators" demand): parses with the SAME `_Auditor` the audit uses
   (shared deterministic routes and naming — the locator and the auditor cannot

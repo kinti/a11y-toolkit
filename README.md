@@ -8,7 +8,7 @@
   <img src="docs/demo.gif" alt="a11y-toolkit in action: audit (score 64), nearest passing color, re-audit (94) — real tool output" width="720">
 </p>
 
-36 MCP tools, 6 prompts and a skill covering the whole WCAG 2.2 loop: audit, fix,
+37 MCP tools, 6 prompts and a skill covering the whole WCAG 2.2 loop: audit, fix,
 document, watch, hand off — and now blindfold usability testing, where the agent
 attempts real tasks perceiving only what a screen reader exposes. 51 of 55 A/AA criteria carry automated signals (93%), every
 finding ships with a concrete remediation your agent can apply, and the rendered tools
@@ -76,7 +76,7 @@ traps, reflow, forms) additionally need Playwright:
 | Runs with zero dependencies at core, speaks es/en, any browser you have | Heavy runtimes | Zero dependencies |
 
 <!-- TOOLS:BEGIN -->
-## The tools (36)
+## The tools (37)
 
 Full reference — descriptions, arguments, return shapes and behavior — in [docs/tools.md](docs/tools.md). All tools accept `lang` (`en`|`es`) unless noted; output is JSON unless noted. Generated from `server.TOOLS` by `scripts/gen_readme.py`.
 
@@ -89,6 +89,7 @@ Full reference — descriptions, arguments, return shapes and behavior — in [d
 | [`a11y_locate`](docs/tools.md#a11y_locate) | Locate | Locate element by accessible name |
 | [`a11y_journey_verdict`](docs/tools.md#a11y_journey_verdict) | Blindfold testing | Blindfold journey verdict |
 | [`a11y_autofix`](docs/tools.md#a11y_autofix) | Fix & contrast | Deterministic safe auto-fixes |
+| [`a11y_patches`](docs/tools.md#a11y_patches) | Fix & contrast | Sealed patch-set (sha-keyed) |
 | [`a11y_contrast_pair`](docs/tools.md#a11y_contrast_pair) | Fix & contrast | Contrast ratio + verdicts |
 | [`a11y_contrast_image`](docs/tools.md#a11y_contrast_image) | Fix & contrast | Text-over-image contrast |
 | [`a11y_contrast_dom`](docs/tools.md#a11y_contrast_dom) | Fix & contrast | Live-element contrast sampling |
@@ -258,6 +259,7 @@ a11ytoolkit scope audit.json --standard 508 -o scope.json      # GSA applicabili
 a11ytoolkit scope audit.json --solicitation annex.txt          # tender-ready accessibility annex (es/en)
 a11ytoolkit annotate page.html --report r.json -o marked.html  # per-element marks on a byte-exact copy
 a11ytoolkit locate --file page.html --query "Submit"           # element by accessible name → route selector
+a11ytoolkit patches --file page.html -o patches.json           # sealed fix record (verify with --verify)
 a11ytoolkit criteria --list --level AA --new-in 2.2            # the offline Quick Ref, filterable
 a11ytoolkit wizard --url https://client.web --lang es          # guided: 3 questions → standard, audit, scope, annex
 ```

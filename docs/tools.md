@@ -143,6 +143,25 @@ DETERMINISTIC safe auto-fixes applied to HTML — the honest anti-overlay: a sho
 
 - `title`: only if provided and <title> is empty.
 
+#### `a11y_patches`
+
+<sub>read-only</sub>
+
+Sealed patch-set of the deterministic safe fixes: build runs a11y_autofix once and records WHICH fixes were applied to WHICH page (SHA-256-keyed, format a11y-patches/1, engine version stamped); verify re-checks a set against a page — the same page must reproduce the same fixes, a different page is stale (sets never blind-apply). The artifact an agent or CI applies upstream: fixing the original web is the client job, the engine hands over the evidence.
+
+
+**Arguments**
+
+- `html` *(required)*: raw HTML.
+
+- `action` — one of ['build', 'verify']: build: run autofix and seal the record (default); verify: check patch_set against this html.
+
+- `patch_set`: a11y-patches/1 artifact (verify only).
+
+- `lang` — one of ['es', 'en']: output language (en default).
+
+- `title`: title for the fixed copy (build only).
+
 #### `a11y_contrast_pair`
 
 <sub>read-only</sub>
