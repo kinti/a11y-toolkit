@@ -689,5 +689,8 @@
   "pat_stale": "Esta página no es la que generó el patch-set (SHA-256 distinto): el set se invalida solo y no se aplica nada.",
   "pat_mismatch": "La misma página ya no produce los mismos arreglos (drift del motor o set manipulado): no se aplica nada; compara reproduced[] con recorded[].",
   "pat_reproduced": "Cada arreglo del set se reprodujo exacto en esta página: se devuelve el HTML arreglado para revisión."
+ },
+ "journeyrec": {
+  "bad_format": "No es un registro a11y-journey/1: la verificación se niega a juzgarlo."
  }
 }

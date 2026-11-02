@@ -122,6 +122,10 @@ Blindfold journey verdict — the capability no other accessibility tool has: th
 
 - `output_path`: write the full verdict JSON here instead of returning it inline.
 
+- `seal`: return the sealed a11y-journey/1 record instead: the walk + judgment + steps, sha-sealed (record_verify re-derives the verdict from the steps).
+
+- `verify_record`: an a11y-journey/1 record to verify instead of judging: returns verified or tampered (sha + deterministic re-scoring).
+
 ## Fix & contrast
 
 #### `a11y_autofix`

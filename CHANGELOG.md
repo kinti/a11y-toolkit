@@ -1,6 +1,17 @@
 # Changelog
 
 ## main — pendiente — "per-element annotation + standards workbench"
+- **`a11y-journey/1` — the sealed journey record** (deal-flow pick, the
+  "replayable traces" the whole monitoring market sells): `seal_record`
+  bundles the walk (the agent's steps as walked), the outcome, the
+  deterministic verdict and an optional a11ytrace capture into one
+  SHA-256-sealed envelope; `record_verify` re-derives the verdict from the
+  stored steps (the scoring is deterministic) and demands it matches —
+  tampering is caught twice, by sha AND by re-scoring. MCP:
+  `a11y_journey_verdict` gains `seal` (return the record) and
+  `verify_record` (judge a record instead of steps); the plain verdict
+  path is untouched. Same input → same record: baselines and deltas now
+  have a portable artifact.
 - **`a11y_patches` — sealed patch-sets of the deterministic fixes**
   (deal-flow pick, the "signed repairs verified after updates" demand):
   `build` runs autofix once and seals the record — format `a11y-patches/1`,

@@ -30,6 +30,7 @@ Tools:
   - a11y_hover(url, …)                             tooltip Escape dismissibility (1.4.13)
   - a11y_sr_transcript(url, …)                     what a blind user hears, linearized
   - a11y_journey_verdict(task, steps, outcome)    blindfold task verdict: friction log → scored evidence
+                                                  (seal=true → the sha-sealed a11y-journey/1 record)
   - a11y_vtt_check(url, …)                         caption CONTENT quality (1.2.2)
   - a11y_audit_pdf(path)                           PDF structural screening — nobody automated it
   - a11y_docx_screen(path)                         DOCX structural screening (alt, fake headings, lang, table headers)
@@ -75,7 +76,7 @@ from .a11ydiff import snapshot as snapshot_fn, diff as diff_fn  # noqa: E402
 from .a11ylocate import locate as locate_fn  # noqa: E402
 from .a11ypatches import build as patches_build_fn, apply_patches as patches_apply_fn  # noqa: E402
 from .a11ycrit import criterion as criterion_fn  # noqa: E402
-from .a11yjourney import verdict as journey_verdict_fn  # noqa: E402
+from .a11yjourney import verdict as journey_verdict_fn, seal_record as journey_seal_fn, record_verify as journey_verify_fn  # noqa: E402
 from .a11yvtt import vtt_check as vtt_check_fn  # noqa: E402
 from .a11ypdf import pdf_screen as pdf_screen_fn  # noqa: E402
 from .a11ydocx import docx_screen as docx_screen_fn  # noqa: E402
@@ -588,6 +589,8 @@ TOOLS = [
             'url': {'type': 'string', 'description': 'page(s) where the journey ran'},
             'lang': {'type': 'string', 'enum': ['en', 'es'], 'description': 'output language'},
             'output_path': {'type': 'string', 'description': 'write the full verdict JSON here instead of returning it inline'},
+            'seal': {'type': 'boolean', 'description': 'return the sealed a11y-journey/1 record instead: the walk + judgment + steps, sha-sealed (record_verify re-derives the verdict from the steps)'},
+            'verify_record': {'type': 'object', 'description': 'an a11y-journey/1 record to verify instead of judging: returns verified or tampered (sha + deterministic re-scoring)'},
         }, 'required': ['task', 'steps', 'outcome']},
     },
     {
@@ -1500,6 +1503,21 @@ def invoke(name, args):
         return _content(criterion_fn(args.get('code'), lang=args.get('lang', 'en'),
                                      signal=args.get('signal')))
     if name == 'a11y_journey_verdict':
+        if args.get('verify_record') is not None:
+            return _content(journey_verify_fn(args['verify_record'],
+                                              lang=args.get('lang', 'en')))
+        if args.get('seal'):
+            rec = journey_seal_fn(args['task'], args['steps'], args['outcome'],
+                                  url=args.get('url', ''),
+                                  lang=args.get('lang', 'en'))
+            if args.get('output_path') and 'error' not in rec:
+                with open(args['output_path'], 'w', encoding='utf-8') as f:
+                    f.write(json.dumps(rec, ensure_ascii=False, indent=1) + '\n')
+                return _content({'out': args['output_path'],
+                                 'sha256': rec['sha256'],
+                                 'verdict': rec['verdict']['verdict'],
+                                 'score': rec['verdict']['score']})
+            return _content(rec)
         res = journey_verdict_fn(args['task'], args['steps'], args['outcome'],
                                  url=args.get('url', ''), lang=args.get('lang', 'en'))
         if args.get('output_path') and 'error' not in res:

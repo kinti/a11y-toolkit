@@ -689,5 +689,8 @@
   "pat_stale": "This page is not the one the patch-set was built from (SHA-256 mismatch): the set invalidates itself and nothing is applied.",
   "pat_mismatch": "The same page no longer produces the same fixes (engine drift or a tampered set): nothing is applied; compare reproduced[] and recorded[].",
   "pat_reproduced": "Every recorded fix reproduced exactly on this page: the fixed html is returned for review."
+ },
+ "journeyrec": {
+  "bad_format": "Not an a11y-journey/1 record: verification refuses to judge it."
  }
 }

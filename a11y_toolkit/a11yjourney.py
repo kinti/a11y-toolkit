@@ -163,6 +163,80 @@ def verdict(task, steps, outcome, url='', lang='en'):
     }
 
 
+JOURNEY_FORMAT = 'a11y-journey/1'
+
+
+def seal_record(task, steps, outcome, url='', lang='en', trace=None):
+    """Verdict → the sealed journey record (format `a11y-journey/1`).
+
+    The open artifact the market keeps describing ("replayable traces" in
+    every journey-monitoring pitch) and nobody owns: the walk AND the
+    judgment in one envelope — the agent's steps as walked, the outcome,
+    the deterministic verdict, and an optional a11ytrace capture — sealed
+    with a SHA-256 over the canonical payload. Honesty twice over: the sha
+    makes the record tamper-evident, and the scoring is deterministic, so
+    `record_verify` can RE-DERIVE the verdict from the stored steps and
+    demand it matches. A record is evidence, never conformance."""
+    import hashlib
+    v = verdict(task, steps, outcome, url=url, lang=lang)
+    if 'error' in v:
+        return v
+    from .server import VERSION   # lazy: server imports this module
+    record = {
+        'format': JOURNEY_FORMAT,
+        'engine_version': VERSION,
+        'created_at': datetime.now(timezone.utc).isoformat(timespec='seconds'),
+        'task': v['task'],
+        'url': v['url'],
+        'steps': steps,
+        'outcome': v['outcome'],
+        'verdict': {'verdict': v['verdict'], 'score': v['score'],
+                    'summary': v['summary'], 'findings': v['findings']},
+        'trace': trace,
+        'rules': v['rules'],
+        'score_note': v['score_note'],
+    }
+    payload = json.dumps(record, sort_keys=True, ensure_ascii=False,
+                         default=str).encode('utf-8')
+    record['sha256'] = hashlib.sha256(payload).hexdigest()
+    return record
+
+
+def record_verify(record, lang='en'):
+    """Re-derive the verdict from the stored steps and demand it matches.
+
+    Returns {'status': 'verified'|'tampered'|'invalid', ...}: `tampered`
+    means the sha no longer covers the payload OR the deterministic scoring
+    of the stored steps no longer produces the stored verdict — either way
+    the record cannot be trusted. `invalid` means it is not a record."""
+    import hashlib
+    if not isinstance(record, dict) or record.get('format') != JOURNEY_FORMAT \
+            or not record.get('sha256'):
+        _JR = a11yi18n.pair('journeyrec')
+        return {'status': 'invalid',
+                'note': _JR.get(lang, _JR['en']).get('bad_format')}
+    body = {k: v for k, v in record.items() if k != 'sha256'}
+    payload = json.dumps(body, sort_keys=True, ensure_ascii=False,
+                         default=str).encode('utf-8')
+    sha_ok = hashlib.sha256(payload).hexdigest() == record['sha256']
+    re_v = verdict(record.get('task', {}), record.get('steps', []),
+                   record.get('outcome', {}), url=record.get('url', ''),
+                   lang=lang)
+    derived_ok = ('error' not in re_v and isinstance(record.get('verdict'), dict)
+                  and re_v['verdict'] == record['verdict'].get('verdict')
+                  and re_v['score'] == record['verdict'].get('score')
+                  and re_v['findings'] == record['verdict'].get('findings'))
+    if sha_ok and derived_ok:
+        return {'status': 'verified', 'sha256': record['sha256'],
+                'verdict': record['verdict'].get('verdict'),
+                'score': record['verdict'].get('score')}
+    return {'status': 'tampered',
+            'sha_intact': sha_ok, 'verdict_reproducible': derived_ok,
+            'recomputed': None if 'error' in re_v
+            else {'verdict': re_v['verdict'], 'score': re_v['score'],
+                  'findings': re_v['findings']}}
+
+
 def budget_init(verdict, url=''):
     """Verdict → baseline del journey (para comparar tras cada deploy).
 
