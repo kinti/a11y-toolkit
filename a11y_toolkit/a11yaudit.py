@@ -319,6 +319,8 @@ class _Auditor(HTMLParser):
         self.imgs_no_alt = []
         # elementos (attrs) detrás de cada ejemplo, para el kernel de anotación
         self.imgs_no_alt_elems = []
+        self.canvas_no_layer = []        # canvas sin capa accesible (1.1.1)
+        self.canvas_no_layer_elems = []
         self.iframes_no_title_elems = []
         self.placeholder_only_elems = []
         self.autocomplete_elems = []
@@ -407,6 +409,8 @@ class _Auditor(HTMLParser):
         self.empty_h = 0
         self.ids = {}
         self.input_img_no_alt = 0
+        self.canvases = []        # [(attrs, texto_interno, hidden)] — capa accesible del canvas
+        self.canvas_hidden = {}   # id(attrs) → hidden, del starttag al endtag
         # v3.1: validez ARIA, autocomplete, enlaces, landmarks, accesskey, autoplay
         self.aria_refs = []       # (attr, id) referenciados por aria-labelledby/describedby
         self.aria_values = []    # valores aria-* inválidos
@@ -614,6 +618,9 @@ class _Auditor(HTMLParser):
         elif tag == 'link':
             if (a.get('rel') or '').lower() == 'stylesheet' and a.get('href'):
                 self._icon_links.append(a['href'])
+        elif tag == 'canvas':
+            # attrs ahora; el texto de reserva se recoge en el endtag (pop)
+            self.canvas_hidden[id(a)] = _hidden
         elif tag == 'meta':
             if a.get('name', '').lower() == 'viewport':
                 self.viewport = a.get('content', '')
@@ -964,6 +971,9 @@ class _Auditor(HTMLParser):
             self._depth = max(0, self._depth - 1)
             if self._el_stack:
                 _etag, _eattrs, _ebuf = self._el_stack.pop()
+                if _etag == 'canvas':
+                    self.canvases.append((_eattrs, ' '.join(_ebuf).strip(),
+                                          self.canvas_hidden.pop(id(_eattrs), False)))
                 if _eattrs.get('id') and _eattrs['id'] in self._role_field_ids:
                     self._field_buffers[_eattrs['id']] = _ebuf
                 elif (_eattrs.get('role') or '').strip().lower() in _ROLE_FIELDS:
@@ -1289,6 +1299,18 @@ def audit_html(html_text, url='(html)', lang='en', standard=None, target=None):
         lb, al, ti = _name_sources(a)
         if not ((a.get('alt') or '').strip() or al or lb or ti):
             p.input_img_no_alt += 1
+    for a, fallback, hidden in p.canvases:
+        # canvas: la capa accesible suele inyectarla JS al renderizar el
+        # gráfico — la señal estática es FILTRO (media); el pase rendered
+        # juzga el nombre computado. Conservador: oculto/decorativo no acusa;
+        # con texto de reserva no acusa (fallback content)
+        if hidden or (a.get('role') or '').strip().lower() in ('presentation', 'none'):
+            continue
+        lb, al, ti = _name_sources(a)
+        if al or lb or ti or fallback:
+            continue
+        p.canvas_no_layer.append(a)
+        p.canvas_no_layer_elems.append(a)
     for a, hidden in p.iframes_all:
         # tabindex=-1 saca el iframe del orden de tab: la regla lo excluye;
         # role=none/presentation le quita la semántica de iframe (ACT cae760)
@@ -1393,6 +1415,11 @@ def audit_html(html_text, url='(html)', lang='en', standard=None, target=None):
                n=len(p.imgs_no_alt), paths=_p_img)
     if p.input_img_no_alt:
         add('high', '1.1.1', 'input_img_alt', n=p.input_img_no_alt)
+    if p.canvas_no_layer:
+        _p_canvas = [p._elem_paths[id(_a)] for _a in p.canvas_no_layer_elems
+                     if id(_a) in p._elem_paths][:5]
+        add_ej('medium', '1.1.1', 'canvas_no_accessible_layer', p.canvas_no_layer,
+               n=len(p.canvas_no_layer), paths=_p_canvas)
     for tag, controls in p.controls_by_kind.items():
         add('high', '4.1.2', 'ctrl_name', n=len(controls), tag=tag)
     if p.aria_hidden_focusable:

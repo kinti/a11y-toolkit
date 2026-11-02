@@ -59,6 +59,20 @@ _LAUNCHERS = {
 }
 
 
+# firma estable del elemento enfocado — la MISMA doctrina de claves que el
+# snapshot (#id o tag:nombre:href); compartida con a11ytrace
+FOCUS_KEY_JS = r'''() => {
+  const el = document.activeElement;
+  if (!el || el === document.body) return null;
+  const link = el.closest('a[href]');
+  let name = el.getAttribute('aria-label') || (el.innerText || '')
+    .replace(/\s+/g,' ').trim() || el.getAttribute('title') ||
+    (el.tagName==='INPUT' && el.value) || '';
+  return el.id ? '#'+el.id : el.tagName.toLowerCase()+':'+name.slice(0,60).toLowerCase()+
+    (link ? ':'+link.getAttribute('href') : '');
+}'''
+
+
 def snapshot(url, output=None, auth_state=None, engine='chromium'):
     """Captura una URL. Con salida=None devuelve los datos sin escribir fichero.
     engine: chromium (default), firefox, webkit, chrome, msedge — la misma
@@ -86,16 +100,7 @@ def snapshot(url, output=None, auth_state=None, engine='chromium'):
         page.keyboard.press('Tab')
         seen = set()
         for _ in range(len(elements) * 2 + 10):
-            info = page.evaluate(r'''() => {
-              const el = document.activeElement;
-              if (!el || el === document.body) return null;
-              const link = el.closest('a[href]');
-              let name = el.getAttribute('aria-label') || (el.innerText || '')
-                .replace(/\s+/g,' ').trim() || el.getAttribute('title') ||
-                (el.tagName==='INPUT' && el.value) || '';
-              return el.id ? '#'+el.id : el.tagName.toLowerCase()+':'+name.slice(0,60).toLowerCase()+
-                (link ? ':'+link.getAttribute('href') : '');
-            }''')
+            info = page.evaluate(FOCUS_KEY_JS)
             if info is None:
                 break
             entry_key = info + '@' + str(len(seen))

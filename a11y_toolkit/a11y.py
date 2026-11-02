@@ -6,6 +6,8 @@
   a11ytoolkit audit --url https://client.web | --file page.html
   a11ytoolkit declaration --entity "Name" --url https://… --status partial [options]
   a11ytoolkit engines https://web                        # same page in 3 engines: behavioral divergences
+  a11ytoolkit trace https://web -o t.json && a11ytoolkit trace diff t1.json t2.json   # journey gate
+  a11ytoolkit patterns https://web                       # APG keyboard contracts: dialog, tablist, disclosure
   a11ytoolkit snapshot https://mysite --out before.json      # needs Playwright
   a11ytoolkit diff before.json after.json
   a11ytoolkit audit --url https://web --pages 5            # light same-domain crawl
@@ -71,6 +73,8 @@ from . import a11yfingerprints
 from . import a11yscope
 from . import a11yannotate
 from . import a11yengines
+from . import a11ytrace
+from . import a11ypatterns
 
 SUBCOMMANDS = {
     'pair': (contrast, 'pair'),
@@ -111,6 +115,8 @@ SUBCOMMANDS = {
     'scope': (a11yscope, None),
     'annotate': (a11yannotate, None),
     'engines': (a11yengines, None),
+    'trace': (a11ytrace, None),
+    'patterns': (a11ypatterns, None),
 }
 
 

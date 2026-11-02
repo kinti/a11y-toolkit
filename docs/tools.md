@@ -592,6 +592,8 @@ Builds the verifiable evidence pack: the machine→human handoff object for WCAG
 
 - `verified`: Criterion codes an agent/human verified against this sample (manual checklist protocol) — they become agent-verified in the matrix; automated-fail stays fail.
 
+- `build`: Build reference sealed into the pack sha — the claim→artifact chain: {"commit":…, "ci_url":…} or {"ref": "git:716d870"}.
+
 #### `a11y_disprove`
 
 <sub>read-only · network</sub>

@@ -107,7 +107,7 @@ def _t(lang, key, n=None):
 _JS = r'''(maxEj) => {
   const INTER = 'a[href], button, input, select, textarea, summary, [role="button"], [role="link"], [tabindex]';
   const out = { contrast: {}, contrastReview: 0, contrastZones: [], targets: [], unnamed: [], fields: [],
-                imgs: [], iframes: [], headings: [], tabindex: [], ariaHidden: [],
+                imgs: [], canvasNoName: [], iframes: [], headings: [], tabindex: [], ariaHidden: [],
                 blank: 0, videos: 0, videoSubs: 0, tables: 0, tableTh: 0,
                 focus: [], focusFail: [], focusContrast: [], focusObscured: [], marks: 0,
                 ids: {}, lang: null, title: '', viewport: null, refresh: null,
@@ -456,6 +456,17 @@ _JS = r'''(maxEj) => {
     if (!vis(el)) continue;
     if (!el.hasAttribute('alt') && out.imgs.length < 30) out.imgs.push(el.getAttribute('src') || '');
   }
+  // canvas: el pase rendered es el JUEZ del nombre computado (el estático es
+  // filtro — la capa suele inyectarse por JS al renderizar el gráfico)
+  for (const el of deepQ('canvas')) {
+    if (!vis(el)) continue;
+    const _role = (el.getAttribute('role') || '').toLowerCase();
+    if (_role === 'presentation' || _role === 'none') continue;
+    if (el.closest('[aria-hidden="true"]')) continue;
+    const _fallback = (el.textContent || '').trim();
+    if (!nameOf(el) && !_fallback && out.canvasNoName.length < 20)
+      out.canvasNoName.push(path(el));
+  }
   for (const el of deepQ('iframe')) {
     if (!((el.getAttribute('title') || '').trim() || (el.getAttribute('aria-label') || '').trim())
         && out.iframes.length < 20) out.iframes.push(el.getAttribute('src') || '');
@@ -668,6 +679,9 @@ def audit_dom(data, url='(rendered)', lang='en', color_scheme='light'):
     if data.get('imgs'):
         _add(findings, lang, 'high', '1.1.1', 'img_no_alt',
                 examples=data['imgs'], n=len(data['imgs']))
+    if data.get('canvasNoName'):
+        _add(findings, lang, 'high', '1.1.1', 'canvas_no_accessible_layer',
+                examples=data['canvasNoName'], n=len(data['canvasNoName']))
     if data.get('ariaHidden'):
         _add(findings, lang, 'high', '4.1.2', 'aria_hidden_focusable',
                 n=len(data['ariaHidden']), tag='control')

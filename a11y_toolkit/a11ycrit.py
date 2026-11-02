@@ -845,6 +845,7 @@ _SIGNAL_CRIT = {
     'autocomplete_invalid': '1.3.5',
     'blank_no_warning': '3.2.5',
     'captcha': '3.3.8',
+    'canvas_no_accessible_layer': '1.1.1',
     'char_shortcut': '2.1.4',
     'click_nonfocusable': '2.1.1',
     'color_only_link': '1.4.1',

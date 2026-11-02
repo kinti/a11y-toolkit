@@ -70,6 +70,8 @@
   "overlay_widgets_note": "A third-party accessibility overlay widget was detected (see overlay_widgets). Overlays do not make a site accessible — see the community Overlay Fact Sheet (overlayfactsheet.com). Reported as information for procurement diligence, not as a WCAG finding.",
   "img_no_alt": "{n} <img> without an alt attribute (not even alt=\"\").",
   "img_no_alt_rem": "Add alt to every <img>: descriptive text when it conveys information, alt=\"\" when decorative. Same requirement for <input type=\"image\"> and <area>.",
+  "canvas_no_accessible_layer": "{n} <canvas> with no static accessible layer (no aria-label/labelledby/title/role and no fallback text inside).",
+  "canvas_no_accessible_layer_rem": "Give each canvas an accessible layer: aria-label or role=\"img\" with a name, plus fallback text inside the tag; for charts, the data as a table or summary is the strong fix. Static filter: if a chart library injects the layer at runtime, the rendered pass is the judge.",
   "input_img_alt": "<input type=\"image\"> without alt (image button with no name).",
   "input_img_alt_rem": "Add descriptive alt to the input type=\"image\" (it is its accessible name), or replace it with a <button> with text or <input type=\"submit\" value=\"…\">.",
   "label_in_name": "{n} controls whose aria-label does not contain the visible text («{example}»): voice-input users say what they see (2.5.3).",
@@ -392,6 +394,18 @@
    "The page blocks browser zoom, so the step cannot be magnified.",
    "Remove zoom-blocking viewport directives; text must resize to 200% without loss of content."
   ]
+ },
+ "patterns": {
+  "pattern_dialog_esc_no_close": "An open dialog does not close with Escape.",
+  "pattern_dialog_esc_no_close_rem": "Close the dialog on Escape (keydown handler or native <dialog>), then return focus to the trigger.",
+  "pattern_modal_focus_escapes": "Focus escaped a modal dialog (aria-modal=true) while tabbing.",
+  "pattern_modal_focus_escapes_rem": "Trap focus inside the modal (cycle the tab order or make background content inert) and return focus to the trigger on close.",
+  "pattern_tabs_arrows_dead": "A tablist with {n} tabs ignores ArrowRight: focus does not move between tabs (roving tabindex missing).",
+  "pattern_tabs_arrows_dead_rem": "Move focus across tabs with Left/Right arrows (roving tabindex); selection by focus or by Enter/Space (manual).",
+  "pattern_tabs_no_activation": "A tab received focus via arrows but never becomes selected (aria-selected never turns true).",
+  "pattern_tabs_no_activation_rem": "Make selection follow focus (automatic activation) or activate on Enter/Space (manual) — aria-selected must reflect the visible panel.",
+  "pattern_disclosure_state_frozen": "Activating “{name}” never flips aria-expanded: the exposed state contradicts the visual.",
+  "pattern_disclosure_state_frozen_rem": "Toggle aria-expanded (true/false) on every activation and point aria-controls at the region it reveals."
  },
  "pdf": {
   "limits": "Zero-dep structural screening: full PDF/UA conformance needs a spec validator (veraPDF). This screening finds what makes full validation pointless.",

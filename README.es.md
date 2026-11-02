@@ -247,6 +247,9 @@ a11ytoolkit budget --budget budget.json --audit audit.json  # solo lo NUEVO bloq
 a11ytoolkit budget --init-snapshot s.json > estructural.json    # presupuesto estructural: la estructura de HOY se acepta
 a11ytoolkit budget --budget estructural.json --snapshot s2.json # solo la estructura renderizada NUEVA bloquea (exit 0/2)
 a11ytoolkit engines https://mysite                        # la misma página en 3 motores: divergencias de comportamiento, por pares
+a11ytoolkit trace https://mysite -o t.json && a11ytoolkit trace diff t_viejo.json t.json  # gate de jornada: secuencia de foco + anuncios vivos
+a11ytoolkit patterns https://mysite                       # contratos APG de teclado, en vivo: dialog / tablist / disclosure
+a11ytoolkit ledger recurrence --ledger a11y-ledger.json   # señales crónicas + urls calientes: la cola de revisión sin ML
 a11ytoolkit contrast-dom https://mysite --walk            # pase perceptual: ratios por elemento, umbrales, sugerencias
 a11ytoolkit sarif --from-audit audit.json -o a11y.sarif # GitHub code scanning
 a11ytoolkit badge --score 92 --out badge.svg            # SVG honesto

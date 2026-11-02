@@ -70,6 +70,8 @@
   "overlay_widgets_note": "Se ha detectado un widget de accesibilidad de terceros (overlay; véase overlay_widgets). Un overlay no hace accesible un sitio — véase el Overlay Fact Sheet comunitario (overlayfactsheet.com). Se informa como dato para la diligencia de compra, no como hallazgo WCAG.",
   "img_no_alt": "{n} <img> sin atributo alt (ni siquiera alt=\"\").",
   "img_no_alt_rem": "Añade alt a cada <img>: texto descriptivo si aporta información, alt=\"\" si es decorativa. En <input type=\"image\"> y <area> es igual de obligatorio.",
+  "canvas_no_accessible_layer": "{n} <canvas> sin capa accesible estática (sin aria-label/labelledby/title/role ni texto de reserva dentro).",
+  "canvas_no_accessible_layer_rem": "Dale a cada canvas una capa accesible: aria-label o role=\"img\" con nombre, más texto de reserva dentro de la etiqueta; para gráficos, los datos como tabla o resumen es el arreglo fuerte. Filtro estático: si la librería de gráficos inyecta la capa al renderizar, el pase rendered es el juez.",
   "input_img_alt": "<input type=\"image\"> sin alt (botón gráfico sin nombre).",
   "input_img_alt_rem": "Añade alt descriptivo al input type=\"image\" (es su nombre accesible), o sustitúyelo por <button> con texto o <input type=\"submit\" value=\"…\">.",
   "label_in_name": "{n} controles cuyo aria-label no contiene el texto visible («{example}»): quien dicta por voz dice lo que ve (2.5.3).",
@@ -392,6 +394,18 @@
    "La página bloquea el zoom del navegador: el paso no puede ampliarse.",
    "Elimina las directivas de viewport que bloquean el zoom; el texto debe redimensionarse a 200% sin pérdida de contenido."
   ]
+ },
+ "patterns": {
+  "pattern_dialog_esc_no_close": "Un diálogo abierto no se cierra con Escape.",
+  "pattern_dialog_esc_no_close_rem": "Cierra el diálogo con Escape (manejador keydown o <dialog> nativo) y devuelve el foco al disparador.",
+  "pattern_modal_focus_escapes": "El foco escapó de un diálogo modal (aria-modal=true) al tabular.",
+  "pattern_modal_focus_escapes_rem": "Atrapa el foco dentro del modal (cicla el orden de tab o haz el fondo inert) y devuelve el foco al disparador al cerrar.",
+  "pattern_tabs_arrows_dead": "Un tablist de {n} pestañas ignora ArrowRight: el foco no se mueve entre pestañas (falta roving tabindex).",
+  "pattern_tabs_arrows_dead_rem": "Mueve el foco entre pestañas con flechas izquierda/derecha (roving tabindex); selección por foco o por Enter/Espacio (manual).",
+  "pattern_tabs_no_activation": "Una pestaña recibió el foco por flechas pero nunca se selecciona (aria-selected nunca pasa a true).",
+  "pattern_tabs_no_activation_rem": "Haz que la selección siga al foco (activación automática) o activa con Enter/Espacio (manual) — aria-selected debe reflejar el panel visible.",
+  "pattern_disclosure_state_frozen": "Activar «{name}» nunca cambia aria-expanded: el estado expuesto contradice lo visual.",
+  "pattern_disclosure_state_frozen_rem": "Alterna aria-expanded (true/false) en cada activación y apunta aria-controls a la región que revela."
  },
  "pdf": {
   "limits": "Cribado estructural zero-dep: la conformidad PDF/UA completa exige un validador de especificación (veraPDF). Este cribado encuentra lo que hace inútil la validación completa.",

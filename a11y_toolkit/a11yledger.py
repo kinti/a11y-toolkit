@@ -17,6 +17,7 @@ CLI:
   a11yledger.py record --url https://x --audit report.json [--ledger ledger.json]
   a11yledger.py gaps --url https://x [--ledger ledger.json]
   a11yledger.py summary [--ledger ledger.json]
+  a11yledger.py recurrence [--ledger ledger.json]
 """
 
 import argparse
@@ -181,6 +182,47 @@ def summary(ledger=None, path='a11y-ledger.json'):
     }
 
 
+def recurrence(ledger=None, path='a11y-ledger.json'):
+    """Chronic signals across urls + hot urls + review queue.
+
+    The deterministic core of "predictive guardrails" — no ML: the ledger
+    itself IS the model. A signal active on many urls, or resolved somewhere
+    and still active elsewhere, is CHRONIC: it comes back with every build,
+    and a template-level fix beats page-by-page whack-a-mole."""
+    if ledger is None:
+        ledger = _load(path)
+    entries = ledger['entries']
+    if not entries:
+        return {'total_urls': 0, 'note': 'ledger empty — record audits first'}
+    active, resolved = {}, {}
+    for e in entries.values():
+        for s in e.get('active_signals', []):
+            active.setdefault(s, []).append(e.get('url', ''))
+        for s in e.get('resolved_signals', []):
+            resolved.setdefault(s, []).append(e.get('url', ''))
+    chronic = sorted(
+        ({'signal': s, 'active_on': len(urls),
+          'resolved_on': len(resolved.get(s, [])),
+          'recurring': s in resolved and s in active}
+         for s, urls in active.items()),
+        key=lambda x: (-x['active_on'], -x['resolved_on'], x['signal']))[:10]
+    urls_ranked = sorted(
+        ({'url': e.get('url', ''), 'score': e.get('score'),
+          'active_signals': len(e.get('active_signals', []))}
+         for e in entries.values()),
+        key=lambda x: (x['score'] if x['score'] is not None else 101,
+                       -x['active_signals'], x['url']))
+    return {
+        'total_urls': len(entries),
+        'signals_chronic': chronic,
+        'hot_urls': urls_ranked[:5],
+        'note': ('deterministic: chronic = active on many urls, or resolved '
+                 'somewhere and still active elsewhere (recurring). The review '
+                 'queue starts at hot_urls — fix at the template level, '
+                 're-audit, and the chronic row drops out'),
+    }
+
+
 def main(argv):
     ap = argparse.ArgumentParser(description='Coverage ledger')
     sub = ap.add_subparsers(dest='cmd', required=True)
@@ -193,6 +235,8 @@ def main(argv):
     s2.add_argument('--ledger', default='a11y-ledger.json')
     s3 = sub.add_parser('summary')
     s3.add_argument('--ledger', default='a11y-ledger.json')
+    s4 = sub.add_parser('recurrence')
+    s4.add_argument('--ledger', default='a11y-ledger.json')
     a = ap.parse_args(argv)
     if a.cmd == 'record':
         with open(a.audit, encoding='utf-8') as f:
@@ -203,6 +247,8 @@ def main(argv):
         print(json.dumps(gaps(a.url, path=a.ledger), ensure_ascii=False, indent=1))
     elif a.cmd == 'summary':
         print(json.dumps(summary(path=a.ledger), ensure_ascii=False, indent=1))
+    elif a.cmd == 'recurrence':
+        print(json.dumps(recurrence(path=a.ledger), ensure_ascii=False, indent=1))
     return 0
 
 

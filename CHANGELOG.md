@@ -85,6 +85,49 @@
   schema and the blindfold-task prompt. Kinds stay free-form (comparability
   by convention, not enforcement); the journey test now derives its criteria
   whitelist from the A/AA catalog instead of a hardcoded list.
+- **`trace` — behavioral trace + journey gate** (`a11ytrace`): one keyboard
+  walk of a page recording PER TAB STEP the focused element's stable
+  signature (shared `FOCUS_KEY_JS` with the snapshot — one key doctrine),
+  the aria-live announcements the step triggered, and the url, plus the
+  accessibility tree at the end. The collector is SILENT (no panel
+  injected): a trace must not mutate the page it measures. `trace diff`
+  compares two traces: a lost or forked focus sequence BLOCKS (exit 2);
+  announcement counts are informational (a collapsed announcement layer is
+  flagged, not gated). The journey release gate that completes the ladder:
+  structure (`budget`) → rendered structure (`engines`) → journey (`trace`).
+  What it does NOT do: it captures the tree/live-region layer, not
+  synthesized NVDA/JAWS speech (real AT testing stays human/agent —
+  a11y_journey_verdict is the complement); it does not script clicks (v1 is
+  the keyboard walk).
+- **`patterns` — APG keyboard contracts, tested live** (`a11ypatterns`):
+  detect the widget pattern in the rendered page and PROVE its keyboard
+  contract: dialogs (Esc closes; focus stays inside a modal), tablists
+  (ArrowRight/Left move focus — roving tabindex; selection follows focus or
+  Enter/Space), disclosures (activation flips aria-expanded). Findings
+  family `pattern_*` with bilingual remediation (new `patterns` locale
+  section). What it does NOT do: only patterns VISIBLE at load — opening a
+  closed dialog means guessing a trigger flow, never acceptable on a live
+  site; combobox/menu/slider are declared future operators, not silent
+  gaps. A clean pass proves THESE contracts at THIS moment, not full APG
+  conformance.
+- **`canvas_no_accessible_layer` — the data-viz signal (1.1.1)**: the audit
+  never looked at canvas (svg[role=img] without a name was already covered
+  by img_no_alt — verified, not assumed). Static: a canvas with no
+  aria-label/labelledby/title/role and no fallback text is flagged MEDIUM —
+  an honest filter, because chart libraries routinely inject the layer at
+  runtime; the RENDERED pass is the judge (computed accessible name in the
+  live DOM → HIGH). Conservative: decorative/hidden canvases are never
+  accused. What it does NOT do: no chart-type detection, no data-table
+  equivalence heuristics — those are review-level.
+- **`ledger recurrence` + evidence `build` — the review queue without ML**
+  (the deterministic core of "predictive guardrails"): `ledger recurrence`
+  aggregates the ledger itself as the model — chronic signals (active on
+  many urls, or resolved somewhere and still active elsewhere = `recurring`),
+  hot urls by score, review queue note. Evidence pack gains an optional
+  `build` reference ("git:sha" or JSON commit/ci) SEALED into the pack
+  sha256: the chain between the WCAG claim and the build that produced it.
+  What it does NOT do: no predictions, no risk scores — ranking of what the
+  ledger actually saw, nothing more.
 
 ## 5.26.0 — pendiente — "EN 301 549 + applicability scope"
 

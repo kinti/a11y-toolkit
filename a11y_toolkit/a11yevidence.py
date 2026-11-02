@@ -89,7 +89,7 @@ def _sha256(obj):
 
 
 def build_pack(reports, snapshot=None, reviewer=None, notes=None, verified=None,
-               sr_transcript=None, lang='en', scope=None):
+               sr_transcript=None, lang='en', scope=None, build=None):
     """Informes (lista de dicts JSON) → paquete de evidencia verificable.
 
     verificados: lista de códigos de criterio ("1.4.1", "3.3.1"…) que un
@@ -336,6 +336,7 @@ def build_pack(reports, snapshot=None, reviewer=None, notes=None, verified=None,
             'note': tx['reviewer_note'],
         },
         'notes': notes,
+        'build': build,   # claim→artifact chain: the build reference is SEALED into the sha
         'notice': tx['notice'],
     }
     # the seal excludes sha256 AND the clock ('generated'): re-emitting the
@@ -352,13 +353,20 @@ def main(argv):
     ap.add_argument('--scope', help='a11y_scope output JSON: confirmed exclusions '
                     'become not-applicable rows (proposals never exclude)')
     ap.add_argument('--reviewer', help='JSON: {"name":…, "credential":…, "review_date":…}')
+    ap.add_argument('--build', help='build reference, e.g. "git:716d870" or JSON '
+                    '{"commit":…, "ci_url":…} — sealed into the pack sha (claim→artifact chain)')
     ap.add_argument('-o', '--out', default='evidence-pack.json')
     a = ap.parse_args(argv)
     reports = [json.load(open(f, encoding='utf-8')) for f in a.reports]
     snapshot = json.load(open(a.snapshot, encoding='utf-8')) if a.snapshot else None
     scope = json.load(open(a.scope, encoding='utf-8')) if a.scope else None
     reviewer = json.loads(a.reviewer) if a.reviewer else None
-    pack = build_pack(reports, snapshot=snapshot, reviewer=reviewer, scope=scope)
+    try:
+        build = json.loads(a.build) if a.build else None
+    except json.JSONDecodeError:
+        build = {'ref': a.build} if a.build else None
+    pack = build_pack(reports, snapshot=snapshot, reviewer=reviewer, scope=scope,
+                      build=build)
     with open(a.out, 'w', encoding='utf-8') as f:
         json.dump(pack, f, ensure_ascii=False, indent=1)
     print(json.dumps({'pack': a.out, 'sha256': pack['sha256'],

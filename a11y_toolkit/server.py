@@ -385,6 +385,7 @@ TOOLS = [
             'scope': {'type': 'object', 'description': 'a11y_scope output: human-confirmed exclusions become not-applicable rows with their reason (machine proposals never exclude)'},
             'reviewer': {'type': 'object', 'description': '{"name":…, "credential":…, "review_date":…} to prefill the signature block'},
             'verified': {'type': 'array', 'items': {'type': 'string'}, 'description': 'Criterion codes an agent/human verified against this sample (manual checklist protocol) — they become agent-verified in the matrix; automated-fail stays fail'},
+            'build': {'type': 'object', 'description': 'Build reference sealed into the pack sha — the claim→artifact chain: {"commit":…, "ci_url":…} or {"ref": "git:716d870"}'},
         }, 'required': ['reports']},
     },
     {
@@ -1012,6 +1013,7 @@ _PARAM_DOCS = {
  ('a11y_criterion', 'signal'): 'Signal id from any finding (e.g. img_no_alt): resolves its criterion and published ACT rules with w3.org links',
  ('a11y_criterion', 'lang'): 'Explanation language (default en)',
  ('a11y_evidence', 'reports'): 'Audit report objects to bundle (any mode: static, rendered, reflow, keyboard, scroll)',
+ ('a11y_evidence', 'build'): 'Build reference sealed into the sha: {"commit":…, "ci_url":…} or {"ref": "git:sha"} — the claim→artifact chain',
  ('a11y_evidence', 'snapshot'): 'Optional a11y_snapshot output to include as an artifact',
  ('a11y_evidence', 'reviewer'): 'Optional prefill for the signature block: {"name":…, "credential":…, "review_date":…}',
  ('a11y_aria_live_snippet', 'lang'): 'Monitor panel language (default en)',
@@ -1354,7 +1356,8 @@ def invoke(name, args):
             return _content(build_pack_fn(args['reports'], snapshot=args.get('snapshot'),
                                         reviewer=args.get('reviewer'),
                                         verified=args.get('verified'),
-                                        scope=args.get('scope')))
+                                        scope=args.get('scope'),
+                                        build=args.get('build')))
         except Exception as e:  # noqa: BLE001
             return {'content': [{'type': 'text', 'text': f'error: {e}'}], 'isError': True}
     if name == 'a11y_scope':
