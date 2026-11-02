@@ -598,5 +598,18 @@
   "ans_machine": "answered by the audit (web target)",
   "exc_reason": "Not applicable to non-web content/software per Revised 508 E203/E204 (web-based: {answer})",
   "exempt_reason": "Content exempt per Revised 508 (not public-facing and not an official agency communication) — human answers public_facing={public}, official_comm={official}"
+ },
+ "wiz": {
+  "wiz_q_target": "What are you building?\n  1 = web site/app\n  2 = documents (PDF/Office)\n  3 = non-web software\n  4 = several of those\nAnswer (1-4): ",
+  "wiz_q_multi": "Which ones? comma-separated (web,documents,software): ",
+  "wiz_q_std": "Which standard applies to your market or contract?\n  1 = WCAG 2.2 (global)\n  2 = EN 301 549 (EU / EAA / Ley 11/2023)\n  3 = Section 508 (US federal)\n  4 = RGAA 4.1 (France)\nAnswer (1-4): ",
+  "wiz_q_public": "Is the electronic content public-facing? (y/n): ",
+  "wiz_q_official": "Is it an official agency communication that is NOT public-facing? (y/n): ",
+  "wiz_q_authoring": "Is the software also an authoring tool? (y/n): ",
+  "wiz_q_annex": "Also generate the tender annex (procurement language)? (y/N): ",
+  "wiz_annex_lang": "Annex language (es/en): ",
+  "wiz_done": "Done. Scope: {scope}\nAnnex: {annex}\nScore: {score} · in scope: {ins} · proposed out: {pro}",
+  "wiz_abort": "No input received — aborted. Everything the wizard does is also available as: a11ytoolkit scope --standard … / audit --standard … / --solicitation.",
+  "wiz_need_url": "A URL (or HTML via --file) is needed to run the audit."
  }
 }

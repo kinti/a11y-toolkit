@@ -243,6 +243,43 @@ sc_rg = build_scope([r_rgaa], standard='rgaa', lang='es')
 check('scope rgaa: 106 filas en alcance', sc_rg['counters']['criteria'] == 106)
 check('scope rgaa: norma nombrada', sc_rg['standard'] == 'RGAA 4.1 (France)')
 
+
+print('== 14. wizard: el canadiense invertido en el terminal')
+wiz = os.path.join(td, 'wiz')
+os.makedirs(wiz)
+hp = os.path.join(wiz, 'pagina.html')
+open(hp, 'w', encoding='utf-8').write(
+    '<html lang="es"><head><title>Tienda</title></head><body><h2>Ofertas</h2>'
+    '<img src="lampara.jpg"><input placeholder="correo"></body></html>')
+# flujo: target=2 documents, std=2 EN, público s, oficial n, anexo s, idioma es
+ans = '2\n2\ns\nn\ns\nes\n'
+pr = subprocess.run([sys.executable, '-m', 'a11y_toolkit.a11ywiz', '--file', hp,
+                     '--lang', 'es', '-o', os.path.join(wiz, 'scope.json')],
+                    input=ans, capture_output=True, text=True, timeout=120)
+check('wizard exit 0', pr.returncode == 0, pr.stderr[-200:] if pr.returncode else '')
+check('resumen con nota y contadores', 'Nota:' in pr.stdout and 'en alcance:' in pr.stdout)
+scope_wiz = json.load(open(os.path.join(wiz, 'scope.json'), encoding='utf-8'))
+check('scope EN documents', scope_wiz['standard'] == 'EN 301 549 V4.1.1 (2026)'
+      and scope_wiz['target'] == 'documents')
+annex_path = os.path.join(wiz, 'anexo_pligo.txt')
+check('anexo generado con requisitos numerados',
+      os.path.exists(annex_path)
+      and 'R1 — 10.' in open(annex_path, encoding='utf-8').read())
+# 508: preguntas de producto fluyen a answers
+ans_508 = '1\n3\nn\nn\nn\n'   # web, 508, público n, oficial n, sin anexo
+pr2 = subprocess.run([sys.executable, '-m', 'a11y_toolkit.a11ywiz', '--file', hp,
+                      '--lang', 'en', '-o', os.path.join(wiz, 's508.json')],
+                     input=ans_508, capture_output=True, text=True, timeout=120)
+s508 = json.load(open(os.path.join(wiz, 's508.json'), encoding='utf-8'))
+check('508: web + no público + no oficial → exento propuesto',
+      s508['section508']['content_exempt'] is True
+      and s508['counters']['proposed_excluded'] == 55)
+# stdin vacío → abort elegante con los comandos no-interactivos como salida
+pr3 = subprocess.run([sys.executable, '-m', 'a11y_toolkit.a11ywiz', '--file', hp,
+                      '--lang', 'en'], input='', capture_output=True, text=True, timeout=60)
+check('stdin vacío → abort elegante con comandos como mensaje',
+      pr3.returncode == 1 and 'a11ytoolkit scope' in pr3.stdout)
+
 if failures:
     print(f'STANDARDS: {len(failures)} fallos — {failures}')
     sys.exit(1)

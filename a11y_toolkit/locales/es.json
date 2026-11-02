@@ -598,5 +598,18 @@
   "ans_machine": "respondido por la auditoría (target web)",
   "exc_reason": "No aplicable a contenido/software no web según Revised 508 E203/E204 (basado en web: {answer})",
   "exempt_reason": "Contenido exento según Revised 508 (sin acceso público y sin ser comunicación oficial de agencia) — respuestas humanas public_facing={public}, official_comm={official}"
+ },
+ "wiz": {
+  "wiz_q_target": "¿Qué estás construyendo?\n  1 = web o aplicación web\n  2 = documentos (PDF/Office)\n  3 = software no web\n  4 = varios de esos\nRespuesta (1-4): ",
+  "wiz_q_multi": "¿Cuáles? separa por comas (web,documents,software): ",
+  "wiz_q_std": "¿Qué norma te aplica o te exige tu mercado?\n  1 = WCAG 2.2 (global)\n  2 = EN 301 549 (UE / EAA / Ley 11/2023)\n  3 = Section 508 (EE.UU. federal)\n  4 = RGAA 4.1 (Francia)\nRespuesta (1-4): ",
+  "wiz_q_public": "¿El contenido electrónico es de acceso público? (s/n): ",
+  "wiz_q_official": "¿Es comunicación oficial de agencia SIN acceso público? (s/n): ",
+  "wiz_q_authoring": "¿Es además herramienta de autoría? (s/n): ",
+  "wiz_q_annex": "¿Generar también el anexo de pliego (lenguaje para el contrato)? (s/N): ",
+  "wiz_annex_lang": "Idioma del anexo (es/en): ",
+  "wiz_done": "Hecho. Alcance: {scope}\nAnexo: {annex}\nNota: {score} · en alcance: {ins} · propuestas fuera: {pro}",
+  "wiz_abort": "No llegó ninguna respuesta — abortado. Todo lo que hace el wizard está disponible como: a11ytoolkit scope --standard … / audit --standard … / --solicitation.",
+  "wiz_need_url": "Se necesita una URL (o HTML con --file) para lanzar la auditoría."
  }
 }

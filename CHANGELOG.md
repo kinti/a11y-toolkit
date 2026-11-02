@@ -18,6 +18,16 @@
   evidence list, traceability to the scope sha), `--targets web,documents`
   (multi-ICT combined scope, clauses dict per target), families with
   `status_per_target`.
+- **`wizard` — the guided entry point** (the Canadian pattern, inverted,
+  in the terminal): 2-3 questions a person CAN answer (what are you
+  building, which standard applies to your market, the 508 product
+  questions) configure everything: the audit runs with the right
+  standard, the scope artifact carries the machine proposals, and the
+  tender annex is generated in the chosen language — landing next to the
+  scope. Everything it composes is also available as the individual
+  non-interactive commands (it composes, it does not hide); piped stdin
+  works (tests, CI) and an exhausted stdin aborts gracefully pointing to
+  those commands.
 - **`criteria --list --filters`**: the offline Quick Ref — `--level`,
   `--new-in 2.2` (the nine 2.2 SC), `--signal-filter yes|no`,
   `--standard en301549 --target` (clause per row), `--json`.

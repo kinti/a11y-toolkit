@@ -260,6 +260,7 @@ a11ytoolkit scope audit.json --standard 508 -o alcance.json    # árbol GSA, exc
 a11ytoolkit scope audit.json --solicitation anexo.txt          # anexo de licitación listo (es/en)
 a11ytoolkit annotate pagina.html --report r.json -o copia.html # marcas por elemento en copia exacta
 a11ytoolkit criteria --list --level AA --new-in 2.2            # el Quick Ref offline, filtrable
+a11ytoolkit wizard --url https://client.web --lang es          # guiado: 3 preguntas → norma, auditoría, alcance, anexo
 a11ytoolkit corpus verify corpus                               # el corpus congelado, verificado
 ```
 

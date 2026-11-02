@@ -250,6 +250,7 @@ a11ytoolkit scope audit.json --standard 508 -o scope.json      # GSA applicabili
 a11ytoolkit scope audit.json --solicitation annex.txt          # tender-ready accessibility annex (es/en)
 a11ytoolkit annotate page.html --report r.json -o marked.html  # per-element marks on a byte-exact copy
 a11ytoolkit criteria --list --level AA --new-in 2.2            # the offline Quick Ref, filterable
+a11ytoolkit wizard --url https://client.web --lang es          # guided: 3 questions → standard, audit, scope, annex
 ```
 
 
