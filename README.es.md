@@ -426,5 +426,17 @@ locale abierta y tu idioma sale en la próxima release con tu nombre puesto.
 **Jesús Quintana Fernández** ([jquin.net](https://jquin.net/)) — consultor
 SEO/GEO y profesional de accesibilidad web desde 2003. MIT © 2026.
 
+## Licencia y nombre
+
+El código es [MIT](LICENSE): úsalo, véndelo, inclúyelo en productos
+cerrados, hazle fork. Lo que el MIT no cubre: **el nombre**. "a11y-toolkit",
+el logo y las marcas del proyecto están reservados y no forman parte de la
+licencia MIT — un fork o redistribución que modifica el código publica con
+su propio nombre, no con el nuestro. El mismo juego que Debian o Firefox:
+código permisivo, marca protegida.
+
+¿Has construido algo con a11y-toolkit? [Cuéntanoslo](https://github.com/kinti/a11y-toolkit/discussions) —
+las herramientas públicas se destacan y se acreditan.
+
 *Esta traducción acompaña al README en inglés, que es la versión canónica y
 la que verifica la suite.*

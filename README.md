@@ -404,3 +404,15 @@ your language ships in the next release with your name on it.
 
 **Jesús Quintana Fernández** ([jquin.net](https://jquin.net/)) — SEO/GEO consultant and
 web-accessibility practitioner since 2003. MIT © 2026.
+
+## License & name
+
+The code is [MIT](LICENSE) — use it, sell it, embed it, fork it, including
+in closed-source products. One thing MIT does not cover: **the name**.
+"a11y-toolkit", the logo and the project marks are reserved and are not
+part of the MIT grant — a fork or redistribution that modifies the code
+ships under its own name, not ours. Same playbook as Debian and Firefox:
+permissive code, protected brand.
+
+Built something with a11y-toolkit? [Tell us](https://github.com/kinti/a11y-toolkit/discussions) —
+public tools get featured and credited.

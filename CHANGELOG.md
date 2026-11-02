@@ -1,6 +1,15 @@
 # Changelog
 
 ## main — pendiente — "per-element annotation + standards workbench"
+- **License & name — MIT for the code, the name is reserved** (founder
+  decision, the Deque/axe and Firefox pattern): both READMEs gain a
+  license section — the MIT grant covers the code only; "a11y-toolkit",
+  the logo and the project marks are reserved, so forks shipping modified
+  code publish under their own name. Plus a courtesy line inviting
+  builders to tell us (featured and credited). What it does NOT do: the
+  LICENSE file stays pure MIT — a custom clause there would break the
+  standard text scanners and packagers validate — and this is a trademark
+  notice, not a code-license change: nothing changes for the code.
 - **`a11y-journey/1` — the sealed journey record** (deal-flow pick, the
   "replayable traces" the whole monitoring market sells): `seal_record`
   bundles the walk (the agent's steps as walked), the outcome, the
