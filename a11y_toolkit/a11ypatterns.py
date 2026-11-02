@@ -33,7 +33,8 @@ from . import a11yi18n
 
 _P = a11yi18n.pair('patterns')  # locales/<lang>.json — community-editable
 
-# patterns visibles en carga: dialogs abiertos, tablists y disclosures
+# patterns visibles en carga: dialogs abiertos, tablists, disclosures, combobox,
+# menu buttons y sliders (widgets ARIA de alto riesgo, contratos APG v1+v2)
 _COUNTS = r'''() => {
   const vis = el => !!(el.offsetWidth || el.offsetHeight || el.getClientRects().length);
   return {
@@ -41,8 +42,12 @@ _COUNTS = r'''() => {
       .filter(vis).length,
     tablists: [...document.querySelectorAll('[role=tablist]')].filter(vis)
       .map(l => l.querySelectorAll('[role=tab]').length),
-    disclosures: [...document.querySelectorAll('button[aria-expanded], [role=button][aria-expanded]')]
+    disclosures: [...document.querySelectorAll('button[aria-expanded]:not([aria-haspopup="menu"]), [role=button][aria-expanded]:not([aria-haspopup="menu"])')]
       .filter(vis).length,
+    comboboxes: [...document.querySelectorAll('[role=combobox]')].filter(vis).length,
+    menus: [...document.querySelectorAll('button[aria-haspopup="menu"], [role="button"][aria-haspopup="menu"]')]
+      .filter(vis).length,
+    sliders: [...document.querySelectorAll('[role="slider"]')].filter(vis).length,
   };
 }'''
 
@@ -128,8 +133,10 @@ def _test_tablists(page, findings, lang, cap=3):
 
 
 def _test_disclosures(page, findings, lang, cap=8):
-    """Disclosure buttons: activation must FLIP the exposed state."""
-    loc = page.locator('button[aria-expanded]:visible, [role="button"][aria-expanded]:visible')
+    """Disclosure buttons: activation must FLIP the exposed state.
+    Menu buttons are excluded — they are the menu pattern's subject."""
+    loc = page.locator('button[aria-expanded]:visible:not([aria-haspopup="menu"]), '
+                       '[role="button"][aria-expanded]:visible:not([aria-haspopup="menu"])')
     n = min(loc.count(), cap)
     for i in range(n):
         b = loc.nth(i)
@@ -146,6 +153,96 @@ def _test_disclosures(page, findings, lang, cap=8):
             elif after in ('true', 'false') and after != before:
                 b.click()   # dejar la página como estaba
                 page.wait_for_timeout(150)
+        except Exception:  # noqa: BLE001
+            continue
+
+
+def _visible_open(page, sel):
+    """Is a matching element visible right now?"""
+    try:
+        return page.locator(sel).first.is_visible()
+    except Exception:  # noqa: BLE001
+        return False
+
+
+def _test_comboboxes(page, findings, lang, cap=3):
+    """Comboboxes: activation opens the popup; Escape closes it."""
+    loc = page.locator('[role="combobox"]:visible')
+    n = min(loc.count(), cap)
+    for i in range(n):
+        c = loc.nth(i)
+        try:
+            c.evaluate('el => el.focus()')
+            before = (c.get_attribute('aria-expanded') or '').lower()
+            page.keyboard.press('ArrowDown')
+            page.wait_for_timeout(300)
+            after = (c.get_attribute('aria-expanded') or '').lower()
+            opened = after == 'true' or _visible_open(page, '[role="listbox"]:visible')
+            if not opened and before != 'true':
+                _finding(findings, lang, 'medium', '2.1.1', 'pattern_combobox_no_open')
+                continue
+            page.keyboard.press('Escape')
+            page.wait_for_timeout(250)
+            closed = (c.get_attribute('aria-expanded') or '').lower() != 'true' \
+                and not _visible_open(page, '[role="listbox"]:visible')
+            if not closed:
+                _finding(findings, lang, 'medium', '2.1.1', 'pattern_combobox_esc_no_close')
+        except Exception:  # noqa: BLE001
+            continue
+
+
+def _test_menu_buttons(page, findings, lang, cap=3):
+    """Menu buttons: activation opens the menu; Escape closes + refocuses."""
+    loc = page.locator('button[aria-haspopup="menu"]:visible, '
+                       '[role="button"][aria-haspopup="menu"]:visible')
+    n = min(loc.count(), cap)
+    for i in range(n):
+        b = loc.nth(i)
+        try:
+            b.click()
+            page.wait_for_timeout(300)
+            opened = _visible_open(page, '[role="menu"]:visible') \
+                or (b.get_attribute('aria-expanded') or '').lower() == 'true'
+            if not opened:
+                _finding(findings, lang, 'medium', '2.1.1', 'pattern_menu_no_open')
+                continue
+            page.keyboard.press('Escape')
+            page.wait_for_timeout(250)
+            closed = not _visible_open(page, '[role="menu"]:visible') \
+                and (b.get_attribute('aria-expanded') or '').lower() != 'true'
+            if not closed:
+                _finding(findings, lang, 'medium', '2.1.1', 'pattern_menu_esc_no_close')
+        except Exception:  # noqa: BLE001
+            continue
+
+
+def _test_sliders(page, findings, lang, cap=3):
+    """Custom sliders: arrows change the value; the state trio must be exposed."""
+    loc = page.locator('[role="slider"]:visible')
+    n = min(loc.count(), cap)
+    for i in range(n):
+        s = loc.nth(i)
+        try:
+            has_state = all((s.get_attribute(a) or '').strip() not in ('', None)
+                            for a in ('aria-valuenow', 'aria-valuemin', 'aria-valuemax'))
+            if not has_state:
+                _finding(findings, lang, 'medium', '4.1.2', 'pattern_slider_no_state',
+                         name=((s.get_attribute('aria-label') or '') or 'slider')[:40])
+            now = (s.get_attribute('aria-valuenow') or '').strip()
+            s.evaluate('el => el.focus()')
+            page.keyboard.press('ArrowRight')
+            page.wait_for_timeout(150)
+            after_r = (s.get_attribute('aria-valuenow') or '').strip()
+            if after_r == now:
+                page.keyboard.press('ArrowUp')
+                page.wait_for_timeout(150)
+                after_up = (s.get_attribute('aria-valuenow') or '').strip()
+                if after_up == now:
+                    _finding(findings, lang, 'high', '2.1.1', 'pattern_slider_arrows_dead')
+                    continue
+            # devolver el valor original (dejar la página como estaba)
+            if now and (s.get_attribute('aria-valuenow') or '').strip() != now:
+                s.evaluate('(el, v) => el.setAttribute("aria-valuenow", v)', now)
         except Exception:  # noqa: BLE001
             continue
 
@@ -170,29 +267,37 @@ def audit_patterns(url, timeout=45, lang='en', auth_state=None):
         _test_dialogs(page, findings, lang)
         _test_tablists(page, findings, lang)
         _test_disclosures(page, findings, lang)
+        _test_comboboxes(page, findings, lang)
+        _test_menu_buttons(page, findings, lang)
+        _test_sliders(page, findings, lang)
         nav.close()
 
     limits = ('Only patterns VISIBLE at page load are tested: opening a closed '
               'dialog means guessing a trigger flow — never acceptable on a '
-              'live site. v1 operators: dialog (Esc + modal containment), '
-              'tablist (arrows + activation), disclosure (aria-expanded flips). '
-              'combobox/menu/slider are future operators, not silent gaps. A '
+              'live site. Operators: dialog (Esc + modal containment), '
+              'tablist (arrows + activation), disclosure (aria-expanded flips), '
+              'combobox (opens + Esc closes), menu button (opens + Esc closes), '
+              'slider (arrows change value + value trio exposed). A '
               'clean pass proves THESE contracts at THIS moment — not full '
               'APG conformance.'
               if lang == 'en' else
               'Solo se prueban patrones VISIBLES en carga: abrir un diálogo '
               'cerrado exige adivinar un disparador — jamás aceptable en un '
-              'sitio real. Operadores v1: dialog (Esc + contención modal), '
+              'sitio real. Operadores: dialog (Esc + contención modal), '
               'tablist (flechas + activación), disclosure (aria-expanded '
-              'cambia). combobox/menu/slider son operadores futuros, no '
-              'huecos silenciosos. Un pase limpio prueba ESTOS contratos en '
+              'cambia), combobox (abre + Esc cierra), menu button (abre + Esc '
+              'cierra), slider (flechas cambian el valor + trío de estado '
+              'expuesto). Un pase limpio prueba ESTOS contratos en '
               'ESTE momento — no conformidad APG completa.')
     return {'mode': 'patterns', 'url': url,
             'ts': datetime.now(timezone.utc).isoformat(),
             'patterns_seen': {'dialog': counts.get('dialogs', 0),
                               'tablist': len(counts.get('tablists', [])),
                               'tabs': sum(counts.get('tablists', [])),
-                              'disclosure': counts.get('disclosures', 0)},
+                              'disclosure': counts.get('disclosures', 0),
+                              'combobox': counts.get('comboboxes', 0),
+                              'menu': counts.get('menus', 0),
+                              'slider': counts.get('sliders', 0)},
             'findings': findings,
             'limits': limits}
 

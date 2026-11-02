@@ -97,4 +97,31 @@ print('6. trace vivo: secuencia + anuncio del paso capturados ✓')
 
 # --- 7. live diff: same page twice → ok ---
 t1 = trace('file:///tmp/a11y_trace_fixture.html', steps=8) if os.path.exists(fixture) else None
-print('OK test_trace: 7 checks (5 herméticos + 2 vivos)')
+# --- 8. scripted journey: acciones reales con captura por paso ---
+sfx = os.path.join('/tmp', 'a11y_script_fixture.html')
+with open(sfx, 'w', encoding='utf-8') as fh:
+    fh.write('<!doctype html><html lang="en"><head><meta charset="utf-8">'
+             '<title>Script fixture</title></head><body>'
+             '<form onsubmit="return false">'
+             '<input id="email" aria-label="Email" oninput="document.getElementById(\'s\')'
+             '.textContent=\'Email captured\'">'
+             '<button id="pay" onclick="document.getElementById(\'s\')'
+             '.textContent=\'Payment announced\'">Pay</button></form>'
+             '<div role="status" aria-live="polite" id="s"></div></body></html>')
+script = [{'kind': 'fill', 'selector': '#email', 'value': 'a@b.co'},
+          {'kind': 'click', 'selector': '#pay'},
+          {'kind': 'click', 'selector': '#missing'}]
+t = trace('file://' + sfx, script=script)
+assert 'error' not in t, t
+assert t['summary']['ended_by'] == 'script_done' and len(t['steps']) == 3
+acts = [s['action'] for s in t['steps']]
+assert acts[0].startswith('fill:#email') and acts[1] == 'click:#pay', acts
+assert 'failed' in acts[2]   # un paso fallido también se graba
+anns = [a['text'] for s in t['steps'] for a in s['announcements']]
+assert any('Payment announced' in x for x in anns) and any('Email captured' in x for x in anns)
+assert t['steps'][1]['focus'] == '#pay'
+os.remove(sfx)
+d = trace_diff(t, t)
+assert d['ok']   # diff funciona igual sobre trazas scripted
+print('8. trace --script: jornada real, anuncios por acción, fallo grabado, diff ok ✓')
+print('OK test_trace: 8 checks (5 herméticos + 3 vivos)')

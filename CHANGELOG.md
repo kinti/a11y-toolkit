@@ -128,6 +128,33 @@
   sha256: the chain between the WCAG claim and the build that produced it.
   What it does NOT do: no predictions, no risk scores — ranking of what the
   ledger actually saw, nothing more.
+- **`trace --script` — scripted real journeys**: a JSON action list
+  (`click`/`fill`/`select`/`press`/`wait`/`goto`, each with a CSS selector)
+  replaces the keyboard walk — the trace records what a REAL journey does,
+  step by step, with the same focus signature and the same announcement
+  collector, so `trace diff` works identically over scripted traces. A
+  failed action is recorded as a step (`(failed: …)`), never swallowed.
+  What it does NOT do: no auto-discovery of journeys (you write the script),
+  no password entry (values land in the trace file — never put secrets in a
+  script; use test accounts).
+- **`patterns` grows to 6 operators — combobox, menu button, slider**:
+  combobox (ArrowDown opens the popup + flips aria-expanded; Escape closes),
+  menu button (activation opens a visible menu; Escape closes and returns
+  focus), slider (ArrowRight/Up and ArrowLeft/Down change aria-valuenow;
+  the value trio valuenow/valuemin/valuemax must be exposed — its absence is
+  its own finding, 4.1.2). Menu buttons are excluded from the disclosure
+  operator (they carry aria-expanded too — double-testing left them open).
+  What it does NOT do: nested/edge cases (combobox with inline autocomplete
+  filtering, multi-level menus) remain review-level.
+- **`chart_no_data_equivalent` (1.1.1, LOW — review finding)**: the
+  data-viz pass now asks the next question after naming: does a NAMED chart
+  expose its DATA in machine-visible text? Equivalent = resolvable
+  `aria-details`/`aria-describedby`, or a real `<table>` inside the same
+  figure/section/cell/list item (a generic parent does NOT count — one
+  chart's table must not vouch for its neighbors). Rendered pass only.
+  What it does NOT do: it does not judge whether the equivalent is GOOD, nor
+  detect chart types, nor verify keyboard exploration — those stay human
+  review; the finding exists so the gap is at least VISIBLE.
 
 ## 5.26.0 — pendiente — "EN 301 549 + applicability scope"
 

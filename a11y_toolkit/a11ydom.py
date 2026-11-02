@@ -107,7 +107,7 @@ def _t(lang, key, n=None):
 _JS = r'''(maxEj) => {
   const INTER = 'a[href], button, input, select, textarea, summary, [role="button"], [role="link"], [tabindex]';
   const out = { contrast: {}, contrastReview: 0, contrastZones: [], targets: [], unnamed: [], fields: [],
-                imgs: [], canvasNoName: [], iframes: [], headings: [], tabindex: [], ariaHidden: [],
+                imgs: [], canvasNoName: [], chartsNoEquiv: [], iframes: [], headings: [], tabindex: [], ariaHidden: [],
                 blank: 0, videos: 0, videoSubs: 0, tables: 0, tableTh: 0,
                 focus: [], focusFail: [], focusContrast: [], focusObscured: [], marks: 0,
                 ids: {}, lang: null, title: '', viewport: null, refresh: null,
@@ -467,6 +467,32 @@ _JS = r'''(maxEj) => {
     if (!nameOf(el) && !_fallback && out.canvasNoName.length < 20)
       out.canvasNoName.push(path(el));
   }
+  // charts CON nombre: ¿hay equivalente de datos visible para la máquina?
+  // (aria-details / aria-describedby resolubles, o una tabla en el entorno).
+  // Hallazgo de REVISIÓN (low): si los datos viven en prosa cercana, pasa.
+  const _chartName = el => (el.getAttribute('aria-label') || '').trim()
+    || (el.getAttribute('title') || '').trim()
+    || [...el.querySelectorAll('title')].map(t => t.textContent.trim())[0]
+    || ((el.getAttribute('aria-labelledby') || '').split(/\s+/)
+        .filter(Boolean).some(id => document.getElementById(id)) ? 'named' : '');
+  for (const el of deepQ('canvas, svg[role="img"]')) {
+    if (!vis(el)) continue;
+    if (el.closest('[aria-hidden="true"]')) continue;
+    const _r = (el.getAttribute('role') || '').toLowerCase();
+    if (el.tagName.toLowerCase() === 'svg' && _r !== 'img') continue;
+    if (!_chartName(el)) continue;   // sin nombre: ya lo acusan las señales de nombre
+    let _equiv = [...(el.getAttribute('aria-details') || '').split(/\s+/),
+                  ...(el.getAttribute('aria-describedby') || '').split(/\s+/)]
+                 .filter(Boolean).some(id => document.getElementById(id));
+    if (!_equiv) {
+      // solo el entorno SEMÁNTICO (figure/section/celda/lista) cuenta como
+      // "cerca" — el parent genérico contaminaría (la tabla de OTRO chart
+      // en el mismo main haría pasar a todos)
+      const _scope = el.closest('figure, section, td, li');
+      _equiv = !!(_scope && _scope.querySelector('table'));
+    }
+    if (!_equiv && out.chartsNoEquiv.length < 15) out.chartsNoEquiv.push(path(el));
+  }
   for (const el of deepQ('iframe')) {
     if (!((el.getAttribute('title') || '').trim() || (el.getAttribute('aria-label') || '').trim())
         && out.iframes.length < 20) out.iframes.push(el.getAttribute('src') || '');
@@ -682,6 +708,9 @@ def audit_dom(data, url='(rendered)', lang='en', color_scheme='light'):
     if data.get('canvasNoName'):
         _add(findings, lang, 'high', '1.1.1', 'canvas_no_accessible_layer',
                 examples=data['canvasNoName'], n=len(data['canvasNoName']))
+    if data.get('chartsNoEquiv'):
+        _add(findings, lang, 'low', '1.1.1', 'chart_no_data_equivalent',
+                examples=data['chartsNoEquiv'], n=len(data['chartsNoEquiv']))
     if data.get('ariaHidden'):
         _add(findings, lang, 'high', '4.1.2', 'aria_hidden_focusable',
                 n=len(data['ariaHidden']), tag='control')

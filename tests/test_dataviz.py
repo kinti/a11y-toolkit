@@ -80,4 +80,26 @@ assert not [x for x in r['findings'] if x['signal'] == 'img_no_alt']
 os.remove(fixture)
 print('6. rendered: bare acusa (high), named/fallback/hidden limpios ✓')
 
-print('OK test_dataviz: 6 checks')
+# --- 7. pase charts: equivalencia de datos visible para la máquina ---
+fixture2 = os.path.join('/tmp', 'a11y_charts_fixture.html')
+with open(fixture2, 'w', encoding='utf-8') as fh:
+    fh.write('<!doctype html><html lang="en"><head><meta charset="utf-8">'
+             '<title>Charts fixture</title></head><body><main><h1>Quarterly</h1>'
+             '<figure><canvas id="near" aria-label="Sales by quarter" width="200" height="100"></canvas>'
+             '<table><caption>Sales</caption><tr><th>Q1</th><td>10</td></tr></table></figure>'
+             '<canvas id="det" aria-label="Revenue trend" aria-details="revd" width="200" height="100"></canvas>'
+             '<div id="revd">Revenue rose 12%</div>'
+             '<canvas id="naked" aria-label="Costs by region" width="200" height="100"></canvas>'
+             '<svg role="img" aria-label="Growth" width="200" height="100"><rect width="200" height="100"/></svg>'
+             '</main></body></html>')
+r = audit_dom_url('file://' + fixture2)
+chs = [h for h in r['findings'] if h['signal'] == 'chart_no_data_equivalent']
+assert len(chs) == 1 and chs[0]['severity'] == 'low', chs
+assert chs[0]['criterion'].startswith('1.1.1')
+paths = chs[0]['examples']
+assert any('naked' in p for p in paths) and any('svg' in p for p in paths), paths
+assert not any('near' in p or '/det' in p for p in paths)   # tabla cerca y aria-details pasan
+assert not [h for h in r['findings'] if h['signal'] == 'canvas_no_accessible_layer']
+os.remove(fixture2)
+print('7. charts: con tabla/aria-details pasan; desnudo y svg sin equivalente acusan (low) ✓')
+print('OK test_dataviz: 7 checks')

@@ -19,7 +19,12 @@ must not mutate the page it measures.
 
 CLI (infrastructure, not a tool — D17, like corpus/mutants/engines):
   a11ytrace.py https://web [--steps 25] [-o trace.json]      # needs Playwright
+  a11ytrace.py https://web --script journey.json -o t.json   # scripted real journey
   a11ytrace.py diff before.json after.json                   # exit 0 ok / 2 divergences
+
+Script file: a JSON list of actions — {"kind":"click","selector":"#pay"},
+{"kind":"fill","selector":"#email","value":"…"}, {"kind":"select",…},
+{"kind":"press","key":"Enter"}, {"kind":"wait","ms":300}, {"kind":"goto","url":…}.
 """
 
 import argparse
@@ -72,8 +77,40 @@ _COLLECTOR = r'''() => {
 }'''
 
 
-def trace(url, steps=25, output=None, auth_state=None, timeout=45):
-    """One url → the behavioral trace (replayable JSON)."""
+def _run_script_action(page, act):
+    """One scripted action → (label, ok). Selector-valued actions target CSS."""
+    kind = act.get('kind', '')
+    sel = act.get('selector') or act.get('target') or ''
+    if kind == 'click':
+        loc = page.locator(sel).first
+        loc.click(timeout=5000)
+        return f'click:{sel}', True
+    if kind == 'fill':
+        page.locator(sel).first.fill(str(act.get('value', '')), timeout=5000)
+        return f'fill:{sel}', True
+    if kind == 'select':
+        page.locator(sel).first.select_option(str(act.get('value', '')), timeout=5000)
+        return f'select:{sel}', True
+    if kind == 'press':
+        page.keyboard.press(act.get('key', 'Enter'))
+        return f'press:{act.get("key", "Enter")}', True
+    if kind == 'wait':
+        page.wait_for_timeout(int(act.get('ms', 300)))
+        return f'wait:{act.get("ms", 300)}', True
+    if kind == 'goto':
+        page.goto(act.get('url', ''), wait_until='load', timeout=30000)
+        return f'goto:{act.get("url", "")}', True
+    return f'unknown:{kind or sel}', False
+
+
+def trace(url, steps=25, output=None, auth_state=None, timeout=45, script=None):
+    """One url → the behavioral trace (replayable JSON).
+
+    script: optional list of scripted actions (click/fill/select/press/wait/
+    goto, each with a CSS selector where applicable) — a REAL journey instead
+    of the keyboard walk. Each action becomes a recorded step; the announcement
+    collector and the focus signature stay identical, so trace diff works the
+    same over scripted traces."""
     from playwright.sync_api import sync_playwright
     with sync_playwright() as p:
         nav = p.chromium.launch()
@@ -90,20 +127,39 @@ def trace(url, steps=25, output=None, auth_state=None, timeout=45):
         walk = []
         navigations = 0
         url_now = page.url
-        ended_by = 'step_cap'
-        for i in range(steps):
-            page.keyboard.press('Tab')
-            info = page.evaluate(a11ydiff.FOCUS_KEY_JS)
-            if info is None:
-                ended_by = 'no_more_focusables'
-                break
-            page.wait_for_timeout(150)   # let the observers flush
-            anns = page.evaluate('() => window.__a11yTraceDrain()')
-            if page.url != url_now:
-                navigations += 1
-                url_now = page.url
-            walk.append({'step': i + 1, 'focus': info,
-                         'announcements': anns, 'url': page.url})
+        if script:
+            ended_by = 'script_done'
+            for i, act in enumerate(script):
+                if not isinstance(act, dict):
+                    continue
+                try:
+                    label, _ok = _run_script_action(page, act)
+                except Exception as e:  # noqa: BLE001 — a failed action is a recorded step too
+                    label = f'{act.get("kind", "?")}:{act.get("selector") or act.get("key") or ""}'
+                    label += f' (failed: {str(e)[:60]})'
+                page.wait_for_timeout(200)
+                info = page.evaluate(a11ydiff.FOCUS_KEY_JS)
+                anns = page.evaluate('() => window.__a11yTraceDrain()')
+                if page.url != url_now:
+                    navigations += 1
+                    url_now = page.url
+                walk.append({'step': i + 1, 'action': label, 'focus': info,
+                             'announcements': anns, 'url': page.url})
+        else:
+            ended_by = 'step_cap'
+            for i in range(steps):
+                page.keyboard.press('Tab')
+                info = page.evaluate(a11ydiff.FOCUS_KEY_JS)
+                if info is None:
+                    ended_by = 'no_more_focusables'
+                    break
+                page.wait_for_timeout(150)   # let the observers flush
+                anns = page.evaluate('() => window.__a11yTraceDrain()')
+                if page.url != url_now:
+                    navigations += 1
+                    url_now = page.url
+                walk.append({'step': i + 1, 'focus': info,
+                             'announcements': anns, 'url': page.url})
 
         tree = None
         try:
@@ -168,6 +224,7 @@ def main(argv):
     s1 = sub.add_parser('trace')
     s1.add_argument('url')
     s1.add_argument('--steps', type=int, default=25)
+    s1.add_argument('--script', help='JSON file: scripted journey (click/fill/select/press/wait/goto)')
     s1.add_argument('--auth-state', help='Playwright storage_state JSON (session)')
     s1.add_argument('--timeout', type=int, default=45)
     s1.add_argument('-o', '--out', default='trace.json')
@@ -177,9 +234,17 @@ def main(argv):
     a = p.parse_args(argv)
 
     if a.cmd == 'trace':
+        script = None
+        if a.script:
+            try:
+                with open(a.script, encoding='utf-8') as f:
+                    script = json.load(f)
+            except (OSError, json.JSONDecodeError) as e:
+                print(json.dumps({'error': f'bad script file: {e}'}))
+                return 1
         try:
             d = trace(a.url, steps=a.steps, output=a.out, auth_state=a.auth_state,
-                      timeout=a.timeout)
+                      timeout=a.timeout, script=script)
         except ImportError:
             print(json.dumps({'error': 'Playwright not installed: pip install '
                                        'playwright && playwright install chromium'}))
