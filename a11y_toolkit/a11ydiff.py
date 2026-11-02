@@ -50,11 +50,23 @@ COLLECTOR = r'''() => {
 }'''
 
 
-def snapshot(url, output=None, auth_state=None):
-    """Captura una URL. Con salida=None devuelve los datos sin escribir fichero."""
+_LAUNCHERS = {
+    'chromium': lambda p: p.chromium.launch(),
+    'firefox': lambda p: p.firefox.launch(),
+    'webkit': lambda p: p.webkit.launch(),
+    'chrome': lambda p: p.chromium.launch(channel='chrome'),
+    'msedge': lambda p: p.chromium.launch(channel='msedge'),
+}
+
+
+def snapshot(url, output=None, auth_state=None, engine='chromium'):
+    """Captura una URL. Con salida=None devuelve los datos sin escribir fichero.
+    engine: chromium (default), firefox, webkit, chrome, msedge — la misma
+    captura en otro motor es la materia prima de la matriz cross-engine."""
     from playwright.sync_api import sync_playwright
     with sync_playwright() as p:
-        nav = p.chromium.launch()
+        launch = _LAUNCHERS.get(engine or 'chromium', _LAUNCHERS['chromium'])
+        nav = launch()
         ctx = nav.new_context(storage_state=auth_state) if auth_state else nav
         page = ctx.new_page() if auth_state else nav.new_page()
         page.goto(url, wait_until='networkidle', timeout=45000)

@@ -244,6 +244,10 @@ a11ytoolkit diff before.json after.json                 # tras el deploy
 a11ytoolkit evidence audit.json -o pack.json            # pack de evidencia verificable
 a11ytoolkit disprove --url https://mysite               # re-verifica hallazgos
 a11ytoolkit budget --budget budget.json --audit audit.json  # solo lo NUEVO bloquea
+a11ytoolkit budget --init-snapshot s.json > estructural.json    # presupuesto estructural: la estructura de HOY se acepta
+a11ytoolkit budget --budget estructural.json --snapshot s2.json # solo la estructura renderizada NUEVA bloquea (exit 0/2)
+a11ytoolkit engines https://mysite                        # la misma página en 3 motores: divergencias de comportamiento, por pares
+a11ytoolkit contrast-dom https://mysite --walk            # pase perceptual: ratios por elemento, umbrales, sugerencias
 a11ytoolkit sarif --from-audit audit.json -o a11y.sarif # GitHub code scanning
 a11ytoolkit badge --score 92 --out badge.svg            # SVG honesto
 a11ytoolkit contrast-dom https://mysite --selector ".hero h1"  # muestreo por píxeles

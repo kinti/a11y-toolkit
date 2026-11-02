@@ -19,6 +19,11 @@ user is not an AI agent (different strategies, habits, patience).
 
 CLI:
   a11yjourney.py friction.json [-o verdict.json] [--lang en]
+
+Recommended task kinds (free-form by design; these make baselines comparable):
+sign-up, checkout, password-reset, search, onboarding, settings, data-export.
+The friction catalogue lives in locales/<lang>.json (journey_* keys) —
+community-editable, parity-tested.
 """
 
 import argparse

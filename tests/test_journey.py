@@ -97,8 +97,11 @@ assert all(k.startswith('journey_') for k in es)
 assert {'journey_heading_nav_broken', 'journey_landmark_missing', 'journey_mode_confusion',
         'journey_duplicate_targets', 'journey_dynamic_stale'} <= set(en), 'faltan patrones SR-nativos'
 crit = {en[k][0] for k in en}
-assert crit <= {'1.1.1','1.2.2','1.3.1','2.1.1','2.1.2','2.2.1','2.4.1','2.4.3','2.4.4','2.4.6',
-                '3.3.1','3.3.2','4.1.2','4.1.3'}, crit
+# derivado del catálogo A/AA, nunca una lista hardcodeada (los patrones nuevos
+# del catálogo entran solos: 1.4.4/1.4.10/1.4.13/2.4.7/2.5.7/3.3.3, 11-2026)
+from a11y_toolkit.a11ycrit import _C  # noqa: E402
+AA22 = {k for k, v in _C.items() if v[0] in ('A', 'AA')}
+assert crit <= AA22, crit - AA22
 print(f'9. catálogo J parejo ({len(es)} patrones) ✓')
 
 # 10. CLI end-to-end (la vía pública real)
@@ -146,3 +149,20 @@ assert r_media['verdict'] == 'GO' and r_media['new_friction'] and r_media['resol
 otra = verdict({'goal': 'checkout', 'kind': 'checkout'}, [], {'completed': True})
 assert 'error' in budget_compare(bb, otra)
 print('11. journey budget: GO/NO-GO/degradación/resueltas/otra-tarea ✓')
+
+# --- 12. fricción 2026-11: 6 patrones nuevos (walk/reflow/zoom/hover/foco/drag) ---
+NUEVOS = {'journey_drag_only': '2.5.7', 'journey_error_no_suggestion': '3.3.3',
+          'journey_focus_not_visible': '2.4.7', 'journey_hover_only': '1.4.13',
+          'journey_reflow_breaks': '1.4.10', 'journey_zoom_blocked': '1.4.4'}
+assert all(p in _J['en'] for p in NUEVOS) and all(p in _J['es'] for p in NUEVOS)
+for pat, crit in NUEVOS.items():
+    v = verdict(TAREA, [{'friction': {'pattern': pat}}], {'completed': True}, url=URL)
+    assert v['findings'][0]['criterion'] == crit, (pat, v['findings'][0])
+    assert v['findings'][0]['signal'] == pat
+    assert v['findings'][0]['remediation']  # bilingual catalog fills it
+v_mix = verdict({'goal': 'export data', 'kind': 'data-export'},
+                [{'friction': [{'pattern': 'journey_zoom_blocked'},
+                               {'pattern': 'journey_reflow_breaks'}]}],
+                {'completed': True}, url=URL)
+assert {f['criterion'] for f in v_mix['findings']} == {'1.4.4', '1.4.10'}
+print('12. fricción nueva: 6 patrones → criterio correcto + remedio bilingüe ✓')

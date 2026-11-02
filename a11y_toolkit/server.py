@@ -539,7 +539,7 @@ TOOLS = [
                         'accessible name, log friction per step, then call this. Task usability '
                         'evidence, never conformance.'),
         'inputSchema': {'type': 'object', 'properties': {
-            'task': {'type': 'object', 'description': '{"goal": what the agent attempted, "kind": sign-up|checkout|password-reset|search|custom}'},
+            'task': {'type': 'object', 'description': '{"goal": what the agent attempted, "kind": sign-up|checkout|password-reset|search|onboarding|settings|data-export|custom}'},
             'steps': {'type': 'array', 'items': {'type': 'object'}, 'description': 'journey steps: {action, target (accessible name), perceived, friction?} — friction is {pattern: journey_* key} or {criterion, severity, issue, remediation?}'},
             'outcome': {'type': 'object', 'description': '{"completed": bool, "gave_up": bool, "workaround_used": bool, "notes"}'},
             'url': {'type': 'string', 'description': 'page(s) where the journey ran'},
@@ -804,7 +804,7 @@ _PROMPTS = [
         'arguments': [
             {'name': 'url', 'description': 'page where the task lives', 'required': True},
             {'name': 'goal', 'description': 'the task in user terms ("sign up for the newsletter")', 'required': True},
-            {'name': 'kind', 'description': 'sign-up | checkout | password-reset | search | custom', 'required': False},
+            {'name': 'kind', 'description': 'sign-up | checkout | password-reset | search | onboarding | settings | data-export | custom', 'required': False},
             {'name': 'language', 'description': 'es or en', 'required': False},
         ],
     },
@@ -933,7 +933,7 @@ _PARAM_DOCS = {
  ('a11y_forms', 'browser'): 'Browser engine (auto = detect the first available)',
  ('a11y_sr_transcript', 'url'): 'Page URL to get the screen reader announcement transcript',
  ('a11y_sr_transcript', 'timeout'): 'Page load timeout in seconds (default 45)',
- ('a11y_journey_verdict', 'task'): 'Task the agent attempted blindfolded: {"goal": …, "kind": sign-up|checkout|password-reset|search|custom}',
+ ('a11y_journey_verdict', 'task'): 'Task the agent attempted blindfolded: {"goal": …, "kind": sign-up|checkout|password-reset|search|onboarding|settings|data-export|custom}',
  ('a11y_journey_verdict', 'steps'): 'Journey steps in order; each friction item is a journey_* pattern key or a raw {criterion, severity, issue}',
  ('a11y_journey_verdict', 'outcome'): 'How the journey ended: completed / gave_up / workaround_used + notes',
  ('a11y_journey_verdict', 'url'): 'Where the journey ran',

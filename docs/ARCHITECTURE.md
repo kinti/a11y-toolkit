@@ -46,8 +46,9 @@ import guards. Output es/en; wire keys English (`a11y-evidence-pack/2`).
 | `a11ydocx.py` | DOCX structural screening (zip+XML): images w/o alt, fake headings (bold+big without Heading style), document language, header rows. |
 | `a11ypdf.py` | PDF structural screening: tagged tree, title, /Lang, outline, /Alt, text layer (scans), encryption, AcroForm fields without /TU labels (3.3.2/4.1.2) — zero-dep, the space nobody automated. |
 | `a11yjourney.py` | Blindfold journey verdict: friction log → deterministic scored task verdict; `_J` friction catalogue (journey_* patterns → criterion + bilingual remediation). |
-| `a11ydiff.py` | Snapshot + regression diff (interactives, focus order, tree). |
-| `a11ybudget.py` | Error budget: only NEW blocking findings fail (exit 2). |
+| `a11yengines.py` | Cross-engine behavioral matrix: ONE url snapshotted in several browser engines (chromium/firefox/webkit/chrome/msedge via `a11ydiff.snapshot(engine=)`), pairwise divergence per pair — DOM-level facts (elements, focus order) block, the engine-computed accessibility tree is informational — honest `engines_failed`, `insufficient_engines` never fakes a pass. CLI + suite, not a tool (D17, like corpus/mutants). |
+| `a11ydiff.py` | Snapshot + regression diff (interactives, focus order, tree); `snapshot(engine=)` feeds the engines matrix. |
+| `a11ybudget.py` | Error budget: only NEW blocking findings fail (exit 2); structural variant `--init-snapshot`/`--snapshot` applies the same doctrine to the rendered structure (accepted baseline of interactives + focus chain, focus = relative order of surviving keys, `removed_block`, review_date expiry). |
 | `a11yledger.py` | Coverage ledger: what was audited, when, resolved across runs. |
 | `a11ydisprove.py` | Disprover: re-audits live page, marks findings confirmed/rejected. |
 | `a11yvalidate.py` | W3C Nu validator integration (url + html modes). |

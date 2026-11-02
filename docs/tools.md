@@ -89,7 +89,7 @@ Blindfold journey verdict — the capability no other accessibility tool has: th
 
 **Arguments**
 
-- `task` *(required)*: {"goal": what the agent attempted, "kind": sign-up|checkout|password-reset|search|custom}.
+- `task` *(required)*: {"goal": what the agent attempted, "kind": sign-up|checkout|password-reset|search|onboarding|settings|data-export|custom}.
 
 - `steps` *(required)*: journey steps: {action, target (accessible name), perceived, friction?} — friction is {pattern: journey_* key} or {criterion, severity, issue, remediation?}.
 

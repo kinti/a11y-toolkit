@@ -235,6 +235,10 @@ a11ytoolkit diff before.json after.json                 # after deploy
 a11ytoolkit evidence audit.json -o pack.json            # verifiable evidence pack
 a11ytoolkit disprove --url https://mysite               # re-verify findings
 a11ytoolkit budget --budget budget.json --audit audit.json  # only NEW findings block
+a11ytoolkit budget --init-snapshot s.json > structural.json      # structural budget: today's structure is accepted
+a11ytoolkit budget --budget structural.json --snapshot s2.json   # only NEW rendered structure blocks (exit 0/2)
+a11ytoolkit engines https://mysite                        # same page in 3 engines: behavioral divergences, pairwise
+a11ytoolkit contrast-dom https://mysite --walk            # perceptual pass: per-element ratios, thresholds, suggestions
 a11ytoolkit sarif --from-audit audit.json -o a11y.sarif # GitHub code scanning
 a11ytoolkit badge --score 92 --out badge.svg            # honest SVG
 a11ytoolkit contrast-dom https://mysite --selector ".hero h1"  # auto-region pixel sampling

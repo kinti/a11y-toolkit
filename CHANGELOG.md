@@ -41,6 +41,50 @@
   issues (fr, pt-BR, de). What it does NOT do: no external translation
   platform (Crowdin/Weblate deliberately deferred until 3+ languages — plain
   git/PR by design), no contributor bot.
+- **`engines` — cross-engine behavioral matrix** (the cross-browser lab
+  pattern): ONE url snapshotted in chromium/firefox/webkit (or
+  `--engines chrome,msedge`), pairwise divergence per pair. DOM-level facts
+  (added/lost/renamed interactives, focus-order fork) BLOCK (exit 2); the
+  engine-computed accessibility tree is reported as `tree_changed` but never
+  blocks (engines legitimately compute some roles/names differently). Honest
+  `engines_failed` per engine and `insufficient_engines` (fewer than 2 launch
+  → exit 1, never a fake pass). `a11ydiff.snapshot` gains `engine=`.
+  What it does NOT do: no screen-reader binaries (NVDA/JAWS/VoiceOver are
+  separate AT, not engines), no cross-OS matrix, no cloud farm — the engine
+  matrix runs where you run Playwright.
+- **Structural budget** (`budget --init-snapshot` / `--snapshot`): the SRE
+  error-budget doctrine applied to the RENDERED structure. Today's snapshot
+  is ACCEPTED as the baseline (stable keys: `#id` or tag+name+href); only
+  what is NEW blocks — added interactives (up to `max_new`), a lost baseline
+  element (`removed_block`, on by default: it contradicts the approved
+  baseline), a reorder of the surviving focus chain (relative order of common
+  keys, same semantics as the diff — appended new elements are governed by
+  `added`, not double-punished as focus churn), expired `review_date`. Exit
+  0/2 like the static budget. What it does NOT do: it does not judge whether
+  the accepted baseline is accessible (the audit and its own budget do that)
+  — it freezes structure so a release gate survives noise.
+- **`contrast-dom --walk` — perceptual pass over every rendered text**
+  (the design-system-facing layer of the contrast family, idea seed: measure
+  what users SEE, not declared values): per-element table over all visible
+  text — computed color vs effective background with alpha compositing,
+  WCAG large-text threshold from the COMPUTED font-size/weight (24px, or
+  18.66px bold → 3.0; else 4.5), verdict per element, `contrast.suggest`
+  color for the worst flat-background fails. Text over images/gradients is
+  PIXEL-sampled (worst case, same mechanics as contrast-dom) up to
+  `--max-sample`; the rest is declared `unmeasured`, never invented.
+  `--dark` adds a second pass under `prefers-color-scheme: dark` plus the
+  delta (new fails / resolved) — display conditions the declared CSS cannot
+  show. What it does NOT do: no shadow DOM/canvas/video/pseudo-element text,
+  no AAA pass/fail claims — a filter finding (1.4.3), not a verdict.
+- **Journey catalogue grows**: 6 new friction patterns with bilingual
+  remediation (`journey_drag_only` 2.5.7, `journey_error_no_suggestion`
+  3.3.3, `journey_focus_not_visible` 2.4.7, `journey_hover_only` 1.4.13,
+  `journey_reflow_breaks` 1.4.10, `journey_zoom_blocked` 1.4.4) and
+  recommended task kinds (sign-up, checkout, password-reset, search,
+  onboarding, settings, data-export, custom) documented across the MCP
+  schema and the blindfold-task prompt. Kinds stay free-form (comparability
+  by convention, not enforcement); the journey test now derives its criteria
+  whitelist from the A/AA catalog instead of a hardcoded list.
 
 ## 5.26.0 — pendiente — "EN 301 549 + applicability scope"
 

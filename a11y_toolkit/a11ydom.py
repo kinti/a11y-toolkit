@@ -1770,23 +1770,243 @@ def contrast_dom(url, selector, text_color=None, sample=4, lang='en', timeout=45
                 pass
 
 
+# --- contrast walk: perceptual pass over EVERY rendered text element --------
+
+_JS_WALK = r'''(maxEls) => {
+  const visible = el => !!(el.offsetWidth || el.offsetHeight || el.getClientRects().length);
+  const directText = el => [...el.childNodes].some(n => n.nodeType === 3 && n.textContent.trim());
+  const parseC = s => { const m = String(s).match(/rgba?\(([\d.]+),\s*([\d.]+),\s*([\d.]+)(?:,\s*([\d.]+))?\)/);
+                        return m ? {r:+m[1], g:+m[2], b:+m[3], a: m[4] === undefined ? 1 : +m[4]} : null; };
+  const effBg = el => {
+    const layers = [];
+    let image = null, n = el;
+    while (n && n.nodeType === 1) {
+      const cs = getComputedStyle(n);
+      if (!image && cs.backgroundImage && cs.backgroundImage !== 'none') image = cs.backgroundImage;
+      const c = parseC(cs.backgroundColor);
+      if (c) { layers.push(c); if (c.a >= 1) break; }
+      n = n.parentElement;
+    }
+    let r = 255, g = 255, b = 255;
+    for (let i = layers.length - 1; i >= 0; i--) {
+      const L = layers[i];
+      r = L.r * L.a + r * (1 - L.a); g = L.g * L.a + g * (1 - L.a); b = L.b * L.a + b * (1 - L.a);
+    }
+    return {r: Math.round(r), g: Math.round(g), b: Math.round(b), image};
+  };
+  const path = el => {
+    const parts = [];
+    let n = el, depth = 0;
+    while (n && n.nodeType === 1 && depth < 5) {
+      if (n.id) { parts.unshift('#' + (window.CSS && CSS.escape ? CSS.escape(n.id) : n.id)); break; }
+      const parent = n.parentElement;
+      if (!parent) { parts.unshift(n.tagName.toLowerCase()); break; }
+      const same = [...parent.children].filter(c => c.tagName === n.tagName);
+      let s = n.tagName.toLowerCase();
+      if (same.length > 1) s += ':nth-of-type(' + (same.indexOf(n) + 1) + ')';
+      parts.unshift(s);
+      n = parent; depth++;
+    }
+    return parts.join(' > ') || 'body';
+  };
+  const out = [];
+  for (const el of document.querySelectorAll('body *')) {
+    if (out.length >= maxEls) break;
+    if (!visible(el) || !directText(el)) continue;
+    const cs = getComputedStyle(el);
+    const color = parseC(cs.color);
+    if (!color) continue;
+    if (color.a < 1) { out.push({skip: 'translucent', path: path(el)}); continue; }
+    const fs = parseFloat(cs.fontSize) || 16;
+    const fw = parseInt(cs.fontWeight) || 400;
+    const bg = effBg(el);
+    out.push({path: path(el), tag: el.tagName.toLowerCase(),
+              text: (el.innerText || '').replace(/\s+/g, ' ').trim().slice(0, 60),
+              color, bg: {r: bg.r, g: bg.g, b: bg.b, a: 1},
+              bg_image: bg.image ? bg.image.slice(0, 100) : null,
+              font_px: Math.round(fs * 10) / 10, bold: fw >= 700});
+  }
+  return out;
+}'''
+
+
+def contrast_walk(url, max_walk=400, max_sample=24, dark=False,
+                  lang='en', timeout=45, auth_state=None):
+    """Contraste PERCIBIDO de cada text_ renderizado de la página (1.4.3).
+
+    La capa informe de la familia de contraste: donde audit_dom audita y
+    contrast-dom mide UN elemento contra lo que sea que tenga detrás, el walk
+    recorre TODOS los text_ visibles y emite la tabla por elemento que consume
+    un equipo de design system: ratio real, umbral (4.5 normal / 3.0 large por
+    font-size/weight computados), verdict_ y sugerencia de color. Los fondos
+    con imagen/gradiente se miden por PIXELES (peor caso, misma mecánica que
+    contrast-dom) hasta max_sample; el resto queda honestamente sin medir.
+    Con dark=True repite el pase bajo prefers-color-scheme: dark y añade el
+    delta (nuevos fallos / resueltos) — la condición de display que el CSS
+    declarado no ve.
+
+    Filtro honesto, no veredicto: text_ en shadow DOM, canvas, vídeo y
+    pseudo-elementos no se captura; lo no medido se declara, jamás inventado.
+    """
+    from playwright.sync_api import sync_playwright
+    from .contrast import ratio as _ratio, suggest as _suggest, parse_color
+
+    def _verdicts(entries):
+        for e in entries:
+            if e['ratio'] is not None:
+                e['verdict'] = 'pass' if e['ratio'] >= e['threshold'] else 'fail'
+
+    def _pass(page):
+        raw = page.evaluate(_JS_WALK, max_walk)
+        entries, shot_jobs, skipped = [], [], 0
+        for row in raw:
+            if row.get('skip') == 'translucent':
+                skipped += 1
+                continue
+            fg = {k: row['color'][k] for k in ('r', 'g', 'b')}
+            bg = {k: row['bg'][k] for k in ('r', 'g', 'b')}
+            large = row['font_px'] >= 24 or (row['font_px'] >= 18.66 and row['bold'])
+            thr = 3.0 if large else 4.5
+            entry = {'path': row['path'], 'tag': row['tag'], 'text': row['text'],
+                     'font_px': row['font_px'], 'bold': row['bold'],
+                     'large_text': large, 'threshold': thr,
+                     'color': hexs(fg), 'bg': hexs(bg),
+                     'bg_image': row['bg_image'], 'pixel_sampled': False,
+                     'ratio': None, 'verdict': 'unmeasured'}
+            if row['bg_image']:
+                shot_jobs.append((entry, fg))
+            else:
+                entry['ratio'] = round(_ratio(fg, bg), 2)
+            entries.append(entry)
+        sampled = 0
+        for entry, fg in shot_jobs:
+            if sampled >= max_sample:
+                continue  # stays unmeasured — honest cap, never invented
+            try:
+                loc = page.locator(entry['path']).first
+                box = loc.bounding_box()
+                if not box or box['width'] < 3 or box['height'] < 3:
+                    continue
+                m = _samples_background(loc, box, fg)
+                if m:
+                    entry['ratio'] = m['worst_ratio']
+                    entry['median_ratio'] = m['median_ratio']
+                    entry['pixel_sampled'] = True
+                    sampled += 1
+            except Exception:  # noqa: BLE001 — one dead locator must not kill the walk
+                continue
+        _verdicts(entries)
+        return entries, skipped
+
+    def _summarize(entries, skipped):
+        fails = [e for e in entries if e['verdict'] == 'fail']
+        worst = min((e for e in entries if e['ratio'] is not None),
+                    key=lambda e: e['ratio'], default=None)
+        return {'pass': sum(1 for e in entries if e['verdict'] == 'pass'),
+                'fail': len(fails),
+                'unmeasured': sum(1 for e in entries if e['verdict'] == 'unmeasured'),
+                'fails_4_5_normal_text': sum(1 for e in fails if e['threshold'] >= 4.5),
+                'fails_3_0_large_text': sum(1 for e in fails if e['threshold'] < 4.5),
+                'translucent_text_skipped': skipped,
+                'pixel_sampled': sum(1 for e in entries if e['pixel_sampled']),
+                'worst_ratio': worst['ratio'] if worst else None,
+                'worst_element': worst['path'] if worst else None}
+
+    with sync_playwright() as p:
+        def _run(scheme):
+            nav = p.chromium.launch()
+            ctx = (nav.new_context(storage_state=auth_state, color_scheme=scheme)
+                   if auth_state else nav.new_context(color_scheme=scheme))
+            page = ctx.new_page()
+            try:
+                page.goto(url, wait_until='load', timeout=timeout * 1000)
+                page.wait_for_timeout(300)
+                return _pass(page)
+            finally:
+                try:
+                    ctx.close()
+                    nav.close()
+                except Exception:  # noqa: BLE001
+                    pass
+
+        entries, skipped = _run('light')
+        report = {'mode': 'contrast-walk', 'url': url, 'scheme': 'light',
+                  'checked': len(entries),
+                  'elements': entries,
+                  'summary': _summarize(entries, skipped)}
+
+        # suggestions for the worst flat-background fails (pixel zones have no
+        # single background to suggest against — honest skip)
+        fails = sorted((e for e in entries if e['verdict'] == 'fail' and not e['bg_image']),
+                       key=lambda e: e['ratio'])
+        for e in fails[:8]:
+            s = _suggest(parse_color(e['color']), parse_color(e['bg']),
+                         target=e['threshold'], lang=lang)
+            if s:
+                e['suggestion'] = s
+
+        if dark:
+            entries_d, skipped_d = _run('dark')
+            report['dark'] = {'scheme': 'dark', 'checked': len(entries_d),
+                              'elements': entries_d,
+                              'summary': _summarize(entries_d, skipped_d)}
+            light_fails = {e['path'] for e in entries if e['verdict'] == 'fail'}
+            dark_fails = {e['path'] for e in entries_d if e['verdict'] == 'fail'}
+            report['dark_delta'] = {
+                'new_fails': sorted(dark_fails - light_fails)[:20],
+                'resolved': sorted(light_fails - dark_fails)[:20],
+                'note': ('a site that ignores prefers-color-scheme shows a zero '
+                         'delta: same colors in both passes')}
+
+        report['limits'] = (
+            'Computed ratios cover effective background-color with alpha '
+            'compositing; text over images/gradients is pixel-sampled '
+            '(worst-case) up to the cap, the rest is declared unmeasured. Text '
+            'in shadow DOM, canvas, video and pseudo-elements is not captured. '
+            'A fail is a filter finding (1.4.3), not a verdict — judge the '
+            'zone with contrast-dom.'
+            if lang == 'en' else
+            'Los ratios computados cubren background-color efectivo con '
+            'composición alfa; el text_ sobre imágenes/gradientes se muestrea '
+            'por píxeles (peor caso) hasta el tope y el resto se declara sin '
+            'medir. El text_ en shadow DOM, canvas, vídeo y pseudo-elementos '
+            'no se captura. Un fallo es un hallazgo de filtro (1.4.3), no un '
+            'veredicto — juzga la zona con contrast-dom.')
+        return report
+
+
 def contrast_dom_main(argv):
-    ap = argparse.ArgumentParser(description='Real text-over-anything contrast: screenshot + pixel sampling (auto-region)')
+    ap = argparse.ArgumentParser(description='Real text-over-anything contrast: screenshot + pixel sampling (auto-region); --walk = perceptual pass over every text element')
     ap.add_argument('url')
-    ap.add_argument('--selector', required=True, help='CSS selector of the text element')
+    ap.add_argument('--selector', help='CSS selector of the text element (required without --walk)')
+    ap.add_argument('--walk', action='store_true',
+                    help='perceptual pass over every rendered text element (per-element table + suggestions)')
+    ap.add_argument('--max-walk', type=int, default=400, help='max elements collected per pass (default 400)')
+    ap.add_argument('--max-sample', type=int, default=24, help='max image/gradient backgrounds pixel-sampled (default 24)')
+    ap.add_argument('--dark', action='store_true', help='add a second pass under prefers-color-scheme: dark + delta')
     ap.add_argument('--text', help='text color (default: computed from the element)')
     ap.add_argument('--sample', type=int, default=4)
     ap.add_argument('--lang', default='en', choices=['en', 'es'])
     ap.add_argument('--timeout', type=int, default=45)
     a = ap.parse_args(argv)
     try:
-        res = contrast_dom(a.url, a.selector, text_color=a.text, sample=a.sample,
-                           lang=a.lang, timeout=a.timeout)
+        if a.walk:
+            if not a.selector:
+                res = contrast_walk(a.url, max_walk=a.max_walk, max_sample=a.max_sample,
+                                    dark=a.dark, lang=a.lang, timeout=a.timeout)
+            else:
+                res = {'error': '--walk covers the whole page: drop --selector'}
+        else:
+            if not a.selector:
+                res = {'error': 'need --selector ".hero h1" (or --walk for the whole page)'}
+            else:
+                res = contrast_dom(a.url, a.selector, text_color=a.text, sample=a.sample,
+                                   lang=a.lang, timeout=a.timeout)
     except ImportError:
         print(json.dumps({'error': 'Playwright not installed'}))
         return 1
     print(json.dumps(res, ensure_ascii=False, indent=1))
-    return 0
+    return 1 if isinstance(res, dict) and 'error' in res else 0
 
 
 def main(argv):
