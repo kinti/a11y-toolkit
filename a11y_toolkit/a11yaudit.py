@@ -943,6 +943,7 @@ class _Auditor(HTMLParser):
             self._heading_level = int(tag[1])
             self._heading_text = []
             self._heading_attrs = a
+            self._heading_route = self._elem_paths.get(id(a))
             self._heading_hidden = _hidden
             self._heading_tag = tag
         elif a.get('role', '').lower() == 'heading' and 'aria-level' in a:
@@ -950,6 +951,7 @@ class _Auditor(HTMLParser):
             self._heading_level = int(a['aria-level'] or 1)
             self._heading_text = []
             self._heading_attrs = a
+            self._heading_route = self._elem_paths.get(id(a))
             self._heading_hidden = _hidden
             self._heading_tag = tag
         ti = a.get('tabindex')
@@ -1041,7 +1043,8 @@ class _Auditor(HTMLParser):
             # aria-label tras strip, nombres de imgs internas)
             self.headings_raw.append((self._heading_level, dict(self._heading_attrs or {}),
                                       ' '.join(self._heading_text).strip(),
-                                      getattr(self, '_heading_hidden', False)))
+                                      getattr(self, '_heading_hidden', False),
+                                      getattr(self, '_heading_route', None)))
             self._heading_level = None
 
     _RE_CHAR_KEY = re.compile(r'key(?:Code)?\s*===?\s*["\']([a-zA-Z0-9])["\']', re.S)
@@ -1336,7 +1339,7 @@ def audit_html(html_text, url='(html)', lang='en', standard=None, target=None):
                 or ' '.join(x for x in _img_names if x).strip()
                 or (a.get('alt') or '').strip()):
             p.controls_by_kind.setdefault(kind, []).append(a)
-    for level, a, text, hidden in p.headings_raw:
+    for level, a, text, hidden, _hroute in p.headings_raw:
         if hidden:
             continue
         lb, al, _ti = _name_sources(a)

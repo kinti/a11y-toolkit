@@ -1,6 +1,6 @@
 # a11y-toolkit
 
-> The accessibility layer for AI coding agents: a zero-dependency Python engine (MCP server, 35 tools + 6 prompts, CLI `a11ytoolkit`, MIT) that audits, fixes, documents and watches WCAG 2.2 — and never signs conformance: the machine finds, the human signs. Bilingual es/en output. Runs anywhere MCP runs.
+> The accessibility layer for AI coding agents: a zero-dependency Python engine (MCP server, 36 tools + 6 prompts, CLI `a11ytoolkit`, MIT) that audits, fixes, documents and watches WCAG 2.2 — and never signs conformance: the machine finds, the human signs. Bilingual es/en output. Runs anywhere MCP runs.
 
 ## What is verifiably true (no marketing)
 - 100% consistent with every published W3C ACT rule it implements: 355 official test cases, 20/20 rules, zero inconsistencies, regenerated per release against the w3c/wcag-act-rules repository (https://github.com/kinti/a11y-toolkit/blob/main/docs/act-report-summary.md).
@@ -16,7 +16,7 @@ claude mcp add a11y-toolkit -- uvx --from a11y-toolkit a11y-toolkit-mcp
 # CLI only: pip install a11y-toolkit && a11ytoolkit audit --url https://example.com
 ```
 
-## Tools (35)
+## Tools (36)
 
 Start with `a11y_route` (the router): state a goal in plain language and get the ordered tool sequence — an O(1) choice instead of scanning descriptions.
 
@@ -25,6 +25,9 @@ Start with `a11y_route` (the router): state a goal in plain language and get the
 - `a11y_audit_dom` — Rendered WCAG audit
 - `a11y_audit_pdf` — PDF accessibility screening
 - `a11y_docx_screen` — DOCX accessibility screening
+
+### Locate
+- `a11y_locate` — Locate element by accessible name
 
 ### Blindfold testing
 - `a11y_journey_verdict` — Blindfold journey verdict

@@ -229,7 +229,7 @@ check('map_findings eliminado del módulo', not hasattr(a11yen301549, 'map_findi
 print('== 7. servidor MCP y CLI reales')
 resp = server.invoke('a11y_scope', {'reports': [r], 'standard': 'en301549'})
 data = json.loads(resp['content'][0]['text'])
-check('invoke a11y_scope (35 tools)', len(server.TOOLS) == 35
+check('invoke a11y_scope (36 tools)', len(server.TOOLS) == 36
       and data['format'] == 'a11y-scope/1')
 with tempfile.TemporaryDirectory() as td:
     rep = os.path.join(td, 'r.json')

@@ -9,7 +9,7 @@
   <img src="docs/demo.gif" alt="a11y-toolkit en acción: auditoría (nota 64), color aprobatorio más cercano, re-auditoría (94) — salida real de la herramienta" width="720">
 </p>
 
-35 herramientas MCP, 6 prompts y una skill que cubren todo el ciclo WCAG 2.2:
+36 herramientas MCP, 6 prompts y una skill que cubren todo el ciclo WCAG 2.2:
 auditar, corregir, documentar, vigilar y entregar — y ahora también pruebas de
 usabilidad «a ciegas», donde el agente intenta tareas reales percibiendo solo lo
 que expone un lector de pantalla. 51 de los 55 criterios A/AA llevan señales
@@ -80,7 +80,7 @@ además Playwright:
 | Cero dependencias en el núcleo, habla es/en, cualquier navegador que tengas | Runtimes pesados | Cero dependencias |
 
 <!-- TOOLS:BEGIN -->
-## Las herramientas (35)
+## Las herramientas (36)
 
 Referencia completa — descripciones, argumentos, formas de retorno y
 comportamiento — en [docs/tools.md](docs/tools.md). Todas las herramientas
@@ -94,6 +94,7 @@ traducción puede ir a la zaga del inglés, que es la fuente canónica.
 | [`a11y_audit_dom`](docs/tools.md#a11y_audit_dom) | Auditoría | Auditoría WCAG renderizada |
 | [`a11y_audit_pdf`](docs/tools.md#a11y_audit_pdf) | Auditoría | Cribado de accesibilidad PDF |
 | [`a11y_docx_screen`](docs/tools.md#a11y_docx_screen) | Auditoría | Cribado de accesibilidad DOCX |
+| [`a11y_locate`](docs/tools.md#a11y_locate) | Localizar | Localiza un elemento por su nombre accesible |
 | [`a11y_journey_verdict`](docs/tools.md#a11y_journey_verdict) | Pruebas a ciegas | Veredicto de journey a ciegas |
 | [`a11y_autofix`](docs/tools.md#a11y_autofix) | Arreglo y contraste | Autocorrecciones seguras y deterministas |
 | [`a11y_contrast_pair`](docs/tools.md#a11y_contrast_pair) | Arreglo y contraste | Ratio de contraste + veredictos |
@@ -266,6 +267,7 @@ a11ytoolkit audit --url pagina.html --standard en301549        # cláusula EN 30
 a11ytoolkit scope audit.json --standard 508 -o alcance.json    # árbol GSA, excepciones WCAG
 a11ytoolkit scope audit.json --solicitation anexo.txt          # anexo de licitación listo (es/en)
 a11ytoolkit annotate pagina.html --report r.json -o copia.html # marcas por elemento en copia exacta
+a11ytoolkit locate --file pagina.html --query "Enviar"         # elemento por nombre accesible → ruta selector
 a11ytoolkit criteria --list --level AA --new-in 2.2            # el Quick Ref offline, filtrable
 a11ytoolkit wizard --url https://client.web --lang es          # guiado: 3 preguntas → norma, auditoría, alcance, anexo
 

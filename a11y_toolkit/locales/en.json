@@ -675,5 +675,13 @@
   "wiz_done": "Done. Scope: {scope}\nAnnex: {annex}\nScore: {score} · in scope: {ins} · proposed out: {pro}",
   "wiz_abort": "No input received — aborted. Everything the wizard does is also available as: a11ytoolkit scope --standard … / audit --standard … / --solicitation.",
   "wiz_need_url": "A URL (or HTML via --file) is needed to run the audit."
+ },
+ "locate": {
+  "loc_no_query": "Empty query: nothing to locate.",
+  "loc_no_match": "No named element matches \"{q}\". Only elements with an accessible name are indexed (controls, headings, images with alt, iframes with title, fields with an explicit name) — a match is never invented.",
+  "loc_ambiguous": "{n} elements share the name \"{q}\" — refusing to pick one. Inspect matches[] or pass multiple=true.",
+  "loc_multiple": "Several exact matches — all listed in matches[] (multiple=true).",
+  "loc_partial": "No exact accessible name \"{q}\"; the best partial match is returned — review it before acting.",
+  "loc_partial_ambiguous": "{n} partial matches, none exact for \"{q}\" — inspect matches[]."
  }
 }

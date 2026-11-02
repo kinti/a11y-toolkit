@@ -13,6 +13,8 @@ Tools:
   - a11y_suggest_color(fg, bg, target?)           nearest passing color
   - a11y_generate_declaration(...)                legal statement RD 1112/2018 / EAA
   - a11y_snapshot(url)                            interactive elements + tab order
+  - a11y_locate(html, query, role?, multiple?)    element by accessible name →
+                                                  deterministic route, honest refusal
   - a11y_diff(a, b)                               regression diff between snapshots
   - a11y_diff_urls(url_a, url_b)                  staging vs production in one call
   - a11y_aria_live_snippet(lang?)                 injectable live-region monitor
@@ -68,6 +70,7 @@ from .a11yscroll import audit_scroll  # noqa: E402
 from .a11yvalidate import validate_url, validate_html  # noqa: E402
 from .a11yevidence import build_pack as build_pack_fn  # noqa: E402
 from .a11ydiff import snapshot as snapshot_fn, diff as diff_fn  # noqa: E402
+from .a11ylocate import locate as locate_fn  # noqa: E402
 from .a11ycrit import criterion as criterion_fn  # noqa: E402
 from .a11yjourney import verdict as journey_verdict_fn  # noqa: E402
 from .a11yvtt import vtt_check as vtt_check_fn  # noqa: E402
@@ -152,6 +155,24 @@ TOOLS = [
             'standard': {'type': 'string', 'enum': ['en301549', 'rgaa'], 'description': 'en301549: EN clause per finding (EAA procurement, Canada ICT) · rgaa: French RGAA criterion per finding'},
             'target': {'type': 'string', 'enum': ['web', 'documents', 'software'], 'description': 'EN 301 549 target: web=9.x clauses (default), documents=10.x, software=11.x'},
         }},
+    },
+    {
+        'name': 'a11y_locate',
+        'description': ('Find an element by its accessible name and get its deterministic '
+                        'route selector (the same tag:nth-of-type identity annotate() uses): '
+                        'controls, headings, images with alt, iframes with title, fields '
+                        'with an explicit name. High confidence only on exact unique '
+                        'matches; when several elements share the name it refuses to pick '
+                        'one and returns the full candidate list (ambiguous) — a match is '
+                        'never invented. Feeds agents that edit code by selector and '
+                        'panel deep-links.'),
+        'inputSchema': {'type': 'object', 'properties': {
+            'html': {'type': 'string', 'description': 'raw HTML to search'},
+            'query': {'type': 'string', 'description': 'accessible name to find (e.g. "Submit")'},
+            'role': {'type': 'string', 'description': 'filter by role: button, link, textbox, checkbox, radio, combobox, heading, h1-h6, image…'},
+            'multiple': {'type': 'boolean', 'description': 'list every exact match instead of refusing (default false)'},
+            'lang': {'type': 'string', 'enum': ['es', 'en'], 'description': 'output language (en default)'},
+        }, 'required': ['html', 'query']},
     },
     {
         'name': 'a11y_audit_dom',
@@ -1106,6 +1127,7 @@ _ANN = {
     'a11y_forms':            ('Form error testing', True, True),
     'a11y_scroll':           ('Infinite-scroll audit', True, True),
     'a11y_snapshot':         ('A11y snapshot + tab order', True, True),
+    'a11y_locate':           ('Locate element by accessible name', True, True),
     'a11y_diff':             ('Snapshot regression diff', True, False),
     'a11y_diff_urls':        ('Staging vs production diff', True, True),
     'a11y_contrast_pair':    ('Contrast ratio + verdicts', True, False),
@@ -1296,6 +1318,11 @@ def invoke(name, args):
                     'isError': True}
         except Exception as e:  # noqa: BLE001
             return {'content': [{'type': 'text', 'text': f'error: {e}'}], 'isError': True}
+    if name == 'a11y_locate':
+        return _content(locate_fn(args['html'], args['query'],
+                                  role=args.get('role'),
+                                  multiple=bool(args.get('multiple', False)),
+                                  lang=args.get('lang', 'en')))
     if name == 'a11y_diff':
         def _load(v):
             v = v.strip()

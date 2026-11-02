@@ -675,5 +675,13 @@
   "wiz_done": "Hecho. Alcance: {scope}\nAnexo: {annex}\nNota: {score} · en alcance: {ins} · propuestas fuera: {pro}",
   "wiz_abort": "No llegó ninguna respuesta — abortado. Todo lo que hace el wizard está disponible como: a11ytoolkit scope --standard … / audit --standard … / --solicitation.",
   "wiz_need_url": "Se necesita una URL (o HTML con --file) para lanzar la auditoría."
+ },
+ "locate": {
+  "loc_no_query": "Consulta vacía: no hay nada que localizar.",
+  "loc_no_match": "Ningún elemento con nombre accesible coincide con \"{q}\". Solo se indexan elementos con nombre accesible (controles, encabezados, imágenes con alt, iframes con title, campos con nombre explícito): nunca se inventa un resultado.",
+  "loc_ambiguous": "{n} elementos comparten el nombre \"{q}\": no se elige uno solo. Inspecciona matches[] o pasa multiple=true.",
+  "loc_multiple": "Varias coincidencias exactas: todas quedan en matches[] (multiple=true).",
+  "loc_partial": "Sin nombre accesible exacto \"{q}\": se devuelve la mejor coincidencia parcial. Revísala antes de actuar.",
+  "loc_partial_ambiguous": "{n} coincidencias parciales, ninguna exacta para \"{q}\": inspecciona matches[]."
  }
 }

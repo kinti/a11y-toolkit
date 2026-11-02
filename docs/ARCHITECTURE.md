@@ -7,7 +7,7 @@ read this. Every claim here that can be pinned by a test IS pinned by
 ## What this is
 
 a11y-toolkit is the machine half of WCAG 2.2 conformance work: an MCP server
-(35 tools + 6 prompts) and a CLI (`a11ytoolkit`) that audit, fix, document,
+(36 tools + 6 prompts) and a CLI (`a11ytoolkit`) that audit, fix, document,
 watch and hand off accessibility findings. The human half is priced, not
 guessed. Zero dependencies at the core; Playwright/Pillow optional behind
 import guards. Output es/en; wire keys English (`a11y-evidence-pack/2`).
@@ -16,7 +16,7 @@ import guards. Output es/en; wire keys English (`a11y-evidence-pack/2`).
 
 | Module | One line |
 |---|---|
-| `server.py` | MCP stdio server: 35 tools, 6 prompts, routing/annotations dicts. VERSION lives here. |
+| `server.py` | MCP stdio server: 36 tools, 6 prompts, routing/annotations dicts. VERSION lives here. |
 | `a11y.py` | CLI dispatcher (`SUBCOMANDOS` dict → module mains). |
 | `a11yaudit.py` | Static auditor: 50+ signals, `CRIT` name maps, weighted 0-100 score, sitemap crawl (`audit_site` / `evaluate_site`). |
 | `a11ydom.py` | Rendered auditor (Playwright): shadow DOM, state contrast, target size, reflow, keyboard walk, forms, hover, sr_transcript; browser pool + auto-detection; `_TD` catalog. |
@@ -39,6 +39,7 @@ import guards. Output es/en; wire keys English (`a11y-evidence-pack/2`).
 | `a11yrgaa.py` | RGAA 4.1 (France) as data — the official government open-data JSON (DISIC, criteres.json) ingested by scripts/rgaa_ingest.py into rgaa.json (106 criteria / 13 topics, tests included, markdown flattened) with the complete mechanical bridge to WCAG (references → SC per criterion); loader + `rgaa_for_sc(sc)` reverse map + `standard_block`. The standard with NO levels (conformant/not) and French titles — the standard's own language. Data travels in-package (locales pattern). |
 | `a11y508.py` | Section 508 (Revised, 2017) applicability data — the GSA decision tree as data: product questions (public-facing, official communication, authoring tool, web-based), WCAG exceptions for non-web content/software (2.4.1/2.4.5/3.2.3/3.2.4 per E203/E204), chapters beyond WCAG (302/502/503/504/602/603; hardware list) — proposals only, nothing evaluated; consumed by a11yscope for standard='508'. |
 | `a11yannotate.py` | Per-element annotation kernel: deterministic element routes (`tag:nth-of-type(n)` from the root, ids ignored by design) stamped on findings as `paths` during the parse, and `annotate(html, report)` re-parses the same html with the SHARED route algorithm (VOID_TAGS/path_segment from a11yaudit — locator and auditor cannot drift) to inject `data-a11y-id` attrs by byte-exact offset surgery; findings that cannot be placed land in `unplaced` (never a wrong mark), reports seal their source (`source_sha256`) and annotation flags `source_mismatch` when the html is not the one audited — CLI `annotate`, not a tool. |
+| `a11ylocate.py` | Locate by accessible name: parses with the SAME `_Auditor` (shared deterministic routes and naming — locator and auditor cannot drift), indexes named surfaces (controls, headings h1-h6, images with alt, iframes with title, fields with an explicit name) and returns the route selector with confidence; several elements sharing a name refuse to be disambiguated (`ambiguous` + the full candidate list, `multiple` to list anyway) — a match is never invented. Headings carry their route in `headings_raw` since the auditor stamps it at start-tag. Tool `a11y_locate`, CLI `locate`. |
 | `a11yscope.py` | Tool 35: semi-automatic applicability scope (`a11y-scope/1`) — reads the reports' features block (positive evidence: media elements, form controls) and proposes structural exclusions (no video → 1.2.x, no forms → 3.3.x; embeds leave media undetermined), human confirms via answers, only confirmed exclusions become not-applicable downstream (evidence pack / VPAT / OpenACR); with standard=en301549 every row carries its EN clause and the families appear — machine proposes, human confirms, a proposal never excludes. |
 | `a11ymutants.py` | The engine's sealed self-exam (WCAG mutation testing): seeded regenerable clean pages, 18 operators derived from the signal→criterion map (one violation per mutant), sealed answer log, placebo pages (any finding = false positive by construction), kill-rate exam — CLI + suite, not a tool. |
 | `a11ywcag3.py` | WCAG 3 preview: re-groups 2.2 findings under the Sept-2026 draft's 46 outcomes (`_OUTCOMES`, exact names) via a curated criterion→outcome map — no score, no tier, no conformance claim (W3C has no official cross-map). |

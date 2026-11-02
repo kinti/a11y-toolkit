@@ -1,6 +1,17 @@
 # Changelog
 
 ## main — pendiente — "per-element annotation + standards workbench"
+- **`a11y_locate` — find an element by its accessible name** (deal-flow pick,
+  "Semantic Locators" demand): parses with the SAME `_Auditor` the audit uses
+  (shared deterministic routes and naming — the locator and the auditor cannot
+  drift) and returns the route selector + confidence for controls, headings,
+  images with alt, iframes with title and fields with an explicit name. The
+  honesty rule intact: several elements sharing the name → `ambiguous: true`
+  plus the full candidate list (`multiple` to list anyway), never an invented
+  pick. Headings now carry their route in `headings_raw` (the auditor stamps
+  the path at start-tag). What it does NOT do: no fuzz, no rendering — static
+  HTML only. Feeds agents that edit code by selector and panel deep-links.
+  Tool #36, CLI `a11ytoolkit locate`.
 
 - **Per-element annotation kernel** (`a11yannotate`): every element gets a
   deterministic CSS route during the parse (`tag:nth-of-type(n)` from the

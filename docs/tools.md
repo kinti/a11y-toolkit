@@ -78,6 +78,27 @@ DOCX accessibility screening — the other half of enterprise paperwork. Zero-de
 
 - `lang` — one of ['en', 'es']: output language.
 
+## Locate
+
+#### `a11y_locate`
+
+<sub>read-only · network</sub>
+
+Find an element by its accessible name and get its deterministic route selector (the same tag:nth-of-type identity annotate() uses): controls, headings, images with alt, iframes with title, fields with an explicit name. High confidence only on exact unique matches; when several elements share the name it refuses to pick one and returns the full candidate list (ambiguous) — a match is never invented. Feeds agents that edit code by selector and panel deep-links.
+
+
+**Arguments**
+
+- `html` *(required)*: raw HTML to search.
+
+- `query` *(required)*: accessible name to find (e.g. "Submit").
+
+- `role`: filter by role: button, link, textbox, checkbox, radio, combobox, heading, h1-h6, image….
+
+- `multiple`: list every exact match instead of refusing (default false).
+
+- `lang` — one of ['es', 'en']: output language (en default).
+
 ## Blindfold testing
 
 #### `a11y_journey_verdict`

@@ -37,6 +37,7 @@
   a11ytoolkit audit --url https://web --standard en301549   # EN 301 549 clause on every finding
   a11ytoolkit scope audit.json -o scope.json --standard en301549  # applicability: machine proposes, human confirms
   a11ytoolkit annotate page.html --report r.json -o copy.html  # per-element marks on a copy
+  a11ytoolkit locate --file page.html --query "Submit"     # element by accessible name → route
 """
 
 import sys
@@ -72,6 +73,7 @@ from . import a11ymutants
 from . import a11yfingerprints
 from . import a11yscope
 from . import a11yannotate
+from . import a11ylocate
 from . import a11yengines
 from . import a11ytrace
 from . import a11ypatterns
@@ -114,6 +116,7 @@ SUBCOMMANDS = {
     'fingerprints': (a11yfingerprints, None),
     'scope': (a11yscope, None),
     'annotate': (a11yannotate, None),
+    'locate': (a11ylocate, None),
     'engines': (a11yengines, None),
     'trace': (a11ytrace, None),
     'patterns': (a11ypatterns, None),
