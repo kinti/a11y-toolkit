@@ -50,7 +50,7 @@ Tools:
                                                  human confirms (EN 301 549 clauses)
 
 Prompts: audit-page, fix-contrast, pre-deploy-check, declaration-eaa,
-         conformance-wcagem, blindfold-task.
+         blindfold-task.
 
 Register in an MCP client (no clone needed):
 
@@ -454,10 +454,10 @@ TOOLS = [
         'inputSchema': {'type': 'object', 'properties': {
             'reports': {'type': 'array', 'items': {'type': 'object'},
                          'description': 'audit report objects (any mode; reports carrying the features block power the machine proposals)'},
-            'standard': {'type': 'string', 'enum': ['wcag22', 'en301549', '508', 'rgaa'], 'description': 'wcag22 (default), en301549 (clause refs + EN families), 508 (GSA tree + WCAG exceptions) or rgaa (French 106-criterion checklist)'},
+            'standard': {'type': 'string', 'enum': ['wcag22', 'en301549', 'rgaa'], 'description': 'wcag22 (default), en301549 (clause refs + EN families) or rgaa (French 106-criterion checklist)'},
             'target': {'type': 'string', 'enum': ['web', 'documents', 'software'], 'description': 'ICT target: web=9.x clauses (default), documents=10.x, software=11.x'},
             'targets': {'type': 'array', 'items': {'type': 'string', 'enum': ['web', 'documents', 'software']}, 'description': 'combined scope across ICT targets (like GSA ART multi-item); rows carry a clauses dict per target'},
-            'answers': {'type': 'object', 'description': 'human confirmations keyed by criterion code (or 508:<question> for Section 508 product questions): status in-scope|proposed-excluded|excluded'},
+            'answers': {'type': 'object', 'description': 'human confirmations keyed by criterion code: status in-scope|proposed-excluded|excluded'},
             'lang': {'type': 'string', 'enum': ['es', 'en'], 'description': 'output language (en default)'},
         }, 'required': ['reports']},
     },
@@ -840,15 +840,6 @@ _PROMPTS = [
         ],
     },
     {
-        'name': 'conformance-wcagem',
-        'description': 'Guided WCAG-EM conformance ladder for a site: express screening → agent-verified guided evaluation on a representative sample → conformance report inputs.',
-        'arguments': [
-            {'name': 'url', 'description': 'site root to evaluate', 'required': True},
-            {'name': 'tier', 'description': 'express | guided | conformance (default: express)', 'required': False},
-            {'name': 'language', 'description': 'es or en', 'required': False},
-        ],
-    },
-    {
         'name': 'blindfold-task',
         'description': ('Blindfold usability test — the agent attempts a real task perceiving '
                         'ONLY the accessibility tree and acting only by accessible name and '
@@ -913,18 +904,6 @@ def _prompt(name, args):
                      "2. Si existe un snapshot de referencia, compara con a11y_diff; si no, créalo con a11y_snapshot para el próximo despliegue.\n")
                   + "3. Informa: hallazgos nuevos (bloqueantes), hallazgos resueltos (buenas noticias), interactivos añadidos/eliminados/renombrados, cambios de orden de foco.\n"
                   "4. Veredicto: GO (sin hallazgos altos nuevos ni regresiones de foco) / NO-GO (en caso contrario) con la evidencia.",
-        },
-        'conformance-wcagem': {
-            'en': f"Run the WCAG-EM conformance ladder for {args.get('url','the site')} (tier: {args.get('tier','express')}):\n"
-                  "1. EXPRESS (always): a11y_audit_url on the root and the 4-5 key pages (use pages parameter / crawl). Report scores and findings by severity.\n"
-                  "2. GUIDED: pick a WCAG-EM sample — structured pages (home, contact, login, a content page, a form flow) plus a random pick from the crawl. On each sample page, run a11y_audit_dom if Playwright is available, then verify the manual checklist yourself (keyboard walk, focus visibility, zoom 200%, error announcement on one form). Mark each item verified-by-agent vs automated-only.\n"
-                  "3. CONFORMANCE: only with a human in the loop — compile the evidence (sample, pages, results, dates) into WCAG-EM report structure, state the scope honestly (sample-based evaluation, not a certification), and feed inaccessible_content into a11y_generate_declaration.\n"
-                  "Escalate one tier at a time; never present tier 1 or 2 as conformance.",
-            'es': f"Ejecuta la escalera de conformidad WCAG-EM para {args.get('url','el sitio')} (nivel: {args.get('tier','express')})\u003a\n"
-                  "1. EXPRESS (siempre): a11y_audit_url en la raíz y las 4-5 páginas clave (parámetro pages). Informa puntuaciones y hallazgos por severidad.\n"
-                  "2. GUIDED: elige una muestra WCAG-EM — páginas estructurales (inicio, contacto, login, una de contenido, un flujo de formulario) más una aleatoria del rastreo. En cada una, a11y_audit_dom si hay Playwright, y verifica tú el checklist manual (recorrido de teclado, foco visible, zoom 200%, anuncio de errores en un formulario). Marca cada punto como verificado-por-agente o solo-automático.\n"
-                  "3. CONFORMANCE: solo con humana en el bucle — recopila la evidencia (muestra, páginas, resultados, fechas) en la estructura del informe WCAG-EM, declara el alcance con honestidad (evaluación por muestreo, no certificación) y alimenta inaccessible_content en a11y_generate_declaration.\n"
-                  "Escala un nivel cada vez; nunca presentes el nivel 1 o 2 como conformidad.",
         },
         'declaration-eaa': {
             'en': f"Generate an accessibility statement for {args.get('entity','the entity')} ({args.get('url','URL')}):\n"

@@ -34,13 +34,13 @@ this family require WCAG 2.x A/AA directly.
 | Brazil | LBI — Lei 13.146/2015 | requires WCAG 2.2 AA; federal sites additionally follow **e-MAG 3.1**, the official government model (own numbered recommendations, es/pt docs, HTML/PDF only — not machine-readable: candidate for a curated mapping, see below) |
 | Argentina | Ley 26.653 | WCAG 2.0-based, update discussed |
 | Chile / Peru / Colombia / Uruguay / Mexico | sectoral laws and decrees | WCAG AA |
-| United States (ADA practice) | DOJ guidance cites WCAG 2.1 AA | federal ICT itself: Section 508 below |
+| United States (ADA practice) | DOJ guidance cites WCAG 2.1 AA | federal ICT itself: Section 508 (moved to the private pro layer) |
 
 ## Family 3 — National standards and procedures
 
 | Standard | Market | Toolkit status |
 |---|---|---|
-| Section 508 (Revised, 2017) | US federal ICT | **served**: `scope --standard 508` (GSA applicability tree, WCAG exceptions E203/E204, chapters) |
+| Section 508 (Revised, 2017) | US federal ICT | served by the private pro layer (GSA tree) — WCAG 2.x itself is covered by the public engine |
 | RGAA 4.1 | France (mandatory for public sector) | **served**: `audit/scope --standard rgaa` — ingested from the government's official open-data JSON (106 criteria, full mechanical bridge to WCAG) |
 | JIS X 8341-3:2016 | Japan (de facto public procurement) | documented, not served — the JIS text is ISO-style paid; agencies publish voluntary WCAG 2.1/2.2 addendum checklists (the default audit covers those) |
 | KWCAG 2.1/2.2 | Korea (mandatory + government certification) | documented, not served — mapping ingest possible from the Korean document |

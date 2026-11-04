@@ -32,7 +32,7 @@ import json
 import sys
 from datetime import datetime, timezone
 
-STANDARDS = ('wcag22', 'en301549', '508', 'rgaa')
+STANDARDS = ('wcag22', 'en301549', 'rgaa')   # 508 GSA tree: capa privada pro
 STATUS_ORDER = ('in-scope', 'proposed-excluded', 'excluded')
 
 # Criterios cuya aplicabilidad depende de un rasgo ESTRUCTURAL detectable:
@@ -108,7 +108,6 @@ def build_scope(reports, standard='wcag22', target='web', answers=None,
     from .a11yi18n import pack
     from .a11ycrit import _C
     tx = pack(lang).get('scope', {}) or {}
-    tx508 = pack(lang).get('std508', {}) or {}
 
     if targets:
         targets = [x for x in targets if x in ('web', 'documents', 'software')] or [target]
@@ -202,31 +201,7 @@ def build_scope(reports, standard='wcag22', target='web', answers=None,
                     if a.get('reason'):
                         row['reason'] = str(a['reason'])[:500]
 
-    std508_block = None
-    if standard == '508':
-        from . import a11y508
-        app = a11y508.applicability(target=targets[0], answers=answers)
-
-        for row in criteria:
-            code = row['criterion'].split(' ')[0]
-            if row['status'] == 'excluded':
-                continue
-            if row.get('evidence_source') == 'human':
-                # el humano ya habló sobre esta fila (p. ej. un 'in-scope'
-                # explícito): la propuesta de la máquina no la pisa en
-                # NINGUNA dirección — propone solo donde nadie ha hablado
-                continue
-            if app['content_exempt']:
-                row['status'] = 'proposed-excluded'
-                row['evidence_source'] = 'machine:508'
-                row['evidence'] = tx508['exempt_reason'].format(
-                    public=app['public_facing']['answer'],
-                    official=app['official_comm']['answer'])
-            elif code in app['wcag_exceptions']:
-                row['status'] = 'proposed-excluded'
-                row['evidence_source'] = 'machine:508'
-                row['evidence'] = tx508['exc_reason'].format(answer=app['web_based']['answer'])
-        std508_block = app
+    std508_block = None   # 508 GSA tree: moved to the private pro layer
 
     counters = {
         'criteria': len(criteria),
@@ -289,89 +264,6 @@ def build_scope(reports, standard='wcag22', target='web', answers=None,
     return scope
 
 
-PRINCIPLES = {
-    '1': {'en': 'Perceivable', 'es': 'Perceptible'},
-    '2': {'en': 'Operable', 'es': 'Operable'},
-    '3': {'en': 'Understandable', 'es': 'Comprensible'},
-    '4': {'en': 'Robust', 'es': 'Robusto'},
-}
-
-
-def solicitation(scope, lang='es'):
-    """Scope artifact → procurement annex text (ART's solicitation-language
-    pattern): the normative clause list grouped by principle, confirmed
-    exclusions with their reason, and the evidence the supplier shall
-    provide. The machine generates from data; clause numbers must be
-    checked against the published standard before award (stated in text)."""
-    from .a11yi18n import pack
-    tx = pack(lang).get('sol', {})
-    std = scope.get('standard') or 'WCAG 2.2 (A/AA)'
-    tgt = scope.get('target') or 'web'
-    prefix = {'web': '9', 'documents': '10', 'software': '11'}.get(tgt)
-
-    lines = []
-    lines.append(tx['annex_title'])
-    lines.append('')
-    lines.append(tx['req_intro'].format(standard=std))
-    in_scope = [r for r in scope.get('criteria', []) if r.get('status') == 'in-scope']
-    excluded = [r for r in scope.get('criteria', []) if r.get('status') == 'excluded']
-    tx508 = pack(lang).get('std508', {}) or {}
-    cur = None
-    n_req = 0
-    for row in in_scope:
-        code = row['criterion'].split(' ')[0]
-        pr = code.split('.')[0]
-        if pr != cur:
-            cur = pr
-            name = PRINCIPLES.get(pr, {}).get(lang) or PRINCIPLES.get(pr, {}).get('en', '')
-            lines.append('')
-            lines.append(tx['principle'].format(n=pr, name=name))
-        n_req += 1
-        clause = (prefix + '.' + code) if (std.startswith('EN') and prefix) else code
-        req_id = tx['req_num'].format(n=n_req)
-        # [-1]: un criterion sin título (hostil/editado a mano) no tira el anexo
-        lines.append('  ' + req_id + ' — ' + clause + ' — ' + row['criterion'].split(' ', 1)[-1])
-    std508 = scope.get('section508')
-    if std508:
-        # excepciones mandadas por el ESTÁNDAR (E203/E204): sección propia,
-        # distinta de las exclusiones confirmadas por persona. Solo si hay.
-        if std508.get('wcag_exceptions'):
-            lines.append('')
-            lines.append(tx508['exc_title'])
-            for code in std508['wcag_exceptions']:
-                lines.append('  - WCAG ' + code + ' — ' + tx508['exc_reason'].format(
-                    answer=(std508.get('web_based') or {}).get('answer', '?')))
-        chapters = std508.get('chapters', [])
-        if chapters:
-            lines.append('')
-            lines.append(tx.get('chapters_in_annex', 'Chapters that also apply:'))
-            names = {'302': tx508.get('ch_302'), '502': tx508.get('ch_502'),
-                     '504': tx508.get('ch_504'), '602': tx508.get('ch_602'),
-                     '603': tx508.get('ch_603')}
-            for ch in chapters:
-                lines.append('  - ' + (names.get(ch) or ch))
-    if excluded:
-        lines.append('')
-        lines.append(tx['excl_title'])
-        for row in excluded:
-            code = row['criterion'].split(' ')[0]
-            clause = (prefix + '.' + code) if (std.startswith('EN') and prefix) else code
-            reason = row.get('reason') or ''
-            lines.append('  - ' + tx['excl_item'].format(clause=clause, reason=reason))
-    lines.append('')
-    lines.append(tx['evidence_title'])
-    for item in tx['evidence_items']:
-        lines.append('  - ' + item)
-    # trazabilidad: el anexo se genera DESDE un alcance sellado concreto
-    lines.append('')
-    from .server import VERSION as engine_version
-    lines.append(tx['trace_title'].format(sha=(scope.get('sha256') or '')[:16],
-                                          engine=engine_version))
-    if scope.get('standard', '').startswith('EN'):
-        lines.append(tx['note'])
-    return '\n'.join(lines)
-
-
 def main(argv):
     from .a11yen301549 import TARGETS
     ap = argparse.ArgumentParser(description='Applicability scope (semi-automatic)')
@@ -386,25 +278,17 @@ def main(argv):
     ap.add_argument('-o', '--out', default='scope.json')
     ap.add_argument('--targets', default=None,
                     help='comma-separated ICT targets for combined scope (e.g. web,documents)')
-    ap.add_argument('--solicitation', metavar='FILE',
-                    help='also write the procurement annex text (from this scope)')
+    # (--solicitation se retiró: el generador de anexos vive en a11y-toolkit-pro)
     a = ap.parse_args(argv)
-    reports = [json.load(open(f, encoding='utf-8')) for f in a.reports]
+    reports = [json.load(open(r, encoding='utf-8')) for r in a.reports]
     answers = json.load(open(a.answers, encoding='utf-8')) if a.answers else None
-    targets = [x.strip() for x in a.targets.split(',')] if a.targets else None
+    tgts = [t.strip() for t in a.targets.split(',')] if a.targets else None
     scope = build_scope(reports, standard=a.standard, target=a.target,
-                        answers=answers, lang=a.lang, targets=targets)
+                        answers=answers, lang=a.lang, targets=tgts)
     with open(a.out, 'w', encoding='utf-8') as f:
         json.dump(scope, f, ensure_ascii=False, indent=1)
-    if a.solicitation:
-        text = solicitation(scope, lang=a.lang)
-        with open(a.solicitation, 'w', encoding='utf-8') as f:
-            f.write(text + '\n')
-        annex_note = {'solicitation': a.solicitation}
-    else:
-        annex_note = {}
     print(json.dumps({'scope': a.out, 'sha256': scope['sha256'],
-                      'counters': scope['counters'], **annex_note}, ensure_ascii=False))
+                      'counters': scope['counters']}, ensure_ascii=False))
     return 0
 
 

@@ -27,6 +27,11 @@ never break the document structure.
 CLI:
   a11yopenacr.py pack.json --product "Acme App" -o openacr.yaml
   a11ytoolkit openacr pack.json --product "Acme App" -o openacr.yaml
+
+FROZEN LAYER (2026-11-04, founder decision "freeze the docs"): this
+module stays public as an HONEST DRAFT generator (the machine fills
+Remarks/texts, never the claim). Maintenance fixes only; new
+capabilities live in the SaaS (a11y.es / Lince).
 """
 
 import argparse

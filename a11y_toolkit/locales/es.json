@@ -693,51 +693,10 @@
    }
   }
  },
- "sol": {
-  "annex_title": "Anexo de requisitos de accesibilidad (para pliego/contrato)",
-  "req_intro": "El producto o servicio TIC deberá cumplir {standard}, nivel AA, en los criterios de éxito siguientes:",
-  "principle": "Principio {n} — {name}",
-  "excl_title": "Requisitos excluidos por alcance (con razón confirmada por persona):",
-  "excl_item": "{clause} — excluido — {reason}",
-  "evidence_title": "Evidencia que deberá aportar el proveedor:",
-  "evidence_items": [
-   "Informe de auditoría de accesibilidad con motor y fecha identificados",
-   "Declaración de accesibilidad que cubra el producto entregado",
-   "Pack de evidencia verificable (cadena SHA-256), en formatos aceptados"
-  ],
-  "note": "Este anexo se genera a partir de un alcance de aplicabilidad; la máquina propone y una persona identificada confirma. Verifica los números de cláusula contra el texto vigente del estándar antes de la adjudicación.",
-  "chapter_list": "Capítulos adicionales aplicables: {chapters}",
-  "req_num": "R{n}",
-  "trace_title": "Generado desde alcance de aplicabilidad sha256:{sha} · motor {engine}. Verifica los números de cláusula contra el texto vigente del estándar antes de la adjudicación.",
-  "chapters_in_annex": "Capítulos que también aplican (declarados, no evaluados por esta herramienta):"
- },
- "std508": {
-  "q_public": "¿El contenido electrónico es de acceso público?",
-  "q_official": "¿Es comunicación oficial de agencia sin acceso público?",
-  "q_authoring": "¿El software es además herramienta de autoría?",
-  "q_web": "¿Es basado en web?",
-  "exc_title": "Criterios WCAG no aplicables a contenido no web (Revised 508, E203/E204):",
-  "ch_title": "Capítulos del Revised 508 que aplican además de WCAG:",
-  "ch_502": "502 Interoperabilidad con tecnología de asistencia",
-  "ch_503": "503 Aplicación (requisitos de plataforma/software)",
-  "ch_504": "504 Herramientas de autoría",
-  "ch_602": "602 Documentación de soporte",
-  "ch_603": "603 Servicios de soporte",
-  "ch_302": "302 Criterios de rendimiento funcional",
-  "ans_human": "respuesta humana pendiente",
-  "ans_machine": "respondido por la auditoría (target web)",
-  "exc_reason": "No aplicable a contenido/software no web según Revised 508 E203/E204 (basado en web: {answer})",
-  "exempt_reason": "Contenido exento según Revised 508 (sin acceso público y sin ser comunicación oficial de agencia) — respuestas humanas public_facing={public}, official_comm={official}"
- },
  "wiz": {
   "wiz_q_target": "¿Qué estás construyendo?\n  1 = web o aplicación web\n  2 = documentos (PDF/Office)\n  3 = software no web\n  4 = varios de esos\nRespuesta (1-4): ",
   "wiz_q_multi": "¿Cuáles? separa por comas (web,documents,software): ",
   "wiz_q_std": "¿Qué norma te aplica o te exige tu mercado?\n  1 = WCAG 2.2 (global)\n  2 = EN 301 549 (UE / EAA / Ley 11/2023)\n  3 = Section 508 (EE.UU. federal)\n  4 = RGAA 4.1 (Francia)\nRespuesta (1-4): ",
-  "wiz_q_public": "¿El contenido electrónico es de acceso público? (s/n): ",
-  "wiz_q_official": "¿Es comunicación oficial de agencia SIN acceso público? (s/n): ",
-  "wiz_q_authoring": "¿Es además herramienta de autoría? (s/n): ",
-  "wiz_q_annex": "¿Generar también el anexo de pliego (lenguaje para el contrato)? (s/N): ",
-  "wiz_annex_lang": "Idioma del anexo (es/en): ",
   "wiz_done": "Hecho. Alcance: {scope}\nAnexo: {annex}\nNota: {score} · en alcance: {ins} · propuestas fuera: {pro}",
   "wiz_abort": "No llegó ninguna respuesta — abortado. Todo lo que hace el wizard está disponible como: a11ytoolkit scope --standard … / audit --standard … / --solicitation.",
   "wiz_need_url": "Se necesita una URL (o HTML con --file) para lanzar la auditoría."

@@ -2,11 +2,10 @@
 """The guided wizard — the Canadian pattern, inverted, in the terminal.
 
 2-3 questions a person CAN answer (what are you building, which standard
-applies to your market, the 508 product questions when that standard is
-chosen) configure everything the engine already knows how to do: the
-audit runs with the right standard, the scope artifact carries the
-machine proposals, and — when the market or contract demands it — the
-tender annex is generated in the chosen language.
+applies to your market) configure everything the engine already knows
+how to do: the audit runs with the right standard and the scope artifact
+carries the machine proposals. (The 508 product tree and the tender-annex
+generator live in the private a11y-toolkit-pro layer.)
 
 Everything the wizard does is also available as individual commands
 (audit --standard …, scope --solicitation …): the wizard composes, it
@@ -24,7 +23,7 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, ROOT)
 
 from a11y_toolkit.a11yaudit import audit_html, audit_url  # noqa: E402
-from a11y_toolkit.a11yscope import build_scope, solicitation  # noqa: E402
+from a11y_toolkit.a11yscope import build_scope  # noqa: E402
 
 
 def _t(key):
@@ -88,20 +87,11 @@ def main(argv):
         target = {'1': 'web', '2': 'documents', '3': 'software'}[tgt]
         targets = [target]
 
-    # Q2: qué norma
-    std_map = {'1': 'wcag22', '2': 'en301549', '3': '508', '4': 'rgaa'}
-    std = std_map[_ask(_t('wiz_q_std'), valid={'1', '2', '3', '4'})]
+    # Q2: qué norma (508 GSA tree: capa privada a11y-toolkit-pro)
+    std_map = {'1': 'wcag22', '2': 'en301549', '3': 'rgaa'}
+    std = std_map[_ask(_t('wiz_q_std'), valid={'1', '2', '3'})]
 
-    # Q3: preguntas de producto (solo 508: el árbol GSA ya modelado)
     answers = {}
-    if std == '508':
-        answers['508:public_facing'] = {
-            'answer': 'yes' if _ask(_t('wiz_q_public'), valid=_YESNO) in _YES else 'no'}
-        answers['508:official_comm'] = {
-            'answer': 'yes' if _ask(_t('wiz_q_official'), valid=_YESNO) in _YES else 'no'}
-        if target == 'software':
-            answers['508:authoring_tool'] = {
-                'answer': 'yes' if _ask(_t('wiz_q_authoring'), valid=_YESNO) in _YES else 'no'}
 
     # auditoría con el estándar elegido
     std_arg = std if std in ('en301549', 'rgaa') else None
@@ -119,18 +109,9 @@ def main(argv):
     with open(a.out, 'w', encoding='utf-8') as f:
         json.dump(scope, f, ensure_ascii=False, indent=1)
 
-    # anexo opcional (el artefacto de contrato)
-    annex = '—'
-    if _ask(_t('wiz_q_annex'), valid=_YESNO, default='n') in _YES:
-        annex_lang = _ask(_t('wiz_annex_lang'), valid={'es', 'en'}, default=a.lang)
-        text = solicitation(scope, lang=annex_lang)
-        # el anexo cae JUNTO al alcance: un solo entregable, un solo sitio
-        annex = os.path.join(os.path.dirname(os.path.abspath(a.out)),
-                             'anexo_' + ('pligo' if annex_lang == 'es' else 'tender') + '.txt')
-        with open(annex, 'w', encoding='utf-8') as f:
-            f.write(text + '\n')
-
-    print(_t('wiz_done').format(scope=a.out, annex=annex, score=report.get('score'),
+    # (el anexo de pliego se retiró: a11y-toolkit-pro lo genera desde este
+    # MISMO artifact sellado — wizard_pro en la capa privada)
+    print(_t('wiz_done').format(scope=a.out, annex='—', score=report.get('score'),
                                 ins=scope['counters']['in_scope'],
                                 pro=scope['counters']['proposed_excluded']))
     return 0

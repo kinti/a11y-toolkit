@@ -9,10 +9,10 @@ test:            ## TODAS las suites por descubrimiento (auto-skip sin Playwrigh
 	  echo "── $$t"; python3 $$t || exit 1; done \
 	  && python3 scripts/gen_readme.py --check && python3 scripts/gen_llms.py --check
 
-fast:            ## suites rápidas (lo que guarda el pre-push)
+fast:            ## suites rápidas (lo que guarda el pre-push; wcagem/plan → pro)
 	python3 tests/test_contrast.py && python3 tests/test_audit.py && python3 tests/test_v32.py \
 	  && python3 tests/test_scope.py \
-	  && python3 tests/test_wcag3.py && python3 tests/test_route.py && python3 tests/test_mutants.py && python3 tests/test_verify_pack.py && python3 tests/test_npm_wrapper.py && python3 tests/test_wcagem.py && python3 tests/test_plan.py && python3 tests/test_fingerprints.py && python3 tests/test_distrib.py && python3 tests/test_corpus.py \
+	  && python3 tests/test_wcag3.py && python3 tests/test_route.py && python3 tests/test_mutants.py && python3 tests/test_verify_pack.py && python3 tests/test_npm_wrapper.py && python3 tests/test_fingerprints.py && python3 tests/test_distrib.py && python3 tests/test_corpus.py \
 	  && python3 tests/test_budget_structural.py && python3 tests/test_engines.py \
 	  && python3 tests/test_dataviz.py && python3 tests/test_recurrence.py \
 	  && python3 tests/test_solido.py && python3 tests/test_mcp.py \

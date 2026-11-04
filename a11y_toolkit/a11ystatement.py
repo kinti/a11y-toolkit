@@ -13,6 +13,11 @@ Usage:
   declaracion.py --entity "Name" --url "https://…" --status partial \
       --inaccessible "…" --feedback "a@b.gal" [--framework rd1112|eaa] \
       [--lang es|en] [--output decl.html]
+
+FROZEN LAYER (2026-11-04, founder decision "freeze the docs"): this
+module stays public as an HONEST DRAFT generator (the machine fills
+Remarks/texts, never the claim). Maintenance fixes only; new
+capabilities live in the SaaS (a11y.es / Lince).
 """
 
 import argparse

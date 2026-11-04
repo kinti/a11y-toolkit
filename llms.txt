@@ -1,6 +1,6 @@
 # a11y-toolkit
 
-> The accessibility layer for AI coding agents: a zero-dependency Python engine (MCP server, 37 tools + 6 prompts, CLI `a11ytoolkit`, MIT) that audits, fixes, documents and watches WCAG 2.2 — and never signs conformance: the machine finds, the human signs. Bilingual es/en output. Runs anywhere MCP runs.
+> The accessibility layer for AI coding agents: a zero-dependency Python engine (MCP server, 37 tools + 5 prompts, CLI `a11ytoolkit`, MIT) that audits, fixes, documents and watches WCAG 2.2 — and never signs conformance: the machine finds, the human signs. Bilingual es/en output. Runs anywhere MCP runs.
 
 ## What is verifiably true (no marketing)
 - 100% consistent with every published W3C ACT rule it implements: 355 official test cases, 20/20 rules, zero inconsistencies, regenerated per release against the w3c/wcag-act-rules repository (https://github.com/kinti/a11y-toolkit/blob/main/docs/act-report-summary.md).
@@ -77,14 +77,13 @@ Start with `a11y_route` (the router): state a goal in plain language and get the
 ### Routing
 - `a11y_route` — Tool router (goal or page to steps)
 
-## Prompts (6)
+## Prompts (5)
 
 
 - `audit-page` — Full accessibility audit workflow for a URL: automated tools + what to verify manually (keyboard, screen reader, zoom).
 - `fix-contrast` — Guided contrast fix: verify the pair (or the text-over-image region), get the nearest passing color, apply it to the code.
 - `pre-deploy-check` — Pre-deploy regression check: express audit of the URL plus snapshot diff against a baseline snapshot.
 - `declaration-eaa` — Generate a European Accessibility Act / RD 1112/2018 accessibility statement, collecting any missing legal fields from the user.
-- `conformance-wcagem` — Guided WCAG-EM conformance ladder for a site: express screening → agent-verified guided evaluation on a representative sample → conformance report inputs.
 - `blindfold-task` — Blindfold usability test — the agent attempts a real task perceiving ONLY the accessibility tree and acting only by accessible name and keyboard, logging friction per step; closes with a11y_journey_verdict
 
 ## Documentation

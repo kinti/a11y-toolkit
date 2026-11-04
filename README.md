@@ -8,7 +8,7 @@
   <img src="docs/demo.gif" alt="a11y-toolkit in action: audit (score 64), nearest passing color, re-audit (94) — real tool output" width="720">
 </p>
 
-37 MCP tools, 6 prompts and a skill covering the whole WCAG 2.2 loop: audit, fix,
+37 MCP tools, 5 prompts and a skill covering the whole WCAG 2.2 loop: audit, fix,
 document, watch, hand off — and now blindfold usability testing, where the agent
 attempts real tasks perceiving only what a screen reader exposes. 51 of 55 A/AA criteria carry automated signals (93%), every
 finding ships with a concrete remediation your agent can apply, and the rendered tools
@@ -121,7 +121,7 @@ Full reference — descriptions, arguments, return shapes and behavior — in [d
 | [`a11y_route`](docs/tools.md#a11y_route) | Routing | Tool router (goal or page to steps) |
 <!-- TOOLS:END -->
 
-## The 6 prompts
+## The 5 prompts
 
 - **`audit-page`** (`url*`, `language`): Full accessibility audit workflow for a URL: automated tools + what to verify manually (keyboard, screen reader, zoom). Every prompt exists in English and Spanish.
 
@@ -131,7 +131,6 @@ Full reference — descriptions, arguments, return shapes and behavior — in [d
 
 - **`declaration-eaa`** (`entity*`, `url*`, `status`): Generate a European Accessibility Act / RD 1112/2018 accessibility statement, collecting any missing legal fields from the user. Every prompt exists in English and Spanish.
 
-- **`conformance-wcagem`** (`url*`, `tier`, `language`): Guided WCAG-EM conformance ladder for a site: express screening → agent-verified guided evaluation on a representative sample → conformance report inputs. Every prompt exists in English and Spanish.
 
 - **`blindfold-task`** (`url*`, `goal*`, `kind`, `language`): Blindfold usability test — the agent attempts a real task perceiving ONLY the accessibility tree and acting only by accessible name and keyboard, logging friction per step; closes with a11y_journey_verdict. The capability no other accessibility tool has: task-based non-visual testing where the agent IS the screen-reader user. Every prompt exists in English and Spanish.
 
@@ -257,8 +256,6 @@ a11ytoolkit route --file page.html                             # diagnosis: the 
 a11ytoolkit mutants --seed 7 --n 12                            # the engine's sealed self-exam
 a11ytoolkit fingerprints pages/*.html -o templates.json        # twin pages → one audit per template
 a11ytoolkit audit --url page.html --standard en301549          # EN 301 549 clause on every finding
-a11ytoolkit scope audit.json --standard 508 -o scope.json      # GSA applicability tree, WCAG exceptions
-a11ytoolkit scope audit.json --solicitation annex.txt          # tender-ready accessibility annex (es/en)
 a11ytoolkit annotate page.html --report r.json -o marked.html  # per-element marks on a byte-exact copy
 a11ytoolkit locate --file page.html --query "Submit"           # element by accessible name → route selector
 a11ytoolkit patches --file page.html -o patches.json           # sealed fix record (verify with --verify)

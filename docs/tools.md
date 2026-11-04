@@ -706,13 +706,13 @@ Semi-automatic applicability scoping — the layer between the audit and the con
 
 - `reports` *(required)*: audit report objects (any mode; reports carrying the features block power the machine proposals).
 
-- `standard` — one of ['wcag22', 'en301549', '508', 'rgaa']: wcag22 (default), en301549 (clause refs + EN families), 508 (GSA tree + WCAG exceptions) or rgaa (French 106-criterion checklist).
+- `standard` — one of ['wcag22', 'en301549', 'rgaa']: wcag22 (default), en301549 (clause refs + EN families) or rgaa (French 106-criterion checklist).
 
 - `target` — one of ['web', 'documents', 'software']: ICT target: web=9.x clauses (default), documents=10.x, software=11.x.
 
 - `targets`: combined scope across ICT targets (like GSA ART multi-item); rows carry a clauses dict per target.
 
-- `answers`: human confirmations keyed by criterion code (or 508:<question> for Section 508 product questions): status in-scope|proposed-excluded|excluded.
+- `answers`: human confirmations keyed by criterion code: status in-scope|proposed-excluded|excluded.
 
 - `lang` — one of ['es', 'en']: output language (en default).
 

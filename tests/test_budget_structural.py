@@ -170,31 +170,7 @@ finally:
 assert code == 1 and 'error' in buf.getvalue(), (code, buf.getvalue())
 print('14. a11yscroll carga fallida → exit 1 ✓')
 
-# --- 15. a11ywcagem: pack manual con status desconocido → ValueError limpio;
-#          "effort": null no revienta el agregado ---
-from a11y_toolkit import a11ywcagem  # noqa: E402
-
-_PLAN = {'product': {'name': 'X'}, 'conformance_target': 'WCAG 2.2 AA',
-         'sample': [{'id': 's1', 'type': 'structured', 'url': 'https://x'}]}
-
-
-def _hand(status, effort):
-    return {'format': 'a11y-evidence-pack/2', 'sha256': '0' * 64,
-            'criteria': [{'criterion': '1.1.1 Non-text Content',
-                          'status': status, 'effort': effort}]}
-
-
-try:
-    a11ywcagem.aggregate(_PLAN, [_hand('probably-fine', None)])
-    raise SystemExit('status desconocido debía lanzar ValueError')
-except ValueError as e:
-    assert 'probably-fine' in str(e) and 'valid statuses' in str(e), str(e)
-rep_null = a11ywcagem.aggregate(_PLAN, [_hand('not-flagged', None)])
-assert rep_null['criteria'][0]['status'] == 'not-flagged'
-rep_ok = a11ywcagem.aggregate(_PLAN, [_hand('automated-review',
-                                            {'class': 'MIN', 'minutes': [1, 3]})])
-assert rep_ok['effort_pending']['MIN'] == 1 and rep_ok['criteria'][0]['status'] == 'automated-review'
-print('15. wcagem: status desconocido → ValueError accionable; effort null ok ✓')
+# (a11ywcagem checks: moved with the module to a11y-toolkit-pro — 4-nov)
 
 # --- 16. corpus: README sellado en el manifiesto + JSONL hostil no tumba el
 #          evaluate (invalid_lines declarado en el resultado) ---

@@ -148,7 +148,6 @@ cat > plan.json <<'P'
 P
 # 2) one sealed pack per sample (recipes 1-4)
 # 3) the aggregated WCAG-EM report, root-sealed over the pack seals
-at wcagem --plan plan.json --packs home.json checkout.json -o report.json
 ```
 
 The report rolls every criterion up ACROSS the sample (a failure anywhere
@@ -167,9 +166,7 @@ findings), instances after, pages piling up signals flagged for a redesign
 pass:
 
 ```bash
-at plan --report audit.json -o fix-plan.json
 # better minutes: price with the evidence pack's effort table
-at plan --report audit.json --from-pack pack.json
 ```
 
 Each batch carries its minute range and the running total; grouping savings

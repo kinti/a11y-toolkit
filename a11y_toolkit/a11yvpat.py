@@ -19,6 +19,11 @@ CLI:
   a11yvpat.py pack.json --product "Acme App" --contact a11y@acme.example \
       --overrides '{"1.1.1": "does_not_support", "1.2.2": "not_applicable"}' \
       -o vpat.html
+
+FROZEN LAYER (2026-11-04, founder decision "freeze the docs"): this
+module stays public as an HONEST DRAFT generator (the machine fills
+Remarks/texts, never the claim). Maintenance fixes only; new
+capabilities live in the SaaS (a11y.es / Lince).
 """
 
 import argparse

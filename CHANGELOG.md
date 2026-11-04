@@ -1,5 +1,29 @@
 # Changelog
 
+## main — pendiente — "the consulting layer goes private (Tier 1+2)"
+
+- **Founder decision (2026-11-04): the consulting playbook leaves the
+  public engine.** Moved to a private repo (`a11y-toolkit-pro`, what our
+  SaaS consumes by pin): the Section 508 GSA applicability tree
+  (`--standard 508`), the procurement-annex generator
+  (`scope --solicitation`), the WCAG-EM sampling methodology
+  (`a11ywcagem` CLI + the conformance-wcagem MCP prompt), and the
+  remediation-planning layer (`a11yplan` CLI). Rationale: none of it has
+  developer-community value; it IS the consulting playbook (what to ask,
+  how much to audit, how to word a tender annex, in what order to
+  remediate). The wizard keeps wcag22/EN 301 549/RGAA; `scope` keeps the
+  same three standards; the prompts go 6 → 5; the tools stay 37. The
+  docs say "moved to the private pro layer" — no mystery, no lie.
+- **The conformance DRAFT generators (VPAT, OpenACR, declarations) stay
+  public but FROZEN** (stated in each module docstring): the machine
+  fills Remarks/texts, never the claim — every document prints that a
+  qualified human must set levels and sign. They receive maintenance
+  fixes only; new conformance capabilities go to the SaaS. This is the
+  Deque line: the engine stays open, the practice stays ours.
+- Tests for the moved pieces live in the pro repo now; the public suite
+  re-verifies their ABSENCE (wizard without 508/annex, scope enum
+  without 508, prompts == 5, locales without std508/sol).
+
 ## main — pendiente — "external QA 2026-11: round 4 — fresh-eyes from zero"
 
 - **Fresh full-repo re-analysis from zero** (6 fresh reviewers + live chain

@@ -314,18 +314,7 @@ check('rgaa sin respuestas: 106 in-scope, cero propuestas',
       s_rgaa_plain['counters']['excluded'] == 0
       and s_rgaa_plain['counters']['in_scope'] == 106)
 
-print('== 12. 508: la propuesta de la máquina no pisa al humano (4-nov)')
-s_508 = build_scope([r_bare], standard='508', target='web', lang='en',
-                    answers={'3.3.1': {'status': 'in-scope',
-                                       'reason': 'the checkout form exists'},
-                             '508:public_facing': {'answer': 'no'},
-                             '508:official_comm': {'answer': 'no'}})
-r_331 = next(c for c in s_508['criteria'] if c['criterion'].startswith('3.3.1'))
-check('508: un in-scope HUMANO sobrevive al content_exempt',
-      r_331['status'] == 'in-scope' and r_331.get('evidence_source') == 'human'
-      and r_331.get('reason') == 'the checkout form exists')
-check('508: sin palabra humana la máquina sigue proponiendo',
-      s_508['counters']['proposed_excluded'] == 54)
+print('== 12. (508 GSA tree: moved to the private pro layer — 4-nov)')
 
 print('== 13. EN 301 549: cláusulas EN-only de software 11.5-11.7 (4-nov)')
 s_sw = build_scope([r_bare], standard='en301549', target='software', lang='en')
@@ -357,4 +346,4 @@ if failures:
     sys.exit(1)
 print('SCOPE OK ✓ (EN 301 549 55/55 × 3 cláusulas, la máquina propone y nunca '
       'excluye, solo lo humano confirmado fluye con su razón, RGAA escucha '
-      'respuestas, 508 no pisa al humano, cláusulas software 11.5-11.7, CLI+MCP reales)')
+      'respuestas, sin 508 público, cláusulas software 11.5-11.7, CLI+MCP reales)')

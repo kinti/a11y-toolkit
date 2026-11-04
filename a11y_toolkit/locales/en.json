@@ -693,51 +693,10 @@
    }
   }
  },
- "sol": {
-  "annex_title": "Accessibility requirements annex (for tender/contract use)",
-  "req_intro": "The ICT product or service shall comply with {standard}, conformance level AA, in the following success criteria:",
-  "principle": "Principle {n} — {name}",
-  "excl_title": "Requirements excluded by scope (with human-confirmed reason):",
-  "excl_item": "{clause} — excluded — {reason}",
-  "evidence_title": "Evidence the supplier shall provide:",
-  "evidence_items": [
-   "Accessibility audit report with identified engine and date",
-   "Accessibility statement covering the delivered product",
-   "Verifiable evidence pack (SHA-256 chain), accepted formats"
-  ],
-  "note": "This annex is generated from an applicability scope artifact; the machine proposes and a named person confirms. Verify clause numbers against the current published standard text before awarding.",
-  "chapter_list": "Additional applicable chapters: {chapters}",
-  "req_num": "R{n}",
-  "trace_title": "Generated from applicability scope sha256:{sha} · engine {engine}. Verify clause numbers against the current published standard text before awarding.",
-  "chapters_in_annex": "Chapters that also apply (declared, not evaluated by this tool):"
- },
- "std508": {
-  "q_public": "Is the electronic content public-facing?",
-  "q_official": "Is it an official agency communication that is not public-facing?",
-  "q_authoring": "Is the software also an authoring tool?",
-  "q_web": "Is it web-based?",
-  "exc_title": "WCAG success criteria not applicable to non-web content (Revised 508, E203/E204):",
-  "ch_title": "Revised 508 chapters that apply beyond WCAG:",
-  "ch_502": "502 Interoperability with assistive technology",
-  "ch_503": "503 Application (platform/software requirements)",
-  "ch_504": "504 Authoring tools",
-  "ch_602": "602 Support documentation",
-  "ch_603": "603 Support services",
-  "ch_302": "302 Functional performance criteria",
-  "ans_human": "human answer pending",
-  "ans_machine": "answered by the audit (web target)",
-  "exc_reason": "Not applicable to non-web content/software per Revised 508 E203/E204 (web-based: {answer})",
-  "exempt_reason": "Content exempt per Revised 508 (not public-facing and not an official agency communication) — human answers public_facing={public}, official_comm={official}"
- },
  "wiz": {
   "wiz_q_target": "What are you building?\n  1 = web site/app\n  2 = documents (PDF/Office)\n  3 = non-web software\n  4 = several of those\nAnswer (1-4): ",
   "wiz_q_multi": "Which ones? comma-separated (web,documents,software): ",
   "wiz_q_std": "Which standard applies to your market or contract?\n  1 = WCAG 2.2 (global)\n  2 = EN 301 549 (EU / EAA / Ley 11/2023)\n  3 = Section 508 (US federal)\n  4 = RGAA 4.1 (France)\nAnswer (1-4): ",
-  "wiz_q_public": "Is the electronic content public-facing? (y/n): ",
-  "wiz_q_official": "Is it an official agency communication that is NOT public-facing? (y/n): ",
-  "wiz_q_authoring": "Is the software also an authoring tool? (y/n): ",
-  "wiz_q_annex": "Also generate the tender annex (procurement language)? (y/N): ",
-  "wiz_annex_lang": "Annex language (es/en): ",
   "wiz_done": "Done. Scope: {scope}\nAnnex: {annex}\nScore: {score} · in scope: {ins} · proposed out: {pro}",
   "wiz_abort": "No input received — aborted. Everything the wizard does is also available as: a11ytoolkit scope --standard … / audit --standard … / --solicitation.",
   "wiz_need_url": "A URL (or HTML via --file) is needed to run the audit."

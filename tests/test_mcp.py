@@ -79,7 +79,7 @@ assert 'alm-panel' in snip and "closest('.alm-panel')" in snip
 assert por_id[6]['result'].get('isError') is True
 
 prompts = por_id[7]['result']['prompts']
-assert {x['name'] for x in prompts} == {'audit-page', 'fix-contrast', 'pre-deploy-check', 'declaration-eaa', 'conformance-wcagem', 'blindfold-task'}
+assert {x['name'] for x in prompts} == {'audit-page', 'fix-contrast', 'pre-deploy-check', 'declaration-eaa', 'blindfold-task'}   # wcagem: pro
 pr = por_id[8]['result']
 assert pr['messages'][0]['content']['text'].startswith('Run a full accessibility audit of https://ejemplo.test')
 

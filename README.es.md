@@ -9,7 +9,7 @@
   <img src="docs/demo.gif" alt="a11y-toolkit en acción: auditoría (nota 64), color aprobatorio más cercano, re-auditoría (94) — salida real de la herramienta" width="720">
 </p>
 
-37 herramientas MCP, 6 prompts y una skill que cubren todo el ciclo WCAG 2.2:
+37 herramientas MCP, 5 prompts y una skill que cubren todo el ciclo WCAG 2.2:
 auditar, corregir, documentar, vigilar y entregar — y ahora también pruebas de
 usabilidad «a ciegas», donde el agente intenta tareas reales percibiendo solo lo
 que expone un lector de pantalla. 51 de los 55 criterios A/AA llevan señales
@@ -129,7 +129,7 @@ traducción puede ir a la zaga del inglés, que es la fuente canónica.
 | [`a11y_route`](docs/tools.md#a11y_route) | Enrutado | Router de herramientas (objetivo o página → pasos) |
 <!-- TOOLS:END -->
 
-## Los 6 prompts
+## Los 5 prompts
 
 - **`audit-page`** (`url*`, `language`): Flujo completo de auditoría de accesibilidad para una URL: herramientas automáticas + qué verificar a mano (teclado, lector de pantalla, zoom). Cada prompt existe en español y en inglés.
 
@@ -139,7 +139,6 @@ traducción puede ir a la zaga del inglés, que es la fuente canónica.
 
 - **`declaration-eaa`** (`entity*`, `url*`, `status`): Genera una declaración de accesibilidad EAA / RD 1112/2018, pidiendo los campos legales que falten. Cada prompt existe en español y en inglés.
 
-- **`conformance-wcagem`** (`url*`, `tier`, `language`): Escalera de conformidad WCAG-EM guiada para un sitio: cribado exprés → evaluación guiada verificada por el agente sobre una muestra representativa → insumos del informe de conformidad. Cada prompt existe en español y en inglés.
 
 - **`blindfold-task`** (`url*`, `goal*`, `kind`, `language`): Prueba de usabilidad a ciegas — el agente intenta una tarea real percibiendo SOLO el árbol de accesibilidad y actuando solo por nombre accesible y teclado, registrando la fricción por paso; cierra con a11y_journey_verdict. La capacidad que ninguna otra herramienta de accesibilidad tiene: testing no visual por tareas donde el agente ES la persona usuaria del lector de pantalla. Cada prompt existe en español y en inglés.
 
@@ -266,13 +265,11 @@ a11ytoolkit route --file page.html                             # diagnóstico: l
 a11ytoolkit mutants --seed 7 --n 12                            # el autoexamen sellado del motor
 a11ytoolkit fingerprints pages/*.html -o templates.json        # gemelas → una auditoría por plantilla
 a11ytoolkit audit --url pagina.html --standard en301549        # cláusula EN 301 549 en cada hallazgo
-a11ytoolkit scope audit.json --standard 508 -o alcance.json    # árbol GSA, excepciones WCAG
-a11ytoolkit scope audit.json --solicitation anexo.txt          # anexo de licitación listo (es/en)
 a11ytoolkit annotate pagina.html --report r.json -o copia.html # marcas por elemento en copia exacta
 a11ytoolkit locate --file pagina.html --query "Enviar"         # elemento por nombre accesible → ruta selector
 a11ytoolkit patches --file pagina.html -o patches.json         # registro sellado de arreglos (verificar con --verify)
 a11ytoolkit criteria --list --level AA --new-in 2.2            # el Quick Ref offline, filtrable
-a11ytoolkit wizard --url https://client.web --lang es          # guiado: 3 preguntas → norma, auditoría, alcance, anexo
+a11ytoolkit wizard --url https://client.web --lang es          # guiado: 3 preguntas → norma, auditoría, alcance
 a11ytoolkit corpus verify corpus                               # el corpus congelado, verificado
 ```
 
