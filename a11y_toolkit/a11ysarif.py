@@ -56,13 +56,18 @@ def _help_uri(criterion_text):
     return _BASE + slug if slug else 'https://www.w3.org/TR/WCAG22/'
 
 
-def from_report(report, driver_version='3.2.0', standard=None, target=None):
+def from_report(report, driver_version=None, standard=None, target=None):
     """Informe(s) del auditor → dict SARIF 2.1.0.
 
     Acepta un informe individual (audit_html/audit_url) o uno 'site'
     (con la lista 'reports'). Con standard='en301549' cada regla gana
     properties/tags con su cláusula EN 301 549 V4.1.1 (9.x web por defecto,
     10.x documents, 11.x software) — filtrable en code scanning."""
+    if driver_version is None:
+        # versión del driver = fuente única (estaba congelada en '3.2.0' con el
+        # motor en 5.26: GitHub mostraba una versión muerta en code scanning)
+        from .server import VERSION as _V   # lazy: server importa este módulo
+        driver_version = _V
     from . import a11yen301549 as _enstd
     pages = report.get('reports') if isinstance(report.get('reports'), list) else [report]
     rules = {}

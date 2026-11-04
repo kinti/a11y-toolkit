@@ -166,7 +166,35 @@ def _record(url, report, ledger=None, path='a11y-ledger.json'):
     return entry
 
 
-def gaps(url, ledger=None, path='a11y-ledger.json'):
+
+_NOTES = {
+    'reaudit': {
+        'en': ('re-audit this URL if its content changed since {d}. '
+               'criteria_without_signal = A/AA criteria with no engine signal '
+               '(active or resolved) ever recorded here — many are manual-only '
+               'by nature; they are targets, not failures'),
+        'es': ('re-audita esta URL si su contenido cambió desde {d}. '
+               'criteria_without_signal = criterios A/AA sin ninguna señal del '
+               'motor (activa o resuelta) jamás registrada aquí — muchos son '
+               'manual-only por naturaleza; son objetivos, no fallos'),
+    },
+    'empty': {
+        'en': 'ledger empty — run your first audit',
+        'es': 'ledger vacío — ejecuta tu primera auditoría',
+    },
+    'chronic': {
+        'en': ('deterministic: chronic = active on many urls, or resolved '
+               'somewhere and still active elsewhere (recurring). The review '
+               'queue starts at hot_urls — fix at the template level, '
+               're-audit, and the chronic row drops out'),
+        'es': ('determinista: crónica = activa en muchas URLs, o resuelta en '
+               'unas y aún activa en otras (recurrente). La cola de revisión '
+               'empieza en hot_urls — arregla a nivel de plantilla, re-audita '
+               'y la fila crónica cae'),
+    },
+}
+
+def gaps(url, ledger=None, path='a11y-ledger.json', lang='en'):
     """What has never been checked on this URL?
 
     For an audited URL the ledger knows every signal that EVER fired on it
@@ -195,21 +223,18 @@ def gaps(url, ledger=None, path='a11y-ledger.json'):
         'resolved_signals': entry.get('resolved_signals', []),
         'criteria_with_signal': sorted(checked),
         'criteria_without_signal': sorted(aa - checked),
-        'note': ('re-audit this URL if its content changed since '
-                 + (entry.get('last_audit') or entry.get('ultimo_audit'))
-                 + '. criteria_without_signal = A/AA criteria with no engine '
-                   'signal (active or resolved) ever recorded here — many are '
-                   'manual-only by nature; they are targets, not failures'),
+        'note': _NOTES['reaudit'].get(lang, _NOTES['reaudit']['en']).format(
+            d=(entry.get('last_audit') or entry.get('ultimo_audit'))),
     }
 
 
-def summary(ledger=None, path='a11y-ledger.json'):
+def summary(ledger=None, path='a11y-ledger.json', lang='en'):
     """Summary of the ledger."""
     if ledger is None:
         ledger = _load(path)
     entries = ledger['entries']
     if not entries:
-        return {'total_urls': 0, 'note': 'ledger empty — run your first audit'}
+        return {'total_urls': 0, 'note': _NOTES['empty'].get(lang, _NOTES['empty']['en'])}
     scores = [e.get('score', 0) for e in entries.values() if e.get('score') is not None]
     return {
         'total_urls': len(entries),
@@ -221,7 +246,7 @@ def summary(ledger=None, path='a11y-ledger.json'):
     }
 
 
-def recurrence(ledger=None, path='a11y-ledger.json'):
+def recurrence(ledger=None, path='a11y-ledger.json', lang='en'):
     """Chronic signals across urls + hot urls + review queue.
 
     The deterministic core of "predictive guardrails" — no ML: the ledger
@@ -255,10 +280,7 @@ def recurrence(ledger=None, path='a11y-ledger.json'):
         'total_urls': len(entries),
         'signals_chronic': chronic,
         'hot_urls': urls_ranked[:5],
-        'note': ('deterministic: chronic = active on many urls, or resolved '
-                 'somewhere and still active elsewhere (recurring). The review '
-                 'queue starts at hot_urls — fix at the template level, '
-                 're-audit, and the chronic row drops out'),
+        'note': _NOTES['chronic'].get(lang, _NOTES['chronic']['en']),
     }
 
 
@@ -283,7 +305,7 @@ def main(argv):
         r = record(a.url, report, path=a.ledger)
         print(json.dumps(r, ensure_ascii=False, indent=1))
     elif a.cmd == 'gaps':
-        print(json.dumps(gaps(a.url, path=a.ledger), ensure_ascii=False, indent=1))
+        print(json.dumps(gaps(a.url, path=a.ledger, lang=a.lang), ensure_ascii=False, indent=1))
     elif a.cmd == 'summary':
         print(json.dumps(summary(path=a.ledger), ensure_ascii=False, indent=1))
     elif a.cmd == 'recurrence':

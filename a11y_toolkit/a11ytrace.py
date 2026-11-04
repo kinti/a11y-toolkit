@@ -137,7 +137,7 @@ def _run_script(page, script):
     return walk, navigations
 
 
-def trace(url, steps=25, output=None, auth_state=None, timeout=45, script=None):
+def trace(url, steps=25, output=None, auth_state=None, timeout=45, script=None, browser='auto'):
     """One url → the behavioral trace (replayable JSON).
 
     script: optional list of scripted actions (click/fill/select/press/wait/
@@ -146,8 +146,9 @@ def trace(url, steps=25, output=None, auth_state=None, timeout=45, script=None):
     collector and the focus signature stay identical, so trace diff works the
     same over scripted traces."""
     from playwright.sync_api import sync_playwright
+    from .a11ydom import _get_browser
     with sync_playwright() as p:
-        nav = p.chromium.launch()
+        nav = _get_browser(p, preferred=browser)
         ctx = nav.new_context(storage_state=auth_state) if auth_state else nav
         page = ctx.new_page() if auth_state else nav.new_page()
         try:

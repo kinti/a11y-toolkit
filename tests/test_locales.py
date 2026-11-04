@@ -129,3 +129,19 @@ assert not _fuera, 'eval() fuera de la lista blanca: %r' % _fuera[:3]
 print('pin anti-eval: payloads hostiles rechazados, gramática CLDR intacta, sin eval() en el paquete ✓')
 
 print(f'test_locales.py OK — {len(locales) + 1} locales validados (claves, placeholders, plural, completitud)')
+
+# ── revisión externa ronda 2: cero FRASES inglesas en la rama es de _C ───────
+# (préstamos técnicos deliberados —tooltips, sliders, kanban— no cuentan;
+#  una frase de 3+ palabras de función inglesas consecutivas, sí)
+import re as _re2
+from a11y_toolkit.a11ycrit import _C as _C2
+_FRASE_EN = _re2.compile(
+    r'\b(?:the|with|without|when|that|and|from|you|your|their|only|cannot|must|should|'
+    r'verify|check|watch|read|try|test|manual|exists|again|asking|another|others|between|'
+    r'across|inside|outside|against|whose|which|where|there)\b[\s,]*\b[a-z]+\b[\s,]*'
+    r'\b(?:the|with|when|that|and|from|you|their|only|cannot|must|should|verify|check|'
+    r'watch|read|try|test|manual|exists|again|asking|another|others|between|across|'
+    r'inside|outside|against|whose|which|where|there)\b', _re2.I)
+_fugas = [(c, t[:60]) for c, row in _C2.items() for t in row[1]['es'] if _FRASE_EN.search(t)]
+assert not _fugas, f'frases inglesas en la rama es de _C: {_fugas[:5]}'
+print('a11ycrit _C rama es sin frases inglesas ✓')

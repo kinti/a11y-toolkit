@@ -1,16 +1,13 @@
 # Solidez con una orden. Los targets que usa el día a día.
 .PHONY: test fast hooks visual release help
 
-test:            ## todas las suites (dom/scroll se auto-omiten sin Playwright)
-	python3 tests/test_contrast.py && python3 tests/test_audit.py && python3 tests/test_v32.py \
-	  && python3 tests/test_dom.py && python3 tests/test_cli.py && python3 tests/test_journey.py \
-	  && python3 tests/test_png.py && python3 tests/test_vpat.py && python3 tests/test_act.py && python3 tests/test_scope.py \
-	  && python3 tests/test_wcag3.py && python3 tests/test_route.py && python3 tests/test_mutants.py && python3 tests/test_verify_pack.py && python3 tests/test_npm_wrapper.py && python3 tests/test_wcagem.py && python3 tests/test_plan.py && python3 tests/test_fingerprints.py && python3 tests/test_distrib.py && python3 tests/test_corpus.py \
-	  && python3 tests/test_budget_structural.py && python3 tests/test_engines.py && python3 tests/test_walk.py \
-	  && python3 tests/test_dataviz.py && python3 tests/test_recurrence.py && python3 tests/test_trace.py && python3 tests/test_patterns.py \
-	  && python3 tests/test_solido.py && python3 tests/test_mcp.py && python3 tests/test_revision_externa.py \
-  && python3 tests/test_naming.py && python3 tests/test_locales.py \
-  && python3 scripts/gen_readme.py --check && python3 scripts/gen_llms.py --check
+# test ejecuta TODAS las suites por DESCUBRIMIENTO (tests/test_*.py ordenadas):
+# la lista manual de la era anterior omitía 8 suites — test_locate estuvo roto
+# semanas sin que el gate lo viera. dom/scroll se auto-omiten sin Playwright.
+test:            ## TODAS las suites por descubrimiento (auto-skip sin Playwright)
+	@ls tests/test_*.py | sort | while read -r t; do \
+	  echo "── $$t"; python3 $$t || exit 1; done \
+	  && python3 scripts/gen_readme.py --check && python3 scripts/gen_llms.py --check
 
 fast:            ## suites rápidas (lo que guarda el pre-push)
 	python3 tests/test_contrast.py && python3 tests/test_audit.py && python3 tests/test_v32.py \

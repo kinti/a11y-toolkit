@@ -285,3 +285,14 @@ if failures:
     sys.exit(1)
 print('STANDARDS OK ✓ (solicitation es/en, Quick Ref filters, multi-target, '
       'árbol GSA 508 con excepciones y capítulos, doctrina intacta)')
+
+# ── revisión externa ronda 2: --standard rgaa ya NO se descarta en site/crawl ──
+from a11y_toolkit.a11yaudit import _apply_standard as _aps
+_fake = {'mode': 'site', 'url': 'https://x', 'reports': [
+    {'mode': 'static', 'url': 'https://x/a', 'findings': [
+        {'severity': 'high', 'criterion': '1.1.1 Non-text Content', 'signal': 'img_no_alt',
+         'issue': 'x', 'remediation': 'y'}]}]}
+_out = _aps(_fake, 'rgaa', None, 'es')
+assert 'standard' in _out and _out['reports'][0]['findings'][0].get('rgaa'), \
+    'rgaa descartado en modo site (el enrichment post-hoc no corrió)'
+print('rgaa aplicado post-hoc en site/crawl ✓')

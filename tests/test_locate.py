@@ -125,8 +125,8 @@ check('hostile HTML never crashes', ok)
 
 # ── MCP surface: schema, dispatch, annotations ───────────────────────────────
 names = [t['name'] for t in server.TOOLS]
-check('tool registered as a11y_locate (#36)', names.count('a11y_locate') == 1
-      and len(server.TOOLS) == 36)
+check('tool registered as a11y_locate (#2 of 37)', names.count('a11y_locate') == 1
+      and len(server.TOOLS) == 37 and names.index('a11y_locate') == 1)
 resp = server.invoke('a11y_locate', {'html': HTML, 'query': 'Bienvenidos'})
 payload = json.loads(resp['content'][0]['text'])
 check('MCP invoke returns located route', payload['found']

@@ -79,7 +79,14 @@ def generate(entity, url, status, inaccessible_content=None, method=None,
 
     # RD 1112/2018 art. 10.1(b): el procedimiento de reclamación se ENLAZA,
     # no queda en texto inerte — un valor http(s) se renderiza como <a>
-    # (escapado); el texto que no es URL se queda plano (también escapado)
+    # (escapado); el texto que no es URL se queda plano (también escapado).
+    # El canal de feedback recibe el MISMO trato (es un canal de contacto)
+    feedback_html = ''
+    if feedback:
+        esc_f = e(feedback)
+        feedback_html = (f'<a href="{esc_f}">{esc_f}</a>'
+                         if str(feedback).lower().startswith(('http://', 'https://'))
+                         else esc_f)
     complaints_html = ''
     if complaints:
         esc_c = e(complaints)
@@ -115,7 +122,7 @@ def generate(entity, url, status, inaccessible_content=None, method=None,
   </ul>
 
   <h2>{t['h_contact']}</h2>
-  <p>{t['contact'].format(f=e(feedback))}</p>
+  <p>{t['contact'].format(f=feedback_html)}</p>
   <p>{complaints_html if complaints else t['complaints'][framework]}</p>
 {disalt}
 </main>

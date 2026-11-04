@@ -2,7 +2,7 @@
   "name": "a11y-toolkit",
   "displayName": "a11y-toolkit — WCAG 2.2 audits in the editor",
   "description": "Audit the open HTML file (or just what your branch changed) against WCAG 2.2 with the a11y-toolkit engine. Zero config, honest findings.",
-  "version": "0.1.0",
+  "version": "5.26.0",
   "publisher": "kinti",
   "license": "MIT",
   "repository": {"type": "git", "url": "https://github.com/kinti/a11y-toolkit"},

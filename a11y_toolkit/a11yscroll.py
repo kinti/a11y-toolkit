@@ -78,10 +78,11 @@ def _add(findings, lang, sev, code, key, **fmt):
     })
 
 
-def audit_scroll(url, max_batches=5, lang='en', timeout=45, auth_state=None):
+def audit_scroll(url, max_batches=5, lang='en', timeout=45, auth_state=None, browser='auto'):
     from playwright.sync_api import sync_playwright
+    from .a11ydom import _get_browser
     with sync_playwright() as p:
-        nav = p.chromium.launch()
+        nav = _get_browser(p, preferred=browser)
         ctx = nav.new_context(storage_state=auth_state) if auth_state else nav
         page = ctx.new_page(viewport={'width': 1280, 'height': 800}) if auth_state \
             else nav.new_page(viewport={'width': 1280, 'height': 800})

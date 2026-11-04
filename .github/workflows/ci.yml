@@ -13,16 +13,8 @@ jobs:
           python-version: ${{ matrix.python-version }}
       - run: pip install pillow
       - run: pip install playwright && playwright install --with-deps chromium
-      - run: python tests/test_contrast.py
-      - run: python tests/test_audit.py
-      - run: python tests/test_dom.py     # self-skips if Playwright is absent
-      - run: python tests/test_v32.py
-      - run: python tests/test_journey.py
-      - run: python tests/test_solido.py
-      - run: python tests/test_revision_externa.py
-      - run: python tests/test_cli.py
-      - run: python tests/test_mcp.py
-      - run: python scripts/gen_readme.py --check
+      # CI = make test (descubrimiento completo): la lista manual omitía 8 suites
+      - run: make test
       - name: Package smoke test (pip install .)
         run: |
           pip install .

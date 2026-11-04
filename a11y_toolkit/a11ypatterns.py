@@ -247,12 +247,13 @@ def _test_sliders(page, findings, lang, cap=3):
             continue
 
 
-def audit_patterns(url, timeout=45, lang='en', auth_state=None):
+def audit_patterns(url, timeout=45, lang='en', auth_state=None, browser='auto'):
     """One url → widget patterns found + contract findings (filter, not verdict)."""
     from playwright.sync_api import sync_playwright
+    from .a11ydom import _get_browser
     lang = 'es' if lang == 'es' else 'en'
     with sync_playwright() as p:
-        nav = p.chromium.launch()
+        nav = _get_browser(p, preferred=browser)
         ctx = nav.new_context(storage_state=auth_state) if auth_state else nav
         page = ctx.new_page() if auth_state else nav.new_page()
         try:

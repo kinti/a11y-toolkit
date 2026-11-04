@@ -66,7 +66,12 @@ bad = verdict(TAREA, [
     {'action': 'z', 'friction': {'pattern': 'no_existe'}},
 ], {'completed': True}, url=URL)
 assert 'error' in bad and len(bad['details']) == 3, bad
-assert 'fuera del conjunto A/AA' in bad['details'][0]
+# bilingüe: default en, es explícito (antes el español llegaba al usuario en)
+assert "outside the A/AA 2.2 set" in bad['details'][0]
+bad_es = verdict(TAREA, [
+    {'action': 'x', 'friction': {'criterion': '9.9.9', 'severity': 'high', 'issue': 'x'}},
+], {'completed': True}, url=URL, lang='es')
+assert 'fuera del conjunto A/AA' in bad_es['details'][0]
 print('6. validación de criterion/severidad/patrón ✓')
 
 # 7. patrón de catálogo: criterion+issue+remediation coherentes bilingüe

@@ -30,8 +30,11 @@ import json
 import sys
 
 FORMAT = 'a11y-evidence-pack/2'
+# los 7 estados de build_pack: not-applicable llega cuando el pack se construye
+# con un a11y_scope con exclusiones HUMANAS confirmadas — el verificador
+# independiente jamás debe rechazar exactamente esos packs
 STATES = ('automated-fail', 'automated-review', 'not-flagged', 'manual-only',
-          'agent-verified', 'not-run')
+          'agent-verified', 'not-run', 'not-applicable')
 REQUIRED = ('format', 'sha256', 'generated', 'tool', 'summary', 'criteria',
             'artifacts')
 

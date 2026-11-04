@@ -162,3 +162,29 @@ def main():
 
 if __name__ == '__main__':
     sys.exit(main())
+
+# ── revisión externa ronda 2: el verificador acepta packs CON scope humano ───
+# un pack construido con exclusiones confirmadas trae filas not-applicable:
+# verify_pack jamás debe rechazar exactamente los packs que un auditor usa
+import json as _json
+import subprocess as _sp
+import sys as _sys
+import tempfile as _tf
+import os as _os
+_aud = {'mode': 'static', 'url': 'https://x', 'score': 100, 'findings': []}
+_pack = {'format': 'a11y-evidence-pack/2', 'generated': '2026-11-04T00:00:00+00:00',
+         'tool': 'a11y-toolkit', 'criteria': [
+             {'criterion': '1.1.1 Non-text Content', 'level': 'A', 'status': 'not-flagged',
+              'effort': {'class': 'MIN', 'minutes': 1}},
+             {'criterion': '1.2.1 Audio-only and Video-only (Prerecorded)', 'level': 'A',
+              'status': 'not-applicable', 'excluded_reason': 'no media on scope (human)'}],
+         'summary': {'automated-fail': 0, 'automated-review': 0, 'not-flagged': 54,
+                     'manual-only': 0, 'agent-verified': 0, 'not-run': 0, 'not-applicable': 1},
+         'artifacts': [{'type': 'audit', 'body': _aud}]}
+with _tf.TemporaryDirectory() as _d:
+    _p = _os.path.join(_d, 'p.json')
+    _json.dump(_pack, open(_p, 'w'))
+    _r = _sp.run([_sys.executable, 'scripts/verify_pack.py', _p],
+                 capture_output=True, text=True)
+    assert _r.returncode == 0, f'verify_pack rechazó un pack con not-applicable: {_r.stdout[:200]}'
+print('verify_pack acepta not-applicable (scope humano) ✓')

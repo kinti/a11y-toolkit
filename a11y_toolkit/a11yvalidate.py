@@ -82,11 +82,20 @@ def _process(resp, origin, lang='en'):
         'summary': {s_: sum(1 for h in findings if h['severity'] == s_)
                     for s_ in ('high', 'medium', 'low')},
         'findings': findings,
-        'notice': ('Report from the W3C Nu validator (validator.w3.org/nu). Complements the '
-                  'toolkit audits with the W3C parser view: doctype, encoding, structural '
-                  'validity. HTML validity is not WCAG by itself; mapped criteria where they '
-                  'overlap are labeled.'),
+        'notice': _NOTICE.get(lang, _NOTICE['en']),
     }
+
+
+_NOTICE = {
+    'es': ('Informe del validador Nu del W3C (validator.w3.org/nu). Complementa las '
+           'auditorías del toolkit con la vista del parser del W3C: doctype, '
+           'codificación, validez estructural. La validez HTML no es WCAG por sí '
+           'misma; los criterios mapeados donde se solapan van etiquetados.'),
+    'en': ('Report from the W3C Nu validator (validator.w3.org/nu). Complements the '
+           'toolkit audits with the W3C parser view: doctype, encoding, structural '
+           'validity. HTML validity is not WCAG by itself; mapped criteria where they '
+           'overlap are labeled.'),
+}
 
 
 def validate_url(url, timeout=60, lang='en', base_url=None):

@@ -42,9 +42,12 @@ def _recheck_static(url, findings, timeout=30, lang='en'):
             h['status'] = 'confirmed'
         else:
             h['status'] = 'rejected'
-            h['reject_reason'] = (
-                f"signal '{h.get('signal', '?')}' no longer fires on re-audit — "
-                "the page may have changed, or the finding was a false positive")
+            _rj = ('la señal {s!r} ya no dispara al re-auditar — la página '
+                   'puede haber cambiado, o el hallazgo era un falso positivo'
+                   if lang == 'es' else
+                   "signal {s!r} no longer fires on re-audit — the page may "
+                   'have changed, or the finding was a false positive')
+            h['reject_reason'] = _rj.format(s=h.get('signal', '?'))
         verified.append(h)
     return verified, None
 
@@ -65,10 +68,14 @@ def _recheck_rendered(url, findings, timeout=45, lang='en'):
             h['status'] = 'confirmed'
         else:
             h['status'] = 'rejected'
-            h['reject_reason'] = (
-                f"signal '{h.get('signal', '?')}' no longer fires in the rendered "
-                "re-audit — the element may have changed, been fixed, or the "
-                "first finding was a false positive")
+            _rj = ('la señal {s!r} ya no dispara en la re-auditoría renderizada '
+                   '— el elemento puede haber cambiado o arreglarse, o el primer '
+                   'hallazgo era un falso positivo'
+                   if lang == 'es' else
+                   "signal {s!r} no longer fires in the rendered re-audit — the "
+                   'element may have changed, been fixed, or the first finding '
+                   'was a false positive')
+            h['reject_reason'] = _rj.format(s=h.get('signal', '?'))
         verified.append(h)
     return verified, None
 

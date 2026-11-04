@@ -81,7 +81,7 @@ def matrix(url, engines=None, auth_state=None, capture=None):
             s = snaps[name]
             ok.append({'engine': name, 'elements': len(s.get('elements', [])),
                        'focus_steps': len(s.get('focus_order', [])),
-                       'tree': 'arbol_accesible' in s})
+                       'tree': 'accessibility_tree' in s or 'arbol_accesible' in s})
         except ImportError:
             # playwright ausente NO es «un motor muerto»: es un error de
             # instalación que mata TODA la matriz — relanzar para que main

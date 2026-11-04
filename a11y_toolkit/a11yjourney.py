@@ -52,19 +52,28 @@ def _validate_friction(item, crits, lang='en'):
     if 'pattern' in item:
         pat = item['pattern']
         if pat not in cat:
-            return None, f"patrón desconocido: {pat} — disponibles: {sorted(cat)}"
+            _msg = ('patrón desconocido: {p} — disponibles: {d}'
+                    if lang == 'es' else
+                    'unknown pattern: {p} — available: {d}')
+            return None, _msg.format(p=pat, d=sorted(cat))
         crit, sev, issue, rem = cat[pat]
         return {'signal': pat, 'criterion': crit, 'severity': sev,
                 'issue': issue, 'remediation': rem}, None
     crit = str(item.get('criterion', '')).strip()
     if crit not in crits:
-        return None, f"criterio fuera del conjunto A/AA 2.2: {crit!r}"
+        _msg = ('criterio fuera del conjunto A/AA 2.2: {c!r}'
+                if lang == 'es' else 'criterion outside the A/AA 2.2 set: {c!r}')
+        return None, _msg.format(c=crit)
     sev = item.get('severity', 'medium')
     if sev not in ('high', 'medium', 'low'):
-        return None, f"severidad inválida: {sev!r} (high|medium|low)"
+        _msg = ('severidad inválida: {s!r} (high|medium|low)'
+                if lang == 'es' else 'invalid severity: {s!r} (high|medium|low)')
+        return None, _msg.format(s=sev)
     issue = str(item.get('issue', '')).strip()
     if not issue:
-        return None, 'fricción sin issue (describe la estructura, nunca cites contenido)'
+        return None, ('fricción sin issue (describe la estructura, nunca cites contenido)'
+                      if lang == 'es' else
+                      'friction without issue (describe the structure, never quote content)')
     return {'signal': item.get('signal', 'journey_custom'), 'criterion': crit,
             'severity': sev, 'issue': issue,
             'remediation': str(item.get('remediation', '')).strip()}, None

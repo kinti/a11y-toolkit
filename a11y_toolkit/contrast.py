@@ -147,6 +147,11 @@ def parse_color(s):
                  'b': max(0, min(255, b))}
             if len(v) >= 4:
                 c['a'] = max(0.0, min(1.0, float(v[3].rstrip('%')) / (100 if v[3].endswith('%') else 1)))
+            elif alfa_ext:
+                # hsl(0 0% 0% / 0.5) — sintaxis moderna con barra: MISMO trato
+                # que rgb() con barra (el canal existía solo para la rama rgb)
+                c['a'] = max(0.0, min(1.0, float(alfa_ext.strip().rstrip('%'))
+                                      / (100 if alfa_ext.strip().endswith('%') else 1)))
             return c
         except (ValueError, TypeError, OverflowError):
             return None  # contrato: color inválido → None, nunca traceback

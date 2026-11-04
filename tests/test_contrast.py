@@ -131,3 +131,13 @@ assert res['verdicts'][0]['passes'] is True, res['verdicts'][0]
 assert all(v['passes'] == (res['ratio'] >= v['threshold'])
            for v in res['verdicts']), res['verdicts']
 print(f'9. frontera 4.495-4.5 ({frontera[0]}, raw {frontera[1]:.4f}): display = veredicto ✓')
+
+# ── revisión externa ronda 2: alfa con barra en hsl() (CSS moderno) ──────────
+import sys as _sys2, os as _os2
+_sys2.path.insert(0, _os2.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from a11y_toolkit.contrast import parse_color as _pc2
+c = _pc2('hsl(0 0% 0% / 0.5)')
+assert c and c.get('a') == 0.5, f'hsl con barra pierde alfa: {c}'
+c2 = _pc2('hsl(120 50% 40% / 25%)')
+assert c2 and c2.get('a') == 0.25, f'hsl con barra % pierde alfa: {c2}'
+print('hsl(… / alfa) conserva el canal ✓')

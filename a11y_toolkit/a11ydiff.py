@@ -152,14 +152,22 @@ def snapshot(url, output=None, auth_state=None, engine='chromium'):
     data = {'url': url, 'ts': datetime.now(timezone.utc).isoformat(),
              'elements': elements, 'focus_order': order}
     if tree is not None:
-        data['arbol_accesible'] = tree
+        data['accessibility_tree'] = tree
     if output:
         with open(output, 'w', encoding='utf-8') as f:
             json.dump(data, f, ensure_ascii=False, indent=1)
     return data
 
 
-def diff(a, b):
+_NOTE = {
+    'es': ('Elementos sin id se casan por tag+nombre+href: renombrar produce '
+           'eliminado+añadido, no un diff fino. Usa ids estables para trazabilidad.'),
+    'en': ('Elements without ids are matched by tag+name+href: renaming shows as '
+           'removed+added, not a fine-grained diff. Use stable ids for traceability.'),
+}
+
+
+def diff(a, b, lang='en'):
     # multiset por firma: dos controles con el MISMO nombre (Edit por fila,
     # botones-icono sin name) son dos elementos — un dict por clave los
     # colapsaba y el diff decía «sin cambios» ante una duplicación
@@ -187,8 +195,10 @@ def diff(a, b):
     # roles/nombres computados que la lista de interactivos no ve.
     tree_changed = None
     tree_diff = None
-    if 'arbol_accesible' in a and 'arbol_accesible' in b:
-        la, lb = a['arbol_accesible'].splitlines(), b['arbol_accesible'].splitlines()
+    _ta = a.get('accessibility_tree', a.get('arbol_accesible'))   # clave vieja: compat
+    _tb = b.get('accessibility_tree', b.get('arbol_accesible'))
+    if _ta is not None and _tb is not None:
+        la, lb = _ta.splitlines(), _tb.splitlines()
         tree_changed = la != lb
         if tree_changed:
             tree_diff = [f'- {la[i]}' for i in range(min(len(la), len(lb)))
@@ -214,8 +224,7 @@ def diff(a, b):
                   'removed': focus_removed, 'added': focus_added,
                   'reordered': bool(focus_changed and not focus_removed and not focus_added)},
         'tree': {'changed': tree_changed, 'first_differences': tree_diff},
-        'note': ('Elementos sin id se casan por tag+nombre+href: renombrar produce '
-                 'eliminado+añadido, no un diff fino. Usa ids estables para trazabilidad.'),
+        'note': _NOTE.get(lang, _NOTE['en']),
     }
 
 

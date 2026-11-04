@@ -24,7 +24,8 @@ product promise — never add phone-home code.
 
 ## Conventions
 
-- Release flow: `make release V=X.Y.Z` (atomic bump, fast-suite gate, single
+- Release flow: `make release V=X.Y.Z` (atomic bump, full-suite gate — every
+  `tests/test_*.py` by discovery, single
   v-prefixed commit, tag, push — PyPI publishes the tag). No intermediate work
   commits; the working tree is picked up whole.
 - Internal/strategy material NEVER goes in this repo (pre-commit guard blocks

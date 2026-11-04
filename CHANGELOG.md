@@ -1,5 +1,62 @@
 # Changelog
 
+## main — pendiente — "external QA 2026-11: round 3 — the gate and the surface"
+
+- **The gate now runs everything.** `make test` executes EVERY
+  `tests/test_*.py` by discovery (sorted loop) instead of a hand-picked
+  list that omitted 8 suites — `test_locate` had been broken (pinned to
+  36 tools, tool #36) with no gate seeing it. The release gate
+  (`scripts/versionar.py`) and CI (`.github/workflows/ci.yml`) now run the
+  same full discovery — a red suite can no longer hide outside the list.
+  AGENTS.md's release-flow wording updated to match.
+- **scripts/verify_pack.py accepted only 6 of the 7 pack states**: packs
+  built with a human-confirmed scope (not-applicable rows) were rejected
+  by the independent verifier — exactly the packs an auditor uses after an
+  applicability analysis. 'not-applicable' added, pinned by a test that
+  builds a scoped pack and verifies it.
+- **`browser` param was decorative** in every rendered tool: 13 direct
+  `p.chromium.launch()` sites now go through the existing browser pool
+  (`_get_browser(preferred=…)`) — a11ydom's nine rendered functions plus
+  scroll/patterns/trace; forms/hover gained the param; the MCP schemas for
+  forms/hover/scroll now declare what the dispatch passes
+  (schema↔dispatch contract green).
+- **Spanish leaks closed in English paths** (the bilingual invariant,
+  enforced nowhere until now): a11ydom load errors and the
+  forced-colors/reduced-motion limits are bilingual via the function's
+  `lang`; a11ydiff's note bilingual (+ `diff(lang=)`); journey validation
+  errors bilingual; disprove reject_reasons bilingual; ledger
+  gaps/summary/recurrence notes bilingual (+ `lang` param, MCP schema);
+  the Nu-validate notice bilingual; autofix's `not_applied` respects
+  `lang` (the audit inside was hardcoded to English) and its do-not-touch
+  reasons are bilingual. The snapshot key `arbol_accesible` is now
+  `accessibility_tree` (the public surface is English — readers accept
+  the old key: existing snapshots still diff).
+- **a11ycrit `_C` es branch: ~55 untranslated strings** (typical failures
+  and how-to-checks were English inside the Spanish rows) translated; a
+  phrase-level leak test pins it (loanwords like tooltips/sliders are
+  deliberate).
+- **hsl() with slash alpha lost the channel**: `hsl(0 0% 0% / 0.5)`
+  parsed opaque while rgb-with-slash worked — same treatment now, pinned.
+  SARIF `driverVersion` was frozen at '3.2.0' — derived from the single
+  version source. `--standard rgaa` was silently dropped in site crawls
+  and `--changed` (`_apply_standard` only knew EN 301 549) — RGAA
+  enriches post-hoc now, pinned.
+- **Honest server surface**: `_RETURNS` no longer promises output_path
+  writes for badge/autofix/evidence (they return content; the agent writes
+  the file); a11y_evidence passes `lang` through to build_pack (a Spanish
+  matrix was impossible via MCP); `destructiveHint` is now true only for
+  a11y_forms (which really submits data to the audited site) — writing
+  the file you asked for is not "destructive" in MCP semantics.
+- **The badge practices what it measures**: default palette colors all
+  pass 4.5:1 with the badge's white text (were 1.69-3.22:1) — computed
+  with the toolkit itself and pinned. Declaration `--feedback` URLs
+  render as links (same as complaints, RD 1112 art. 10.1(b)). vtt CLI
+  catches network errors (clean JSON, exit 1). audit_forms dead code
+  removed; a11yfix CLI declares only the languages that exist (es/en);
+  docs/ARCHITECTURE corrected (86 criteria, not 56); vscode/package.json
+  versioned with the engine (was an orphan 0.1.0; versionar bumps it).
+  What does NOT change: tool count (37), prompts (6), scores, no release.
+
 ## main — pendiente — "external QA 2026-11: engine truth pass"
 
 - **Round 2 (same day, "soluciona todo")**: element paths extended to the

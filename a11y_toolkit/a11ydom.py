@@ -22,6 +22,27 @@ import sys
 from .a11yaudit import CRIT, T, compute_score
 from .contrast import parse_color, decode_png, sample_rgb, hexs, luminance, ratio
 
+# textos de las funciones renderizadas que NO viven en locales (errores de
+# carga y limits): bilingües aquí, igual que el catálogo (invariante es/en)
+_LOAD_ERR = {'es': 'no se pudo cargar: {e}',
+             'en': 'could not load: {e}'}
+_LIMITS_HCM = {
+    'es': ('Heurística de revisión (1.4.3/1.4.11 en HCM): los fills '
+           'coloreados hardcoded en SVG suelen caer al heredado con '
+           'forced-colors. La comprobación definitiva es visual con '
+           'Windows High Contrast — esto la prepara, no la sustituye.'),
+    'en': ('Review heuristic (1.4.3/1.4.11 under HCM): hardcoded SVG fills '
+           'usually fall back to inherited under forced-colors. The definitive '
+           'check is visual on Windows High Contrast — this prepares it, '
+           'it does not replace it.'),
+}
+_LIMITS_MOTION = {
+    'es': ('Mide CSS animations y video[autoplay]. No cubre animaciones '
+           'JS/WebGL ni parallax por scroll — revisión manual.'),
+    'en': ('Measures CSS animations and video[autoplay]. Does not cover '
+           'JS/WebGL animations or scroll parallax — manual review.'),
+}
+
 from . import a11yi18n
 # browser pool: Chromium reutilizable entre llamadas consecutivas
 _POOL = {'playwright': None, 'browser': None, 'type': None}
@@ -917,13 +938,13 @@ _JS_FORM_STATE = r'''(pre) => {
   return out;
 }'''
 
-def audit_forms(url, timeout=45, lang='en', auth_state=None):
+def audit_forms(url, timeout=45, lang='en', auth_state=None, browser='auto'):
     """3.3.1 Error Identification / 3.3.3 Error Suggestion — the guided flow:
     fill every validatable field with INVALID data, really submit, then judge
     how errors are identified and announced in the post-submit DOM."""
     from playwright.sync_api import sync_playwright
     with sync_playwright() as p:
-        nav = p.chromium.launch()
+        nav = _get_browser(p, preferred=browser)
         ctx = nav.new_context(storage_state=auth_state) if auth_state else nav
         page = ctx.new_page() if auth_state else nav.new_page()
         try:
@@ -948,7 +969,7 @@ def audit_forms(url, timeout=45, lang='en', auth_state=None):
                           'remediation': _t(lang, key + '_rem').format(**fmt)})
 
     if navigated:
-        add('low', '3.3.1', 'form_navigated', example=page.url if False else 'submit')
+        add('low', '3.3.1', 'form_navigated', example='submit')
     elif touched and state is not None:
         unidentified = [f['form'] for f in state['forms']
                            if f['fields'] and f['identified'] == 0 and f['native'] == 0
@@ -1050,11 +1071,11 @@ _JS_HOVER_TEST = r'''() => {
   return candidates;
 }'''
 
-def audit_hover(url, timeout=45, lang='en', auth_state=None):
+def audit_hover(url, timeout=45, lang='en', auth_state=None, browser='auto'):
     """1.4.13 Content on Hover or Focus: do tooltips dismiss on Escape?"""
     from playwright.sync_api import sync_playwright
     with sync_playwright() as p:
-        nav = p.chromium.launch()
+        nav = _get_browser(p, preferred=browser)
         ctx = nav.new_context(storage_state=auth_state) if auth_state else nav
         page = ctx.new_page() if auth_state else nav.new_page()
         try:
@@ -1233,14 +1254,14 @@ def audit_reflow(url, timeout=45, lang='en', auth_state=None, browser='auto'):
     el layout)."""
     from playwright.sync_api import sync_playwright
     with sync_playwright() as p:
-        nav = p.chromium.launch()
+        nav = _get_browser(p, preferred=browser)
         page = nav.new_page(viewport={'width': 1280, 'height': 800})
         try:
             page.goto(url, wait_until='load', timeout=timeout * 1000)
             page.wait_for_timeout(300)
         except Exception as e:  # noqa: BLE001
             nav.close()
-            return {'error': f'no se pudo cargar: {e}'}
+            return {'error': _LOAD_ERR.get(lang, _LOAD_ERR['en']).format(e=e)}
 
         page.set_viewport_size({'width': 320, 'height': 800})
         page.wait_for_timeout(500)
@@ -1306,7 +1327,7 @@ def audit_keyboard(url, max_steps=60, lang='en', timeout=45, auth_state=None, br
     """
     from playwright.sync_api import sync_playwright
     with sync_playwright() as p:
-        nav = p.chromium.launch()
+        nav = _get_browser(p, preferred=browser)
         ctx = nav.new_context(storage_state=auth_state) if auth_state else nav
         page = ctx.new_page() if auth_state else nav.new_page()
         try:
@@ -1314,7 +1335,7 @@ def audit_keyboard(url, max_steps=60, lang='en', timeout=45, auth_state=None, br
             page.wait_for_timeout(400)
         except Exception as e:  # noqa: BLE001
             nav.close()
-            return {'error': f'no se pudo cargar: {e}'}
+            return {'error': _LOAD_ERR.get(lang, _LOAD_ERR['en']).format(e=e)}
 
         page.evaluate("document.querySelectorAll('[data-a11ystop]').forEach(e => {"
                       " e.removeAttribute('data-a11ystop'); e.removeAttribute('data-a11yruta'); })")
@@ -1587,7 +1608,7 @@ def audit_forced_colors(url, timeout=45, lang='en', auth_state=None, browser='au
     from .a11yaudit import _t as _t_audit, CRIT, compute_score
 
     with sync_playwright() as p:
-        nav = p.chromium.launch()
+        nav = _get_browser(p, preferred=browser)
         ctx = nav.new_context(storage_state=auth_state) if auth_state else nav
         page = ctx.new_page() if auth_state else nav.new_page()
         try:
@@ -1619,10 +1640,7 @@ def audit_forced_colors(url, timeout=45, lang='en', auth_state=None, browser='au
         'findings': findings,
         'summary': {s2: sum(1 for h in findings if h['severity'] == s2)
                     for s2 in ('high', 'medium', 'low')},
-        'limits': ('Heurística de revisión (1.4.3/1.4.11 en HCM): los fills '
-                   'coloreados hardcoded en SVG suelen caer al heredado con '
-                   'forced-colors. La comprobación definitiva es visual con '
-                   'Windows High Contrast — esto la prepara, no la sustituye.'),
+        'limits': _LIMITS_HCM.get(lang, _LIMITS_HCM['en']),
     }
 
 
@@ -1656,7 +1674,7 @@ def audit_reduced_motion(url, timeout=45, lang='en', auth_state=None, browser='a
     from .a11yaudit import _t as _t_audit, CRIT, compute_score
 
     with sync_playwright() as p:
-        nav = p.chromium.launch()
+        nav = _get_browser(p, preferred=browser)
         ctx = nav.new_context(storage_state=auth_state) if auth_state else nav
         page = ctx.new_page() if auth_state else nav.new_page()
         try:
@@ -1691,8 +1709,7 @@ def audit_reduced_motion(url, timeout=45, lang='en', auth_state=None, browser='a
         'findings': findings,
         'summary': {s2: sum(1 for h in findings if h['severity'] == s2)
                     for s2 in ('high', 'medium', 'low')},
-        'limits': ('Mide CSS animations y video[autoplay]. No cubre '
-                   'animaciones JS/WebGL ni parallax por scroll — revisión manual.'),
+        'limits': _LIMITS_MOTION.get(lang, _LIMITS_MOTION['en']),
     }
 
 
@@ -1705,7 +1722,7 @@ def audit_dom_url(url, timeout=45, lang='en', auth_state=None, browser='auto', c
     iniciada) para auditar detrás de login."""
     from playwright.sync_api import sync_playwright
     with sync_playwright() as p:
-        nav = p.chromium.launch()
+        nav = _get_browser(p, preferred=browser)
         ctx = nav.new_context(storage_state=auth_state) if auth_state else nav
         page = ctx.new_page() if auth_state else nav.new_page()
         if color_scheme in ('dark', 'light'):
@@ -1718,7 +1735,7 @@ def audit_dom_url(url, timeout=45, lang='en', auth_state=None, browser='auto', c
         except Exception as e:  # noqa: BLE001
             if not page.content() or page.url in ('about:blank', ''):
                 nav.close()
-                return {'error': f'no se pudo cargar: {e}'}
+                return {'error': _LOAD_ERR.get(lang, _LOAD_ERR['en']).format(e=e)}
         try:
             data = page.evaluate(_JS, MAX_EXAMPLES)
             # 1.4.12: inject the WCAG spacing overrides, count clipped texts
@@ -1786,7 +1803,7 @@ def contrast_dom(url, selector, text_color=None, sample=4, lang='en', timeout=45
     from .contrast import T as _TC
     t9 = _TC.get(lang, _TC['es'])
     with sync_playwright() as p:
-        nav = p.chromium.launch()
+        nav = _get_browser(p, preferred=browser)
         ctx = nav.new_context(storage_state=auth_state) if auth_state else nav
         page = ctx.new_page() if auth_state else nav.new_page()
         try:
@@ -1897,7 +1914,7 @@ _JS_WALK = r'''(maxEls) => {
 
 
 def contrast_walk(url, max_walk=400, max_sample=24, dark=False,
-                  lang='en', timeout=45, auth_state=None):
+                  lang='en', timeout=45, auth_state=None, browser='auto'):
     """Contraste PERCIBIDO de cada text_ renderizado de la página (1.4.3).
 
     La capa informe de la familia de contraste: donde audit_dom audita y
@@ -1980,7 +1997,7 @@ def contrast_walk(url, max_walk=400, max_sample=24, dark=False,
 
     with sync_playwright() as p:
         def _run(scheme):
-            nav = p.chromium.launch()
+            nav = _get_browser(p, preferred=browser)
             ctx = (nav.new_context(storage_state=auth_state, color_scheme=scheme)
                    if auth_state else nav.new_context(color_scheme=scheme))
             page = ctx.new_page()

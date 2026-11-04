@@ -138,8 +138,13 @@ def main(argv):
     ap.add_argument('--duration', type=float, help='media duration in seconds (coverage check)')
     ap.add_argument('--lang', default='en', choices=['en', 'es'])
     a = ap.parse_args(argv)
-    print(json.dumps(vtt_check(a.url, duration=a.duration, lang=a.lang),
-                     ensure_ascii=False, indent=1))
+    try:
+        res = vtt_check(a.url, duration=a.duration, lang=a.lang)
+    except ValueError as e:   # _FetchError incluido (descarga/scheme/HTML-size)
+        print(json.dumps({'error': str(e)}, ensure_ascii=False))
+        return 1
+    print(json.dumps(res, ensure_ascii=False, indent=1))
+    return 0
     return 0
 
 

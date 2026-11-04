@@ -21,7 +21,10 @@ from . import a11yi18n
 
 _TEXTS = a11yi18n.pair('badge')  # locales/<lang>.json — community-editable
 
-_COLORS = [(90, '#2da44e'), (75, '#8bdb5e'), (50, '#d29922'), (0, '#cf222e')]
+# paleta por defecto: TODOS los fondos pasan 4.5:1 con el texto blanco del
+# badge (verificado con el propio motor) — una herramienta de accesibilidad
+# no puede exhibir texto de bajo contraste (revisión externa 2026-11)
+_COLORS = [(90, '#1a7f37'), (75, '#4d6b0f'), (50, '#9a6700'), (0, '#cf222e')]
 
 
 def _esc(value):

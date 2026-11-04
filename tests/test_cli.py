@@ -248,3 +248,11 @@ assert r.returncode == 0 and 'BEGIN without END' in r.stdout, (r.returncode, r.s
 _txt = open(os.path.join(_md, 'AGENTS.md')).read()
 assert 'fragmento huérfano' in _txt and _txt.count(a11yinit.MARKER_END) == 1
 print('HUB 5.26.1 OK ✓ (criteria/wizard/hover/dom reales, criterio exit 1, init sin crash)')
+
+# ── badge predica con el ejemplo: la paleta por defecto pasa AA consigo misma ──
+from a11y_toolkit import contrast as _ct
+from a11y_toolkit.a11ybadge import _COLORS as _PAL
+for _th, _c in _PAL:
+    _r = _ct.pair(_c, '#ffffff')['ratio']
+    assert _r >= 4.5, f'badge color {_c} (≥{_th}) no pasa AA con texto blanco: {_r}'
+print('badge: paleta por defecto AA (4.5:1 con blanco) ✓')

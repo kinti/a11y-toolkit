@@ -40,11 +40,11 @@ assert len(s2['runs'][0]['results']) >= len(res)
 # --- 3. insignia SVG: honesta y accesible ---
 svg = badge(92, date='2026-09-07', lang='en')
 assert 'role="img"' in svg and '<title>' in svg and '92/100' in svg and 'screening' in svg
-assert '#2da44e' in svg                       # ≥90 verde
+assert '#1a7f37' in svg                       # ≥90 verde (AA con blanco)
 assert '#cf222e' in badge(30)                 # <50 rojo
 assert 'not conformance' in svg               # la promesa que NO hace
 svg_es = badge(60, lang='es')
-assert 'cribado automático' in svg_es and '#d29922' in svg_es
+assert 'cribado automático' in svg_es and '#9a6700' in svg_es
 
 # --- 4. presupuesto: solo lo NUEVO bloquea ---
 base_html = '<html lang="es"><head><title>t</title></head><body><main><h1>a</h1><img src="x.png"></main></body></html>'

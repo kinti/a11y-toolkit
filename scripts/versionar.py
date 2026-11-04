@@ -16,7 +16,7 @@ import subprocess
 import sys
 
 AQUI = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-RAPIDAS = ['tests/test_contrast.py', 'tests/test_audit.py', 'tests/test_v32.py', 'tests/test_wcag3.py', 'tests/test_route.py', 'tests/test_mutants.py', 'tests/test_verify_pack.py', 'tests/test_npm_wrapper.py', 'tests/test_wcagem.py', 'tests/test_plan.py', 'tests/test_fingerprints.py', 'tests/test_distrib.py', 'tests/test_corpus.py', 'tests/test_solido.py']
+# (histórico) la lista manual RAPIDAS se retiró: el gate descubre TODAS las suites
 
 
 def bump_fichero(ruta, ancla, nuevo_valor, etiqueta):
@@ -73,14 +73,25 @@ def main():
         json.dump(d, open(pj, 'w'), indent=2, ensure_ascii=False)
         open(pj, 'a').write('\n')
         print('  ✓ plugin.json: versión (Agent Plugins)')
+    # vscode/package.json viaja con la versión del motor (era 0.1.0 huérfana)
+    pv = os.path.join(AQUI, 'vscode', 'package.json')
+    if os.path.exists(pv):
+        d = json.load(open(pv, encoding='utf-8'))
+        if d.get('version') != nueva:
+            d['version'] = nueva
+            json.dump(d, open(pv, 'w', encoding='utf-8'), indent=2, ensure_ascii=False)
+            open(pv, 'a', encoding='utf-8').write('\n')
+            print('  ✓ vscode/package.json: versión')
     # test_mcp derives its version assertion from server.VERSION: nothing to bump there.
 
-    print('— suites rápidas:')
-    for t in RAPIDAS:
-        r = subprocess.run([sys.executable, os.path.join(AQUI, t)],
-                           capture_output=True, timeout=300)
+    print('— gate de release: TODAS las suites por descubrimiento (la lista')
+    print('  manual omitía 8 suites — test_locate estuvo roto sin que se viera):')
+    import glob as _glob
+    _todas = sorted(_glob.glob(os.path.join(AQUI, 'tests', 'test_*.py')))
+    for t in _todas:
+        r = subprocess.run([sys.executable, t], capture_output=True, timeout=600)
         estado = '✓' if r.returncode == 0 else '✗'
-        print(f'  {estado} {t}')
+        print(f'  {estado} {os.path.basename(t)}')
         if r.returncode != 0:
             print('SUITE ROJA — no se versiona nada más. Arregla y reintenta.')
             return 2

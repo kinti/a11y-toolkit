@@ -346,16 +346,10 @@ def autofix(html_text, lang=None, title=None, url='(html)', form_errors=True):
                                            f"{state['fields']} field(s) — 3.3.1 identification + "
                                            f"3.3.3 attribute-derived suggestions"})
 
-    # 5. lo que NO se toca — honestidad operativa
-    report = audit_html(html_text, url, lang='en')
-    do_not_touch = {
-        'img_no_alt': 'we cannot know if the image is decorative: alt="" vs descriptive is a human call',
-        'ctrl_name': 'the accessible name requires knowing what the control does',
-        'field_label': 'the label text is dictated by the content',
-        'contrast_fail': 'picking the new color is a design decision (use a11y_suggest_color)',
-        'target_small': 'needs a layout redesign',
-        'list_structure': 'rebuilding the markup requires understanding the structure',
-    }
+    # 5. lo que NO se toca — honestidad operativa (bilingüe: el report y los
+    # remediation ya llegan en `lang`; el why_not también debe)
+    report = audit_html(html_text, url, lang=lang)
+    do_not_touch = _DO_NOT_TOUCH.get(lang, _DO_NOT_TOUCH['en'])
     already = {a['signal'] for a in applied}
     not_applied = []
     seen = set()
@@ -369,6 +363,26 @@ def autofix(html_text, lang=None, title=None, url='(html)', form_errors=True):
 
     fixed = _unmask(fixed)
     return {'fixed_html': fixed, 'applied': applied, 'not_applied': not_applied}
+
+
+_DO_NOT_TOUCH = {
+    'en': {
+        'img_no_alt': 'we cannot know if the image is decorative: alt="" vs descriptive is a human call',
+        'ctrl_name': 'the accessible name requires knowing what the control does',
+        'field_label': 'the label text is dictated by the content',
+        'contrast_fail': 'picking the new color is a design decision (use a11y_suggest_color)',
+        'target_small': 'needs a layout redesign',
+        'list_structure': 'rebuilding the markup requires understanding the structure',
+    },
+    'es': {
+        'img_no_alt': 'no podemos saber si la imagen es decorativa: alt="" vs descriptivo es decisión humana',
+        'ctrl_name': 'el nombre accesible exige saber qué hace el control',
+        'field_label': 'el texto de la etiqueta lo dicta el contenido',
+        'contrast_fail': 'elegir el nuevo color es decisión de diseño (usa a11y_suggest_color)',
+        'target_small': 'exige rediseñar el layout',
+        'list_structure': 'reconstruir el marcado exige entender la estructura',
+    },
+}
 
 
 def _star_nudge_once():
@@ -400,7 +414,7 @@ def _star_nudge_once():
 def main(argv):
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument('--file', required=True)
-    ap.add_argument('--lang', choices=['es', 'en', 'pt', 'fr', 'de', 'it', 'gl', 'ca', 'eu'])
+    ap.add_argument('--lang', default='en', choices=['en', 'es'])  # packs que existen
     ap.add_argument('--title')
     ap.add_argument('-o', '--out')
     a = ap.parse_args(argv)

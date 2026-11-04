@@ -2432,18 +2432,29 @@ def audit_changed(base='HEAD', lang='en', cwd='.'):
 
 
 def _apply_standard(res, standard, target, lang):
-    """ Enriquecimiento post-hoc EN 301 549 (site crawl, --changed): añade
-    bloque standard y cláusula por hallazgo. standard=None → res intacto."""
-    if standard != 'en301549' or not isinstance(res, dict) or 'error' in res:
+    """ Enriquecimiento post-hoc EN 301 549 / RGAA (site crawl, --changed):
+    añade bloque standard y cláusula/issue RGAA por hallazgo. standard=None →
+    res intacto. Antes solo EN: con --standard rgaa y --pages>1 (o --changed)
+    el estándar se descartaba EN SILENCIO."""
+    if not isinstance(res, dict) or 'error' in res:
         return res
-    from . import a11yen301549 as _enstd
-    _tgt = target or _enstd.target_for_mode(res.get('mode', 'static'))
-    res['standard'] = _enstd.standard_block(_tgt, lang)
-    for _pg in res.get('reports', [res]):
-        for h in _pg.get('findings', []):
-            _cl = _enstd.clause_for(h.get('criterion'), _tgt)
-            if _cl:
-                h['clause'] = _cl
+    if standard == 'en301549':
+        from . import a11yen301549 as _enstd
+        _tgt = target or _enstd.target_for_mode(res.get('mode', 'static'))
+        res['standard'] = _enstd.standard_block(_tgt, lang)
+        for _pg in res.get('reports', [res]):
+            for h in _pg.get('findings', []):
+                _cl = _enstd.clause_for(h.get('criterion'), _tgt)
+                if _cl:
+                    h['clause'] = _cl
+    elif standard == 'rgaa':
+        from . import a11yrgaa as _rg
+        res['standard'] = _rg.standard_block(lang)
+        for _pg in res.get('reports', [res]):
+            for h in _pg.get('findings', []):
+                _rgaa = _rg.rgaa_for_sc((h.get('criterion') or '').split(' ')[0])
+                if _rgaa:
+                    h['rgaa'] = _rgaa
     return res
 
 

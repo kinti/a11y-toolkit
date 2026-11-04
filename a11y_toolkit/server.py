@@ -404,6 +404,7 @@ TOOLS = [
             'lang': {'type': 'string', 'enum': ['es', 'en']},
             'max_batches': {'type': 'integer', 'description': 'scroll batches (5 default)'},
             'auth_state': {'type': 'string', 'description': 'Path to a Playwright storage_state JSON (exported session) to audit an authenticated feed'},
+            'browser': {'type': 'string', 'enum': ['auto', 'chromium', 'firefox', 'webkit', 'chrome', 'msedge'], 'description': 'Browser engine (auto = detect the first available)'},
         },
 'required': ['url']},
     },
@@ -429,6 +430,7 @@ TOOLS = [
             'reviewer': {'type': 'object', 'description': '{"name":…, "credential":…, "review_date":…} to prefill the signature block'},
             'verified': {'type': 'array', 'items': {'type': 'string'}, 'description': 'Criterion codes an agent/human verified against this sample (manual checklist protocol) — they become agent-verified in the matrix; automated-fail stays fail'},
             'build': {'type': 'object', 'description': 'Build reference sealed into the pack sha — the claim→artifact chain: {"commit":…, "ci_url":…} or {"ref": "git:716d870"}'},
+            'lang': {'type': 'string', 'enum': ['en', 'es'], 'description': 'Pack language: matrix status labels and notes (en default)'},
         }, 'required': ['reports']},
     },
     {
@@ -474,6 +476,7 @@ TOOLS = [
             'lang': {'type': 'string', 'enum': ['es', 'en'], 'description': 'Output language (en default)'},
             'timeout': {'type': 'number', 'description': 'Page load timeout seconds (45 default)'},
             'auth_state': {'type': 'string', 'description': 'Path to a Playwright storage_state JSON to test forms behind login'},
+            'browser': {'type': 'string', 'enum': ['auto', 'chromium', 'firefox', 'webkit', 'chrome', 'msedge'], 'description': 'Browser engine (auto = detect the first available)'},
         },
 'required': ['url']},
     },
@@ -505,7 +508,8 @@ TOOLS = [
             'lang': {'type': 'string', 'enum': ['es', 'en'], 'description': 'Output language (en default)'},
             'timeout': {'type': 'number', 'description': 'Page load timeout (45 default)'},
             'auth_state': {'type': 'string', 'description': 'Path to a Playwright storage_state JSON (exported session) to audit behind login — stays local'},
-        }, 'required': ['url']},
+        'browser': {'type': 'string', 'enum': ['auto', 'chromium', 'firefox', 'webkit', 'chrome', 'msedge'], 'description': 'Browser engine (auto = detect the first available)'},
+            }, 'required': ['url']},
     },
     {
         'name': 'a11y_sr_transcript',
@@ -553,6 +557,7 @@ TOOLS = [
             'url': {'type': 'string', 'description': 'URL (for record/gaps)'},
             'report': {'type': 'object', 'description': 'audit report object (for record)'},
             'ledger_path': {'type': 'string', 'description': 'ledger file path (default: a11y-ledger.json)'},
+            'lang': {'type': 'string', 'enum': ['en', 'es'], 'description': 'Notes language (en default)'},
         }, 'required': ['action']},
     },
     {
@@ -621,7 +626,8 @@ TOOLS = [
             'scope': {'type': 'object', 'description': 'a11y_scope output: human-confirmed exclusions become Not Applicable with their reason (machine proposals never); overrides still win'},
             'output_path': {'type': 'string', 'description': 'save the VPAT HTML here (optional)'},
             'lang': {'type': 'string', 'enum': ['es', 'en'], 'description': 'Document language (default en)'},
-        }, 'required': ['product']},
+        },
+            'required': ['product']},
     },
     {
         'name': 'a11y_generate_openacr',
@@ -653,7 +659,8 @@ TOOLS = [
             'scope': {'type': 'object', 'description': 'a11y_scope output: human-confirmed exclusions become not-applicable with their reason (machine proposals never); overrides still win'},
             'output_path': {'type': 'string', 'description': 'save the OpenACR YAML here (optional)'},
             'lang': {'type': 'string', 'enum': ['es', 'en'], 'description': 'Document language (default en)'},
-        }, 'required': ['product']},
+        },
+            'required': ['product']},
     },
     {
         'name': 'a11y_contrast_dom',
@@ -1198,8 +1205,8 @@ _RETURNS = {
     'a11y_diff': 'Returns JSON: {ok, added, removed, renamed, focus_order_changed, first_differences} — ok:false means a regression to review.',
     'a11y_diff_urls': 'Returns the same diff shape as a11y_diff, for two live URLs.',
     'a11y_aria_live_snippet': 'Returns the injectable JavaScript as text (bookmarklet or page.evaluate).',
-    'a11y_badge': 'Returns the honest SVG badge; writes a file only when output_path is given.',
-    'a11y_autofix': 'Returns JSON: {fixed_html, applied [{fix, …}], not_applied [{issue, remediation}]} — writes a file only when output_path is given.',
+    'a11y_badge': 'Returns the honest SVG badge as text content (the agent writes the file).',
+    'a11y_autofix': 'Returns JSON: {fixed_html, applied [{fix, …}], not_applied [{issue, remediation}]} as text content (the agent writes the file).',
     'a11y_reflow': 'Returns JSON: {url, viewport, horizontal_scroll, offenders [{selector, width}]}.',
     'a11y_keyboard': 'Returns JSON: {tab_stops, trap_detected, escape_releases, findings}.',
     'a11y_scroll': 'Returns JSON: {mode, url, score, findings [{criterion, severity, signal, issue, remediation}], summary} — same shape as the audits.',
@@ -1210,7 +1217,7 @@ _RETURNS = {
     'a11y_disprove': 'Returns JSON: {confirmed, rejected, score} — a fresh score over confirmed findings only.',
     'a11y_ledger': 'record returns the stored entry; gaps returns criteria never checked; summary returns {entries, active_signals, resolved, mean_score}.',
     'a11y_criterion': 'Returns JSON: {criterion, level, understanding, toolkit_signals, requires, typical_failures, how_to_check} — signal mode adds {signal, act_rules [{id, name, status, url}]}; {error, …} for unknown codes.',
-    'a11y_evidence': 'Returns the pack JSON (a11y-evidence-pack/2); writes a file only when output_path is given.',
+    'a11y_evidence': 'Returns the pack JSON (a11y-evidence-pack/2) as text content (the agent writes the file).',
     'a11y_journey_verdict': 'Returns JSON: {verdict pass|partial|fail|blocked, score 0-100, findings [{criterion, severity, signal, issue, remediation, step}], summary, rules} — writes a file only when output_path is given.',
     'a11y_generate_declaration': 'Returns {html, summary} — the accessible legal statement; writes a file only when output_path is given.',
     'a11y_generate_vpat': 'Returns {html, summary {level: count}, levels {code: level}, pack_sha256, draft} — the VPAT draft; writes a file only when output_path is given.',
@@ -1237,7 +1244,12 @@ for _t in TOOLS:
     _title_ro = _RO_OVERRIDE.get(_t['name'], _ro)
     _title_same = _IDEM_OVERRIDE.get(_t['name'], True)
     _t['title'] = 'a11y-toolkit: ' + _title
-    _t['annotations'] = {'readOnlyHint': _title_ro, 'destructiveHint': not _title_ro,
+    # destructiveHint honrado (semántica MCP): «no-read-only» NO equivale a
+    # destructivo. Escribir el fichero que te piden es un efecto normal; lo
+    # genuinamente irreversible es a11y_forms (ENVÍA datos reales a la web
+    # auditada) — el resto son cómputo + guardado dirigido por el usuario
+    _t['annotations'] = {'readOnlyHint': _title_ro,
+                         'destructiveHint': _t['name'] in ('a11y_forms',),
                          'idempotentHint': _title_same, 'openWorldHint': _ow}
     if _t['name'] in _RETURNS:
         _t['description'] += ' ' + _RETURNS[_t['name']]
@@ -1380,7 +1392,8 @@ def invoke(name, args):
         try:
             return _content(audit_scroll(args['url'], max_batches=args.get('max_batches', 5),
                                        lang=args.get('lang', 'en'),
-                                       auth_state=args.get('auth_state')))
+                                       auth_state=args.get('auth_state'),
+                                       browser=args.get('browser', 'auto')))
         except ImportError:
             return {'content': [{'type': 'text',
                                  'text': 'Playwright not installed: pip install playwright && playwright install chromium'}],
@@ -1401,7 +1414,7 @@ def invoke(name, args):
             return {'content': [{'type': 'text', 'text': f'error: {e}'}], 'isError': True}
     if name == 'a11y_forms':
         try:
-            return _content(audit_forms(args['url'], timeout=args.get('timeout', 45),
+            return _content(audit_forms(args['url'], timeout=args.get('timeout', 45), browser=args.get('browser', 'auto'),
                                       lang=args.get('lang', 'en'),
                                       auth_state=args.get('auth_state')))
         except ImportError:
@@ -1416,7 +1429,8 @@ def invoke(name, args):
                                         reviewer=args.get('reviewer'),
                                         verified=args.get('verified'),
                                         scope=args.get('scope'),
-                                        build=args.get('build')))
+                                        build=args.get('build'),
+                                        lang=args.get('lang', 'en')))
         except Exception as e:  # noqa: BLE001
             return {'content': [{'type': 'text', 'text': f'error: {e}'}], 'isError': True}
     if name == 'a11y_scope':
@@ -1455,7 +1469,7 @@ def invoke(name, args):
             return {'content': [{'type': 'text', 'text': f'error: {e}'}], 'isError': True}
     if name == 'a11y_hover':
         try:
-            return _content(audit_hover(args['url'], timeout=args.get('timeout', 45),
+            return _content(audit_hover(args['url'], timeout=args.get('timeout', 45), browser=args.get('browser', 'auto'),
                                        lang=args.get('lang', 'en'),
                                        auth_state=args.get('auth_state')))
         except ImportError:
@@ -1492,10 +1506,10 @@ def invoke(name, args):
                 if not args.get('url'):
                     return _content({'error': 'gaps requires url'})
                 from .a11yledger import gaps as _gaps
-                return _content(_gaps(args['url'], path=path))
+                return _content(_gaps(args['url'], path=path, lang=args.get('lang', 'en')))
             if action == 'summary':
                 from .a11yledger import summary as _sum
-                return _content(_sum(path=path))
+                return _content(_sum(path=path, lang=args.get('lang', 'en')))
             # enum inválido: error de tool-result nombrando la action y las
             # válidas — no caer al 'unknown tool' del dispatcher
             return _content({'error': f'invalid action: {action}',
