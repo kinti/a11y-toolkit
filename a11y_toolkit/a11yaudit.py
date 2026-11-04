@@ -101,8 +101,9 @@ _SENSORIAL = re.compile(
 
 # Campos que con frecuencia recogen datos personales (1.3.5)
 _PERSONAL_DATA = re.compile(
-    r'(^|[\W_])(name|nombre|email|correo|phone|telefono|tel|address|direccion|postal|zip|'
-    r'city|ciudad|country|pais|organi[sz]ation|company|empresa|street|user|usuario)([\W_]|$)', re.I)
+    r'(^|[\W_])(full[_-]?name|first[_-]?name|last[_-]?name|name|nombre|email|correo|'
+    r'phone|telefono|tel|address|direccion|postal|zip|city|ciudad|country|pais|'
+    r'organi[sz]ation|company|empresa|street|user(name)?|usuario)([\W_]|$)', re.I)
 
 # Tokens autofill válidos (HTML §7.5 — subconjunto práctico del estándar;
 # one-time-code incluido: los campos OTP lo exigen y los lectores lo usan)
@@ -402,6 +403,8 @@ class _Auditor(HTMLParser):
         self._styles_text = ''     # contenido de <style>: clases ocultas y fuentes-icono
         self._styles_cached_src = None
         self._style_rules = []
+        self._hidden_cls_set = set()     # clases que el <style> oculta (caché)
+        self._nohiding_cls_set = set()   # subconjunto display:none/visibility (foco)
         self._icon_links = []
         self._ahf_deferred = []    # (tag, id) off-screen: decidir post-parse con los scripts completos
         self._el_stack = []        # (tag, attrs, [texto directo]) — texto propio del elemento
@@ -421,8 +424,9 @@ class _Auditor(HTMLParser):
         self.videos = 0
         self.videos_with_captions = 0
         self._in_video = False
-        self._video_caps_stack = []     # [attrs, tiene_captions] por <video> abierto
+        self._video_caps_stack = []     # [attrs, captions, descriptions] por <video>
         self.videos_no_caps_elems = []
+        self.videos_no_desc_elems = []
         self.media_autoplay_elems = []
         self.tables = 0
         self.tables_with_th = 0
@@ -600,14 +604,21 @@ class _Auditor(HTMLParser):
             if _k not in a:
                 a[_k] = _v
         self.elements += 1
-        # delegación de eventos: un control interactivo DENTRO de un candidato
-        # a «click no enfocable» lo exime (wrapper de analytics/React sobre un
-        # <button> real — el teclado lo opera desde el descendiente)
-        if self._stray_pend:
+        # delegación de eventos: un control interactivo REAL dentro de un
+        # candidato a «click no enfocable» lo exime (wrapper de analytics
+        # sobre un <button> real). «Interactivo» exige OPERABILIDAD: un <a>
+        # SIN href no recibe foco, un input hidden/disabled tampoco, y el
+        # contenido de <template> es inerte — ninguno salva al wrapper
+        if self._stray_pend and not self._in_template:
             _ti_mark = (a.get('tabindex') or '').strip()
-            if tag in ('a', 'button', 'input', 'select', 'textarea', 'summary') \
-                    or (a.get('role') or '').strip().lower() in ('button', 'link') \
-                    or (_ti_mark.isdigit() and int(_ti_mark) >= 0):
+            _rolemark = (a.get('role') or '').strip().lower() in ('button', 'link')
+            _nav = (tag == 'a' and bool((a.get('href') or '').strip()))
+            _native = (tag in ('button', 'summary', 'select', 'textarea')
+                       or _nav
+                       or (tag == 'input' and (a.get('type') or 'text').lower() != 'hidden'
+                           and 'disabled' not in a))
+            if _native or _rolemark \
+                    or (_ti_mark.isdecimal() and int(_ti_mark) >= 0):
                 for _sp in self._stray_pend:
                     _sp[3] = True
         # ruta determinista del elemento (kernel de anotación): nth-of-type
@@ -632,7 +643,8 @@ class _Auditor(HTMLParser):
                 pass
             else:
                 self.features[tag] = self.features.get(tag, 0) + 1
-        if a.get('id'):
+        if a.get('id') and not self._in_template:
+            # ids dentro de <template> no existen: ni dup_ids ni refs rotas
             self.ids[a['id']] = self.ids.get(a['id'], 0) + 1
         if self.root_tag is None:
             self.root_tag = tag
@@ -674,6 +686,30 @@ class _Auditor(HTMLParser):
             self._in_template += 1
         elif tag == 'svg':
             self._svg_depth += 1
+            # svg hijo de un control: su aria-label/aria-labelledby/<title>
+            # aporta al nombre del control (accname 2F.ii: name-from-content
+            # incluye el nombre accesible de cada descendiente — Chrome y
+            # Firefox nombran «Submit Search» al botón-buscador del W3C WAI
+            # así). aria-hidden en el svg lo excluye (icono decorativo).
+            if self._ctrl and (a.get('aria-label') or a.get('aria-labelledby')) \
+                    and (a.get('aria-hidden') or '').strip().lower() != 'true':
+                self._ctrl[-1]['img_attrs'].append(a)
+            # y los ROLES sobre el propio svg se procesan igual que en un tag
+            # cualquiera: svg[role=img] sin nombre ES un 1.1.1 (ACT 23a2a8),
+            # svg[role=button] exige nombre+tabindex — el elif de arriba se
+            # comía el svg antes de llegar a la maquinaria de roles
+            _svg_role = (a.get('role') or '').strip().lower()
+            if not self._in_template:
+                if _svg_role == 'img':
+                    self.imgs_all.append((a, _hidden))
+                elif _svg_role in ('button', 'link'):
+                    self._ctrl.append({'tag': tag, 'attrs': a, 'text': [],
+                                       'text_visible': [], 'inner_img': False,
+                                       'img_attrs': [], 'hidden': _hidden,
+                                       'depth': self._depth, 'kind': 'role:' + _svg_role})
+                    if 'tabindex' not in a and not _hidden:
+                        self.role_no_tabindex.append(f'{tag}[role={_svg_role}]')
+                        self.role_no_tabindex_elems.append(a)
         elif tag == 'html':
             self.saw_html = True
             self.lang = (a.get('lang') or '').strip()
@@ -706,9 +742,9 @@ class _Auditor(HTMLParser):
             self.canvas_hidden[id(a)] = _hidden
         elif tag == 'meta':
             if (a.get('name') or '').lower() == 'viewport':
+                # el ÚLTIMO content decide (así se consume): su elem también
                 self.viewport = (a.get('content') or '')
-                if not self._viewport_elem:
-                    self._viewport_elem = a
+                self._viewport_elem = a
             elif (a.get('http-equiv') or '').lower() == 'refresh':
                 self.meta_refresh = (a.get('content') or '')
                 self.meta_refreshes.append((a.get('content') or ''))
@@ -833,13 +869,14 @@ class _Auditor(HTMLParser):
             self.mobiles.append('<blink>')
         elif tag == 'track':
             # sin kind (o kind vacío/None), el valor por defecto del spec HTML
-            # es «subtitles» — cuenta como captions (no exigir el atributo)
+            # es «subtitles» — cuenta como captions (no exigir el atributo).
+            # SOLO dentro de un <video>: un track huérfano (o en <template>)
+            # jamás acredita captions de un vídeo que no es suyo
             kind = (a.get('kind') or 'subtitles').lower()
-            if kind == 'descriptions':
-                self.videos_descriptions += 1
-            elif kind in ('captions', 'subtitles'):
-                self.videos_with_captions += 1
-                if self._video_caps_stack:
+            if self._video_caps_stack and not self._in_template:
+                if kind == 'descriptions':
+                    self._video_caps_stack[-1][2] = True
+                elif kind in ('captions', 'subtitles'):
                     self._video_caps_stack[-1][1] = True
         elif tag in ('video', 'audio'):
             if tag == 'video' and 'muted' not in a:
@@ -847,7 +884,7 @@ class _Auditor(HTMLParser):
                 # aplican a vídeo CON audio — no se exige track a lo inaudible
                 self.videos += 1
                 self._in_video = True
-                self._video_caps_stack.append([a, False])
+                self._video_caps_stack.append([a, False, False])
             # 1.4.2 aplica a audio QUE SUENA sin control: muted = nada audible;
             # controls = el usuario puede pararlo — ambos pasan (el hero-video
             # muted de toda landing no es un fallo de Audio Control)
@@ -870,12 +907,18 @@ class _Auditor(HTMLParser):
                 self.tables += 1
                 self._in_table = True
                 # sospecha de maquetación (attrs presentacionales de la era
-                # <table width=…>): sin th NI marcadores de datos (caption,
-                # summary, scope, headers) no se exige th — el FP clásico en
-                # sitios años-90 tipo HN; con marcador de datos SÍ se exige
-                _suspect = bool({'cellpadding', 'cellspacing', 'width', 'border'} & set(a))
-                _data = 'summary' in a
-                # pila por tabla anidada: la interna no borra el th de la externa
+                # <table width=… cellpadding=0 border=0>): sin th NI marcadores
+                # de datos no se exige th (FP clásico años-90). OJO border:
+                # el spec dice que border≠0 declara tabla de DATOS — solo el
+                # «0» (o sin valor, que es 0) es maquetación
+                _bv = (a.get('border') or '0').strip()
+                _border_data = _bv.isdecimal() and int(_bv) > 0
+                _suspect = (bool({'cellpadding', 'cellspacing', 'width'} & set(a))
+                            or ('border' in a and not _border_data)) and not _border_data
+                _data = 'summary' in a or _border_data
+                # pila por tabla anidada, CON IDENTIDAD: una </table> de una
+                # tabla presentation/none (no apilada) jamás popea la entrada
+                # de la tabla externa que la envuelve
                 self._table_stack.append([self._th_in_table, a, _suspect, _data])
                 self._th_in_table = False
         elif tag == 'th':
@@ -922,8 +965,8 @@ class _Auditor(HTMLParser):
             elif _role_v == 'img' and tag != 'img':
                 # div[role=img] con imagen de fondo: también necesita nombre (23a2a8)
                 self.imgs_all.append((a, _hidden))
-            if a.get('onclick') and not _role_v and 'tabindex' not in a \
-                    and not self._in_template:
+            if a.get('onclick') and _role_v not in ('button', 'link') \
+                    and 'tabindex' not in a and not self._in_template:
                 # candidato a «click no enfocable»: se CONFIRMA al cerrar salvo
                 # que el subárbol contenga un control nativo (delegación de
                 # eventos / wrappers de analytics sobre un <button> real)
@@ -1084,7 +1127,11 @@ class _Auditor(HTMLParser):
         # tabindex negativo (cualquiera, no solo -1), o disabled.
         _ti_raw = (a.get('tabindex') or '').strip()
         _ti_num = None
-        if _ti_raw and (_ti_raw.isdigit() or _ti_raw[1:].isdigit()):
+        # isdecimal (NO isdigit): '²' pasa isdigit y revienta int() — un
+        # atributo exótico jamás destruye el informe de 3 MB
+        _ti_dec = _ti_raw if _ti_raw.isdecimal() else (
+            _ti_raw[1:] if _ti_raw[:1] == '-' and _ti_raw[1:].isdecimal() else '')
+        if _ti_dec != '':
             _ti_num = int(_ti_raw)
         _css_hidden = 'hidden' in a or 'display:none' in _style or 'visibility:hidden' in _style \
             or self._css_hidden_stack[-1] or self._focus_hidden_class()
@@ -1138,7 +1185,7 @@ class _Auditor(HTMLParser):
             self._heading_hidden = _hidden
             self._heading_tag = tag
         ti = a.get('tabindex')
-        if ti and ti.isdigit() and int(ti) > 0 and not self._in_template:
+        if ti and ti.isdecimal() and int(ti) > 0 and not self._in_template:
             self.positive_tabindices.append((tag, int(ti)))
             self.positive_tabindex_elems.append(a)
 
@@ -1163,12 +1210,19 @@ class _Auditor(HTMLParser):
                     _idx = _i
                     break
             if _idx is None:
-                return   # endtag suelto: ignorar, nada se desincroniza
+                # endtag suelto… salvo controles: el navegador MANTIENE el
+                # <a> abierto a través del </div> que lo arrastró (adoption
+                # agency) — el enlace es real y hay que contarlo
+                if tag in _CONTROLS:
+                    self._close_control(tag)
+                return
             _nframes = len(self._el_stack) - _idx
+            _closed_attrs = None   # attrs del frame que CASA (el último popeado)
             for _ in range(_nframes):
                 if not self._el_stack:
                     break
                 _etag, _eattrs, _ebuf = self._el_stack.pop()
+                _closed_attrs = _eattrs
                 if _etag == 'canvas':
                     self.canvases.append((_eattrs, ' '.join(_ebuf).strip(),
                                           self.canvas_hidden.pop(id(_eattrs), False)))
@@ -1210,8 +1264,9 @@ class _Auditor(HTMLParser):
                 _svgtxt = ' '.join(self._svg_title_buf).strip()
                 if _svgtxt:
                     if self._ctrl:
+                        # nombre SÍ (accname from content); VISIBLE no — el
+                        # <title> de svg es texto alternativo, no renderizado
                         self._ctrl[-1]['text'].append(_svgtxt)
-                        self._ctrl[-1]['text_visible'].append(_svgtxt)
                     for _fr in reversed(self._el_stack):
                         if _fr[0] == 'svg':
                             self._svg_titles[id(_fr[1])] = _svgtxt
@@ -1266,23 +1321,27 @@ class _Auditor(HTMLParser):
         elif tag == 'video':
             self._in_video = False
             if self._video_caps_stack:
-                _vattrs, _vcaps = self._video_caps_stack.pop()
+                _vattrs, _vcaps, _vdesc = self._video_caps_stack.pop()
                 if not _vcaps:
                     self.videos_no_caps_elems.append(_vattrs)
+                if not _vdesc:
+                    self.videos_no_desc_elems.append(_vattrs)
         elif tag == 'table':
-            if self._table_stack:
-                _th_saved, _tattrs, _suspect, _data = self._table_stack.pop()
-                # el estado th de ESTA tabla decide; el guardado restaura al
-                # padre (el <th> de una tabla interna no satisface a la externa)
-                if self._th_in_table:
-                    self.tables_with_th += 1
-                elif _data or not _suspect:
-                    self.tables_no_th_elems.append(_tattrs)
-                else:
-                    # maquetación por heurística: fuera del cómputo (ni tables
-                    # ni finding — un grid de la era width= no debe 1.3.1)
-                    self.tables -= 1
-                self._th_in_table = _th_saved
+            if self._table_stack and _closed_attrs is not None:
+                _th_saved, _tattrs, _suspect, _data = self._table_stack[-1]
+                # IDENTIDAD: solo decide la entrada cuya tabla se CIERRA (el
+                # </table> de una presentation/template NUNCA apilada resbala
+                # sin tocar la pila — antes popeaba la entrada de la externa)
+                if _closed_attrs is _tattrs:
+                    self._table_stack.pop()
+                    if self._th_in_table:
+                        self.tables_with_th += 1
+                    elif _data or not _suspect:
+                        self.tables_no_th_elems.append(_tattrs)
+                    else:
+                        # maquetación por heurística: fuera del cómputo
+                        self.tables -= 1
+                    self._th_in_table = _th_saved
             self._in_table = bool(self._table_stack)
         elif tag == 'th':
             pass
@@ -1335,7 +1394,7 @@ class _Auditor(HTMLParser):
                     self.lang_parts_invalid.append(_mark)
             return
 
-    _RE_RULE = re.compile(r'\.([\w-]+)\s*\{([^}]*)\}')
+    _RE_RULE = re.compile(r'([^{}]+)\{([^}]*)\}')
     _RE_HIDDEN_STYLE = re.compile(r'clip-path|display\s*:\s*none|visibility\s*:\s*hidden'
                             r'|height\s*:\s*1px|width\s*:\s*1px|opacity\s*:\s*0')
     # subconjunto ESTRICTO para focuseabilidad: solo lo que saca del tab
@@ -1355,17 +1414,29 @@ class _Auditor(HTMLParser):
         return self._class_hides('focus')
 
     def _class_hides(self, mode):
+        """¿Una clase abierta (del control o de un ancestro) la declara el
+        <style> como oculta? Los SETS de clases-ocultas se computan UNA VEZ
+        por <style> (no por elemento: reglas×profundidad×elementos era
+        cuadrático — 2.15 s en deep-800×413-reglas, ahora lineal)."""
         if self._styles_text is not self._styles_cached_src:
             self._styles_cached_src = self._styles_text
-            self._style_rules = self._RE_RULE.findall(self._styles_text)
-        _rx = self._RE_HIDDEN_STYLE if mode == 'hidden' else self._RE_RULE_DISPLAY
+            # selectores agrupados (.a, .b {…}): cada clase del grupo cuenta
+            self._style_rules = [
+                (cls.lstrip('. '), body)
+                for sel, body in self._RE_RULE.findall(self._styles_text)
+                for cls in sel.split(',')]
+            self._hidden_cls_set = {_s for _s, _b in self._style_rules
+                                    if self._RE_HIDDEN_STYLE.search(_b)}
+            self._nohiding_cls_set = {_s for _s, _b in self._style_rules
+                                      if self._RE_RULE_DISPLAY.search(_b)}
+        _set = self._hidden_cls_set if mode == 'hidden' else self._nohiding_cls_set
+        if not _set:
+            return False
         _open_classes = [c.get('attrs', {}).get('class') for c in self._ctrl]
         _open_classes += (_fr[1].get('class') for _fr in self._el_stack)
         for _cls in filter(None, _open_classes):
-            for _nom in _cls.split():
-                for _selector, _body in self._style_rules:
-                    if _nom == _selector and _rx.search(_body):
-                        return True
+            if _set.intersection(_cls.split()):
+                return True
         return False
 
     def handle_data(self, data):
@@ -1378,6 +1449,8 @@ class _Auditor(HTMLParser):
                 # lista por id + join único post-parse: la concatenación por
                 # nodo era cuadrática en páginas con wrappers id grandes
                 self._id_text_parts.setdefault(_id, []).append(data)
+        if self._in_template:
+            return   # contenido INERTE: ni prosa visible, ni lang, ni nombres
         if data.strip() and not in_code and not self._in_title:
             self._visible_text.append(data)  # prosa visible: ni JS, ni CSS, ni título
         if self._in_title:
@@ -1439,11 +1512,13 @@ def normalize_report(report):
     if not isinstance(report, dict):
         return report
     findings = report.get('findings')
-    if not findings:
+    if not isinstance(findings, list):
+        if findings:
+            return dict(report, findings=[])   # dict/str/… hostil: sin hallazgos
         return report
     out = dict(report)
     out['findings'] = [dict(h, signal=normalize_signal(h.get('signal', '')))
-                       for h in findings]
+                       for h in findings if isinstance(h, dict)]
     return out
 
 
@@ -1565,7 +1640,7 @@ def audit_html(html_text, url='(html)', lang='en', standard=None, target=None):
         # PERO un img presentacional ENFOCABLE (tabindex ≥ 0) sigue necesitando
         # nombre: sigue en la navegación por tab (ACT 23a2a8)
         _ti = (a.get('tabindex') or '').strip()
-        _enfocable_img = _ti.isdigit() and int(_ti) >= 0
+        _enfocable_img = _ti.isdecimal() and int(_ti) >= 0
         if hidden or ((a.get('role') or '').strip().lower() in ('presentation', 'none')
                       and not _enfocable_img):
             continue
@@ -1617,6 +1692,11 @@ def audit_html(html_text, url='(html)', lang='en', standard=None, target=None):
         lb, al, ti = _name_sources(a)
         _img_names = []
         for ia in img_attrs:
+            # el interior aria-hidden NO es nombre (accname: excluido del
+            # name-from-content) — el icono decorativo junto al texto no miente
+            if (ia.get('aria-hidden') or '').strip().lower() == 'true':
+                _img_names.append('')
+                continue
             ilb, ial, iti = _name_sources(ia)
             _img_names.append((ia.get('alt') or '').strip() or ial or ilb or iti)
         if not (text.strip() or al or lb or ti
@@ -1755,7 +1835,7 @@ def audit_html(html_text, url='(html)', lang='en', standard=None, target=None):
     # el PRIMER <title> del documento decide (modelo ACT 2779a5)
     p.title = p._titles_in_order[0] if p._titles_in_order else ''
     t_clean = (p.title or '').strip().lower()
-    if not t_clean:
+    if not t_clean and p.root_tag not in ('svg', 'math'):
         add('medium', '2.4.2', 'title_missing')
     elif t_clean in ('untitled', 'documento', 'documento sin título', 'sin título',
                       'home', 'inicio', 'page 1', 'new page', 'página 1',
@@ -1766,8 +1846,8 @@ def audit_html(html_text, url='(html)', lang='en', standard=None, target=None):
                n=len(p.iframes_no_title),
                paths=[p._elem_paths[id(_a)] for _a in p.iframes_no_title_elems
                       if id(_a) in p._elem_paths][:5])
-    if p.videos and p.videos_with_captions < p.videos:
-        add('medium', '1.2.2', 'video_captions', n=p.videos - p.videos_with_captions,
+    if p.videos and p.videos_no_caps_elems:
+        add('medium', '1.2.2', 'video_captions', n=len(p.videos_no_caps_elems),
             paths=[p._elem_paths[id(_a)] for _a in p.videos_no_caps_elems
                    if id(_a) in p._elem_paths][:5])
     if p.viewport:
@@ -1978,8 +2058,10 @@ def audit_html(html_text, url='(html)', lang='en', standard=None, target=None):
     if p.orientation_locks:
         add_ej('low', '1.3.4', 'orientation_lock', p.orientation_locks,
                n=len(p.orientation_locks), example=', '.join(p.orientation_locks[:2]))
-    if p.videos and p.videos_descriptions < p.videos:
-        add('low', '1.2.3', 'audio_desc_missing', n=p.videos - p.videos_descriptions)
+    if p.videos and p.videos_no_desc_elems:
+        add('low', '1.2.3', 'audio_desc_missing', n=len(p.videos_no_desc_elems),
+            paths=[p._elem_paths[id(_a)] for _a in p.videos_no_desc_elems
+                   if id(_a) in p._elem_paths][:5])
     if p.sensory:
         add('low', '1.3.3', 'sensory_text', example='; '.join(p.sensory[:2])[:70])
     lm_dups = [f'{lm} ×{t[1]}' for lm, t in p.landmarks.items()
@@ -2056,6 +2138,14 @@ def audit_html(html_text, url='(html)', lang='en', standard=None, target=None):
     return res
 
 
+class _FetchError(ValueError):
+    """Error de descarga CON CLAVE de catálogo (es/en): el mensaje visible
+    viaja por locales, no hardcodeado — invariante bilingüe del repo."""
+    def __init__(self, key, **fmt):
+        super().__init__(key)
+        self.key, self.fmt = key, fmt
+
+
 # ── redirect policy hook ───────────────────────────────────────────────────
 # urlopen follows 3xx (up to 10 hops) to ANY host without asking: every hop
 # is a NEW destination nobody validated. DEFAULT: every redirect hop is
@@ -2092,21 +2182,21 @@ class _CheckedRedirect(urllib.request.HTTPRedirectHandler):
     def redirect_request(self, req, fp, code, msg, headers, newurl):
         _guard = validate_redirect
         if _guard is None:
-            _guard = (lambda _u: not _redirect_to_private(_u))
+            # saltos que MANTIENEN el host que el usuario escribió conservan
+            # su intent explícito (dev en localhost: /app→/app/, http→https):
+            # solo los saltos a OTRO destino pasan el filtro de red privada
+            from urllib.parse import urlsplit as _us
+            try:
+                _same = (_us(newurl).netloc.lower() == (req.host or '').lower())
+            except Exception:  # noqa: BLE001
+                _same = False
+            _guard = (lambda _u: _same or not _redirect_to_private(_u))
         if _guard is not True and not _guard(newurl):
-            raise ValueError(f'redirect to a disallowed destination: {newurl[:96]}')
+            raise _FetchError('err_redirect_blocked', url=newurl[:96])
         return super().redirect_request(req, fp, code, msg, headers, newurl)
 
 
 _OPENER = urllib.request.build_opener(_CheckedRedirect)
-
-
-class _FetchError(ValueError):
-    """Error de descarga CON CLAVE de catálogo (es/en): el mensaje visible
-    viaja por locales, no hardcodeado — invariante bilingüe del repo."""
-    def __init__(self, key, **fmt):
-        super().__init__(key)
-        self.key, self.fmt = key, fmt
 
 
 def _fetch(url, timeout=30, truncate_at=None, accept_ct=()):

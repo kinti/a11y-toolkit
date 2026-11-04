@@ -34,7 +34,8 @@ _hallazgo = {k for k in es
               'no_post_copy', 'invalid_color', 'invalid_region', 'region_outside',
               'no_pixels', 'load_error', 'opaque_text', 'fetch_error',
               'rendered_reason', 'overlay_widgets_note',
-              'err_unparseable', 'err_too_big', 'err_not_html')}   # dato del namespace audit, no un finding
+              'err_unparseable', 'err_too_big', 'err_not_html',
+              'err_redirect_blocked')}   # dato del namespace audit, no un finding
 sin_rem = sorted(k for k in _hallazgo if f'{k}_rem' not in es)
 assert not sin_rem, f"findings sin _rem (KeyError al emitir): {sin_rem}"
 assert set(CRIT['es']) == set(CRIT['en']), 'CRIT desparejo es/en'
@@ -119,14 +120,24 @@ assert '{len(_server.TOOLS)} tools · {len(_server._PROMPTS)} prompts' in vis, \
 doc_server = server.__doc__
 assert all(t['name'] in doc_server for t in server.TOOLS), 'docstring del server incompleto'
 
-# superficies con conteo no generadas (AGENTS, reglas Cursor/VS Code, npm):
-# todo "NN tools" que aparezca debe decir el número real de server.TOOLS
+# superficies con conteo no generadas (AGENTS, reglas Cursor/VS Code, npm,
+# plugin.json y npm/README — ronda 4: TODO "NN tools" debe decir el número
+# real, también hacia ABAJO: un 34/33 huérfano pasaba el <= )
 for _path in ('AGENTS.md', os.path.join('rules', 'a11y-toolkit.mdc'),
-              os.path.join('npm', 'package.json')):
+              os.path.join('npm', 'package.json'), 'plugin.json',
+              os.path.join('npm', 'README.md')):
     _txt = open(os.path.join(ROOT, _path), encoding='utf-8').read()
     _nums = {int(_n) for _n in re.findall(r'(\d+) (?:Mcp |MCP |)tools', _txt)}
-    assert _nums <= {len(server.TOOLS)}, \
-        f'{_path} dice tools={_nums}, hay {len(server.TOOLS)} — conteo derivado'
+    assert _nums == {len(server.TOOLS)}, \
+        f'{_path} dice tools={_nums}, hay {len(server.TOOLS)} — conteo exacto'
+
+# README.es: tabla hermana — las 37 tools presentes y el conteo exacto
+# (ronda 4: la tabla es manual y ninguna superficie la vigilaba)
+_es = open(os.path.join(ROOT, 'README.es.md'), encoding='utf-8').read()
+_missing_es = [t['name'] for t in server.TOOLS if f'`{t["name"]}`' not in _es]
+assert not _missing_es, f'README.es sin filas para: {_missing_es[:5]}'
+_es_nums = {int(_n) for _n in re.findall(r'(\d+) herramientas', _es)}
+assert _es_nums <= {len(server.TOOLS)}, f'README.es dice {_es_nums} herramientas'
 assert 'a11y_scope' in open(os.path.join(ROOT, 'skills', 'a11y-toolkit', 'SKILL.md'),
                             encoding='utf-8').read(), 'la skill no conoce a11y_scope'
 

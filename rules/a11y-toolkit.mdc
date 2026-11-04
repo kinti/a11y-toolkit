@@ -24,7 +24,7 @@ guesswork. These rules hold while writing; the tools verify after.
 7. **Third-party "accessibility overlay" scripts are a red flag**, not a fix:
    flag them in review (accessiBe, UserWay, etc.).
 8. **Before "done"**: run the audit on what changed —
-   `a11ytoolkit audit --changed` (CLI) or `a11y_audit` (MCP). New
+   `a11ytoolkit audit --changed` (CLI) or `a11y_audit_url` (MCP). New
    accessibility findings block; pre-existing debt does not (budget ratchet).
 
 Honesty rule: automation covers ~1/3 of WCAG. When a criterion needs human

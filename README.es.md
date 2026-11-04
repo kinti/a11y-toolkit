@@ -369,10 +369,7 @@ vnu autoalojado soportado). `path`/`output_path` leen/escriben rutas locales —
 ## Desarrollo
 
 ```bash
-python3 tests/test_contrast.py && python3 tests/test_audit.py && python3 tests/test_v32.py \
-  && python3 tests/test_dom.py && python3 tests/test_cli.py && python3 tests/test_solido.py \
-  && python3 tests/test_mcp.py && python3 tests/test_png.py && python3 tests/test_vpat.py \
-  && python3 tests/test_act.py
+make test   # TODAS las suites por descubrimiento
 ```
 
 `tests/test_dom.py` se auto-omite sin Playwright. `tests/test_solido.py`

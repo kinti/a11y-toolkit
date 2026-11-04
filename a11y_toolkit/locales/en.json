@@ -218,7 +218,8 @@
    "one": "1 element with an interactive role (button/link) and no tabindex: not reachable by keyboard (JS could add it at runtime — the rendered pass confirms).",
    "other": "{n} elements with an interactive role (button/link) and no tabindex: not reachable by keyboard (JS could add it at runtime — the rendered pass confirms)."
   },
-  "role_no_tabindex_rem": "Add tabindex=\"0\" to every element that receives role=\"button\"/\"link\", plus Enter/Space key handling — or use the native <button>/<a href> element."
+  "role_no_tabindex_rem": "Add tabindex=\"0\" to every element that receives role=\"button\"/\"link\", plus Enter/Space key handling — or use the native <button>/<a href> element.",
+  "err_redirect_blocked": "redirect to a disallowed destination (private network): {url}"
  },
  "badge": {
   "name": "a11y-toolkit",

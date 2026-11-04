@@ -63,7 +63,14 @@ def _findings_by_code(pack):
     by_code = {}
     for art in pack.get('artifacts', []):
         body = art.get('body') or {}
-        for h in body.get('findings', []):
+        # artifacts de site-crawl anidan los hallazgos en reports[] — sin
+        # este descenso TODOS los Remarks de un pack de crawl salían sin cita
+        _hls = body.get('findings')
+        if not _hls and isinstance(body.get('reports'), list):
+            _hls = [h for sub in body['reports']
+                    if isinstance(sub, dict) for h in sub.get('findings', [])
+                    if isinstance(h, dict)]
+        for h in (_hls or []):
             if not isinstance(h, dict):
                 continue   # artefacto hostil: sin crash
             if h.get('status') in _NOT_DEAD or h.get('disprover_status') in _NOT_DEAD:

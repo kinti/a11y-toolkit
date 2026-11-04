@@ -154,7 +154,13 @@ def build_pack(reports, snapshot=None, reviewer=None, notes=None, verified=None,
     pages = []
     for inf in reports:
         subs = inf.get('reports')
-        if isinstance(subs, list) and subs:
+        # PREFERENCIA: si el informe tiene findings TOP-LEVEL son las COPIAS
+        # RE-VERIFICADAS (la salida del disprover sobre un site report las
+        # escribe arriba, no dentro de reports[]) — aplanarlas encima usaría
+        # los ejemplares MUERTOS y los hallazgos desmentidos resucitarían
+        if isinstance(inf.get('findings'), list) and inf['findings']:
+            pages.append(inf)
+        elif isinstance(subs, list) and subs:
             pages.extend(normalize_report(s) for s in subs if isinstance(s, dict))
         else:
             pages.append(inf)
@@ -208,7 +214,7 @@ def build_pack(reports, snapshot=None, reviewer=None, notes=None, verified=None,
     values = {}
     for inf in pages:
         for h in inf.get('findings', []):
-            code = (h.get('criterion') or '').split(' ')[0]
+            code = str(h.get('criterion') or '').split(' ')[0]
             if code not in values:
                 val = {}
                 issue_txt = h.get('issue') or ''   # issue null explícito: sin crash

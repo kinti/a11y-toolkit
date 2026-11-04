@@ -9,7 +9,7 @@ const NPM_PKG = '@kinti/a11y-toolkit';
 
 function runEngine(args) {
   return new Promise((resolve) => {
-    const p = spawn('npx', ['-y', NPM_PKG, ...args], { cwd: vscode.workspace.workspaceFolders?.[0]?.uri.fsPath });
+    const p = spawn(process.platform === 'win32' ? 'npx.cmd' : 'npx', ['-y', NPM_PKG, ...args], { cwd: vscode.workspace.workspaceFolders?.[0]?.uri.fsPath });
     let out = '', err = '';
     p.stdout.on('data', (d) => (out += d));
     p.stderr.on('data', (d) => (err += d));

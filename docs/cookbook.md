@@ -75,7 +75,7 @@ at declaration --entity "Acme" --url https://acme.example \
      --status partial --framework eaa --lang en --output declaration.html
 ```
 
-All three start every level at *not-evaluated* (an automated fail forces
+The two conformance reports start every level at *not-evaluated* (an automated fail forces
 *does-not-support*): the machine fills the notes, a qualified human sets the
 levels. Drafts, not conformance — by design.
 

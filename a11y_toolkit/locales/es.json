@@ -218,7 +218,8 @@
    "one": "1 elemento con rol interactivo (button/link) sin tabindex: inalcanzable por teclado (el JS puede añadirlo en runtime — el pase rendered confirma).",
    "other": "{n} elementos con rol interactivo (button/link) sin tabindex: inalcanzables por teclado (el JS puede añadirlo en runtime — el pase rendered confirma)."
   },
-  "role_no_tabindex_rem": "Añade tabindex=\"0\" a todo elemento con role=\"button\"/\"link\", más manejo de Enter/Espacio — o usa el elemento nativo <button>/<a href>."
+  "role_no_tabindex_rem": "Añade tabindex=\"0\" a todo elemento con role=\"button\"/\"link\", más manejo de Enter/Espacio — o usa el elemento nativo <button>/<a href>.",
+  "err_redirect_blocked": "redirección a un destino no permitido (red privada): {url}"
  },
  "badge": {
   "name": "a11y-toolkit",

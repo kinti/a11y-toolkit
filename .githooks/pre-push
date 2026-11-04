@@ -1,15 +1,14 @@
 #!/usr/bin/env bash
 # Guardián de push: NADA sale con una suite rota.
 # Se activa una vez:  git config core.hooksPath .githooks
+# Ronda 4: la lista manual se retiró (derivaba del Makefile — 6 suites de
+# deriva acumulada): el hook ejecuta `make fast`, LA MISMA definición que
+# usa el día a día. Una sola fuente de verdad para el gate rápido.
 set -euo pipefail
 cd "$(git rev-parse --show-toplevel)"
-echo "[pre-push] suites rápidas (contrast, audit, v32, wcag3, route, mutants, verify_pack, solido, mcp):"
-for t in tests/test_contrast.py tests/test_audit.py tests/test_v32.py tests/test_wcag3.py tests/test_route.py tests/test_mutants.py tests/test_verify_pack.py tests/test_npm_wrapper.py tests/test_wcagem.py tests/test_plan.py tests/test_distrib.py tests/test_corpus.py tests/test_solido.py tests/test_mcp.py; do
-  if ! python3 "$t" >/dev/null 2>&1; then
-    echo "  ✗ $t FALLA — push cancelado."
-    echo "  Corre: python3 $t"
-    exit 1
-  fi
-  echo "  ✓ $t"
-done
+echo "[pre-push] make fast (la misma definición del Makefile — sin listas a la deriva):"
+if ! make fast; then
+  echo "  ✗ make fast ROJO — push cancelado."
+  exit 1
+fi
 echo "[pre-push] verde. Empujando…"

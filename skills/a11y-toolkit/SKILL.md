@@ -58,9 +58,9 @@ weighted **0-100 score** (alt, accessible names, labels, autocomplete 1.3.5, key
 onclick, unknown ARIA roles, broken aria-labelledby, unnamed duplicated landmarks,
 meta refresh, skip mechanism, lang validity, title, headings, zoom, captions, autoplay,
 generic/duplicated link text, tabindex, aria-hidden-on-focusable, tables, duplicate ids,
-accesskeys). Each finding carries a concrete `remediacion`. **Always relay finding +
+accesskeys). Each finding carries a concrete `remediation`. **Always relay finding +
 remediation + WCAG criterion to the user, grouped by severity; quote the score with the
-score_nota caveat.** When you need to explain a criterion, call `a11y_criterion`.
+score_note caveat.** When you need to explain a criterion, call `a11y_criterion`.
 
 `a11y_audit_dom` = rendered audit in Chromium: computed text contrast against
 effective backgrounds with alpha compositing (1.4.3), 24×24 minimum target size
@@ -129,8 +129,6 @@ page. If a run hangs, look for orphan chromium processes and retry.
   reconstruction loses the sequence, and sequence is the evidence.
 - Run journeys at 320px viewport for mobile too: the tree changes, and
   2.5.8/1.4.4-class failures show up only there.
-
-## Notes
 
 ## Notes
 

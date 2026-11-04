@@ -240,6 +240,10 @@ def trace_diff(a, b):
 
 
 def main(argv):
+    # el hub del CLI pasa el argv SIN el subcomando (['url', …]): el parser
+    # exige trace|diff — prepend 'trace' cuando el primer token no es subcmd
+    if argv and argv[0] not in ('trace', 'diff') and not argv[0].startswith('-'):
+        argv = ['trace'] + argv
     p = argparse.ArgumentParser(description=__doc__)
     sub = p.add_subparsers(dest='cmd', required=True)
     s1 = sub.add_parser('trace')

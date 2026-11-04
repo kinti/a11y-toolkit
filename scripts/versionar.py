@@ -89,10 +89,19 @@ def main():
     import glob as _glob
     _todas = sorted(_glob.glob(os.path.join(AQUI, 'tests', 'test_*.py')))
     for t in _todas:
-        r = subprocess.run([sys.executable, t], capture_output=True, timeout=600)
+        try:
+            r = subprocess.run([sys.executable, t], capture_output=True,
+                               timeout=600, cwd=AQUI)
+        except subprocess.TimeoutExpired:
+            print(f'  ✗ {os.path.basename(t)} — TIMEOUT (>600s)')
+            print('SUITE ROJA — no se versiona nada más. Arregla y reintenta.')
+            return 2
         estado = '✓' if r.returncode == 0 else '✗'
         print(f'  {estado} {os.path.basename(t)}')
         if r.returncode != 0:
+            # el porqué, no solo el qué: cola del output capturado
+            tail = (r.stdout or b'')[-600:].decode('utf-8', 'replace')
+            print(f'  ── cola de {os.path.basename(t)}:\n{tail}')
             print('SUITE ROJA — no se versiona nada más. Arregla y reintenta.')
             return 2
 

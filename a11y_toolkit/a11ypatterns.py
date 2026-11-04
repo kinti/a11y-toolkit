@@ -106,6 +106,9 @@ def _test_tablists(page, findings, lang, cap=3):
         total = tabs.count()
         if total < 2:
             continue
+        # APG tablist: horizontal usa Right/Left; VERTICAL (aria-orientation)
+        # prescribe Up/Down — acusar de HIGH una tablist vertical correcta era
+        # un FP. Se acepta que CUALQUIERA de las dos flechas mueva el foco
         try:
             tabs.nth(0).evaluate('el => el.focus()')
             page.keyboard.press('ArrowRight')
@@ -113,6 +116,12 @@ def _test_tablists(page, findings, lang, cap=3):
             is_second = page.evaluate(
                 '''(tab) => document.activeElement === tab''',
                 tabs.nth(1).element_handle())
+            if not is_second:
+                page.keyboard.press('ArrowDown')
+                page.wait_for_timeout(120)
+                is_second = page.evaluate(
+                    '''(tab) => document.activeElement === tab''',
+                    tabs.nth(1).element_handle())
             if not is_second:
                 _finding(findings, lang, 'high', '2.1.1', 'pattern_tabs_arrows_dead',
                          n=total)

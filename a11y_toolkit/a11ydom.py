@@ -92,7 +92,7 @@ def _detect_browser(pw, preferred=None):
 def _get_browser(pw, headless=True, preferred=None):
     """Devuelve un browser del pool (o crea uno si no existe)."""
     if _POOL['browser'] is not None and _POOL['browser'].is_connected() and \
-            _POOL['type'] == (preferred or 'auto'):
+            (preferred in (None, 'auto') or _POOL['type'] == preferred):
         return _POOL['browser']
     _close_pool()
     br, kind = _detect_browser(pw, preferred)
@@ -772,7 +772,7 @@ def audit_dom(data, url='(rendered)', lang='en', color_scheme='light'):
     if re.search(r'user-scalable\s*=\s*(no|0)', vp, re.I):
         _add(findings, lang, 'high', '1.4.4', 'zoom_no')
     elif (m := re.search(r'maximum-scale\s*=\s*([\d.]+)', vp, re.I)) and float(m.group(1)) < 2:
-        _add(findings, lang, 'medium', '1.4.4', 'zoom_max', v=m.group(1))
+        _add(findings, lang, 'high', '1.4.4', 'zoom_max', v=m.group(1))
     if data.get('refresh'):
         m = re.match(r'\s*(\d+)', str(data['refresh']))
         segs = int(m.group(1)) if m else 0
@@ -781,14 +781,14 @@ def audit_dom(data, url='(rendered)', lang='en', color_scheme='light'):
         _add(findings, lang, 'medium', '2.4.3', 'tabindex_pos',
                 examples=data['tabindex'], n=len(data['tabindex']))
     if not (data.get('main') or data.get('skip')):
-        _add(findings, lang, 'medium', '2.4.1', 'no_bypass')
+        _add(findings, lang, 'low', '2.4.1', 'no_bypass')
 
     levels = [h['lvl'] for h in (data.get('headings') or []) if h['text']]
     h1s = sum(1 for h in data.get('headings') or [] if h['lvl'] == 1 and h['text'])
     empties = sum(1 for h in data.get('headings') or [] if not h['text'])
     if levels:
         if h1s == 0:
-            _add(findings, lang, 'medium', '1.3.1', 'no_h1')
+            _add(findings, lang, 'low', '1.3.1', 'no_h1')
         elif h1s > 1:
             _add(findings, lang, 'low', '1.3.1', 'multi_h1', n=h1s)
         prev, jumps = 0, []
@@ -800,7 +800,7 @@ def audit_dom(data, url='(rendered)', lang='en', color_scheme='light'):
             _add(findings, lang, 'low', '1.3.1', 'heading_skips',
                     skips=', '.join(jumps[:5]))
     else:
-        _add(findings, lang, 'medium', '1.3.1', 'no_headings')
+        _add(findings, lang, 'low', '1.3.1', 'no_headings')
     if empties:
         _add(findings, lang, 'low', '1.3.1', 'empty_heading', n=empties)
     tables, con_th = data.get('tables', 0), data.get('tableTh', 0)
@@ -898,7 +898,7 @@ _JS_FORM_STATE = r'''(pre) => {
                    suggested: 0, native: 0 };
     for (const el of f.querySelectorAll(FIELDS_JS)) {
       if (el.disabled) continue;
-      info.campos++;
+      info.fields++;
       const key = (el.name || el.id || el.type) + '@' + (f.id || f.action || '');
       const shot_before = pre[key] || {};
       let identified = false, sugerido = false;
@@ -1003,56 +1003,64 @@ def sr_transcript(url, timeout=45, lang='en', auth_state=None, browser='auto'):
     structure; this function returns it as prose an agent can READ and
     understand from a blind user's perspective.
     """
+    # J4 (ronda 4): el driver de playwright NUNCA se paraba — una fuga
+    # de proceso por llamada en un servidor MCP de larga vida
     from playwright.sync_api import sync_playwright
     pw = sync_playwright().start()
-    nav = _get_browser(pw, preferred=browser)
-    ctx = nav.new_context(storage_state=auth_state) if auth_state else nav
-    page = ctx.new_page() if auth_state else nav.new_page()
     try:
-        page.goto(url, wait_until='load', timeout=timeout * 1000)
-        page.wait_for_timeout(400)
-    except Exception as e:
-        ctx.close()
-        _close_pool()
-        return {'error': str(e)[:100]}
+        nav = _get_browser(pw, preferred=browser)
+        ctx = nav.new_context(storage_state=auth_state) if auth_state else nav
+        page = ctx.new_page() if auth_state else nav.new_page()
+        try:
+            page.goto(url, wait_until='load', timeout=timeout * 1000)
+            page.wait_for_timeout(400)
+        except Exception as e:
+            ctx.close()
+            _close_pool()
+            return {'error': str(e)[:100]}
 
-    try:
-        tree = page.locator('body').aria_snapshot()
-    except Exception:
-        tree = None
-    try:
-        ctx.close()
-    except Exception:
-        pass
+        try:
+            tree = page.locator('body').aria_snapshot()
+        except Exception:
+            tree = None
+        try:
+            ctx.close()
+        except Exception:
+            pass
 
-    if not tree:
-        return {'url': url, 'mode': 'sr-transcript',
-                'error': 'accessibility tree not available (Playwright >= 1.49 required)'}
+        if not tree:
+            return {'url': url, 'mode': 'sr-transcript',
+                    'error': 'accessibility tree not available (Playwright >= 1.49 required)'}
 
-    # parse the YAML-like snapshot into linearized announcements
-    import re
-    announcements = []
-    for line in tree.split('\n'):
-        stripped = line.strip()
-        if not stripped.startswith('- '):
-            continue
-        # quitar el guion inicial; el resto es el anuncio
-        announcement = stripped[2:].rstrip(':')
-        if announcement:
-            announcements.append(announcement)
+        # parse the YAML-like snapshot into linearized announcements
+        import re
+        announcements = []
+        for line in tree.split('\n'):
+            stripped = line.strip()
+            if not stripped.startswith('- '):
+                continue
+            # quitar el guion inicial; el resto es el anuncio
+            announcement = stripped[2:].rstrip(':')
+            if announcement:
+                announcements.append(announcement)
 
-    return {
-        'url': url,
-        'mode': 'sr-transcript',
-        'announcements': announcements[:200],  # cap
-        'total': len(announcements),
-        'arbol_raw': tree[:5000] if len(tree) > 5000 else tree,
-        'note': ('Linearized announcement order — what a screen reader user hears. '
-                 'Roles and names as computed by the browser. Use this to understand '
-                 'the page from a blind user\'s perspective.'),
-    }
+        return {
+            'url': url,
+            'mode': 'sr-transcript',
+            'announcements': announcements[:200],  # cap
+            'total': len(announcements),
+            'arbol_raw': tree[:5000] if len(tree) > 5000 else tree,
+            'note': ('Linearized announcement order — what a screen reader user hears. '
+                     'Roles and names as computed by the browser. Use this to understand '
+                     'the page from a blind user\'s perspective.'),
+        }
 
 
+    finally:
+        try:
+            pw.stop()
+        except Exception:  # noqa: BLE001
+            pass
 _JS_HOVER_TEST = r'''() => {
   // find elements that show tooltips/overlays on hover
   const candidates = [];

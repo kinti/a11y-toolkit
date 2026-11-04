@@ -1,5 +1,79 @@
 # Changelog
 
+## main — pendiente — "external QA 2026-11: round 4 — fresh-eyes from zero"
+
+- **Fresh full-repo re-analysis from zero** (6 fresh reviewers + live chain
+  on the post-120-fix tree) found what a day of fixes leaves behind —
+  every finding verified live before fixing, every fix pinned
+  (tests/test_round4.py, 31 pins). One regression of our own caught and
+  killed: a duplicated edit had registered img-alts twice for
+  aria-labelledby resolution ("Acme Acme").
+- **Static engine**: svg[role=img] with no name is now a 1.1.1 finding (the
+  svg dispatch was consuming the tag before the role machinery — the
+  svg-title lookup was dead code); captions/descriptions counted per-TRACK
+  anywhere now count per-VIDEO (two tracks on one video no longer pardon a
+  second video; template/orphan tracks never pardon); nested
+  presentation/template tables no longer corrupt the enclosing table's
+  verdict (identity-keyed stack); border="1" means DATA table per the HTML
+  spec (only border=0 stays layout-suspect) — a 1990s visible-borders data
+  table can no longer vanish; template text is inert everywhere (was
+  feeding reading level, 3.1.2 lang checks and control names);
+  stray-click delegation only exempts on REAL operability (a href-less
+  <a>, hidden/disabled inputs or template content no longer pardon the
+  wrapper); a href-less anchor dragged past its </div> is still counted;
+  ids inside <template> no longer exist (dup_ids FP, broken-ref FN);
+  username/fullname inputs now trigger 1.3.5; an SVG-root document gets no
+  HTML title_missing; multi-viewport pages point zoom findings at the meta
+  that decides; tabindex superscripts can no longer destroy the report;
+  the redirect guard allows same-host hops (localhost dev /app→/app/,
+  http→https — the user's stated host preserves their intent) and its
+  message travels the bilingual catalog; .a, .b {} grouped CSS selectors
+  feed BOTH classes to the hidden-class sets; an svg <title> no longer
+  counts as VISIBLE text (2.5.3 label-in-name).
+- **Live microscopy found the last FP class**: the W3C WAI search button
+  carries its aria-label on the child <svg> — accname 2F.ii includes
+  descendant names, so the button IS named; w3.org/WAI now audits 94 with
+  zero false highs (was 82 with one). aria-hidden inner elements never
+  contribute names.
+- **Rendered layer**: the forms driver's 3.3.1 HIGH signal was dead (JS
+  wrote `campos`, Python read `fields`) — restored; the scroll tool
+  crashed with auth_state (BrowserContext.new_page takes no viewport);
+  sr_transcript leaked one Playwright driver per call (pw.stop() now
+  guaranteed); the browser pool never pooled for browser='auto'; vertical
+  tablists (aria-orientation) are no longer flagged HIGH for not answering
+  ArrowRight (ArrowDown accepted per APG); rendered severities aligned
+  with the static engine (zoom_max high, no_bypass/no_h1/no_headings low)
+  — the round-1 claim is now true on BOTH layers; trace via the CLI hub
+  works (argparse subcommand prepended — the README example was a lie in
+  both languages).
+- **Conformance chain**: a disprover-processed SITE report re-animated its
+  dead findings in the pack (the flattening preferred the nested unmarked
+  copies over the re-checked top-level ones) — pinned with the real
+  audit→disprove→evidence pipeline; VPAT/OpenACR Remarks were EMPTY for
+  crawl packs (the citation walker did not descend into reports[]) —
+  fixed both directions (clean crawls cite, dead findings never do);
+  earl flattens sites and survives hostile JSON; build_pack/
+  normalize_report accept findings-as-dict without tracebacks; the
+  patches CLI --lang actually reaches the build; the solicitation annex
+  survives a criterion without a title.
+- **Infra/docs**: the vscode extension spawns npx.cmd on Windows (was
+  silently dead for every Windows user); the skill taught agents to read
+  `remediacion`/`score_nota` — keys that do not exist (now remediation/
+  score_note); the Cursor rule referenced a dead a11y_audit tool; the
+  pre-push hook runs `make fast` (its hand list had drifted 6 suites from
+  the Makefile — the exact class that hid test_locate); versionar prints
+  the failing suite's output tail and catches timeouts; count pins now
+  enforce EXACT tool counts on plugin.json/npm-README (a stale 34 passed
+  the old <=) and the Spanish README table is pinned row-by-row with its
+  self-demoting "may lag" disclaimers deleted; README.md's garbled
+  Install paragraph repaired, corpus-verify line parity, Development
+  sections teach `make test`; gen_llms derives the prompts count; the npm
+  README describes the self-contained launcher; the corpus builder
+  defaults to 2026.11.0; the verify_pack not-applicable pin was dead code
+  after a sys.exit() — revived as a real build_scope→build_pack→verify
+  chain; the audit-report schema's "validated programmatically" claim
+  softened to what is true. No release is cut from this entry.
+
 ## main — pendiente — "external QA 2026-11: round 3 — the gate and the surface"
 
 - **The gate now runs everything.** `make test` executes EVERY
@@ -210,15 +284,6 @@
 ### earlier main-pending work (same unreleased batch)
 
 - **License & name — MIT for the code, the name is reserved** (founder
-- **License & name — MIT for the code, the name is reserved** (founder
-  decision, the Deque/axe and Firefox pattern): both READMEs gain a
-  license section — the MIT grant covers the code only; "a11y-toolkit",
-  the logo and the project marks are reserved, so forks shipping modified
-  code publish under their own name. Plus a courtesy line inviting
-  builders to tell us (featured and credited). What it does NOT do: the
-  LICENSE file stays pure MIT — a custom clause there would break the
-  standard text scanners and packagers validate — and this is a trademark
-  notice, not a code-license change: nothing changes for the code.
 - **`a11y-journey/1` — the sealed journey record** (deal-flow pick, the
   "replayable traces" the whole monitoring market sells): `seal_record`
   bundles the walk (the agent's steps as walked), the outcome, the

@@ -366,3 +366,19 @@ datos = audit_html(BASE.format('<h1>k</h1><main><table width="100%"><caption>Dat
 assert any(h['signal'] == 'table_no_th' for h in datos['findings']), \
     'con marcador de datos (caption/summary/scope) la tabla SÍ exige th'
 print('ronda 2: paths de atributo + maquetación-vs-datos pineados ✓')
+
+# ── ronda 4: el aria-label de un <svg> HIJO nombra al botón (accname 2F.ii) ──
+# hallado auditando w3.org/WAI en vivo: su botón-buscador lleva el aria-label
+# en el svg interno — Chrome/Firefox lo computan como nombre del botón
+r = audit_html(BASE.format('<h1>k</h1><main><button class="s">'
+                           '<span><svg aria-label="Submit Search" class="icon"></svg></span>'
+                           '</button></main>'))
+assert not any(h['signal'] == 'ctrl_name' for h in r['findings']), \
+    'svg[aria-label] hijo debe nombrar al botón (FP en la web del propio W3C)'
+# ...y un svg aria-hidden junto al texto sigue siendo decorativo (no miente):
+r = audit_html(BASE.format('<h1>k</h1><main><button><svg aria-hidden="true"></svg> Menu</button></main>'))
+assert not any(h['signal'] == 'ctrl_name' for h in r['findings'])
+# el aria-hidden interior JAMÁS salva un botón sin otro nombre
+r = audit_html(BASE.format('<h1>k</h1><main><button><svg aria-hidden="true"></svg></button></main>'))
+assert any(h['signal'] == 'ctrl_name' for h in r['findings'])
+print('ronda 4: svg-child aria-label nombra el control (W3C WAI live) ✓')

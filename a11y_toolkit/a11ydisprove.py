@@ -98,7 +98,7 @@ def disprove(url, report=None, timeout=30, lang='en'):
         # evidence. Honest path: not-rechecked per page, with the pointer to
         # re-verify each page properly.
         every_finding = []
-        for page in (report.get('pages') or report.get('reports') or []):
+        for page in (report.get('reports') or []):   # 'pages' es un CONTEO, no una lista
             for h in page.get('findings', []):
                 every_finding.append(dict(h, disprover_status='not-rechecked',
                                           page=page.get('url', '')))

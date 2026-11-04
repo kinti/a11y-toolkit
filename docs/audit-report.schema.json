@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://github.com/kinti/a11y-toolkit/blob/main/docs/audit-report.schema.json",
   "title": "a11y-toolkit audit report",
-  "description": "Formal schema for any audit report produced by a11y-toolkit (static, rendered, reflow, keyboard, scroll, forms, hover, w3c-nu). Validated programmatically — a consumer can trust the shape without reading the code.",
+  "description": "Formal schema for any audit report produced by a11y-toolkit (static, rendered, reflow, keyboard, scroll, forms, hover, w3c-nu). Describes engine output; the seal (sha256) is the machine check — a consumer can trust the shape without reading the code.",
   "type": "object",
   "required": ["url", "mode", "score", "summary", "findings"],
   "properties": {

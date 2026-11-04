@@ -80,7 +80,7 @@ def build():
         for n in nombres:
             L.append(f'- `{n}` — {titulos[n]}')
         L.append('')
-    L.append('## Prompts (6)')
+    L.append('## Prompts (%d)\n' % len(server._PROMPTS))
     L.append('')
     for p in server._PROMPTS:
         primera = p['description'].split('. ')[0]

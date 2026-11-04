@@ -79,6 +79,7 @@ Start with `a11y_route` (the router): state a goal in plain language and get the
 
 ## Prompts (6)
 
+
 - `audit-page` — Full accessibility audit workflow for a URL: automated tools + what to verify manually (keyboard, screen reader, zoom).
 - `fix-contrast` — Guided contrast fix: verify the pair (or the text-over-image region), get the nearest passing color, apply it to the code.
 - `pre-deploy-check` — Pre-deploy regression check: express audit of the URL plus snapshot diff against a baseline snapshot.

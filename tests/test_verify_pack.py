@@ -160,31 +160,33 @@ def main():
     return 1 if FAILS else 0
 
 
-if __name__ == '__main__':
-    sys.exit(main())
-
 # ── revisión externa ronda 2: el verificador acepta packs CON scope humano ───
 # un pack construido con exclusiones confirmadas trae filas not-applicable:
-# verify_pack jamás debe rechazar exactamente los packs que un auditor usa
+# verify_pack jamás debe rechazar exactamente los packs que un auditor usa.
+# Cadena REAL: build_scope (respuesta humana) → build_pack → verify_pack.
 import json as _json
 import subprocess as _sp
 import sys as _sys
 import tempfile as _tf
 import os as _os
+sys.path.insert(0, ROOT)   # la cadena real necesita el motor (make corre sin venv)
+from a11y_toolkit.a11yscope import build_scope as _bscope
+from a11y_toolkit.a11yevidence import build_pack as _bpack
 _aud = {'mode': 'static', 'url': 'https://x', 'score': 100, 'findings': []}
-_pack = {'format': 'a11y-evidence-pack/2', 'generated': '2026-11-04T00:00:00+00:00',
-         'tool': 'a11y-toolkit', 'criteria': [
-             {'criterion': '1.1.1 Non-text Content', 'level': 'A', 'status': 'not-flagged',
-              'effort': {'class': 'MIN', 'minutes': 1}},
-             {'criterion': '1.2.1 Audio-only and Video-only (Prerecorded)', 'level': 'A',
-              'status': 'not-applicable', 'excluded_reason': 'no media on scope (human)'}],
-         'summary': {'automated-fail': 0, 'automated-review': 0, 'not-flagged': 54,
-                     'manual-only': 0, 'agent-verified': 0, 'not-run': 0, 'not-applicable': 1},
-         'artifacts': [{'type': 'audit', 'body': _aud}]}
+_scope = _bscope([_aud], standard='wcag22', target='web',
+                 answers={'1.2.1': {'status': 'excluded', 'reason': 'no media on scope (human)'}})
+_pack = _bpack([_aud], scope=_scope)
+assert any(c['status'] == 'not-applicable' for c in _pack['criteria']), \
+    'el pack debía traer filas not-applicable del scope humano'
 with _tf.TemporaryDirectory() as _d:
     _p = _os.path.join(_d, 'p.json')
     _json.dump(_pack, open(_p, 'w'))
     _r = _sp.run([_sys.executable, 'scripts/verify_pack.py', _p],
                  capture_output=True, text=True)
-    assert _r.returncode == 0, f'verify_pack rechazó un pack con not-applicable: {_r.stdout[:200]}'
+    assert _r.returncode == 0, f'verify_pack rechazó un pack con not-applicable: {_r.stdout[:240]}'
 print('verify_pack acepta not-applicable (scope humano) ✓')
+
+
+
+if __name__ == '__main__':
+    sys.exit(main())

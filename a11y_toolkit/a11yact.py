@@ -97,7 +97,15 @@ def act_ids(signal):
 def earl(report, url=None):
     """Informe de auditoría → EARL 1.0 JSON-LD (solo hallazgos con mapeo ACT)."""
     assertions = []
-    for h in report.get('findings', []):
+    # site crawls anidan en reports[]; entrada hostil (no-dict/no-list) → []
+    _hls = report.get('findings') if isinstance(report, dict) else None
+    if not isinstance(_hls, list) and isinstance(report, dict)             and isinstance(report.get('reports'), list):
+        _hls = [h for sub in report['reports']
+                if isinstance(sub, dict) for h in sub.get('findings', [])
+                if isinstance(h, dict)]
+    for h in (_hls if isinstance(_hls, list) else []):
+        if not isinstance(h, dict):
+            continue
         if h.get('status') in _NOT_DEAD or h.get('disprover_status') in _NOT_DEAD:
             continue
         rules = ACT_MAP.get(normalize_signal(h.get('signal', '')))

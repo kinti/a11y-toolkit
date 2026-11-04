@@ -84,8 +84,9 @@ def audit_scroll(url, max_batches=5, lang='en', timeout=45, auth_state=None, bro
     with sync_playwright() as p:
         nav = _get_browser(p, preferred=browser)
         ctx = nav.new_context(storage_state=auth_state) if auth_state else nav
-        page = ctx.new_page(viewport={'width': 1280, 'height': 800}) if auth_state \
-            else nav.new_page(viewport={'width': 1280, 'height': 800})
+        # BrowserContext.new_page() NO acepta viewport: va en el new_context
+        page = (ctx.new_page() if auth_state
+                else nav.new_page(viewport={'width': 1280, 'height': 800}))
         try:
             page.goto(url, wait_until='load', timeout=timeout * 1000)
             page.wait_for_timeout(500)

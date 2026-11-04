@@ -329,7 +329,8 @@ def solicitation(scope, lang='es'):
         n_req += 1
         clause = (prefix + '.' + code) if (std.startswith('EN') and prefix) else code
         req_id = tx['req_num'].format(n=n_req)
-        lines.append('  ' + req_id + ' — ' + clause + ' — ' + row['criterion'].split(' ', 1)[1])
+        # [-1]: un criterion sin título (hostil/editado a mano) no tira el anexo
+        lines.append('  ' + req_id + ' — ' + clause + ' — ' + row['criterion'].split(' ', 1)[-1])
     std508 = scope.get('section508')
     if std508:
         # excepciones mandadas por el ESTÁNDAR (E203/E204): sección propia,

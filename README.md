@@ -142,9 +142,9 @@ Full reference — descriptions, arguments, return shapes and behavior — in [d
 
 Works with **any MCP-capable client** — Claude Code/Desktop, Cursor, Windsurf, VS Code,
 Codex CLI, OpenCode, ZCode, Zed, Cline, Continue, Kimi Code… See
+[docs/clients.md](docs/clients.md) for every verified config format.
 Node-native? `npx -y @kinti/a11y-toolkit mcp…` — the npm launcher runs the
-same engine via uv ([npm/](npm/)). [docs/clients.md](docs/clients.md) for every
-verified config format. Composing it
+same engine ([npm/](npm/)). Composing it
 with the popular servers (Playwright, GitHub, Filesystem, Fetch…) —
 [docs/interop.md](docs/interop.md).
 Start-to-finish recipes (audit → fix → seal → CI):
@@ -264,6 +264,7 @@ a11ytoolkit locate --file page.html --query "Submit"           # element by acce
 a11ytoolkit patches --file page.html -o patches.json           # sealed fix record (verify with --verify)
 a11ytoolkit criteria --list --level AA --new-in 2.2            # the offline Quick Ref, filterable
 a11ytoolkit wizard --url https://client.web --lang es          # guided: 3 questions → standard, audit, scope, annex
+a11ytoolkit corpus verify corpus                  # the frozen corpus, verified
 ```
 ## Standards coverage
 
@@ -351,10 +352,7 @@ MCP clients you trust.
 ## Development
 
 ```bash
-python3 tests/test_contrast.py && python3 tests/test_audit.py && python3 tests/test_v32.py \
-  && python3 tests/test_dom.py && python3 tests/test_cli.py && python3 tests/test_solido.py \
-  && python3 tests/test_mcp.py && python3 tests/test_png.py && python3 tests/test_vpat.py \
-  && python3 tests/test_act.py
+make test   # every suite by discovery
 ```
 
 `tests/test_dom.py` self-skips without Playwright. `tests/test_solido.py` enforces the design

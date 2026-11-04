@@ -24,7 +24,7 @@ placebos, per-criterion confusion. `corpus reference` re-runs this engine
 over the frozen pages and ships the baseline with it.
 
 CLI (this is infrastructure, not a tool — D17):
-  a11ycorpus.py build  [--version 2026.10.0] [--seed 7] [--n 18] [--out corpus]
+  a11ycorpus.py build  [--version 2026.11.0] [--seed 7] [--n 18] [--out corpus]
   a11ycorpus.py verify [dir]
   a11ycorpus.py evaluate --submission sub.jsonl [dir]
   a11ycorpus.py reference [dir]
@@ -107,7 +107,7 @@ def _side_features(html_text):
     }
 
 
-def build(version='2026.10.0', seeds=(7,), n_per_seed=18, out='corpus',
+def build(version='2026.11.0', seeds=(7,), n_per_seed=18, out='corpus',
           date=None, with_reference=True):
     """Congela un examen del banco de mutantes como corpus versionado.
     Determinista dadas (version, seeds, n, date) y la versión del motor (el
@@ -376,7 +376,7 @@ def main(argv):
     ap = argparse.ArgumentParser(description='Versioned audit corpus (VK-LSVD translation)')
     sub = ap.add_subparsers(dest='action', required=True)
     b = sub.add_parser('build', help='freeze a corpus version from the mutant bank')
-    b.add_argument('--version', default='2026.10.0')
+    b.add_argument('--version', default='2026.11.0')
     b.add_argument('--seed', type=int, action='append', default=None)
     b.add_argument('--n', type=int, default=18)
     b.add_argument('--out', default='corpus')
