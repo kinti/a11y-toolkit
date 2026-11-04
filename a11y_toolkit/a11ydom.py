@@ -104,6 +104,47 @@ def _t(lang, key, n=None):
 
 
 # ------------------------------------------------------------------- JS -----
+# Accessible-name computation, spliced into _JS below. Module-level so the
+# accname PRECEDENCE is pinnable by test_dom as a plain string (no browser
+# needed): labelledby (multi-id list, texts joined in order) > aria-label >
+# implicit <label> > content > title. Static string — no page data ever lands
+# here.
+_JS_NAMEOF = r'''
+  const nameOf = el => {
+    let n = '';
+    // 1. aria-labelledby: a whitespace-SEPARATED id list — resolve each id
+    //    within the root (shadow roots carry getElementById too), join the
+    //    name texts in ORDER, skip missing ids (accname step 2B)
+    if (el.getAttribute('aria-labelledby')) {
+      const root = el.getRootNode();
+      const byId = id => (root.getElementById ? root.getElementById(id)
+                          : root.querySelector('#' + CSS.escape(id)));
+      const parts = [];
+      for (const id of el.getAttribute('aria-labelledby').trim().split(/\s+/)) {
+        const ref = byId(id);
+        if (ref) parts.push((ref.innerText || '').trim());
+      }
+      n = parts.join(' ').trim();
+    }
+    // 2. aria-label
+    if (!n) n = (el.getAttribute('aria-label') || '').trim();
+    // 3. implicit <label>
+    if (!n && el.labels && el.labels[0]) n = el.labels[0].innerText.trim();
+    // 4. content: input value/image alt, element text, descendant img alt
+    if (!n && el.tagName === 'INPUT' && ['submit', 'button', 'reset'].includes(el.type)) n = el.value || '';
+    if (!n && el.tagName === 'INPUT' && el.type === 'image') n = el.alt || '';
+    if (!n && ['A', 'BUTTON', 'SUMMARY'].includes(el.tagName)) {
+      n = (el.innerText || '').trim();
+      // accname: a descendant image's alt contributes to the link's name
+      if (!n) { const im = el.querySelector('img[alt]'); if (im) n = (im.getAttribute('alt') || '').trim(); }
+    }
+    if (!n && el.tagName === 'IMG') n = el.getAttribute('alt') || '';
+    // 5. title — the LAST resort in the accname order
+    if (!n) n = (el.getAttribute('title') || '').trim();
+    return n.trim();
+  };
+'''
+
 _JS = r'''(maxEj) => {
   const INTER = 'a[href], button, input, select, textarea, summary, [role="button"], [role="link"], [tabindex]';
   const out = { contrast: {}, contrastReview: 0, contrastZones: [], targets: [], unnamed: [], fields: [],
@@ -423,26 +464,7 @@ _JS = r'''(maxEj) => {
   }
 
   // ---- nombres accesibles renderizados ----
-  const nameOf = el => {
-    let n = (el.getAttribute('aria-label') || '').trim();
-    if (!n && el.labels && el.labels[0]) n = el.labels[0].innerText.trim();
-    if (!n && el.getAttribute('aria-labelledby')) {
-      const root = el.getRootNode();
-      const ref = root.getElementById ? root.getElementById(el.getAttribute('aria-labelledby'))
-                                      : root.querySelector('#' + CSS.escape(el.getAttribute('aria-labelledby')));
-      if (ref) n = (ref.innerText || '').trim();
-    }
-    if (!n) n = (el.getAttribute('title') || '').trim();
-    if (!n && el.tagName === 'INPUT' && ['submit', 'button', 'reset'].includes(el.type)) n = el.value || '';
-    if (!n && el.tagName === 'INPUT' && el.type === 'image') n = el.alt || '';
-    if (!n && ['A', 'BUTTON', 'SUMMARY'].includes(el.tagName)) {
-      n = (el.innerText || '').trim();
-      // accname: a descendant image's alt contributes to the link's name
-      if (!n) { const im = el.querySelector('img[alt]'); if (im) n = (im.getAttribute('alt') || '').trim(); }
-    }
-    if (!n && el.tagName === 'IMG') n = el.getAttribute('alt') || '';
-    return n.trim();
-  };
+  /*__NAMEOF__*/
   for (const el of deepQ('a[href], button, summary, [role="button"], [role="link"]')) {
     if (!vis(el) || el.closest('[aria-hidden="true"]')) continue;
     if (!nameOf(el) && out.unnamed.length < 30) out.unnamed.push(path(el));
@@ -601,7 +623,8 @@ _JS = r'''(maxEj) => {
   if (prevFocus && prevFocus.blur) { try { prevFocus.focus(); } catch (e) {} }
 
   return out;
-}'''
+}'''  # /*__NAMEOF__*/ is spliced in below — keep nameOf in _JS_NAMEOF only
+_JS = _JS.replace('/*__NAMEOF__*/', _JS_NAMEOF.strip('\n'))
 
 
 def _add(findings, lang, severity, code, key, examples=None, **fmt):
@@ -2108,6 +2131,25 @@ def kbd_main(argv):
     a = ap.parse_args(argv)
     try:
         res = audit_keyboard(a.url, max_steps=a.max_steps, lang=a.lang)
+    except ImportError:
+        print(json.dumps({'error': 'Playwright not installed'}))
+        return 1
+    print(json.dumps(res, ensure_ascii=False, indent=1))
+    return 0
+
+
+def hover_main(argv):
+    # the same audit the MCP tool a11y_hover runs (audit_hover, verbatim) —
+    # 1.4.13 Content on Hover or Focus: do tooltips dismiss on Escape?
+    ap = argparse.ArgumentParser(description='Tooltip dismissibility (1.4.13): hover + Escape, real browser')
+    ap.add_argument('url')
+    ap.add_argument('--lang', default='en', choices=['en', 'es'])
+    ap.add_argument('--timeout', type=int, default=45)
+    ap.add_argument('--auth-state', dest='auth_state',
+                    help='Path to a Playwright storage_state JSON to audit behind login')
+    a = ap.parse_args(argv)
+    try:
+        res = audit_hover(a.url, timeout=a.timeout, lang=a.lang, auth_state=a.auth_state)
     except ImportError:
         print(json.dumps({'error': 'Playwright not installed'}))
         return 1

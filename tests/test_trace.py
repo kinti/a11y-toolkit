@@ -67,6 +67,71 @@ d = trace_diff(A, E)
 assert d['ok'] and d['focus']['lost'] == [] and d['focus']['gained'] == ['button:new']
 print('5. gained reportado sin bloquear; el gate es pérdida/fork ✓')
 
+# --- 5b. goto regression (2026-11): navegación scriptada no tumba el trace ---
+# page.goto destruye window.__a11yTraceDrain: el drain sin guardia tronaba el
+# paso (TypeError que escapaba hasta main) y la agregación reventaba con None.
+import inspect  # noqa: E402
+from a11y_toolkit import a11ytrace  # noqa: E402
+from a11y_toolkit.a11ytrace import _DRAIN, _COLLECTOR, _run_script  # noqa: E402
+
+# (a) la expresión de drenaje lleva la guardia `? :` y es una cadena estática
+assert 'window.__a11yTraceDrain ?' in _DRAIN and ': []' in _DRAIN
+_src = inspect.getsource(a11ytrace)
+assert "'() => window.__a11yTraceDrain()'" not in _src, 'drain sin guardia'
+assert "len(s.get('announcements') or [])" in _src, 'agregación no null-safe'
+
+
+class _FakeKB:
+    def press(self, key):
+        pass
+
+
+class _FakeTracePage:
+    """Página falsa del ciclo scripted: goto destruye el recolector (contexto
+    nuevo), como un page.goto real; evaluate del drain sin recolector Y sin
+    guardia tronaría — el drenaje guardiado devuelve []."""
+
+    def __init__(self):
+        self.url = 'https://first'
+        self.collector = False
+        self.keyboard = _FakeKB()
+
+    def evaluate(self, expr):
+        if expr == _COLLECTOR:
+            self.collector = True
+            return []
+        if expr == _DRAIN:
+            if self.collector:
+                return [{'politeness': 'polite', 'role': 'status',
+                         'target': '#s', 'text': 'after goto', 'reason': 'update'}]
+            if 'window.__a11yTraceDrain ?' in expr:
+                return []      # la guardia JS devolvería [] sin recolector
+            raise RuntimeError('TypeError: __a11yTraceDrain is not a function')
+        if expr == FOCUS_KEY_JS:
+            return 'button:pay'
+        raise AssertionError('evaluate inesperado: %r' % expr[:60])
+
+    def wait_for_timeout(self, ms):
+        pass
+
+    def goto(self, url, **kw):
+        self.url = url
+        self.collector = False   # el contexto viejo muere con la navegación
+
+
+_page = _FakeTracePage()
+_walk, _navs = _run_script(_page, [
+    {'kind': 'press', 'key': 'Tab'},
+    {'kind': 'goto', 'url': 'https://second'},      # aquí tronaba antes
+    {'kind': 'press', 'key': 'Tab'},
+])
+assert len(_walk) == 3 and _navs == 1, (_walk, _navs)   # nada escapó
+assert _walk[1]['url'] == 'https://second' and _walk[1]['action'].startswith('goto:')
+assert _page.collector is True, 'goto debe re-inyectar el recolector'
+assert _walk[2]['announcements'], 'el drain vuelve a vivir tras el goto'
+assert all(isinstance(s['announcements'], list) for s in _walk)
+print('5b. goto: recolector re-inyectado, drain guardado, pasos vivos ✓')
+
 # --- live capture (auto-skip) ---
 try:
     import playwright  # noqa: F401
@@ -124,4 +189,4 @@ os.remove(sfx)
 d = trace_diff(t, t)
 assert d['ok']   # diff funciona igual sobre trazas scripted
 print('8. trace --script: jornada real, anuncios por acción, fallo grabado, diff ok ✓')
-print('OK test_trace: 8 checks (5 herméticos + 3 vivos)')
+print('OK test_trace: 9 checks (6 herméticos + 3 vivos)')

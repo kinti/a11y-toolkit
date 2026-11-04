@@ -36,4 +36,4 @@ a11ytoolkit = "a11y_toolkit.a11y:main"
 packages = ["a11y_toolkit"]
 
 [tool.setuptools.package-data]
-a11y_toolkit = ["arialive.js", "locales/*.json"]
+a11y_toolkit = ["arialive.js", "locales/*.json", "rgaa.json"]

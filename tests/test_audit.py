@@ -87,12 +87,19 @@ v39 = '''<html lang="es"><head><title>t</title></head><body><main><h1>Informe pr
 <a href="/y" aria-label="Ver ofertas y más">Ver ofertas</a>
 <blockquote lang="xx">cita</blockquote>
 <button onmousedown="go()">Rápido</button>
-<script src="https://www.google.com/recaptcha/api.js"></script>
+<form action="/login"><input type="password" name="pw"><script src="https://www.google.com/recaptcha/api.js"></script></form>
 </main></body></html>'''
 rv39 = audit_html(v39, lang='en')
 sv39 = {x['signal'] for x in rv39['findings']}
 for esperada in ('label_in_name', 'element_lang_invalid', 'down_event', 'captcha'):
     assert esperada in sv39, f'falta {esperada}: {sorted(sv39)}'
+# 3.3.8 SOLO aplica en proceso de autenticación: un captcha en un form de
+# contacto NO es fallo de Accessible Authentication (FP corregido)
+cap_fp = audit_html('<html lang="es"><head><title>t</title></head><body><main><h1>I</h1>'
+                    '<form action="/contacto"><input type="text" name="msg">'
+                    '<script src="https://www.google.com/recaptcha/api.js"></script></form>'
+                    '</main></body></html>')
+assert not any(h['signal'] == 'captcha' for h in cap_fp['findings'])
 ok253 = audit_html('<html lang="es"><head><title>t</title></head><body><main><h1>Informe principal</h1>'
                    '<a href="/x" aria-label="Ver ofertas y más">Ver ofertas</a></main></body></html>')
 assert not any(h['signal'] == 'label_in_name' for h in ok253['findings'])
@@ -226,3 +233,108 @@ r_ga = audit_html('<html><body><script src="https://www.googletagmanager.com/gtm
                   '</script></body></html>')
 assert 'overlay_widgets' not in r_ga
 print('overlays: detección por dominio (dato, no finding, score intacto, dedupe) ✓')
+
+# ── Revisión externa 2026-11: FP/FN del motor estático, todos pineados ──────
+BASE = '<html lang="en"><head><meta charset="utf-8"><title>t</title></head><body>{}</body></html>'
+
+# FP1: role="search" es un LANDMARK, no un campo — el patrón del tutorial W3C
+r = audit_html(BASE.format('<form role="search" action="/s"><label>Search '
+                           '<input type="search" name="q"></label></form>'))
+assert not any(h['signal'] == 'field_label' for h in r['findings']), \
+    'role=search tratado como campo sin label (era HIGH 3.3.2 falso)'
+
+# FP2: <template> es inerte — ni img sin alt ni campo sin label
+r = audit_html(BASE.format('<template><img src="x"><input type="text"></template>'))
+assert not any(h['signal'] in ('img_no_alt', 'field_label') for h in r['findings'])
+
+# FP3: <title> de svg = nombre del svg — el botón-icono del W3C tiene nombre
+r = audit_html(BASE.format('<button><svg><title>Save</title><use href="#i"/></svg></button>'))
+assert not any(h['signal'] == 'ctrl_name' for h in r['findings']), 'svg title invisible para el nombre'
+r = audit_html(BASE.format('<h1>k</h1><main><svg role="img"><title>Chart</title></svg></main>'))
+assert not any(h['signal'] == 'img_no_alt' for h in r['findings']), 'svg[role=img] con title ≠ sin alt'
+
+# FP4: hero muted no es 1.4.2 (ni 1.2.2/1.2.3: no hay audio)
+r = audit_html(BASE.format('<h1>k</h1><main><video autoplay muted playsinline src="h.mp4"></video></main>'))
+assert not any(h['signal'] in ('video_autoplay', 'video_captions', 'audio_desc_missing')
+               for h in r['findings'])
+# ...y un autoplay AUDIBLE sigue siendo fallo
+r = audit_html(BASE.format('<h1>k</h1><main><video autoplay src="h.mp4"></video></main>'))
+assert any(h['signal'] == 'video_autoplay' for h in r['findings'])
+
+# FP5: no_status_regions ya no dispara por scripts/analytics ni campos
+r = audit_html(BASE.format('<h1>k</h1><main><p>x</p></main>'
+                           '<script>dataLayer.push({});</script>'))
+assert not any(h['signal'] == 'no_status_regions' for h in r['findings'])
+
+# FP6: menú hamburguesa (.menu{display:none} + aria-hidden) NO es 4.1.2 high
+r = audit_html('<html lang="en"><head><title>t</title><style>.menu{display:none}</style>'
+               '</head><body><div class="menu" aria-hidden="true"><button>x</button></div>'
+               '<h1>T</h1><main><p>y</p></main></body></html>')
+assert not any(h['signal'] == 'aria_hidden_focusable' for h in r['findings'])
+
+# FP7: track SIN kind = subtitles (default del spec): hay captions
+r = audit_html(BASE.format('<h1>k</h1><main><video controls src="v.mp4">'
+                           '<track src="cc.vtt"></video></main>'))
+assert not any(h['signal'] == 'video_captions' for h in r['findings'])
+
+# FP8: tabla de maquetación declarada presentation: sin th exigido
+r = audit_html(BASE.format('<h1>k</h1><main><table role="presentation"><tr><td>a</td></tr></table></main>'))
+assert not any(h['signal'] == 'table_no_th' for h in r['findings'])
+
+# FP9: aria-rowcount="-1" es OBLIGATORIO con total desconocido (ARIA 1.2)
+r = audit_html(BASE.format('<h1>k</h1><main><div role="grid" aria-rowcount="-1">x</div></main>'))
+assert not any(h['signal'] == 'aria_value_invalid' for h in r['findings'])
+
+# FP10: <div onclick> con <button> dentro = delegación, no 2.1.1 high
+r = audit_html(BASE.format('<h1>k</h1><main><div onclick="track()"><button>Buy</button></div></main>'))
+assert not any(h['signal'] == 'click_nonfocusable' for h in r['findings'])
+# ...y un onclick huérfano REAL sigue contando
+r = audit_html(BASE.format('<h1>k</h1><main><div onclick="go()">Home</div></main>'))
+assert any(h['signal'] == 'click_nonfocusable' for h in r['findings'])
+
+# FP11: captcha fuera de autenticación (contacto) → sin 3.3.8 (arriba, test v39)
+# FP12: accesskey ya no es char_shortcut (2.1.4 exige SIN modificador)
+r = audit_html(BASE.format('<h1>k</h1><main><input type="text" accesskey="a"></main>'))
+assert not any(h['signal'] == 'char_shortcut' for h in r['findings'])
+
+# FP13: img dentro de heading NO es "imagen de texto" (logotipos exentos 1.4.5)
+r = audit_html(BASE.format('<h1><img alt="Acme logotype"></h1><main><p>x</p></main>'))
+assert not any(h['signal'] == 'images_of_text' for h in r['findings'])
+
+# FN1: role=button sin tabindex → señal de revisión 2.1.1
+r = audit_html(BASE.format('<h1>k</h1><main><span role="button" aria-label="Open">menu</span></main>'))
+assert any(h['signal'] == 'role_no_tabindex' for h in r['findings'])
+
+# FN2: label[for=otro] que ENVUELVE un campo no lo etiqueta
+r = audit_html(BASE.format('<h1>k</h1><main><label for="email">Email</label>'
+                           '<label for="email"><input id="pw" type="password"></label></main>'))
+assert any(h['signal'] == 'field_label' for h in r['findings']), \
+    'el label envolvente con for ajeno etiquetaba de mentira (FN 3.3.2)'
+
+# FN3: radios agrupados por role=group CON nombre: sin fieldset_missing
+r = audit_html(BASE.format('<h1>k</h1><main><div role="group" aria-label="Plan">'
+                           '<input type="radio" name="p" id="p1"><label for="p1">A</label>'
+                           '<input type="radio" name="p" id="p2"><label for="p2">B</label>'
+                           '</div></main>'))
+assert not any(h['signal'] == 'fieldset_missing' for h in r['findings'])
+
+# severidades honestas: no_bypass/no_h1/no_headings son best-practice (low)
+r = audit_html(BASE.format('<p>x</p>'))
+for s in ('no_bypass', 'no_headings'):
+    f = [h for h in r['findings'] if h['signal'] == s]
+    assert f and f[0]['severity'] == 'low', f'{s} debe ser low (best-practice), no medium'
+
+# paths del kernel: los hallazgos de elemento llevan DÓNDE (annotate los usa)
+r = audit_html(BASE.format('<h1>k</h1><main><button></button><video autoplay src="v.mp4"></video></main>'))
+for sig in ('ctrl_name', 'video_autoplay'):
+    f = [h for h in r['findings'] if h['signal'] == sig]
+    assert f and f[0].get('paths'), f'{sig} sin paths: annotate no puede marcar'
+
+# plurales: n=1 en singular, ambos idiomas
+r = audit_html(BASE.format('<h1>k</h1><main><button></button></main>'), lang='en')
+_i = [h['issue'] for h in r['findings'] if h['signal'] == 'ctrl_name'][0]
+assert '1 <button> with' in _i, f'plural roto: {_i!r}'
+r = audit_html(BASE.format('<h1>k</h1><main><button></button></main>'), lang='es')
+_i = [h['issue'] for h in r['findings'] if h['signal'] == 'ctrl_name'][0]
+assert '1 <button> sin nombre' in _i, f'plural roto ES: {_i!r}'
+print('revisión externa 2026-11: 13 FP + 3 FN del estático pineados ✓')

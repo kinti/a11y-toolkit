@@ -23,9 +23,10 @@
   "mutants": 18,
   "placebos": 3
  },
- "date": "2026-10-30",
+ "date": "2026-11-04",
  "files": {
-  "CHANGELOG.md": "dec2ab2e5b813682f28c4a56af77379a27967b985bee550f35e2378c84be5a73",
+  "CHANGELOG.md": "5ef2bd0db176cdda175186477db1d87270a100507299bde889f76fe29dde376f",
+  "README.md": "e1e87b83bf912118312060f5ed1af1f5dfb34697d882a0ac41a14b0c0a335950",
   "cases.jsonl": "e61fce09842809a6cd4ceb78c8564bca48fa0f658bdee6e807d8d6e4e97f6514",
   "pages/m7-0.html": "d82ac0500bf4806f20087224cda796d90116f238d5e40b33899bdfe9deff6187",
   "pages/m7-1.html": "8be4474d8392ec70d611a04b06a5c4f1eb1467c48c2609003d2de920980b05f1",
@@ -48,7 +49,7 @@
   "pages/p7-0.html": "13d5ebe00d7b321141837685d0bd07ba49504cfb2c1c5111d47633971db5eff9",
   "pages/p7-1.html": "8457165a5bedcbb731f53ce81989a4117aeb3113ed7d872de3f16002b291dc47",
   "pages/p7-2.html": "bb6c81abb0c0aafec40611a925fc589b3a642652a089e91c977bb664c4c8473d",
-  "results/reference.json": "3bd47eaedc1e202f9b438e1b357443c76ec958a5f250b30ffeb10460775c7add"
+  "results/reference.json": "63c31a8a06f4763055ccd2a0fe3fb13484e3fae7460cb7405e77c8dd4d8fc4d5"
  },
  "format": "a11y-corpus/1",
  "generator": {
@@ -59,6 +60,6 @@
   "source": "a11ymutants (sealed exam)"
  },
  "license_note": "pages are engine-generated fixtures (MIT, same as the toolkit); no third-party crawl ships here",
- "sha256": "d21e4dbe65c3fe7f96d7fbe0bc549665217c7bde18cb8fff30decdc15050cc7a",
- "version": "2026.10.0"
+ "sha256": "67f9bb9c5a40e730547eaff18dc944a96d07cbfd3d675193bd1a14c714eb03b5",
+ "version": "2026.11.0"
 }

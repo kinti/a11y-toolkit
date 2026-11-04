@@ -77,6 +77,23 @@ def _hsl_a_rgb(h, s, l):
     return f(0), f(8), f(4)
 
 
+def _hue_deg(x):
+    """Ángulo CSS con unidades — deg (por defecto), turn, rad, grad → grados.
+    None si no es numérico (antes: rstrip('deg') tragaba '0.5turn' y cascaba)."""
+    x = x.strip().lower()
+    for suf, factor in (('turn', 360.0), ('grad', 0.9),
+                        ('rad', 180.0 / math.pi), ('deg', 1.0)):
+        if x.endswith(suf):
+            try:
+                return float(x[:-len(suf)]) * factor
+            except ValueError:
+                return None
+    try:
+        return float(x)
+    except ValueError:
+        return None
+
+
 def parse_color(s):
     """'#rgb' | '#rrggbb' | '#rrggbbaa' | rgb()/rgba() | hsl()/hsla() | nombre CSS
     → dict r,g,b (y 'a' si hay alfa). Acepta comas o espacios como separadores.
@@ -104,30 +121,35 @@ def parse_color(s):
             body, alfa_ext = re.split(r'\s*/\s*', body, 1)
         parts = [p for p in (x.strip() for x in re.split(r'[\s,]+', body)) if p]
         kind, v = m.group(1), parts
-        if kind.startswith('rgb'):
+        try:
+            if kind.startswith('rgb'):
+                if len(v) < 3:
+                    return None
+                def _channel(x):
+                    if x.endswith('%'):
+                        return max(0, min(255, round(float(x[:-1]) * 2.55)))
+                    return max(0, min(255, int(float(x))))
+                c = {'r': _channel(v[0]), 'g': _channel(v[1]), 'b': _channel(v[2])}
+                if len(v) >= 4:
+                    c['a'] = max(0.0, min(1.0, float(v[3].rstrip('%')) / (100 if v[3].endswith('%') else 1)))
+                elif alfa_ext:
+                    c['a'] = max(0.0, min(1.0, float(alfa_ext.strip().rstrip('%')) / (100 if alfa_ext.strip().endswith('%') else 1)))
+                return c
             if len(v) < 3:
                 return None
-            def _channel(x):
-                if x.endswith('%'):
-                    return max(0, min(255, round(float(x[:-1]) * 2.55)))
-                return max(0, min(255, int(float(x))))
-            c = {'r': _channel(v[0]), 'g': _channel(v[1]), 'b': _channel(v[2])}
+            h_ = _hue_deg(v[0])
+            if h_ is None:
+                return None
+            s_ = max(0.0, min(1.0, float(v[1].rstrip('%')) / 100.0))
+            l_ = max(0.0, min(1.0, float(v[2].rstrip('%')) / 100.0))
+            r, g, b = _hsl_a_rgb(h_, s_, l_)
+            c = {'r': max(0, min(255, r)), 'g': max(0, min(255, g)),
+                 'b': max(0, min(255, b))}
             if len(v) >= 4:
                 c['a'] = max(0.0, min(1.0, float(v[3].rstrip('%')) / (100 if v[3].endswith('%') else 1)))
-            elif alfa_ext:
-                c['a'] = max(0.0, min(1.0, float(alfa_ext.strip().rstrip('%')) / (100 if alfa_ext.strip().endswith('%') else 1)))
             return c
-        if len(v) < 3:
-            return None
-        h_ = float(v[0].rstrip('deg')) % 360
-        s_ = max(0.0, min(1.0, float(v[1].rstrip('%')) / 100.0))
-        l_ = max(0.0, min(1.0, float(v[2].rstrip('%')) / 100.0))
-        r, g, b = _hsl_a_rgb(h_, s_, l_)
-        c = {'r': max(0, min(255, r)), 'g': max(0, min(255, g)),
-             'b': max(0, min(255, b))}
-        if len(v) >= 4:
-            c['a'] = max(0.0, min(1.0, float(v[3].rstrip('%')) / (100 if v[3].endswith('%') else 1)))
-        return c
+        except (ValueError, TypeError, OverflowError):
+            return None  # contrato: color inválido → None, nunca traceback
     if t in COLOR_NAMES:
         h = COLOR_NAMES[t]
         return {'r': int(h[0:2], 16), 'g': int(h[2:4], 16), 'b': int(h[4:6], 16)}
@@ -213,10 +235,12 @@ def pair(fg_s, bg_s, with_suggestion=True, lang='en'):
     if fg.get('a', 1) < 1:
         fg = composite(fg, bg)
         alpha_note = hexs(fg)
-    r = ratio(fg, bg)
+    # se redondea ANTES de los veredictos: lo mostrado y el veredicto nunca
+    # discrepan (un ratio en [4.495,4.5) no puede imprimir "4.5" y fallar)
+    r = round(ratio(fg, bg), 2)
     out = {
         'text': hexs(fg), 'background': hexs(bg),
-        'ratio': round(r, 2),
+        'ratio': r,
         'verdicts': verdicts(r, lang),
     }
     if alpha_note:
@@ -300,20 +324,23 @@ def _percentile(vals, p):
 def decode_png(data):
     """Bytes PNG → (ancho, alto, bytes RGB). Sin dependencias.
 
-    Soporta color types 0 (gris), 2 (RGB), 3 (paleta) y 6 (RGBA) a 8 bits;
-    el alfa se compone sobre blanco (las capturas de navegador son opacas).
-    Lanza ValueError si el PNG está fuera de ese soporte (p. ej. 16 bits)."""
+    Soporta color types 0 (gris), 2 (RGB), 3 (paleta) y 6 (RGBA) a 8 bits,
+    SIN entrelazado (Adam7); el alfa se compone sobre blanco (las capturas
+    de navegador son opacas). Lanza ValueError si el PNG está fuera de ese
+    soporte (p. ej. 16 bits, gris+alfa, entrelazado)."""
     import struct
     import zlib
     if data[:8] != b'\x89PNG\r\n\x1a\n':
         raise ValueError('not a PNG file')
     pos, idat, w, h, bd, ct, plte = 8, b'', 0, 0, 0, 0, None
+    interlace = 0
     while pos < len(data):
         ln = struct.unpack('>I', data[pos:pos + 4])[0]
         kind = data[pos + 4:pos + 8]
         body = data[pos + 8:pos + 8 + ln]
         if kind == b'IHDR':
             w, h, bd, ct = struct.unpack('>IIBB', body[:10])
+            interlace = body[12] if len(body) >= 13 else 0
         elif kind == b'IDAT':
             idat += body
         elif kind == b'PLTE':
@@ -323,9 +350,15 @@ def decode_png(data):
         pos += 12 + ln
     if bd != 8:
         raise ValueError(f'PNG bit depth {bd} unsupported (8-bit only)')
-    channels = {0: 1, 2: 3, 3: 1, 4: 2, 6: 4}.get(ct)
+    if ct == 4:
+        raise ValueError('PNG color type 4 (grayscale+alpha) unsupported '
+                         '(convert to RGBA (6) or RGB (2))')
+    channels = {0: 1, 2: 3, 3: 1, 6: 4}.get(ct)
     if channels is None:
         raise ValueError(f'PNG color type {ct} unsupported')
+    if interlace:
+        raise ValueError('PNG interlaced (Adam7) unsupported '
+                         '(export non-interlaced)')
     if ct == 3 and not plte:
         raise ValueError('PNG palette without PLTE chunk')
     raw = zlib.decompress(idat)

@@ -72,6 +72,56 @@ FOCUS_KEY_JS = r'''() => {
     (link ? ':'+link.getAttribute('href') : '');
 }'''
 
+# Pase de foco por IDENTIDAD de elemento, no por firma: dos enfocables
+# distintos pueden compartir firma (dos botones-icono sin name, un Edit por
+# fila) y la firma repetida truncaba el pase a la segunda aparición. El primer
+# enfocable se marca con un data-attribute (token estático) y la vuelta se
+# detecta cuando el ACTIVO es ese mismo elemento; la firma del primero queda
+# como stop secundario de refuerzo y el cap de iteraciones como tercero.
+_WALK_STAMP_JS = r'''() => {
+  const el = document.activeElement;
+  if (!el || el === document.body) return false;
+  try { el.dataset.__a11yWalk = '0'; } catch (e) {}
+  return true;
+}'''
+
+_WALK_IS_STAMPED_JS = r'''() => {
+  const el = document.activeElement;
+  return !!(el && el.dataset && el.dataset.__a11yWalk === '0');
+}'''
+
+_WALK_CLEAN_JS = r'''() => {
+  const el = document.querySelector('[data-__a11y-walk]');
+  if (el) el.removeAttribute('data-__a11y-walk');
+}'''
+
+
+def _walk_focus(page, cap):
+    """Tab walk → focus order (list of signatures). Stops on wrap by element
+    identity (the stamped first focusable), secondarily on the first
+    signature repeating, and on the iteration cap."""
+    order = []
+    page.keyboard.press('Tab')
+    if not page.evaluate(_WALK_STAMP_JS):
+        return order   # nothing focusable (body stayed active)
+    first = page.evaluate(FOCUS_KEY_JS)
+    if first is None:
+        return order
+    order.append(first)
+    for _ in range(cap):
+        page.keyboard.press('Tab')
+        info = page.evaluate(FOCUS_KEY_JS)
+        if info is None:
+            break
+        if page.evaluate(_WALK_IS_STAMPED_JS) or info == first:
+            break   # focus returned to the FIRST element itself: full circle
+        order.append(info)
+    try:
+        page.evaluate(_WALK_CLEAN_JS)   # leave the page as we found it
+    except Exception:  # noqa: BLE001 — best-effort cleanup
+        pass
+    return order
+
 
 def snapshot(url, output=None, auth_state=None, engine='chromium'):
     """Captura una URL. Con salida=None devuelve los datos sin escribir fichero.
@@ -96,19 +146,7 @@ def snapshot(url, output=None, auth_state=None, engine='chromium'):
         except Exception:  # noqa: BLE001
             tree = None
 
-        order = []
-        page.keyboard.press('Tab')
-        seen = set()
-        for _ in range(len(elements) * 2 + 10):
-            info = page.evaluate(FOCUS_KEY_JS)
-            if info is None:
-                break
-            entry_key = info + '@' + str(len(seen))
-            if info in seen:
-                break
-            seen.add(info)
-            order.append(info)
-            page.keyboard.press('Tab')
+        order = _walk_focus(page, len(elements) * 2 + 10)
         nav.close()
 
     data = {'url': url, 'ts': datetime.now(timezone.utc).isoformat(),
@@ -122,10 +160,16 @@ def snapshot(url, output=None, auth_state=None, engine='chromium'):
 
 
 def diff(a, b):
+    # multiset por firma: dos controles con el MISMO nombre (Edit por fila,
+    # botones-icono sin name) son dos elementos — un dict por clave los
+    # colapsaba y el diff decía «sin cambios» ante una duplicación
+    from collections import Counter
+    ca = Counter(x['key'] for x in a['elements'])
+    cb = Counter(x['key'] for x in b['elements'])
+    aniadidos = sorted((cb - ca).elements())
+    removed = sorted((ca - cb).elements())
     ea = {x['key']: x for x in a['elements']}
     eb = {x['key']: x for x in b['elements']}
-    aniadidos = sorted(set(eb) - set(ea))
-    removed = sorted(set(ea) - set(eb))
     renamed = []
     for k in set(ea) & set(eb):
         if ea[k]['name'] != eb[k]['name']:
@@ -160,7 +204,7 @@ def diff(a, b):
     return {
         'ok': ok,
         'summary': {
-            'elements': {'before': len(ea), 'after': len(eb)},
+            'elements': {'before': len(a['elements']), 'after': len(b['elements'])},
             'added': len(aniadidos), 'removed': len(removed),
             'renamed': len(renamed),
             'focus_order_changed': focus_changed or bool(focus_removed),

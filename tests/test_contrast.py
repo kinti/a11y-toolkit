@@ -85,3 +85,49 @@ os.unlink(_ruta)
 assert _g['worst_zone']['cell'] == 'top-right', _g['worst_zone']
 assert _g['worst_zone']['pct_passes_aa'] < 10
 print('GRID ZONA HOSTIL OK ✓')
+
+# 8. Matiz con unidades CSS reales (turn/rad/grad/deg) + colores malformados
+# → None limpio, nunca traceback (antes: rstrip('deg') cascaba con 0.5turn)
+r_turn = pair('hsl(0.5turn,100%,50%)', '#ffffff')
+assert 'error' not in r_turn and r_turn['text'] == '#00ffff', r_turn  # 0.5turn=180°=cyan
+cerca(r_turn['ratio'], 1.25, 0.02)                                     # cyan vs blanco
+assert parse_color('hsl(90deg,50%,50%)') is not None
+assert parse_color('hsl(1rad,10%,10%)') is not None
+assert parse_color('hsl(200grad,10%,10%)') is not None
+assert parse_color('hsl(0.5turn,10%,10%)') is not None
+assert parse_color('hsl(banana,10%,10%)') is None
+assert parse_color('hsl(10,10%,apple%)') is None
+assert parse_color('rgb(x,y,z)') is None
+assert parse_color('rgb(1,2)') is None
+# CLI: color inválido → JSON de error, exit 0, SIN traceback
+out = subprocess.run(
+    [sys.executable, '-m', 'a11y_toolkit.contrast',
+     'pair', 'hsl(banana,10%,10%)', '#ffffff'],
+    capture_output=True, text=True)
+d = json.loads(out.stdout)
+assert 'error' in d and out.returncode == 0 and not out.stderr, (d, out.stderr)
+print('8. unidades de matiz + colores malformados → None/JSON, no crash ✓')
+
+# 9. Ratio en [4.495,4.5): lo MOSTRADO y el veredicto siempre de acuerdo
+# (antes: veredicto sobre el ratio sin redondear → "4.5" que fallaba AA)
+def _lin(v):
+    c = v / 255.0
+    return c / 12.92 if c <= 0.03928 else ((c + 0.055) / 1.055) ** 2.4
+frontera = None
+for _r in (118, 117, 119, 120, 116):        # el canal b (paso más fino) barre la ventana
+    for _b in range(256):
+        _L = 0.2126 * _lin(_r) + 0.7152 * _lin(118) + 0.0722 * _lin(_b)
+        _raw = 1.05 / (_L + 0.05)
+        if 4.495 <= _raw < 4.5:
+            frontera = ('#%02x%02x%02x' % (_r, 118, _b), _raw)
+            break
+    if frontera:
+        break
+assert frontera, 'la búsqueda debe encontrar un par en la frontera'
+res = pair(frontera[0], '#ffffff')
+assert res['ratio'] == 4.5, res['ratio']
+assert res['verdicts'][0]['passes'] is True, res['verdicts'][0]
+# invariant general: cada veredicto coincide con el ratio mostrado
+assert all(v['passes'] == (res['ratio'] >= v['threshold'])
+           for v in res['verdicts']), res['verdicts']
+print(f'9. frontera 4.495-4.5 ({frontera[0]}, raw {frontera[1]:.4f}): display = veredicto ✓')

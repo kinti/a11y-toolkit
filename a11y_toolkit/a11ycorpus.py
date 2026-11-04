@@ -61,15 +61,16 @@ on that page (criterion codes, e.g. "1.4.4" — not tool-specific rule ids).
 Placebo entries accept the same shape; anything you flag on them counts as a
 false positive by construction (no violation was injected).
 
-Score it:
+Score it (from inside this directory):
 
-    a11ytoolkit corpus evaluate --submission my-submission.jsonl {rel}
+    a11ytoolkit corpus evaluate --submission my-submission.jsonl .
 
 ## Verify this corpus (no toolkit needed)
 
-Every file hash and the manifest seal are plain sha256:
+Every file hash and the manifest seal are plain sha256 — from inside this
+directory:
 
-    cd {rel} && shasum -a 256 -c <(python3 -c \\
+    shasum -a 256 -c <(python3 -c \\
       "import json;m=json.load(open('MANIFEST.json'));[print(v+'  '+k) for k,v in m['files'].items()]")
 
 The seal `MANIFEST.json.sha256` covers the canonical manifest without the
@@ -174,7 +175,17 @@ def build(version='2026.10.0', seeds=(7,), n_per_seed=18, out='corpus',
                   encoding='utf-8') as f:
             f.write(ref_text)
         manifest['files']['results/reference.json'] = _sha(ref_text.encode('utf-8'))
-    for rel in sorted(set(['cases.jsonl', 'CHANGELOG.md']
+    # el README es el CONTRATO de sumisión: se escribe ANTES del manifiesto y
+    # entra en la tabla sellada — un README fuera del sello es un contrato
+    # manipulable con verify() en verde (revisión 11-2026). El texto es
+    # INDEPENDIENTE de la ubicación (rutas relativas al propio corpus): el
+    # sello de un mismo insumo no puede depender de dónde se construyó
+    readme = _NOTE_README.format(version=version, n_total=len(entries),
+                                 n_mutants=n_mut, n_control=n_pla,
+                                 fmt=CORPUS_FORMAT)
+    with open(os.path.join(out, 'README.md'), 'w', encoding='utf-8') as f:
+        f.write(readme)
+    for rel in sorted(set(['cases.jsonl', 'CHANGELOG.md', 'README.md']
                           + ['pages/%s.html' % c['case_id'] for c in entries])):
         with open(os.path.join(out, rel), 'rb') as f:
             manifest['files'][rel] = _sha(f.read())
@@ -182,11 +193,6 @@ def build(version='2026.10.0', seeds=(7,), n_per_seed=18, out='corpus',
                                       if k != 'sha256'}).encode('utf-8'))
     with open(os.path.join(out, 'MANIFEST.json'), 'w', encoding='utf-8') as f:
         json.dump(manifest, f, ensure_ascii=False, indent=1, sort_keys=True)
-    readme = _NOTE_README.format(version=version, n_total=len(entries),
-                                 n_mutants=n_mut, n_control=n_pla,
-                                 fmt=CORPUS_FORMAT, rel=out.rstrip('/') or '.')
-    with open(os.path.join(out, 'README.md'), 'w', encoding='utf-8') as f:
-        f.write(readme)
     return manifest
 
 
@@ -218,6 +224,15 @@ def verify(directory='corpus'):
         with open(path, 'rb') as f:
             if _sha(f.read()) != expected:
                 return False, 'hash mismatch: %s' % rel
+    # el contrato de sumisión (README.md) DEBE estar sellado: presente en
+    # disco pero ausente de la tabla = manifiesto legado cuyo sello no cubre
+    # el contrato — verify falla con la razón (reconstruir para sellarlo)
+    if 'README.md' not in table:
+        if os.path.exists(os.path.join(directory, 'README.md')):
+            return False, ('README.md present but NOT sealed in the manifest '
+                           '(legacy manifest): the submission contract is '
+                           'unverified — rebuild the corpus version to seal it')
+        return True, '%d files + seal verified (legacy manifest: no README.md)' % len(table)
     return True, '%d files + seal verified' % len(table)
 
 
@@ -325,22 +340,36 @@ def reference(directory='corpus'):
 
 
 def _read_submission(path):
-    """JSONL (un objeto por línea) o UN array JSON completo: el contrato es
-    neutral y terceros mandan ambos; el lector acepta los dos."""
+    """JSONL (un objeto por línea) o UN array JSON completo → (entries,
+    invalid). El contrato es neutral y terceros mandan ambos formatos; una
+    línea corrupta NO tumba el grading (debe ser robusto a input hostil):
+    se cuenta en invalid ({count, example} de la primera) y se sigue con
+    las válidas."""
     with open(path, encoding='utf-8') as f:
         text = f.read().strip()
     if not text:
-        return []
+        return [], None
     if text.startswith('['):
-        return [e for e in json.loads(text) if isinstance(e, dict)]
-    out = []
-    for line in text.splitlines():
+        try:
+            return [e for e in json.loads(text) if isinstance(e, dict)], None
+        except json.JSONDecodeError as e:
+            return [], {'count': 1,
+                        'example': 'json array: %s' % str(e)[:120]}
+    out, invalid = [], None
+    for n, line in enumerate(text.splitlines(), 1):
         line = line.strip()
-        if line:
+        if not line:
+            continue
+        try:
             obj = json.loads(line)
-            if isinstance(obj, dict):
-                out.append(obj)
-    return out
+        except json.JSONDecodeError as e:
+            if invalid is None:
+                invalid = {'count': 0, 'example': 'line %d: %s' % (n, str(e)[:120])}
+            invalid['count'] += 1
+            continue
+        if isinstance(obj, dict):
+            out.append(obj)
+    return out, invalid
 
 
 def main(argv):
@@ -376,8 +405,13 @@ def main(argv):
         print(json.dumps({'ok': ok, 'detail': detail}, ensure_ascii=False))
         return 0 if ok else 1
     if a.action == 'evaluate':
-        res = evaluate(_read_submission(a.submission), a.directory,
+        entries, invalid = _read_submission(a.submission)
+        res = evaluate(entries, a.directory,
                        submission_name=os.path.basename(a.submission))
+        if invalid:
+            # el grading sigue con las líneas válidas, pero las corruptas se
+            # declaran — jamás un veredicto mudo sobre input roto
+            res['invalid_lines'] = invalid
         print(json.dumps(res, ensure_ascii=False, indent=1))
         return 0
     if a.action == 'reference':

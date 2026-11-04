@@ -6,9 +6,11 @@ or raw audit reports (the pack is built here). Output: an accessible HTML
 VPAT with the full 55-criterion WCAG 2.2 A/AA table.
 
 Honesty rule (non-negotiable, mirrors the pack): the machine fills Remarks,
-never the Conformance Level. Every row starts at 'Not Evaluated' unless an
-automated fail forces 'Does Not Support' (or 'Partially Supports' for
-review-level signals). A qualified human sets the final level via `overrides`
+never the Conformance Level. Every row starts at 'Not Evaluated'; the only
+machine-set level is 'Does Not Support', forced by an automated fail.
+Review-level signals stay 'Not Evaluated' with the evidence in Remarks —
+the machine never prints a conformance claim from review-level evidence.
+A qualified human sets the final level via `overrides`
 and signs; until then the document is a DRAFT and says so. The signature
 statement must reference the evidence pack's sha256 — same tamper-evidence
 rule as the pack itself. VPAT is a vendor self-declaration, not a certificate.
@@ -25,12 +27,16 @@ import html
 import json
 import sys
 from . import a11yi18n
+from .a11yact import _NOT_DEAD
 
 LEVELS = a11yi18n.pair('vpat_levels')  # locales/<lang>.json — community-editable
 
 _STATUS_TO_LEVEL = {
     'automated-fail': 'does_not_support',
-    'automated-review': 'partially_supports',
+    # review-level evidence is NOT a conformance claim: it stays not-evaluated
+    # and the finding travels in the Remarks (evidence, never conformance —
+    # only a human sets a level above does-not-support)
+    'automated-review': 'not_evaluated',
     # not-flagged ≠ pass; agent-verified no es una firma humana
     'not-flagged': 'not_evaluated',
     'not-run': 'not_evaluated',
@@ -48,11 +54,20 @@ def _t(lang):
 
 
 def _findings_by_code(pack):
-    """Código de criterio → primer hallazgo con issue+remediation (de los artefactos)."""
+    """Código de criterio → primer hallazgo VIVO con issue+remediation (de los artefactos).
+
+    Un hallazgo muerto (el disprover lo marcó rejected, o quedó not-rechecked)
+    NO es evidencia: se salta — mismo filtro que a11yact (EARL) y build_pack.
+    Si existe otro hallazgo vivo del mismo código, ese es el que se cita; el
+    muerto nunca enmascara al vivo (ni viceversa)."""
     by_code = {}
     for art in pack.get('artifacts', []):
         body = art.get('body') or {}
         for h in body.get('findings', []):
+            if not isinstance(h, dict):
+                continue   # artefacto hostil: sin crash
+            if h.get('status') in _NOT_DEAD or h.get('disprover_status') in _NOT_DEAD:
+                continue
             code = (h.get('criterion') or '').split(' ')[0]
             if code and code not in by_code:
                 by_code[code] = h
@@ -82,7 +97,7 @@ def _remarks(t, row, finding, level, pack_sha):
         if chunks:
             parts.append('; '.join(chunks))
     if finding:
-        parts.append(f"issue: {finding.get('issue', '')[:220]}")
+        parts.append(f"issue: {str(finding.get('issue') or '')[:220]}")
         if finding.get('remediation'):
             parts.append(f"remediation: {finding['remediation'][:220]}")
     ef = row.get('effort')

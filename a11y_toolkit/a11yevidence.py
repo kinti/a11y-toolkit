@@ -29,6 +29,7 @@ import hashlib
 import json
 
 from .a11yaudit import normalize_report  # noqa: E402  (compat 5.10)
+from .a11ycrit import _EFFORT_MINUTES  # single source: a11ycrit prices the classes
 import sys
 from datetime import datetime, timezone
 
@@ -81,11 +82,47 @@ def apply_scope(pack, scope, lang='en'):
         criteria.append(row)
     out['criteria'] = criteria
     out['summary'] = {e: sum(1 for m in criteria if m.get('status') == e) for e in _STATES}
+    # the scope changes what REMAINS to do: effort_pending and manual_pending
+    # must describe the resulting matrix (excluded = zero pending human
+    # effort), not the pre-scope pack — otherwise the human is overcharged
+    # and criteria already not-applicable keep being named as pending
+    out['effort_pending'] = _pending_effort(
+        criteria, tx.get('manual_remaining')
+        or a11yi18n.pack('en')['evidence']['manual_remaining'])
+    out['manual_pending'] = [m['criterion'] for m in criteria
+                             if m.get('status') == 'manual-only']
     return out
 
 
 def _sha256(obj):
     return hashlib.sha256(_canon(obj).encode('utf-8')).hexdigest()
+
+
+def _pending_effort(matrix, note):
+    """Remaining human review, in minutes: MIN/MED/MAX per class summed over
+    every row a human still has to touch (agent-verified excluded; rows out
+    of applicability scope carry no effort). Shared by build_pack AND
+    apply_scope — the priced scope must always describe the CURRENT matrix,
+    never the pre-scope one."""
+    pend = {}
+    for m in matrix:
+        if m.get('status') == 'agent-verified':
+            continue
+        ef = m.get('effort')
+        if ef:
+            lo, hi = _EFFORT_MINUTES[ef['class']]
+            pend.setdefault(ef['class'], [0, 0])
+            pend[ef['class']][0] += lo
+            pend[ef['class']][1] += hi
+    return {
+        'by_class': {k: {'criteria': sum(1 for m in matrix
+                                         if m.get('status') != 'agent-verified'
+                                         and m.get('effort', {}).get('class') == k),
+                         'minutes': v}
+                     for k, v in sorted(pend.items())},
+        'total_minutes': [sum(v[0] for v in pend.values()), sum(v[1] for v in pend.values())],
+        'note': note,
+    }
 
 
 def build_pack(reports, snapshot=None, reviewer=None, notes=None, verified=None,
@@ -109,12 +146,25 @@ def build_pack(reports, snapshot=None, reviewer=None, notes=None, verified=None,
     tx = tx or a11yi18n.pack('en')['evidence']
     reports = [normalize_report(i) for i in reports]  # compat 5.10: señales previas al rename
 
+    # site crawls (audit_site) nest the per-page reports under 'reports': a
+    # pack built from a crawl must flatten them BEFORE deriving (the same
+    # shape a11ysarif reads), or the whole crawl counts as automated-fail: 0
+    # while pages carry real failures. Artifacts stay one-per-INPUT report —
+    # the seal seals what came in, not the flattened view.
+    pages = []
+    for inf in reports:
+        subs = inf.get('reports')
+        if isinstance(subs, list) and subs:
+            pages.extend(normalize_report(s) for s in subs if isinstance(s, dict))
+        else:
+            pages.append(inf)
+
     # matriz de criterios: los que tocamos (estado según hallazgos) + manuales
     from .a11ycrit import _C as _CAT, effort
     codes_aa = sorted(k for k, v in _CAT.items() if v[0] in ('A', 'AA'))
-    modes_included = {inf.get('mode', 'static') for inf in reports}
+    modes_included = {inf.get('mode', 'static') for inf in pages}
     touched = {}
-    for inf in reports:
+    for inf in pages:
         for h in inf.get('findings', []):
             if (h.get('status') == 'rejected'
                     or h.get('disprover_status') in ('rejected', 'not-rechecked')):
@@ -126,7 +176,11 @@ def build_pack(reports, snapshot=None, reviewer=None, notes=None, verified=None,
                 continue
             code = crit.split(' ')[0]
             severity = h.get('severity')
-            state = 'automated-review' if severity == 'low' else 'automated-fail'
+            # severity ausente/None/abajo de high-medium: la máquina no puede
+            # afirmar un FALLO — el hallazgo queda como review (evidencia, no
+            # veredicto). Solo un fail del motor es un automated-fail.
+            state = ('automated-fail' if severity in ('high', 'medium')
+                     else 'automated-review')
             # el peor estado gana: fail > review
             if touched.get(code) != 'automated-fail':
                 touched[code] = state
@@ -152,14 +206,15 @@ def build_pack(reports, snapshot=None, reviewer=None, notes=None, verified=None,
             excluded[crit.split(' ')[0]] = reason if isinstance(reason, str) else ''
     # extraer valores medidos clave de los hallazgos (ratio, ejemplos)
     values = {}
-    for inf in reports:
+    for inf in pages:
         for h in inf.get('findings', []):
             code = (h.get('criterion') or '').split(' ')[0]
             if code not in values:
                 val = {}
-                if 'ratio' in h.get('issue', '').lower() or ':' in h.get('issue', ''):
+                issue_txt = h.get('issue') or ''   # issue null explícito: sin crash
+                if 'ratio' in issue_txt.lower() or ':' in issue_txt:
                     import re as _re
-                    m = _re.search(r'([\d.]+):1', h.get('issue', ''))
+                    m = _re.search(r'([\d.]+):1', issue_txt)
                     if m:
                         val['measured'] = f'{m.group(1)}:1'
                 _ex_list = h.get('examples', [])
@@ -172,8 +227,6 @@ def build_pack(reports, snapshot=None, reviewer=None, notes=None, verified=None,
     # real es not-run, no not-flagged: la herramienta SÍ tiene señal pero el
     # modo que la produce no se incluyó)
     from .a11ycrit import RENDERED_ONLY as _RENDERED_ONLY  # canónico (a11ycrit)
-
-    verified_set = {v.split(' ')[0] for v in (verified or [])}
 
     matrix = []
     _manual_codes = {m.split(' ')[0] for m in MANUAL_AA}
@@ -198,7 +251,7 @@ def build_pack(reports, snapshot=None, reviewer=None, notes=None, verified=None,
 
         # verificados: promueve not-flagged/not-run/manual-only → agent-verified
         # (pero automated-fail permanece: un fallo no se borra verificando)
-        if code in verified_set and state != 'automated-fail':
+        if code in verified and state != 'automated-fail':
             state = 'agent-verified'
 
         note = None
@@ -258,27 +311,8 @@ def build_pack(reports, snapshot=None, reviewer=None, notes=None, verified=None,
     # remaining human review, in minutes: MIN/MED/MAX per class summed over
     # every row a human still has to touch (everything except agent-verified).
     # This is the scope input for human review: agent output in,
-    # priced human scope out.
-    _MIN = {'MIN': (1, 3), 'MED': (5, 10), 'MAX': (15, 30)}
-    pend = {}
-    for m in matrix:
-        if m['status'] == 'agent-verified':
-            continue
-        ef = m.get('effort')
-        if ef:
-            lo, hi = _MIN[ef['class']]
-            pend.setdefault(ef['class'], [0, 0])
-            pend[ef['class']][0] += lo
-            pend[ef['class']][1] += hi
-    pending_effort = {
-        'by_class': {k: {'criteria': sum(1 for m in matrix
-                                           if m['status'] != 'agent-verified'
-                                           and m.get('effort', {}).get('class') == k),
-                          'minutes': v}
-                      for k, v in sorted(pend.items())},
-        'total_minutes': [sum(v[0] for v in pend.values()), sum(v[1] for v in pend.values())],
-        'note': tx['manual_remaining'],
-    }
+    # priced human scope out. The class prices live in a11ycrit (single source).
+    pending_effort = _pending_effort(matrix, tx['manual_remaining'])
 
     artifacts = []
     for i, inf in enumerate(reports):

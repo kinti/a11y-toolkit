@@ -49,9 +49,12 @@ def path_segment(tag, nth):
     pueden romper la identidad)."""
     return f'{tag}:nth-of-type({nth})'
 
-# roles que convierten cualquier elemento en campo etiquetable (e086e5)
+# roles que convierten cualquier elemento en campo etiquetable (e086e5).
+# OJO: 'search' NO está — es un LANDMARK (WAI-ARIA 1.2), no un widget: un
+# <form role="search"> sin aria-label es un landmark sin etiqueta, no un
+# campo sin label (el patrón del tutorial W3C no puede dar HIGH 3.3.2)
 _ROLE_FIELDS = {'textbox', 'searchbox', 'spinbutton', 'combobox', 'listbox',
-                'checkbox', 'radio', 'switch', 'search'}
+                'checkbox', 'radio', 'switch'}
 
 # Subetiquetas BCP-47 principales habituales (validación blanda)
 _LANG_CODES = set('''af am ar az be bg bn bs ca cs cy da de el en es et eu fa fi fr ga gl
@@ -130,10 +133,6 @@ _MOD_ADDRESS = {'shipping', 'billing'}
 # el modificador de contacto solo vale pegado a estos campos (ABNF 73f2c2)
 _FIELDS_AFTER_CONTACT = {'email', 'impp', 'tel', 'tel-country-code', 'tel-national',
                          'tel-area-code', 'tel-local', 'tel-extension'}
-_FIELDS_AFTER_CONTACTMOD = {'username', 'email', 'impp', 'tel', 'tel-country-code',
-                        'tel-national', 'tel-area-code', 'tel-local', 'tel-extension',
-                        'nickname', 'honorific-prefix', 'given-name', 'additional-name',
-                        'family-name', 'new-password', 'current-password', 'one-time-code'}
 _FIELDS_AFTER_ADDRMOD = {'street-address', 'address-line1', 'address-line2', 'address-line3',
                          'address-level1', 'address-level2', 'address-level3', 'address-level4',
                          'country', 'country-name', 'postal-code'}
@@ -290,6 +289,16 @@ _OVERLAY_WIDGETS = (
     ("FACIL'ITI", ('facil-iti.com', 'facil-iti.org')),
 )
 
+# texto de un skip link (es/en/pt/fr — el vocabulario del patrón 3e12e1)
+_SKIP_TEXT = re.compile(
+    r'skip|jump to|saltar|ir al contenido|ir para o conte[uú]do|passer au contenu', re.I)
+
+# encabezados cortos legítimos (acrónimos y términos técnicos): «FAQ», «API»…
+_SHORT_HEADINGS = {'FAQ', 'API', 'CSS', 'APP', 'MAP', 'EN', 'DE', 'ES', 'PT', 'FR',
+                   'IT', 'UI', 'UX', 'ID', 'TV', 'HR', 'PR', 'AI', 'PC', 'OK', '3D',
+                   'IOS', 'OS', 'GB', 'MB', 'KB', 'PDF', 'RSS', 'URL', 'WWW', 'XML',
+                   'HTTP', 'FAQS', 'BLOG', 'HOME', 'INICIO', 'NOTAS', 'AGENDA'}
+
 
 def _t(lang, key, n=None):
     """Message by key; `{"one","other"}` entries resolve via the locale's
@@ -338,7 +347,6 @@ class _Auditor(HTMLParser):
         self._heading_level = None
         self._heading_text = []
         self._visible_text = []
-        self._heading_text = []
         self.positive_tabindices = []
         self.viewport = None
         self.elements = 0
@@ -351,16 +359,27 @@ class _Auditor(HTMLParser):
         self.orphan_labels = 0
         # Nuevas señales
         self.aria_hidden_focusable = []   # tag de interactivos con aria-hidden
+        self.aria_hidden_focusable_elems = []
         self.stray_clicks = []           # tags no interactivos con onclick
+        self.stray_click_elems = []      # attrs de cada uno (paths del kernel)
+        self._stray_pend = []            # (tag, attrs, frame) hasta cerrar: se
+        # confirma salvo que el subárbol contenga un control nativo (delegación)
+        self.role_no_tabindex = []       # [role=button/link] sin tabindex (2.1.1)
+        self.role_no_tabindex_elems = []
         self.meta_refresh = None
         self.meta_refreshes = []   # todos los meta refresh: gana el 1º parseable (spec HTML)
         self.saw_html = False
         self.saw_body = False
         self.root_tag = None
-        self._in_head = False
         self._in_template = 0
         self._title_buf = []
         self._titles_in_order = []
+        # svg: <title> DENTRO de <svg> es el nombre del svg (accname), no el
+        # título del documento — se rastrea por profundidad de svg abiertos
+        self._svg_depth = 0
+        self._in_svg_title = False
+        self._svg_title_buf = []
+        self._svg_titles = {}          # id(attrs del svg) → texto de su <title>
         # accname (ola de precisión ACT): visibilidad HEREDADA (aria-hidden con
         # re-activación por false, attr hidden, display:none/visibility:hidden)
         # y registro id→texto para resolver aria-labelledby a un salto — los ids
@@ -397,10 +416,15 @@ class _Auditor(HTMLParser):
         self.videos = 0
         self.videos_with_captions = 0
         self._in_video = False
+        self._video_caps_stack = []     # [attrs, tiene_captions] por <video> abierto
+        self.videos_no_caps_elems = []
+        self.media_autoplay_elems = []
         self.tables = 0
         self.tables_with_th = 0
         self._in_table = False
         self._th_in_table = False
+        self._table_stack = []          # (th_había, attrs) por <table> abierta
+        self.tables_no_th_elems = []
         self.blank_no_warning = 0
         self.blank_total = 0
         self.hay_main = False
@@ -423,6 +447,8 @@ class _Auditor(HTMLParser):
         self.links = {}         # nombre normalizado → set de hrefs
         self.generics = 0
         self.labels_for_dups = {}  # id → n labels (los >1, varios)
+        self._label_for_stack = []   # valor `for` de cada <label> abierto (None = envolvente)
+        self._label_text_for = {}    # id del for → texto del label (decisión post-parse)
         self.media_autoplay = 0
         self._list_depth = 0
         self._li_depth = 0
@@ -430,8 +456,12 @@ class _Auditor(HTMLParser):
         self.label_no_name = []     # (texto visible, aria-label) 2.5.3
         self.lang_parts_invalid = []      # lang inválidos en elementos no-html
         self.down_events = []       # onmousedown/ontouchstart/onpointerdown
-        self.captchas = []          # detección 3.3.8
+        self.captchas = []          # detección 3.3.8 — SOLO en contexto de autenticación
+        self._form_captchas = []    # candidatos del <form> abierto (3.3.8 aplica a auth)
+        self._form_auth = False     # form actual: acción de login o input password
+        self._required_pend = []    # (tag, attrs) required: decide post-parse con el label
         self.mobiles = []           # marquee/blink/inline infinite animation (2.2.2)
+        self._landmark_ids = set()  # ids de landmarks: objetivos válidos de skip link
         self.nav_hrefs = set()      # hrefs inside <nav> (site-level 3.2.3 signature)
         self.help_hrefs = set()     # help/contact links (site-level 3.2.6 signature)
         self.images_of_text = []
@@ -445,12 +475,14 @@ class _Auditor(HTMLParser):
         self.missing_fieldsets = 0      # 1.3.1: radio/check groups sin fieldset
         self._radio_group = {}
         self._radio_in_fieldset = {}         # name → count (para detectar grupos)
+        self._radio_in_group = {}             # name → dentro de role=group con nombre
         self.vague_labels = []         # 2.4.6: label quality
         self.financial_no_confirm = 0  # 3.3.4: financial form no confirm
         self._financial_form = False
-        self._confirm_form = False    # 1.4.5 suspicion: img inside heading or very long alt
+        self._confirm_form = False    # 3.3.4: pista de confirmación en form financiero
         self._in_nav = 0
         self._in_fieldset = False
+        self._group_role_depth = 0    # <div role=group/radiogroup> abierto (con nombre)
         self.has_search = False
         self.has_sitemap = False
         self.gestures = []            # touchmove/drag handlers (2.5.1)
@@ -459,7 +491,6 @@ class _Auditor(HTMLParser):
         self.orientation_locks = [] # screen.orientation.lock / orientation MQ (1.3.4)
         self.videos_descriptions = 0   # videos WITH descriptions track
         self.sensory = []           # sensory-only instruction patterns (1.3.3)
-        self._skip_labels_pend = []  # labels declarados antes que su campo
 
     def _close_control(self, tag):
         if not self._ctrl:
@@ -492,7 +523,10 @@ class _Auditor(HTMLParser):
             self._styles_text, re.I)) or bool(re.search(
             r'fonts\.googleapis\.com/icon|/material-icons|font-?awesome|/icomoon',
             ' '.join(getattr(self, '_icon_links', [])), re.I))
-        if not (tag == 'button' and _icon_font) and _vis and _al:
+        # página con fuente-icono: el «texto» del control puede ser un glifo
+        # no verbal (ligadura Material «shopping_cart») — exento en CUALQUIER
+        # control (enlaces-icono incluidos), no solo <button>
+        if not _icon_font and _vis and _al:
             def _lin_words(txt):
                 txt = re.sub(r'\([^)]*\)', ' ', txt)
                 # la puntuación se ELIMINA sin partir palabras («11×3=33» →
@@ -512,14 +546,22 @@ class _Auditor(HTMLParser):
                                      for i in range(len(_ap2) - len(_vp) + 1))
             if _mismatch:
                 self.label_no_name.append((_vis[:40], _al[:60]))
-        if tag == 'a':
+        if tag == 'a' and not c.get('hidden'):
             if (a.get('target') or '').lower() == '_blank':
                 self.blank_total += 1
+                _img_alts = ' '.join((ia.get('alt') or '')
+                                     for ia in c.get('img_attrs', []))
                 if not _BLANK_HINT.search(text) and not _BLANK_HINT.search(a.get('aria-label') or '') \
-                        and not _BLANK_HINT.search(a.get('title') or ''):
+                        and not _BLANK_HINT.search(a.get('title') or '') \
+                        and not _BLANK_HINT.search(_img_alts):
                     self.blank_no_warning += 1
-            elif (a.get('href') or '').strip().startswith('#') and len((a.get('href') or '').strip()) > 1 and text:
-                self.hay_skip = True  # ancla interna con fragmento y texto: candidato a skip link
+            elif (a.get('href') or '').strip().startswith('#') \
+                    and len((a.get('href') or '').strip()) > 1 and text:
+                # skip link REAL: ancla interna cuyo objetivo es un landmark o
+                # cuyo texto lo dice — un TOC/footnote no abate bloques (3e12e1)
+                if (a.get('href') or '').strip()[1:] in self._landmark_ids \
+                        or _SKIP_TEXT.search(text):
+                    self.hay_skip = True
             name = (text or a.get('aria-label') or a.get('title') or '').strip()
             href = (a.get('href') or '').strip()
             if name and href:
@@ -533,9 +575,35 @@ class _Auditor(HTMLParser):
         if self._labels_stack:
             self._labels_stack[-1] = True
 
+    def _wrap_labels(self, a):
+        """¿Un <label> ABIERTO etiqueta ESTE campo? El label envolvente solo
+        asocia cuando NO tiene `for` (o su `for` apunta al propio campo):
+        <label for=email>…<input id=pw>> NO etiqueta a pw (el for manda)."""
+        if not self._label_for_stack:
+            return False
+        _fid = a.get('id')
+        return any(_f is None or (_fid and _f == _fid)
+                   for _f in self._label_for_stack)
+
     def handle_starttag(self, tag, attrs):
-        a = dict(attrs)
+        # atributos DUPLICADOS: gana el PRIMERO (spec HTML: los repetidos se
+        # descartan) — dict(attrs) dejaría ganar al último y <img alt="x" alt="">
+        # pasaría por decorativa
+        a = {}
+        for _k, _v in attrs:
+            if _k not in a:
+                a[_k] = _v
         self.elements += 1
+        # delegación de eventos: un control interactivo DENTRO de un candidato
+        # a «click no enfocable» lo exime (wrapper de analytics/React sobre un
+        # <button> real — el teclado lo opera desde el descendiente)
+        if self._stray_pend:
+            _ti_mark = (a.get('tabindex') or '').strip()
+            if tag in ('a', 'button', 'input', 'select', 'textarea', 'summary') \
+                    or (a.get('role') or '').strip().lower() in ('button', 'link') \
+                    or (_ti_mark.isdigit() and int(_ti_mark) >= 0):
+                for _sp in self._stray_pend:
+                    _sp[3] = True
         # ruta determinista del elemento (kernel de anotación): nth-of-type
         # SIEMPRE (los id duplicados no pueden romper la ruta) y los void no
         # abren pila (no tienen handle_endtag)
@@ -575,6 +643,11 @@ class _Auditor(HTMLParser):
             _hidden_aria = False
         _hidden = _inh or 'hidden' in a or 'display:none' in _style \
             or 'visibility:hidden' in _style or _hidden_aria
+        # <template> es contenido INERTE (spec HTML): no renderiza, no recibe
+        # foco, sus ids no existen — se audita como oculto y los colectores
+        # que no consultan _hidden llevan guardia explícita
+        if self._in_template:
+            _hidden = True
         if tag not in _VOID:
             self._depth += 1
             self._hidden_stack.append((_hidden, _hidden_aria))
@@ -591,10 +664,10 @@ class _Auditor(HTMLParser):
                 self._nav_ids.add(a['id'])
             if a.get('onclick'):
                 self._toggle_onclicks.append(a['onclick'])
-        if tag == 'head':
-            self._in_head = True
-        elif tag == 'template':
+        if tag == 'template':
             self._in_template += 1
+        elif tag == 'svg':
+            self._svg_depth += 1
         elif tag == 'html':
             self.saw_html = True
             self.lang = (a.get('lang') or '').strip()
@@ -604,11 +677,15 @@ class _Auditor(HTMLParser):
                 self.lang_region_invalid = self.lang
         elif tag == 'body':
             self.saw_body = True
-        elif tag == 'title' and not self._in_template:
+        elif tag == 'title' and not self._in_template and self._svg_depth == 0:
             # TODOS los <title> se acumulan en orden de documento: decide el
             # PRIMERO (modelo de ACT 2779a5: head vacío + body con texto falla;
-            # title solo en body pasa; los de <template> son inertes)
+            # title solo en body pasa; los de <template> son inertes). El
+            # <title> de un <svg> es el NOMBRE del svg (accname): otra vía.
             self._in_title = True
+        elif tag == 'title' and self._svg_depth > 0 and not self._in_template:
+            self._in_svg_title = True
+            self._svg_title_buf = []
         elif tag == 'script':
             self._in_script = True
             if a.get('src'):
@@ -622,11 +699,11 @@ class _Auditor(HTMLParser):
             # attrs ahora; el texto de reserva se recoge en el endtag (pop)
             self.canvas_hidden[id(a)] = _hidden
         elif tag == 'meta':
-            if a.get('name', '').lower() == 'viewport':
-                self.viewport = a.get('content', '')
+            if (a.get('name') or '').lower() == 'viewport':
+                self.viewport = (a.get('content') or '')
             elif (a.get('http-equiv') or '').lower() == 'refresh':
-                self.meta_refresh = a.get('content', '')
-                self.meta_refreshes.append(a.get('content', ''))
+                self.meta_refresh = (a.get('content') or '')
+                self.meta_refreshes.append((a.get('content') or ''))
         elif tag == 'img':
             # la decisión de nombre es POST-parse (nombre accesible = alt u
             # otras fuentes; presentación/none y hiddens quedan fuera)
@@ -636,6 +713,10 @@ class _Auditor(HTMLParser):
                 # la imagen interna aporta SU nombre completo al control
                 # (alt, aria-label, title, labelledby — resuelto post-parse)
                 self._ctrl[-1]['img_attrs'].append(a)
+            if a.get('id') and alt and not self._in_template:
+                # el alt de una img ES su nombre accesible: un aria-labelledby
+                # que apunte a esta img resuelve al alt (accname), no a ''
+                self._id_text_parts.setdefault(a['id'], []).append(alt)
             if alt and not _hidden:
                 # el alt SE LEE: cuenta como texto bajo el lang de su
                 # contexto (de46e4 — una img con alt es contenido textual)
@@ -643,13 +724,16 @@ class _Auditor(HTMLParser):
             if self._heading_level is not None and not _hidden \
                     and (a.get('role') or '').strip().lower() not in ('presentation', 'none'):
                 # nombre de la imagen (alt u otras fuentes) alimenta al
-                # encabezado — salvo presentación/none u oculta (ffd0e9)
+                # encabezado — salvo presentación/none u oculta (ffd0e9).
+                # NOTA: una img DENTRO de un heading no es evidencia de
+                # «imagen de texto» (1.4.5 exime logotipos; un gráfico de
+                # datos no es texto) — solo el alt kilométrico sigue siendo
+                # señal de revisión
                 _nom_img = alt or (a.get('aria-label') or '').strip() \
                     or (a.get('title') or '').strip()
                 if _nom_img:
                     self._heading_text.append(_nom_img)
-                self.images_of_text.append('imagen dentro de encabezado')
-            elif len(alt) > 120:
+            if len(alt) > 120:
                 self.images_of_text.append(f'alt de {len(alt)} caracteres')
         elif tag == 'iframe':
             self.iframes_all.append((a, _hidden))
@@ -674,6 +758,8 @@ class _Auditor(HTMLParser):
         elif tag == 'input':
             self._field_note()
             kind = (a.get('type') or 'text').lower()
+            if kind == 'password':
+                self._form_auth = True   # 3.3.8: form con password = autenticación
             if kind == 'image':
                 self.inputs_image.append((a, _hidden))
             elif kind in ('submit', 'button', 'reset'):
@@ -683,7 +769,7 @@ class _Auditor(HTMLParser):
             if kind == 'search' or re.search(r'search|busqueda|b[uú]squeda', (a.get('name') or '') + (a.get('id') or ''), re.I):
                 self.has_search = True
             if kind in _FIELDS:
-                self.fields_raw.append((tag, kind, a, self._label_depth > 0, _hidden))
+                self.fields_raw.append((tag, kind, a, self._wrap_labels(a), _hidden))
                 if 'autocomplete' not in a and kind != 'search' and (
                         kind in ('email', 'tel')
                         or _PERSONAL_DATA.search((a.get('name') or '') + ' ' + (a.get('id') or ''))):
@@ -695,7 +781,7 @@ class _Auditor(HTMLParser):
             # [shipping|billing]? [home|work|mobile|fax|pager — solo si el
             # siguiente es email/impp/tel/tel-*]? campo [webauthn]? — los
             # campos disabled u hiddens quedan fuera (aplicabilidad)
-            _toks = (a['autocomplete'] or '').split()
+            _toks = [t.lower() for t in (a['autocomplete'] or '').split()]
             _mal = None
             if not (_toks == ['on'] or _toks == ['off']):
                 _i = 0
@@ -721,11 +807,12 @@ class _Auditor(HTMLParser):
                     f'{_mal} (input name={a.get("name") or "?"})'[:60])
         elif tag in ('select', 'textarea'):
             self._field_note()
-            self.fields_raw.append((tag, tag, a, self._label_depth > 0, _hidden))
+            self.fields_raw.append((tag, tag, a, self._wrap_labels(a), _hidden))
         elif tag == 'label':
             self._label_depth += 1
             self._label_text_current = []
             self._labels_stack.append(False)
+            self._label_for_stack.append(a.get('for') or None)
             if a.get('for'):
                 self._labels_for[a['for']] = self._labels_for.get(a['for'], 0) + 1
                 if self._labels_for[a['for']] > 1:
@@ -736,32 +823,60 @@ class _Auditor(HTMLParser):
         elif tag == 'blink':
             self.mobiles.append('<blink>')
         elif tag == 'track':
-            kind = (a.get('kind') or '').lower()
+            # sin kind (o kind vacío/None), el valor por defecto del spec HTML
+            # es «subtitles» — cuenta como captions (no exigir el atributo)
+            kind = (a.get('kind') or 'subtitles').lower()
             if kind == 'descriptions':
                 self.videos_descriptions += 1
             elif kind in ('captions', 'subtitles'):
                 self.videos_with_captions += 1
+                if self._video_caps_stack:
+                    self._video_caps_stack[-1][1] = True
         elif tag in ('video', 'audio'):
-            if tag == 'video':
+            if tag == 'video' and 'muted' not in a:
+                # muted = el hero de fondo sin pista audible: 1.2.2/1.2.3
+                # aplican a vídeo CON audio — no se exige track a lo inaudible
                 self.videos += 1
                 self._in_video = True
-            if 'autoplay' in a:
+                self._video_caps_stack.append([a, False])
+            # 1.4.2 aplica a audio QUE SUENA sin control: muted = nada audible;
+            # controls = el usuario puede pararlo — ambos pasan (el hero-video
+            # muted de toda landing no es un fallo de Audio Control)
+            if 'autoplay' in a and 'muted' not in a and 'controls' not in a \
+                    and not self._in_template:
                 self.media_autoplay += 1
+                self.media_autoplay_elems.append(a)
         elif tag in ('ul', 'ol'):
             self._list_depth += 1
         elif tag == 'li':
             self._li_depth += 1
         elif tag == 'table':
-            self.tables += 1
-            self._in_table = True
-            self._th_in_table = False
+            # role=presentation/none la declara de MAQUETACIÓN: no se exige th
+            # (el mail HTML y las grids legacy viven aquí) — y el contenido de
+            # <template> es inerte
+            if (a.get('role') or '').strip().lower() in ('presentation', 'none') \
+                    or self._in_template:
+                pass
+            else:
+                self.tables += 1
+                self._in_table = True
+                # pila por tabla anidada: la interna no borra el th de la externa
+                self._table_stack.append((self._th_in_table, a))
+                self._th_in_table = False
         elif tag == 'th':
             self._th_in_table = True
         elif tag == 'main' or (a.get('role') or '').lower() == 'main':
             self.hay_main = True
+            if a.get('id'):
+                self._landmark_ids.add(a['id'])
         elif tag not in _CONTROLS + ('input', 'select', 'textarea', 'label', 'option',
                                       'video', 'audio', 'details', 'summary'):
-            _role_v = a.get('role', '').strip().lower()
+            _role_v = (a.get('role') or '').strip().lower()
+            if _role_v in ('group', 'radiogroup') and not self._in_template:
+                # grupo con nombre accesible = alternativa legítima al fieldset
+                # (técnica ARIA de H71): se computa al abrir, se cierra en endtag
+                if a.get('aria-label') or a.get('aria-labelledby'):
+                    self._group_role_depth += 1
             if _role_v in _ROLE_FIELDS and _role_v not in ('none', 'presentation'):
                 if a.get('id'):
                     self._role_field_ids.add(a['id'])
@@ -778,16 +893,35 @@ class _Auditor(HTMLParser):
                                    'inner_img': False,
                                    'img_attrs': [], 'hidden': _hidden, 'depth': self._depth,
                                    'kind': 'role:' + _role_v})
+                # 2.1.1: un rol interactivo en tag NO enfocable de nacimiento
+                # exige tabindex — sin él el control es inalcanzable por
+                # teclado (el JS podría añadirlo en runtime: señal de revisión,
+                # el pase rendered confirma). Los <template> son inertes.
+                if 'tabindex' not in a and not _hidden:
+                    self.role_no_tabindex.append(f'{tag}[role={_role_v}]')
+                    self.role_no_tabindex_elems.append(a)
             elif _role_v == 'img' and tag != 'img':
                 # div[role=img] con imagen de fondo: también necesita nombre (23a2a8)
                 self.imgs_all.append((a, _hidden))
-            if a.get('onclick') and not a.get('role') and 'tabindex' not in a:
-                self.stray_clicks.append(tag)
-        # v3.9: 2.5.2 sospecha de activación en down-event
-        for _de in ('onmousedown', 'ontouchstart', 'onpointerdown'):
-            if a.get(_de):
-                self.down_events.append(f'{tag}[{_de}]')
-                break
+            if a.get('onclick') and not _role_v and 'tabindex' not in a \
+                    and not self._in_template:
+                # candidato a «click no enfocable»: se CONFIRMA al cerrar salvo
+                # que el subárbol contenga un control nativo (delegación de
+                # eventos / wrappers de analytics sobre un <button> real)
+                if tag in _VOID:
+                    self.stray_clicks.append(tag)
+                    self.stray_click_elems.append(a)
+                else:
+                    self._stray_pend.append([tag, a, self._depth, False])
+        # v3.9: 2.5.2 sospecha de activación en down-event — PERO solo si el
+        # elemento no completa en up (onclick/onpointerup/onmouseup presentes):
+        # un mousedown de arrastre/selección con click normal NO es down-event
+        if not self._in_template:
+            for _de in ('onmousedown', 'ontouchstart', 'onpointerdown'):
+                if a.get(_de):
+                    if not (a.get('onclick') or a.get('onpointerup') or a.get('onmouseup')):
+                        self.down_events.append(f'{tag}[{_de}]')
+                    break
         # v3.12: 2.2.2 inline looping animation
         style = a.get('style') or ''
         if 'animation' in style and 'infinite' in style:
@@ -800,25 +934,28 @@ class _Auditor(HTMLParser):
         if tag == 'form':
             self._financial_form = False
             self._confirm_form = False
-            action = (a.get('action') or '').lower()
+            self._form_captchas = []
+            action = (a.get('action') or '').lower() + (a.get('id') or '').lower()
             if re.search(r'pay|purchase|checkout|buy|order|contract|legal|billing',
                          action, re.I):
                 self._financial_form = True
+            if re.search(r'login|log-in|signin|sign-in|auth|session|sso|register|'
+                         r'registro|acces|password', action, re.I):
+                self._form_auth = True
         if tag in ('input', 'textarea') and a.get('placeholder') \
                 and not (a.get('aria-label') or a.get('aria-labelledby')):
             # candidato a placeholder-only: se confirma POST-parse (un
             # <label for> con su id le da nombre real y lo retira)
-            self._placeholder_candidates.append((tag, a, self._label_depth > 0, _hidden))
+            self._placeholder_candidates.append((tag, a, self._wrap_labels(a), _hidden))
             if a.get('required') is not None or 'required' in a or a.get('aria-required') == 'true':
-                ph = (a.get('placeholder') or '').lower()
-                title_ = (a.get('title') or '').lower()
-                if not re.search(r'\*|requerid|obligator|required|necesari|precisa', ph + title_):
-                    self.required_no_indication.append(
-                        f'{tag}[name={a.get("name","?")}]')
+                # required sin indicación: la decisión es POST-parse — el «*»
+                # puede vivir en el texto del <label for> (declarado después)
+                self._required_pend.append((tag, a))
             if tag == 'input' and a.get('type') == 'radio':
                 nm = a.get('name') or '(no name)'
                 self._radio_group[nm] = self._radio_group.get(nm, 0) + 1
                 self._radio_in_fieldset[nm] = self._in_fieldset
+                self._radio_in_group[nm] = self._group_role_depth > 0
         if tag == 'fieldset':
             self._in_fieldset = True
         if tag in ('button', 'input'):
@@ -834,9 +971,8 @@ class _Auditor(HTMLParser):
             if not a.get('onclick') and tag not in ('input', 'button'):
                 self.drag_handlers.append(f'{tag}[draggable]')
         if a.get('aria-live') or (a.get('role') or '').lower() in ('status', 'alert', 'log'):
-            self.status_regions += 1
-        if a.get('accesskey') and len((a.get('accesskey') or '').strip()) == 1:
-            self.char_shortcuts.append(f'{tag}[accesskey]')
+            if not self._in_template:
+                self.status_regions += 1
         # v3.12: 2.5.4 motion actuation handlers
         for _ma in ('ondeviceorientation', 'ondevicemotion'):
             if a.get(_ma):
@@ -845,19 +981,22 @@ class _Auditor(HTMLParser):
         if tag == 'meta' and 'orientation' in (a.get('content') or '').lower() \
                 and 'lock' in (a.get('content') or '').lower():
             self.orientation_locks.append('meta orientation lock')
-        # v3.9: 3.3.8 captcha
-        for _v in (a.get('src') or '', a.get('href') or '', a.get('id') or ''):
-            if re.search(r'recaptcha|hcaptcha|turnstile|captcha', _v, re.I):
-                self.captchas.append(f'{tag} {_v[:50]}')
-                break
-        if (a.get('name') or '').lower().find('captcha') >= 0:
-            self.captchas.append(f'input name={a["name"][:30]}')
-        # v3.1/v3.3: validez ARIA (atributos, referencias y VALORES)
-        for _ar in _ARIA_IDREFS:
+        # v3.9: 3.3.8 captcha — SOLO dentro de un form de autenticación (la
+        # decisión es del endtag del form: ahí se sabe si hubo password/login)
+        if not self._in_template:
+            for _v in (a.get('src') or '', a.get('href') or '', a.get('id') or ''):
+                if re.search(r'recaptcha|hcaptcha|turnstile|captcha', _v, re.I):
+                    self._form_captchas.append(f'{tag} {_v[:50]}')
+                    break
+            if (a.get('name') or '').lower().find('captcha') >= 0:
+                self._form_captchas.append(f'input name={a["name"][:30]}')
+        # v3.1/v3.3: validez ARIA (atributos, referencias y VALORES) — el
+        # contenido de <template> es inerte: sus aria-* no existen en el DOM
+        for _ar in _ARIA_IDREFS if not self._in_template else ():
             if a.get(_ar):
                 for _ref in a[_ar].split():
                     self.aria_refs.append((_ar, _ref))
-        for _ar, _val in a.items():
+        for _ar, _val in a.items() if not self._in_template else ():
             if not _ar.startswith('aria-'):
                 continue
             _val = (_val or '').strip().lower()
@@ -867,7 +1006,11 @@ class _Auditor(HTMLParser):
                     and not (_val == 'mixed' and _ar in ('aria-pressed', 'aria-checked')) \
                     and not (_val == 'undefined' and _ar in _ARIA_BOOL_UNDEFINED):
                 self.aria_values.append({'attr': _ar, 'val': _val, 'type': 'bool'})
-            elif _ar in _ARIA_INT and not _val.isdigit():
+            elif _ar in _ARIA_INT and not _val.isdigit() \
+                    and not (_val == '-1' and _ar in ('aria-rowcount', 'aria-colcount',
+                                                       'aria-setsize')):
+                # -1 en rowcount/colcount/setsize es OBLIGATORIO cuando el
+                # total es desconocido (ARIA 1.2) — grids virtualizadas
                 self.aria_values.append({'attr': _ar, 'val': _val, 'type': 'int'})
             elif _ar in _ARIA_NUM:
                 try:
@@ -884,7 +1027,7 @@ class _Auditor(HTMLParser):
                 self.aria_values.append({'attr': _ar, 'val': _val,
                                           'type': 'tokens',
                                           'valid_tokens': '/'.join(sorted(v for v in _ARIA_TOKENS[_ar] if v))})
-        if a.get('role'):
+        if a.get('role') and not self._in_template:
             # role admite LISTA de tokens separados por espacios (con
             # fallback): TODOS deben ser roles válidos, no solo el primero
             for role in a['role'].strip().lower().split():
@@ -896,35 +1039,43 @@ class _Auditor(HTMLParser):
         landmark_role = a.get('role', '').lower() if a.get('role') in (
             'banner', 'contentinfo', 'navigation', 'complementary', 'main', 'form', 'search', 'region') else None
         lm = tag if tag in ('header', 'footer', 'nav', 'aside', 'main', 'search') else landmark_role
-        if lm and not (a.get('aria-label') or a.get('aria-labelledby')):
-            t = self.landmarks.setdefault(lm, [0, 0])
-            t[0] += 1
-            t[1] += 1
-        elif lm:
-            self.landmarks.setdefault(lm, [0, 0])[1] += 1
-        if a.get('accesskey'):
-            k = a['accesskey'].strip().lower()
-            self.accesskeys[k] = self.accesskeys.get(k, 0) + 1
+        if lm and not self._in_template:
+            if a.get('id'):
+                self._landmark_ids.add(a['id'])
+            if lm == 'search':
+                # un landmark search ES un mecanismo de búsqueda (2.4.5)
+                self.has_search = True
+            if not (a.get('aria-label') or a.get('aria-labelledby')):
+                t = self.landmarks.setdefault(lm, [0, 0])
+                t[0] += 1
+                t[1] += 1
+            else:
+                self.landmarks.setdefault(lm, [0, 0])[1] += 1
+        if a.get('accesskey') and not self._in_template:
+            k = (a.get('accesskey') or '').strip().lower()
+            if k:
+                self.accesskeys[k] = self.accesskeys.get(k, 0) + 1
         if self._list_depth > 0 and self._li_depth == 0 \
                 and tag not in ('li', 'script', 'template', 'ul', 'ol'):
             self._bad_list += 1
         # 4.1.2/2.1.2: enfocable dentro de un subárbol aria-hidden=true — el
         # aria-hidden=false anidado NO exime (ACT 6cfa84). No es enfocable:
-        # hidden por CSS/hidden (fuera de la navegación por tab), tabindex=-1
-        # explícito, o disabled (aria-disabled NO desactiva).
+        # hidden por CSS/hidden (fuera de la navegación por tab — INCLUIDO el
+        # display:none POR CLASE, el patrón hamburguesa .menu{display:none}),
+        # tabindex negativo (cualquiera, no solo -1), o disabled.
         _ti_raw = (a.get('tabindex') or '').strip()
         _ti_num = None
         if _ti_raw and (_ti_raw.isdigit() or _ti_raw[1:].isdigit()):
             _ti_num = int(_ti_raw)
         _css_hidden = 'hidden' in a or 'display:none' in _style or 'visibility:hidden' in _style \
-            or self._css_hidden_stack[-1]
+            or self._css_hidden_stack[-1] or self._focus_hidden_class()
         _native = (tag in ('button', 'summary', 'select', 'textarea', 'iframe')
                    or (tag in ('a', 'area') and (a.get('href') or '').strip())
                    or (tag == 'input' and (a.get('type') or 'text').lower() != 'hidden')
                    or (tag in ('video', 'audio') and 'controls' in a))
         _enfocable = ((_native and 'disabled' not in a)
                       or (_ti_num is not None and _ti_num >= 0))
-        if _ti_num == -1 or _css_hidden:
+        if (_ti_num is not None and _ti_num < 0) or _css_hidden:
             _enfocable = False
         # centinela de foco off-screen (patrón modal): un link fuera de vista
         # cuyo id aparece en los scripts (el wiring de focus) NO cuenta — la
@@ -932,30 +1083,43 @@ class _Auditor(HTMLParser):
         # llegar DESPUÉS del link: la decisión se difiere a post-parse
         if (_hidden_aria or self._ah_true_depth > 0) and _enfocable:
             if re.search(r'(top|left)\s*:\s*-\d{3,}', a.get('style') or '', re.I):
-                self._ahf_deferred.append((tag, a.get('id')))
+                self._ahf_deferred.append((tag, a, a.get('id')))
             else:
                 self.aria_hidden_focusable.append(tag)
+                self.aria_hidden_focusable_elems.append(a)
         if tag == 'area' and (a.get('href') or '').strip():
             # <area> es void: sin pila de control — se registra directo (el
             # nombre le llega del alt)
             self.controls_raw.append(('area', a, '', [], _hidden))
         if tag in ('h1', 'h2', 'h3', 'h4', 'h5', 'h6'):
-            self._heading_level = int(tag[1])
-            self._heading_text = []
-            self._heading_attrs = a
-            self._heading_route = self._elem_paths.get(id(a))
-            self._heading_hidden = _hidden
-            self._heading_tag = tag
-        elif a.get('role', '').lower() == 'heading' and 'aria-level' in a:
-            # role=heading cuenta como encabezado para el nombre (ffd0e9)
-            self._heading_level = int(a['aria-level'] or 1)
+            # role=none/presentation APAGA la semántica del encabezado; un
+            # aria-level válido la SOBRESCRIBE (accname: h3[aria-level=4] ES 4)
+            if (a.get('role') or '').strip().lower() in ('none', 'presentation') \
+                    or self._in_template:
+                pass
+            else:
+                self._heading_level = int(tag[1])
+                _alv = re.match(r'\d+', str(a.get('aria-level') or ''))
+                if _alv:
+                    self._heading_level = int(_alv.group())
+                self._heading_text = []
+                self._heading_attrs = a
+                self._heading_route = self._elem_paths.get(id(a))
+                self._heading_hidden = _hidden
+                self._heading_tag = tag
+        elif (a.get('role') or '').lower() == 'heading' and not self._in_template:
+            # role=heading cuenta como encabezado para el nombre (ffd0e9); sin
+            # aria-level el nivel por defecto de ARIA es 2 — y un aria-level
+            # basura JAMÁS tira el parse (int guardado)
+            _alv = re.match(r'\d+', str(a.get('aria-level') or ''))
+            self._heading_level = int(_alv.group()) if _alv else 2
             self._heading_text = []
             self._heading_attrs = a
             self._heading_route = self._elem_paths.get(id(a))
             self._heading_hidden = _hidden
             self._heading_tag = tag
         ti = a.get('tabindex')
-        if ti and ti.isdigit() and int(ti) > 0:
+        if ti and ti.isdigit() and int(ti) > 0 and not self._in_template:
             self.positive_tabindices.append((tag, int(ti)))
 
     def handle_endtag(self, tag):
@@ -970,8 +1134,20 @@ class _Auditor(HTMLParser):
                         del self._path_stack[_i:]
                         break
         if tag not in _VOID:
-            self._depth = max(0, self._depth - 1)
-            if self._el_stack:
+            # LAS PILAS SE SINCRONIZAN como _path_stack: buscar el frame que
+            # casa y descartar hasta él (un </span> suelto ya no arrastra el
+            # elemento abierto de verdad — el texto no se malatribuye)
+            _idx = None
+            for _i in range(len(self._el_stack) - 1, -1, -1):
+                if self._el_stack[_i][0] == tag:
+                    _idx = _i
+                    break
+            if _idx is None:
+                return   # endtag suelto: ignorar, nada se desincroniza
+            _nframes = len(self._el_stack) - _idx
+            for _ in range(_nframes):
+                if not self._el_stack:
+                    break
                 _etag, _eattrs, _ebuf = self._el_stack.pop()
                 if _etag == 'canvas':
                     self.canvases.append((_eattrs, ' '.join(_ebuf).strip(),
@@ -980,26 +1156,54 @@ class _Auditor(HTMLParser):
                     self._field_buffers[_eattrs['id']] = _ebuf
                 elif (_eattrs.get('role') or '').strip().lower() in _ROLE_FIELDS:
                     self._role_field_text.append((_eattrs, ' '.join(_ebuf).strip()))
-            if len(self._hidden_stack) > 1:
-                self._hidden_stack.pop()
-                self._css_hidden_stack.pop()
-            if self._ah_true_stack:
-                if self._ah_true_stack.pop():
+                if (_eattrs.get('role') or '').strip().lower() in ('group', 'radiogroup') \
+                        and self._group_role_depth > 0:
+                    self._group_role_depth -= 1
+                # candidato stray-click que cierra: confirmar salvo delegación
+                for _sp in self._stray_pend[:]:
+                    if _sp[1] is _eattrs:
+                        self._stray_pend.remove(_sp)
+                        if not _sp[3]:
+                            self.stray_clicks.append(_sp[0])
+                            self.stray_click_elems.append(_sp[1])
+                if len(self._hidden_stack) > 1:
+                    self._hidden_stack.pop()
+                    self._css_hidden_stack.pop()
+                if self._ah_true_stack and self._ah_true_stack.pop():
                     self._ah_true_depth = max(0, self._ah_true_depth - 1)
+            self._depth = max(0, self._depth - _nframes)
             self._open_ids = [(i, d) for (i, d) in self._open_ids if d <= self._depth]
         # controles cierran con SU etiqueta Y a SU profundidad — un <div>
         # anidado dentro de un div[role=button] no cierra el control (React)
         if self._ctrl and self._ctrl[-1]['tag'] == tag \
                 and self._depth == self._ctrl[-1].get('depth', 0) - 1:
             self._close_control(tag)
-        if tag == 'head':
-            self._in_head = False
-        elif tag == 'template':
+        if tag == 'template':
             self._in_template = max(0, self._in_template - 1)
+        if tag == 'svg':
+            self._svg_depth = max(0, self._svg_depth - 1)
         if tag == 'title':
-            self._in_title = False
-            self._titles_in_order.append(' '.join(self._title_buf))
-            self._title_buf = []
+            if self._in_svg_title:
+                # <title> de svg: nombre del svg — alimenta al control abierto
+                # (name-from-content: el botón-icono del W3C) y al registro
+                # id→texto (labelledby al svg resuelve a su título)
+                _svgtxt = ' '.join(self._svg_title_buf).strip()
+                if _svgtxt:
+                    if self._ctrl:
+                        self._ctrl[-1]['text'].append(_svgtxt)
+                        self._ctrl[-1]['text_visible'].append(_svgtxt)
+                    for _fr in reversed(self._el_stack):
+                        if _fr[0] == 'svg':
+                            self._svg_titles[id(_fr[1])] = _svgtxt
+                            if _fr[1].get('id'):
+                                self._id_text_parts.setdefault(_fr[1]['id'], []).append(_svgtxt)
+                            break
+                self._in_svg_title = False
+                self._svg_title_buf = []
+            else:
+                self._in_title = False
+                self._titles_in_order.append(' '.join(self._title_buf))
+                self._title_buf = []
         elif tag == 'script':
             self._in_script = False
         elif tag == 'style':
@@ -1012,6 +1216,11 @@ class _Auditor(HTMLParser):
                 if txt and (len(txt) < 2 or re.fullmatch(
                     r'(campo|field|input|texto|text|dato|value|entrada|box|caja)[\s\d]*', lowered)):
                     self.vague_labels.append(f'"{txt[:30]}"')
+                # texto del label POR SU for: el «*» del required puede vivir aquí
+                if self._label_for_stack:
+                    _lfor = self._label_for_stack.pop()
+                    if _lfor and txt:
+                        self._label_text_for[_lfor] = txt
             if self._labels_stack and not self._labels_stack.pop():
                 self.orphan_labels += 1
         elif tag == 'fieldset':
@@ -1019,6 +1228,13 @@ class _Auditor(HTMLParser):
         elif tag == 'form':
             if self._financial_form and not self._confirm_form:
                 self.financial_no_confirm += 1
+            # 3.3.8 Accessible Authentication: SOLO en proceso de autenticación
+            # (form con password o acción de login) — un captcha en un form de
+            # contacto no es un fallo de 3.3.8
+            if self._form_auth:
+                self.captchas.extend(self._form_captchas)
+            self._form_captchas = []
+            self._form_auth = False
         elif tag == 'nav':
             self._in_nav = max(0, self._in_nav - 1)
         elif tag == 'li':
@@ -1029,13 +1245,21 @@ class _Auditor(HTMLParser):
             self._close_control(tag)
         elif tag == 'video':
             self._in_video = False
+            if self._video_caps_stack:
+                _vattrs, _vcaps = self._video_caps_stack.pop()
+                if not _vcaps:
+                    self.videos_no_caps_elems.append(_vattrs)
         elif tag == 'table':
-            if self._in_table:
-                if not self._th_in_table:
-                    pass  # se contabiliza abajo
-                else:
+            if self._table_stack:
+                _th_saved, _tattrs = self._table_stack.pop()
+                # el estado th de ESTA tabla decide; el guardado restaura al
+                # padre (el <th> de una tabla interna no satisface a la externa)
+                if self._th_in_table:
                     self.tables_with_th += 1
-            self._in_table = False
+                else:
+                    self.tables_no_th_elems.append(_tattrs)
+                self._th_in_table = _th_saved
+            self._in_table = bool(self._table_stack)
         elif tag == 'th':
             pass
         elif self._heading_level and tag == getattr(self, '_heading_tag', None):
@@ -1090,22 +1314,33 @@ class _Auditor(HTMLParser):
     _RE_RULE = re.compile(r'\.([\w-]+)\s*\{([^}]*)\}')
     _RE_HIDDEN_STYLE = re.compile(r'clip-path|display\s*:\s*none|visibility\s*:\s*hidden'
                             r'|height\s*:\s*1px|width\s*:\s*1px|opacity\s*:\s*0')
+    # subconjunto ESTRICTO para focuseabilidad: solo lo que saca del tab
+    _RE_RULE_DISPLAY = re.compile(r'display\s*:\s*none|visibility\s*:\s*hidden')
 
     def _hidden_class_style(self):
         """¿Algún ancestro abierto del control tiene una clase que el
         <style> de la página declara como oculta (clip-path, position
         absolute + 1px, display none, visibility hidden)? Las reglas se
         cachean: reparsear TODO el css por nodo de texto era cuadrático."""
+        return self._class_hides('hidden')
+
+    def _focus_hidden_class(self):
+        """Clase que saca el elemento del TAB (display:none/visibility:hidden
+        por <style>) — MÁS ESTRICTA que _hidden_class_style: un
+        .visually-hidden (clip/1px) SIGUE enfocable (el skip link vive ahí)."""
+        return self._class_hides('focus')
+
+    def _class_hides(self, mode):
         if self._styles_text is not self._styles_cached_src:
             self._styles_cached_src = self._styles_text
             self._style_rules = self._RE_RULE.findall(self._styles_text)
+        _rx = self._RE_HIDDEN_STYLE if mode == 'hidden' else self._RE_RULE_DISPLAY
         _open_classes = [c.get('attrs', {}).get('class') for c in self._ctrl]
-        if self._el_stack:
-            _open_classes.append(self._el_stack[-1][1].get('class'))
+        _open_classes += (_fr[1].get('class') for _fr in self._el_stack)
         for _cls in filter(None, _open_classes):
             for _nom in _cls.split():
                 for _selector, _body in self._style_rules:
-                    if _nom == _selector and self._RE_HIDDEN_STYLE.search(_body):
+                    if _nom == _selector and _rx.search(_body):
                         return True
         return False
 
@@ -1123,6 +1358,8 @@ class _Auditor(HTMLParser):
             self._visible_text.append(data)  # prosa visible: ni JS, ni CSS, ni título
         if self._in_title:
             self._title_buf.append(data)
+        elif self._in_svg_title:
+            self._svg_title_buf.append(data)
         elif getattr(self, '_in_script', False):
             self.handle_script_wait(data)
         elif getattr(self, '_in_style', False):
@@ -1251,12 +1488,25 @@ def audit_html(html_text, url='(html)', lang='en', standard=None, target=None):
         p.feed(html_text[:MAX_HTML])
         p.close()
     except Exception as e:  # noqa: BLE001
-        return {'error': f'unparseable HTML: {e}'}
+        # un atributo hostil NO puede tirar la auditoría de 3 MB de página
+        # válida: el mensaje viaja por el catálogo (es/en), como todo lo visible
+        return {'error': _t(lang, 'err_unparseable').format(e=str(e)[:120])}
 
-    # 1.3.1: grupos de radio (name compartido, ≥2) sin fieldset
+    # 1.3.1: grupos de radio (name compartido, ≥2) sin fieldset NI grupo ARIA
+    # con nombre (role=group/radiogroup + aria-label: la otra técnica de H71)
     for nm, count in p._radio_group.items():
-        if count >= 2 and not p._radio_in_fieldset.get(nm, False):
+        if count >= 2 and not p._radio_in_fieldset.get(nm, False) \
+                and not p._radio_in_group.get(nm, False):
             p.missing_fieldsets += 1
+    # 3.3.2: required sin indicación — la marca («*», «obligatorio») puede
+    # vivir en el TEXTO del <label for> que el parser vio después del campo
+    for tag, a in p._required_pend:
+        ph = (a.get('placeholder') or '').lower()
+        title_ = (a.get('title') or '').lower()
+        _lbl = p._label_text_for.get(a.get('id') or '', '').lower()
+        if not re.search(r'\*|requerid|obligator|required|necesari|precisa',
+                         ph + title_ + _lbl):
+            p.required_no_indication.append(f'{tag}[name={a.get("name","?")}]')
 
     # id→texto resuelto de una vez (partes acumuladas en streaming)
     for _id, _parts in p._id_text_parts.items():
@@ -1264,9 +1514,16 @@ def audit_html(html_text, url='(html)', lang='en', standard=None, target=None):
 
     # centinela off-screen: decidir con los scripts YA completos (el <script>
     # llega después del link en el documento) — sin id o sin wiring = fallo
-    for _tag, _tid in p._ahf_deferred:
+    for _tag, _tattrs, _tid in p._ahf_deferred:
         if not _tid or _tid not in p._scripts_text:
             p.aria_hidden_focusable.append(_tag)
+            p.aria_hidden_focusable_elems.append(_tattrs)
+    # candidatos stray-click que nunca cerraron (HTML truncado): sin
+    # interactivo dentro registrado, cuentan igual — el documento está roto
+    for _sp in p._stray_pend:
+        if not _sp[3]:
+            p.stray_clicks.append(_sp[0])
+            p.stray_click_elems.append(_sp[1])
 
     # ── decisiones de nombre POST-parse ─────────────────────────────────────
     # Los ids de un aria-labelledby pueden declararse DESPUÉS del elemento que
@@ -1293,7 +1550,10 @@ def audit_html(html_text, url='(html)', lang='en', standard=None, target=None):
         if 'alt' in a and (a['alt'] or '') == '':
             continue
         lb, al, ti = _name_sources(a)
-        if not (al or lb or ti):
+        # <svg role=img> con <title> hijo: el título ES su nombre (accname)
+        # — la vía recomendada por el W3C para gráficos accesibles
+        _svgt = p._svg_titles.get(id(a), '')
+        if not (al or lb or ti or _svgt):
             p.imgs_no_alt.append((a.get('src') or a.get('aria-label') or '(role=img)')[:100])
             p.imgs_no_alt_elems.append(a)
     for a, hidden in p.inputs_image:
@@ -1351,7 +1611,11 @@ def audit_html(html_text, url='(html)', lang='en', standard=None, target=None):
             if level == 1:
                 p.h1s += 1
             lowered = heading_name.lower().strip()
-            if len(heading_name) < 4 or len(heading_name) > 120:
+            # encabezado corto: solo SOSPECHOSO si no es un acrónimo/término
+            # técnico conocido («FAQ», «API», «CSS»…) — len<4 en solitario
+            # no prueba vaguedad
+            _short_ok = heading_name.upper().replace(' ', '') in _SHORT_HEADINGS
+            if (len(heading_name) < 4 and not _short_ok) or len(heading_name) > 120:
                 p.vague_headings.append(f'h{level} "{heading_name[:40]}"')
             elif re.fullmatch(r'(secci[oó]n|section|chapter|cap[ií]tulo|m[aá]s|more|info|informaci[oó]n|information|details|detalle|click|ver|see|leer|read|continue|seguir)[\s\d.]*', lowered):
                 p.vague_headings.append(f'h{level} "{heading_name[:40]}"')
@@ -1424,17 +1688,28 @@ def audit_html(html_text, url='(html)', lang='en', standard=None, target=None):
         add_ej('medium', '1.1.1', 'canvas_no_accessible_layer', p.canvas_no_layer,
                n=len(p.canvas_no_layer), paths=_p_canvas)
     for tag, controls in p.controls_by_kind.items():
-        add('high', '4.1.2', 'ctrl_name', n=len(controls), tag=tag)
+        add('high', '4.1.2', 'ctrl_name', n=len(controls), tag=tag,
+            paths=[p._elem_paths[id(_a)] for _a in controls
+                   if id(_a) in p._elem_paths][:5])
     if p.aria_hidden_focusable:
         add('high', '4.1.2', 'aria_hidden_focusable',
-            n=len(p.aria_hidden_focusable), tag=p.aria_hidden_focusable[0])
+            n=len(p.aria_hidden_focusable), tag=p.aria_hidden_focusable[0],
+            paths=[p._elem_paths[id(_a)] for _a in p.aria_hidden_focusable_elems
+                   if id(_a) in p._elem_paths][:5])
     if p.fields_no_label:
         add_ej('high', '3.3.2', 'field_label',
                [f'{t} name={n or "(no name)"}' for t, n, _i in p.fields_no_label],
                n=len(p.fields_no_label))
     if p.stray_clicks:
         add('high', '2.1.1', 'click_nonfocusable',
-            n=len(p.stray_clicks), tag=p.stray_clicks[0])
+            n=len(p.stray_clicks), tag=p.stray_clicks[0],
+            paths=[p._elem_paths[id(_a)] for _a in p.stray_click_elems
+                   if id(_a) in p._elem_paths][:5])
+    if p.role_no_tabindex:
+        add_ej('low', '2.1.1', 'role_no_tabindex', p.role_no_tabindex,
+               n=len(p.role_no_tabindex), example=', '.join(p.role_no_tabindex[:3]),
+               paths=[p._elem_paths[id(_a)] for _a in p.role_no_tabindex_elems
+                      if id(_a) in p._elem_paths][:5])
     if p.orphan_labels:
         add('low', '3.3.2', 'label_orphan', n=p.orphan_labels)
     if p._bad_list:
@@ -1465,7 +1740,9 @@ def audit_html(html_text, url='(html)', lang='en', standard=None, target=None):
                paths=[p._elem_paths[id(_a)] for _a in p.iframes_no_title_elems
                       if id(_a) in p._elem_paths][:5])
     if p.videos and p.videos_with_captions < p.videos:
-        add('medium', '1.2.2', 'video_captions', n=p.videos - p.videos_with_captions)
+        add('medium', '1.2.2', 'video_captions', n=p.videos - p.videos_with_captions,
+            paths=[p._elem_paths[id(_a)] for _a in p.videos_no_caps_elems
+                   if id(_a) in p._elem_paths][:5])
     if p.viewport:
         # valores inválidos también blocksn (ACT b4f0c3): user-scalable ha de
         # ser yes/true o numérico ≥ 1; maximum-scale numérico — si no parsea,
@@ -1489,7 +1766,9 @@ def audit_html(html_text, url='(html)', lang='en', standard=None, target=None):
                 blocks = _v_ms.lower() not in ('device-width', 'device-height',
                                                 'initial-scale', 'width', 'height')
             if blocks:
-                add('medium', '1.4.4', 'zoom_max', v=_v_ms)
+                # mismo daño que user-scalable=no (bloquea el zoom del usuario):
+                # misma severidad — ACT b4f0c3 no las distingue
+                add('high', '1.4.4', 'zoom_max', v=_v_ms)
     # meta refresh (2.2.1/ACT bc659a): gana el PRIMER meta que parsea según
     # los pasos del HTML (dígitos + ; o , o fin — un «0: url» con dos puntos
     # NO parsea y se salta); 0 segundos = redirección inmediata y > 72000
@@ -1530,12 +1809,16 @@ def audit_html(html_text, url='(html)', lang='en', standard=None, target=None):
                 _nav_collapsible = not re.search(r'visib|aria', _nom) \
                     and bool(re.search(r'hide|hidden|collapse|display', _nom))
     if p.root_tag not in ('svg', 'math') and not (p.hay_main or p.hay_skip or _nav_collapsible):
-        add('medium', '2.4.1', 'no_bypass')
+        # revisión (best-practice al nivel de axe «bypass»): 2.4.1 aplica a
+        # bloques REPETIDOS — en estático no se puede saber si se repiten
+        add('low', '2.4.1', 'no_bypass')
 
     levels = [n for n, _ in p.headings]
     if levels:
         if p.h1s == 0:
-            add('medium', '1.3.1', 'no_h1')
+            # best-practice (axe page-has-heading-one), no fallo 1.3.1: WCAG
+            # no exige h1 — y en SPAs el h1 suele llegar del render del cliente
+            add('low', '1.3.1', 'no_h1')
         elif p.h1s > 1:
             add('low', '1.3.1', 'multi_h1', n=p.h1s)
         prev = 0
@@ -1547,16 +1830,20 @@ def audit_html(html_text, url='(html)', lang='en', standard=None, target=None):
         if jumps:
             add('low', '1.3.1', 'heading_skips', skips=', '.join(jumps[:5]))
     elif p.root_tag not in ('svg', 'math'):
-        add('medium', '1.3.1', 'no_headings')
+        add('low', '1.3.1', 'no_headings')
     if p.empty_h:
         add('low', '1.3.1', 'empty_heading', n=p.empty_h)
     if p.tables and p.tables_with_th < p.tables:
-        add('medium', '1.3.1', 'table_no_th', n=p.tables - p.tables_with_th)
+        add('medium', '1.3.1', 'table_no_th', n=p.tables - p.tables_with_th,
+            paths=[p._elem_paths[id(_a)] for _a in p.tables_no_th_elems
+                   if id(_a) in p._elem_paths][:5])
     if p.blank_no_warning:
         add('low', '3.2.5', 'blank_no_warning', n=p.blank_no_warning)
     dups = sum(1 for _c, k in p.ids.items() if k > 1)
     if dups:
-        add('low', '4.1.2', 'dup_ids', n=dups)
+        add_ej('low', '4.1.2', 'dup_ids',
+               [f'"{_c}" ×{_k}' for _c, _k in list(p.ids.items()) if _k > 1],
+               n=dups)
 
     # --- v3.1: validez ARIA, autocomplete, enlaces, landmarks, accesskey ---
     broken_refs = [f'{attr}="#{ref}"' for attr, ref in p.aria_refs if ref not in p.ids]
@@ -1586,7 +1873,9 @@ def audit_html(html_text, url='(html)', lang='en', standard=None, target=None):
         add_ej('medium', '1.3.5', 'autocomplete_invalid', p.autocomplete_invalid,
                n=len(p.autocomplete_invalid), example=', '.join(p.autocomplete_invalid[:4]))
     if p.media_autoplay:
-        add('medium', '1.4.2', 'video_autoplay', n=p.media_autoplay)
+        add('medium', '1.4.2', 'video_autoplay', n=p.media_autoplay,
+            paths=[p._elem_paths[id(_a)] for _a in p.media_autoplay_elems
+                   if id(_a) in p._elem_paths][:5])
     if p.label_no_name:
         _ln = p.label_no_name[0]
         add_ej('medium', '2.5.3', 'label_in_name',
@@ -1623,10 +1912,13 @@ def audit_html(html_text, url='(html)', lang='en', standard=None, target=None):
     if p.drag_handlers:
         add_ej('low', '2.5.7', 'drag_no_alt', p.drag_handlers,
                n=len(p.drag_handlers), example=', '.join(p.drag_handlers[:3]))
-    # 4.1.3: solo si hay evidencia de dinamismo (scripts con eventos, forms, fetch/XHR)
-    dynamic = bool(p.stray_clicks or p._scripts_text.strip() or p.char_shortcuts or p.drag_handlers or p.fields_no_label)
+    # 4.1.3: señal de REVISIÓN y solo con evidencia fuerte de interactividad
+    # propia (handlers de arrastre/clicks huérfanos/atajos) — un <script>
+    # cualquiera (analytics, JSON-LD) o un campo sin label NO crean mensajes
+    # de estado: 4.1.3 solo aplica cuando EXISTEN mensajes que anunciar
+    dynamic = bool(p.stray_clicks or p.char_shortcuts or p.drag_handlers)
     if dynamic and p.status_regions == 0:
-        add('medium', '4.1.3', 'no_status_regions')
+        add('low', '4.1.3', 'no_status_regions')
     if p.images_of_text:
         add_ej('low', '1.4.5', 'images_of_text', p.images_of_text,
                n=len(p.images_of_text), ej2='')
@@ -1726,20 +2018,55 @@ def audit_html(html_text, url='(html)', lang='en', standard=None, target=None):
 
 # ── redirect policy hook ───────────────────────────────────────────────────
 # urlopen follows 3xx (up to 10 hops) to ANY host without asking: every hop
-# is a NEW destination nobody validated. Callers that audit untrusted URLs
-# can inject a per-hop validator here (returns False → the redirect is not
-# followed). Without injection, behavior is unchanged.
-validate_redirect = None   # callable(url) -> bool
+# is a NEW destination nobody validated. DEFAULT: every redirect hop is
+# resolved and rejected if it lands on a private network (loopback, RFC1918,
+# link-local incl. cloud metadata 169.254.169.254…) — the classic SSRF pivot
+# (public URL → internal hop). The URL the USER typed is explicit intent and
+# is never blocked; only implicit hops are. Callers can inject their own
+# validator (callable(url) -> bool) or pass True to allow everything.
+validate_redirect = None   # inyectable: callable(url) -> bool
+
+
+def _redirect_to_private(url):
+    """True si la URL resuelve a una IP no pública (fail-closed)."""
+    import ipaddress
+    import socket
+    from urllib.parse import urlsplit
+    try:
+        host = urlsplit(url).hostname or ''
+        infos = socket.getaddrinfo(host, None)
+    except (OSError, ValueError):
+        return True   # no resuelve: cerrar, no seguir
+    for _fam, _ty, _pr, _ad, sa in infos:
+        try:
+            ip = ipaddress.ip_address(sa[0])
+        except ValueError:
+            return True
+        if ip.is_private or ip.is_loopback or ip.is_link_local or ip.is_reserved \
+                or ip.is_multicast or ip.is_unspecified:
+            return True
+    return False
 
 
 class _CheckedRedirect(urllib.request.HTTPRedirectHandler):
     def redirect_request(self, req, fp, code, msg, headers, newurl):
-        if validate_redirect is not None and not validate_redirect(newurl):
+        _guard = validate_redirect
+        if _guard is None:
+            _guard = (lambda _u: not _redirect_to_private(_u))
+        if _guard is not True and not _guard(newurl):
             raise ValueError(f'redirect to a disallowed destination: {newurl[:96]}')
         return super().redirect_request(req, fp, code, msg, headers, newurl)
 
 
 _OPENER = urllib.request.build_opener(_CheckedRedirect)
+
+
+class _FetchError(ValueError):
+    """Error de descarga CON CLAVE de catálogo (es/en): el mensaje visible
+    viaja por locales, no hardcodeado — invariante bilingüe del repo."""
+    def __init__(self, key, **fmt):
+        super().__init__(key)
+        self.key, self.fmt = key, fmt
 
 
 def _fetch(url, timeout=30, truncate_at=None, accept_ct=()):
@@ -1773,7 +2100,7 @@ def _fetch(url, timeout=30, truncate_at=None, accept_ct=()):
                 break
             data += chunk
         if len(data) > ceiling and truncate_at is None:
-            raise ValueError(f'HTML > {MAX_HTML // 1000000} MB, demasiado grande')
+            raise _FetchError('err_too_big', mb=MAX_HTML // 1000000)
         if (r.headers.get('Content-Encoding') or '').lower() == 'gzip' or data[:2] == b'\x1f\x8b':
             import zlib
             d = zlib.decompressobj(16 + zlib.MAX_WBITS)
@@ -1784,7 +2111,7 @@ def _fetch(url, timeout=30, truncate_at=None, accept_ct=()):
         base = ctype.split(';')[0].strip()
         extra_ok = any(base == p or base.startswith(p + '/') for p in accept_ct)
         if ctype and not extra_ok and 'html' not in ctype and 'xml' not in ctype and base:
-            raise ValueError(f'la URL no devuelve HTML (Content-Type: {base})')
+            raise _FetchError('err_not_html', ct=base)
         # the HEADER charset wins over body sniffing (HTTP has priority over
         # <meta>): a server declaring iso-8859-1 without a meta tag otherwise
         # produces U+FFFD inside findings
@@ -1813,6 +2140,8 @@ def audit_url(url, timeout=30, lang='en', standard=None, target=None):
         return {'error': _T_SCHEME.get(lang, _T_SCHEME['es'])}
     try:
         html_text = _fetch(url, timeout=timeout)
+    except _FetchError as e:
+        return {'error': _t(lang, e.key).format(**e.fmt)}
     except ValueError as e:
         return {'error': str(e)}
     except Exception as e:  # noqa: BLE001
@@ -1899,7 +2228,10 @@ def evaluate_site(parsers, lang='en'):
                     'issue': _t(lang, 'help_inconsistent').format(
                         example=f'{len(set(signatures_help))} variantes en {len(signatures_help)} páginas'),
                     'remediation': _t(lang, 'help_inconsistent_rem')})
-    if parsers and not any(p.has_search or p.has_sitemap for p in parsers):
+    # 2.4.5 exige múltiples formas de encontrar PÁGINAS: con una muestra de
+    # una sola página no hay proceso multi-página que reclamarlo (FP en
+    # sitios de una página — la excepción del propio criterio)
+    if len(parsers) >= 2 and not any(p.has_search or p.has_sitemap for p in parsers):
         out.append({'severity': 'medium', 'criterion': _crit(lang, '2.4.5'),
                     'signal': 'no_multiple_ways',
                     'issue': _t(lang, 'no_multiple_ways'),
@@ -1916,12 +2248,25 @@ def audit_site(url, max_pages=5, timeout=30, lang='en', from_sitemap=True,
     deadline = (time.monotonic() + budget) if budget else None
     try:
         html_text = _fetch(url, timeout=timeout)
+    except _FetchError as e:
+        return {'error': _t(lang, e.key).format(**e.fmt)}
     except ValueError as e:
         return {'error': str(e)}
     except Exception as e:  # noqa: BLE001
         return {'error': _t(lang, 'fetch_error').format(e=e)}
-    p0 = _Auditor()
-    p0.feed(html_text[:MAX_HTML]); p0.close()
+    # el parser jamás tira el crawl entero: una página hostil → informe de
+    # error de ESA página y se sigue con la cola
+    def _parse_page(html_txt, page_url):
+        pg = _Auditor()
+        try:
+            pg.feed(html_txt[:MAX_HTML])
+            pg.close()
+        except Exception as e:  # noqa: BLE001
+            return pg, {'url': page_url, 'error': _t(lang, 'err_unparseable').format(e=str(e)[:120])}
+        return pg, None
+    p0, p0_err = _parse_page(html_text, url)
+    if p0_err:
+        return p0_err
     reports = [audit_html(html_text, url, lang=lang)]
     parsers = [p0]
     seen = {url.split('#')[0].rstrip('/')}
@@ -1939,9 +2284,10 @@ def audit_site(url, max_pages=5, timeout=30, lang='en', from_sitemap=True,
             html_pg = _fetch(next, timeout=timeout)
         except Exception:  # noqa: BLE001
             continue
+        pg, pg_err = _parse_page(html_pg, next)
+        if pg_err is not None:
+            continue   # página rota: no cuenta, el crawl sigue
         reports.append(audit_html(html_pg, next, lang=lang))
-        pg = _Auditor()
-        pg.feed(html_pg[:MAX_HTML]); pg.close()
         parsers.append(pg)
         if len(reports) < max_pages and not from_sitemap:
             for new in _internal_links(html_pg, next, url):
@@ -1952,6 +2298,9 @@ def audit_site(url, max_pages=5, timeout=30, lang='en', from_sitemap=True,
         for inf in reports[:1]:
             inf.setdefault('findings', []).append(h)
             inf['score'] = compute_score(inf['findings'])
+            # el summary también: un score recalculado con summary viejo miente
+            inf['summary'] = {s: sum(1 for f2 in inf['findings'] if f2['severity'] == s)
+                              for s in ('high', 'medium', 'low')}
     scores = [pg['score'] for pg in reports if 'score' in pg]
     findings_by_signal = {}
     for pg in reports:
@@ -2095,7 +2444,7 @@ def main(argv):
                                                  standard=a.standard,
                                                  target=a.target))
         except Exception as e:  # noqa: BLE001
-            print(json.dumps({'error': f'no se pudo descargar: {e}'}))
+            print(json.dumps({'error': _t(a.lang, 'fetch_error').format(e=e)}))
             return 1
     else:
         with open(a.file, encoding='utf-8', errors='replace') as f:

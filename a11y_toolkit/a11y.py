@@ -31,6 +31,10 @@
   a11ytoolkit wcag3 --from-audit audit.json                # WCAG 3 draft preview (no score)
   a11ytoolkit route --goal "gate my PR"                     # which tools for the task
   a11ytoolkit route --file page.html                        # diagnosis: read the page, order the exams
+  a11ytoolkit dom https://web                               # rendered audit (needs Playwright)
+  a11ytoolkit hover https://mysite                          # tooltip dismissibility (1.4.13)
+  a11ytoolkit criteria --list --level AA --new-in 2.2       # criterion's alias: the Quick Ref
+  a11ytoolkit wizard --url https://client.web --lang es     # guided: standard, audit, scope, annex
   a11ytoolkit mutants --seed 7 --n 12                       # the engine's sealed self-exam
   a11ytoolkit corpus build && a11ytoolkit corpus verify     # versioned audit corpus (dataset + baselines)
   a11ytoolkit fingerprints page1.html page2.html --dir p/  # twin-page detection (one audit per template)
@@ -79,6 +83,7 @@ from . import a11ypatches
 from . import a11yengines
 from . import a11ytrace
 from . import a11ypatterns
+from . import a11ywiz
 
 SUBCOMMANDS = {
     'pair': (contrast, 'pair'),
@@ -88,12 +93,15 @@ SUBCOMMANDS = {
     'snapshot': (a11ydiff, 'snapshot'),
     'diff': (a11ydiff, 'diff'),
     'criterion': (a11ycrit, None),
+    'criteria': (a11ycrit, None),
     'sarif': (a11ysarif, None),
     'wcagem': (a11ywcagem, None),
     'corpus': (a11ycorpus, None),
     'plan': (a11yplan, None),
     'fix': (a11yfix, None),
     'kbd': (a11ydom, 'kbd_main'),
+    'hover': (a11ydom, 'hover_main'),
+    'dom': (a11ydom, None),
     'scroll': (a11yscroll, None),
     'forms': (a11ydom, 'forms_main'),
     'validate': (a11yvalidate, None),
@@ -123,6 +131,7 @@ SUBCOMMANDS = {
     'engines': (a11yengines, None),
     'trace': (a11ytrace, None),
     'patterns': (a11ypatterns, None),
+    'wizard': (a11ywiz, None),
 }
 
 

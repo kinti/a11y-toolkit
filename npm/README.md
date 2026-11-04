@@ -1,6 +1,6 @@
 # @kinti/a11y-toolkit (npm launcher)
 
-Zero-dependency WCAG 2.2 accessibility engine: **34 MCP tools + CLI**. This
+Zero-dependency WCAG 2.2 accessibility engine: **37 MCP tools + CLI**. This
 npm package is a thin Node launcher — the engine itself is Python
 (stdlib-only), run through [uv](https://docs.astral.sh/uv/) so nothing is
 installed globally.

@@ -28,7 +28,7 @@ import json
 import re
 import sys
 
-from .a11yaudit import audit_html, _PERSONAL_DATA
+from .a11yaudit import audit_html
 
 from . import a11yi18n
 # token autocomplete por type de input (determinista por especificación)
@@ -40,15 +40,13 @@ _TOKEN_BY_HINT = [
     (re.compile(r'ciudad|city', re.I), 'address-level2'),
     (re.compile(r'country|pais', re.I), 'country-name'),
     (re.compile(r'organi[sz]ation|company|empresa', re.I), 'organization'),
-    (re.compile(r'phone|telefono|tel\b', re.I), 'tel'),
+    (re.compile(r'phone|telefono|\btel\b', re.I), 'tel'),
     (re.compile(r'email|correo', re.I), 'email'),
     (re.compile(r'(?:^|[\W_])(?:full)?name|nombre', re.I), 'name'),
 ]
 
-_RE_FORM = re.compile(r'<form\b[^>]*>', re.I)
 _RE_TAG_Q = r'(?:[^>\"\']|\"[^\"]*\"|\'[^\']*\')*'
 _RE_FIELD = re.compile(r'<input' + _RE_TAG_Q + r'>|<(select|textarea)' + _RE_TAG_Q + r'>.*?</\1\s*>', re.I | re.S)
-_RE_SCRIPTS = re.compile(r'<script\b.*?</script>', re.S | re.I)
 _RE_FORM_BLOCK = re.compile(r'<form\b.*?</form>', re.S | re.I)
 
 _PHRASES = a11yi18n.pair('fix')  # locales/<lang>.json — community-editable
@@ -88,7 +86,7 @@ _JS_PHRASES = """<script>
 
 _RE_INPUT = re.compile(r'<input' + _RE_TAG_Q + r'>', re.I)
 _RE_VIEWPORT = re.compile(r'(<meta\s[^>]*name=["\']viewport["\'][^>]*content=["\'])([^"\']*)(["\'])', re.I)
-_RE_HTML_TAG = re.compile(r'<html\b([^>]*)>', re.I)
+_RE_HTML_TAG = re.compile(r'<html\b(' + _RE_TAG_Q + r')>', re.I)
 _RE_TITLE = re.compile(r'<title>\s*</title>', re.I)
 
 
@@ -117,6 +115,25 @@ def _clean_viewport(content):
     return ', '.join(clean), removed
 
 
+def _drop_selfclose(base):
+    """Drop a trailing self-closing slash — only OUTSIDE quotes: a value like
+    "x/" is data, not markup (an unquoted rstrip('/') would eat it)."""
+    q = None
+    last = -1          # índice del último carácter significativo fuera de comillas
+    for i, ch in enumerate(base):
+        if q:
+            if ch == q:
+                q = None
+        elif ch in ('"', "'"):
+            q = ch
+            last = i
+        elif not ch.isspace():
+            last = i
+    if last >= 0 and base[last] == '/':
+        return base[:last].rstrip()
+    return base
+
+
 def autofix(html_text, lang=None, title=None, url='(html)', form_errors=True):
     """Aplica los arreglos seguros. Devuelve fixed_html + aplicados + no_aplicados."""
     applied = []
@@ -126,13 +143,20 @@ def autofix(html_text, lang=None, title=None, url='(html)', form_errors=True):
     #    no son marcado — ninguna regex de transformación debe verlo. Sin este
     #    paso, el "no toco scripts" era falso (revisión externa, ronda 2).
     _masks = []
+    # bloques <script> ORIGINALES, capturados ANTES de enmascarar: el guard
+    # de 4b decide sobre el código real — en el texto vivo ya no son buscables
+    _scripts_raw = []
 
     def _mask(text):
+        def _cap_script(m):
+            _scripts_raw.append(m.group(0))
+            return _pon(m)
+
         def _pon(m):
             tok = '\x00A11YFXMASK%d\x00' % len(_masks)
             _masks.append((tok, m.group(0)))
             return tok
-        text = re.sub(r'<script\b[^>]*>.*?</script\s*>', _pon, text, flags=re.I | re.S)
+        text = re.sub(r'<script\b[^>]*>.*?</script\s*>', _cap_script, text, flags=re.I | re.S)
         text = re.sub(r'<style\b[^>]*>.*?</style\s*>', _pon, text, flags=re.I | re.S)
         # textarea NO se enmascara: la capa de error se inserta tras su cierre
         # (5.2.1) y el contenido queda intacto; ocultarlo quitaría el 3.3.1
@@ -140,37 +164,44 @@ def autofix(html_text, lang=None, title=None, url='(html)', form_errors=True):
         return text
 
     def _unmask(text):
-        for tok, original in _masks:
+        # orden INVERSO de creación: un mask puede vivir dentro del ORIGINAL
+        # de otro (un <script> dentro de un comentario) — restaurar primero el
+        # contenedor devuelve los tokens internos al texto vivo; en orden de
+        # creación el interno se restauraba dentro del original almacenado
+        # (no en el texto) y el token quedaba filtrado en la salida
+        for tok, original in reversed(_masks):
             text = text.replace(tok, original)
         return text
 
     fixed = _mask(fixed)
 
-    # 1. viewport: zoom sin bloqueos (1.4.4)
+    # 1. viewport: zoom sin bloqueos (1.4.4) — solo si algo se quita de verdad:
+    # un maximum-scale=5 no bloquea el zoom y reescribirlo sin cambios sería
+    # un fix fantasma en `applied`
     m = _RE_VIEWPORT.search(fixed)
-    if m and (re.search(r'user-scalable\s*=\s*(no|0)', m.group(2), re.I)
-              or re.search(r'maximum-scale\s*=\s*([\d.]+)', m.group(2), re.I)):
+    if m:
         clean, removed = _clean_viewport(m.group(2))
-        if clean:
-            fixed = fixed[:m.start()] + m.group(1) + clean + m.group(3) + fixed[m.end():]
-        else:
-            # eliminar el meta COMPLETO: escanear el final de etiqueta
-            # respetando comillas (un `>` dentro de value= no cierra el tag)
-            end = m.end()
-            q = None
-            while end < len(fixed):
-                ch = fixed[end]
-                if q:
-                    if ch == q:
-                        q = None
-                elif ch in ('"', "'"):
-                    q = ch
-                elif ch == '>':
-                    break
-                end += 1
-            fixed = fixed[:m.start()] + (fixed[end + 1:] if end < len(fixed) else '')
-        applied.append({'signal': 'zoom_no',
-                          'fix': f'viewport without {", ".join(removed)} (1.4.4: zoom no longer blocked)'})
+        if removed:
+            if clean:
+                fixed = fixed[:m.start()] + m.group(1) + clean + m.group(3) + fixed[m.end():]
+            else:
+                # eliminar el meta COMPLETO: escanear el final de etiqueta
+                # respetando comillas (un `>` dentro de value= no cierra el tag)
+                end = m.end()
+                q = None
+                while end < len(fixed):
+                    ch = fixed[end]
+                    if q:
+                        if ch == q:
+                            q = None
+                    elif ch in ('"', "'"):
+                        q = ch
+                    elif ch == '>':
+                        break
+                    end += 1
+                fixed = fixed[:m.start()] + (fixed[end + 1:] if end < len(fixed) else '')
+            applied.append({'signal': 'zoom_no',
+                              'fix': f'viewport without {", ".join(removed)} (1.4.4: zoom no longer blocked)'})
 
     # 2. autocomplete determinista (1.3.5)
     n_ac = 0
@@ -194,7 +225,9 @@ def autofix(html_text, lang=None, title=None, url='(html)', form_errors=True):
         if not token:
             return tag
         n_ac += 1
-        return tag[:-1].rstrip() + f' autocomplete="{token}">'
+        # la barra de autocierre no es un atributo: quitarla ANTES de inyectar
+        # (`<input .../  autocomplete>` sería markup inválido)
+        return _drop_selfclose(tag[:-1].rstrip()) + f' autocomplete="{token}">'
     fixed = _RE_INPUT.sub(_input_fix, fixed)
     if n_ac:
         applied.append({'signal': 'autocomplete',
@@ -204,10 +237,23 @@ def autofix(html_text, lang=None, title=None, url='(html)', form_errors=True):
     #    este toolkit ESCRIBE HTML, no puede ser vector de inyección
     if lang and re.fullmatch(r'[a-zA-Z]{2,3}(-[a-zA-Z0-9]{2,8})*', lang.strip()):
         m = _RE_HTML_TAG.search(fixed)
-        if m and 'lang=' not in m.group(1).lower():
-            fixed = fixed[:m.start()] + f'<html lang="{_html.escape(lang.strip())}"' + m.group(1) + '>' + fixed[m.end():]
-            applied.append({'signal': 'lang_missing',
-                              'fix': f'<html lang="{lang.strip()}"> added (3.1.1)'})
+        if m:
+            # atributo lang REAL (límite de atributo vía lookbehind: xml:lang=,
+            # data-lang= no cuentan) y con valor NO vacío (lang="" no cumple
+            # 3.1.1) — antes un simple 'lang=' in attr casaba con cualquiera
+            lm = re.search(r'(?<![\w:.\-])lang\s*=\s*(?:"([^"]*)"|\'([^\']*)\'|([^\s>]+))',
+                           m.group(1), re.I)
+            lval = next((g for g in (lm.groups() if lm else ()) if g is not None), '')
+            if not lval.strip():
+                new_lang = _html.escape(lang.strip())
+                if lm is None:   # no hay lang: se antepone
+                    fixed = (fixed[:m.start()] + f'<html lang="{new_lang}"' + m.group(1) + '>'
+                             + fixed[m.end():])
+                else:            # lang="": se RELLENA el existente, nunca duplicar
+                    attrs = m.group(1)[:lm.start()] + f'lang="{new_lang}"' + m.group(1)[lm.end():]
+                    fixed = fixed[:m.start()] + '<html' + attrs + '>' + fixed[m.end():]
+                applied.append({'signal': 'lang_missing',
+                                  'fix': f'<html lang="{lang.strip()}"> added (3.1.1)'})
 
     # 4. title (solo si vacío y lo dan); escapado por la misma razón
     if title and _RE_TITLE.search(fixed):
@@ -216,8 +262,10 @@ def autofix(html_text, lang=None, title=None, url='(html)', form_errors=True):
 
     # 4b. form errors: accessible error layer (3.3.1 + 3.3.3 from attributes)
     if form_errors and 'a11yfx' not in fixed:
-        scripts = _RE_SCRIPTS.findall(fixed)
-        if not any(('aria-invalid' in s or 'setCustomValidity' in s) for s in scripts):
+        # el guard mira los <script> ORIGINALES (_scripts_raw): en `fixed` ya
+        # están enmascarados y findall no vería nada — la capa se inyectaba
+        # aunque la página ya hiciera setCustomValidity/aria-invalid
+        if not any(('aria-invalid' in s or 'setCustomValidity' in s) for s in _scripts_raw):
             import json as _json
             state = {'forms': 0, 'fields': 0}
 
@@ -238,6 +286,7 @@ def autofix(html_text, lang=None, title=None, url='(html)', form_errors=True):
                 state['fields'] += 1
                 fid = "a11yfx-e-%d-%d" % (state['forms'], state['fields'])
                 opening = re.match(r'<[a-zA-Z]+(?:[^>"\']|"[^"]*"|\'[^\']*\')*>', elem).group(0)
+                head_len = len(opening)   # límite del tag ANTES de inyectar attrs
                 mdb = re.search(r'aria-describedby=["\']([^"\']*)["\']', opening, re.I)
                 if mdb:  # merge, preserving the existing reference
                     new = 'aria-describedby="%s %s"' % (mdb.group(1), fid)
@@ -249,8 +298,13 @@ def autofix(html_text, lang=None, title=None, url='(html)', form_errors=True):
                 if opening.lower().startswith(('<textarea', '<select')):
                     # content-bearing element: the layer goes AFTER the close,
                     # never inside (inside would become its value — a real
-                    # data-corruption regression, caught in external review)
-                    return elem.replace(re.match(r'<[^>]*>', elem).group(0), opening, 1) + layer
+                    # data-corruption regression, caught in external review).
+                    # `opening` matchea elem desde el índice 0 (quote-aware) y
+                    # cubre exactamente head_len bytes: el resto es contenido +
+                    # cierre, preservado byte a byte (el replace por prefijo
+                    # ingenuo dejaba el fragmento tras un `>` citado como
+                    # contenido del elemento)
+                    return opening + elem[head_len:] + layer
                 return opening + layer
 
             def _own_handling(atrs_form):
@@ -263,7 +317,15 @@ def autofix(html_text, lang=None, title=None, url='(html)', form_errors=True):
 
             def _process_block(mb):
                 block = mb.group(0)
-                opening = re.match(r'<form\b[^>]*>', block, re.I).group(0)
+                # opening quote-aware: un `>` dentro de un atributo citado
+                # (action="/search?q=a>b") NO cierra el tag — el prefijo
+                # ingenuo mutilaba la URL. Si el block acaba DENTRO de una
+                # cita (action="x</form>"), la apertura no es delimitable:
+                # no se toca (hostil: jamás caer)
+                mop = re.match(r'<form\b' + _RE_TAG_Q + r'>', block, re.I)
+                if mop is None:
+                    return block
+                opening = mop.group(0)
                 if 'data-a11yfx' in opening or _own_handling(opening):
                     return block  # custom error handling present: never fight it
                 state['forms'] += 1
@@ -275,7 +337,10 @@ def autofix(html_text, lang=None, title=None, url='(html)', form_errors=True):
             if state['fields']:
                 fr = _PHRASES.get(lang, _PHRASES['en'])
                 js = _JS_PHRASES % {k: _json.dumps(v) for k, v in fr.items()}
-                fixed = fixed.replace('</body>', js + '\n</body>', 1)
+                # case-insensitive: </BODY> perdía el JS y `applied` seguía
+                # declarando la capa (aria-describedby colgantes)
+                fixed = re.sub(r'</body\s*>', lambda _mb: js + '\n' + _mb.group(0),
+                               fixed, count=1, flags=re.I)
                 applied.append({'signal': 'form_error_missing',
                                   'fix': f"accessible error layer on {state['forms']} form(s), "
                                            f"{state['fields']} field(s) — 3.3.1 identification + "

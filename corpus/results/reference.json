@@ -1,6 +1,6 @@
 {
  "additional_findings_on_mutants": {
-  "count": 3,
+  "count": 2,
   "note": "reported, not scored: only placebo flags are false positives by construction",
   "sample": [
    {
@@ -14,12 +14,6 @@
      "4.1.3"
     ],
     "case_id": "m7-11"
-   },
-   {
-    "additional_criteria": [
-     "4.1.3"
-    ],
-    "case_id": "m7-16"
    }
   ]
  },
@@ -27,10 +21,11 @@
  "control_pages": 3,
  "engine": {
   "name": "a11y-toolkit",
-  "version": "5.24.0"
+  "version": "5.26.0"
  },
  "false_positives": [],
  "format": "a11y-corpus-evaluation/1",
+ "invalid_entries": [],
  "kill_rate": 1.0,
  "killed": 18,
  "missed_detail": [],

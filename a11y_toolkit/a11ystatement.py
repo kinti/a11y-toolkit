@@ -50,9 +50,11 @@ def generate(entity, url, status, inaccessible_content=None, method=None,
         return {'error': t['error_inconsistent']}
 
     e = lambda s: html.escape(str(s), quote=True)  # noqa: E731
+    today = TODAY()   # una sola lectura del reloj: una ejecución que cruce la
+                      # medianoche no puede fechar cuerpo y resumen con días distintos
     status_title, status_text = STATES.get(lang, STATES['es'])[status]
-    evaluation_date = evaluation_date or TODAY()
-    review_date = review_date or TODAY()
+    evaluation_date = evaluation_date or today
+    review_date = review_date or today
     method = method or t['method_default']
     feedback = feedback or t['feedback_default']
 
@@ -74,6 +76,16 @@ def generate(entity, url, status, inaccessible_content=None, method=None,
         disalt = f'''
   <h2>{t['h_alt_access']}</h2>
   <p>{e(alternative_format)}</p>'''
+
+    # RD 1112/2018 art. 10.1(b): el procedimiento de reclamación se ENLAZA,
+    # no queda en texto inerte — un valor http(s) se renderiza como <a>
+    # (escapado); el texto que no es URL se queda plano (también escapado)
+    complaints_html = ''
+    if complaints:
+        esc_c = e(complaints)
+        complaints_html = (f'<a href="{esc_c}">{esc_c}</a>'
+                           if str(complaints).lower().startswith(('http://', 'https://'))
+                           else esc_c)
 
     doc_title = t['title'][framework]
     doc = f'''<!doctype html>
@@ -97,14 +109,14 @@ def generate(entity, url, status, inaccessible_content=None, method=None,
   <h2>{t['h_preparation']}</h2>
   <ul>
     <li>{t['l_evaluation']}: <time datetime="{e(evaluation_date)}">{e(evaluation_date)}</time></li>
-    <li>{t['l_declared']} <time datetime="{e(TODAY())}">{e(TODAY())}</time></li>
+    <li>{t['l_declared']} <time datetime="{e(today)}">{e(today)}</time></li>
     <li>{t['l_method']}: {e(method)}</li>
     <li>{t['l_review']}: <time datetime="{e(review_date)}">{e(review_date)}</time></li>
   </ul>
 
   <h2>{t['h_contact']}</h2>
   <p>{t['contact'].format(f=e(feedback))}</p>
-  <p>{e(complaints) if complaints else t['complaints'][framework]}</p>
+  <p>{complaints_html if complaints else t['complaints'][framework]}</p>
 {disalt}
 </main>
 </body>
@@ -116,7 +128,7 @@ def generate(entity, url, status, inaccessible_content=None, method=None,
             'entity': entity, 'url': url, 'framework': framework, 'lang': lang,
             'status': status_title,
             'inaccessible_items': len(inaccessible_content),
-            'dates': {'evaluation': evaluation_date, 'declaration': TODAY(),
+            'dates': {'evaluation': evaluation_date, 'declaration': today,
                        'review': review_date},
         },
     }

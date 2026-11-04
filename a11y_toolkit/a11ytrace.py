@@ -76,6 +76,12 @@ _COLLECTOR = r'''() => {
   return [];
 }'''
 
+# Drenaje defensivo: un `goto` destruye window.__a11yTraceDrain (navegación =
+# contexto nuevo); pedirlo sin guardia tronaría el paso entero. La expresión
+# es estática (nada del page entra aquí) y devuelve [] cuando el recolector
+# aún no existe — el paso se graba, simplemente sin anuncios de ese instante.
+_DRAIN = '() => window.__a11yTraceDrain ? window.__a11yTraceDrain() : []'
+
 
 def _run_script_action(page, act):
     """One scripted action → (label, ok). Selector-valued actions target CSS."""
@@ -99,8 +105,36 @@ def _run_script_action(page, act):
         return f'wait:{act.get("ms", 300)}', True
     if kind == 'goto':
         page.goto(act.get('url', ''), wait_until='load', timeout=30000)
+        # la navegación destruye el recolector (contexto nuevo): re-inyectarlo
+        # o el drain de ESTE paso y de los siguientes tronaría/volvería vacío
+        page.evaluate(_COLLECTOR)
         return f'goto:{act.get("url", "")}', True
     return f'unknown:{kind or sel}', False
+
+
+def _run_script(page, script):
+    """Scripted actions → (walk, navigations). Factored out of trace() so the
+    loop is testable against a fake page (no Playwright needed)."""
+    walk = []
+    navigations = 0
+    url_now = page.url
+    for i, act in enumerate(script):
+        if not isinstance(act, dict):
+            continue
+        try:
+            label, _ok = _run_script_action(page, act)
+        except Exception as e:  # noqa: BLE001 — a failed action is a recorded step too
+            label = f'{act.get("kind", "?")}:{act.get("selector") or act.get("key") or ""}'
+            label += f' (failed: {str(e)[:60]})'
+        page.wait_for_timeout(200)
+        info = page.evaluate(a11ydiff.FOCUS_KEY_JS)
+        anns = page.evaluate(_DRAIN)
+        if page.url != url_now:
+            navigations += 1
+            url_now = page.url
+        walk.append({'step': i + 1, 'action': label, 'focus': info,
+                     'announcements': anns, 'url': page.url})
+    return walk, navigations
 
 
 def trace(url, steps=25, output=None, auth_state=None, timeout=45, script=None):
@@ -129,22 +163,7 @@ def trace(url, steps=25, output=None, auth_state=None, timeout=45, script=None):
         url_now = page.url
         if script:
             ended_by = 'script_done'
-            for i, act in enumerate(script):
-                if not isinstance(act, dict):
-                    continue
-                try:
-                    label, _ok = _run_script_action(page, act)
-                except Exception as e:  # noqa: BLE001 — a failed action is a recorded step too
-                    label = f'{act.get("kind", "?")}:{act.get("selector") or act.get("key") or ""}'
-                    label += f' (failed: {str(e)[:60]})'
-                page.wait_for_timeout(200)
-                info = page.evaluate(a11ydiff.FOCUS_KEY_JS)
-                anns = page.evaluate('() => window.__a11yTraceDrain()')
-                if page.url != url_now:
-                    navigations += 1
-                    url_now = page.url
-                walk.append({'step': i + 1, 'action': label, 'focus': info,
-                             'announcements': anns, 'url': page.url})
+            walk, navigations = _run_script(page, script)
         else:
             ended_by = 'step_cap'
             for i in range(steps):
@@ -154,7 +173,7 @@ def trace(url, steps=25, output=None, auth_state=None, timeout=45, script=None):
                     ended_by = 'no_more_focusables'
                     break
                 page.wait_for_timeout(150)   # let the observers flush
-                anns = page.evaluate('() => window.__a11yTraceDrain()')
+                anns = page.evaluate(_DRAIN)
                 if page.url != url_now:
                     navigations += 1
                     url_now = page.url
@@ -174,7 +193,8 @@ def trace(url, steps=25, output=None, auth_state=None, timeout=45, script=None):
             'ts': datetime.now(timezone.utc).isoformat(),
             'steps': walk,
             'summary': {'steps_taken': len(walk),
-                        'announcements': sum(len(s['announcements']) for s in walk),
+                        'announcements': sum(len(s.get('announcements') or [])
+                                             for s in walk),
                         'navigations': navigations,
                         'ended_by': ended_by}}
     if tree is not None:

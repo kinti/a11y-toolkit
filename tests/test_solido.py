@@ -33,7 +33,8 @@ _hallazgo = {k for k in es
              ('limits', 'interp', 'criteria', 'score_note', 'lightening', 'darkening',
               'no_post_copy', 'invalid_color', 'invalid_region', 'region_outside',
               'no_pixels', 'load_error', 'opaque_text', 'fetch_error',
-              'rendered_reason', 'overlay_widgets_note')}   # dato del namespace audit, no un finding
+              'rendered_reason', 'overlay_widgets_note',
+              'err_unparseable', 'err_too_big', 'err_not_html')}   # dato del namespace audit, no un finding
 sin_rem = sorted(k for k in _hallazgo if f'{k}_rem' not in es)
 assert not sin_rem, f"findings sin _rem (KeyError al emitir): {sin_rem}"
 assert set(CRIT['es']) == set(CRIT['en']), 'CRIT desparejo es/en'
@@ -206,10 +207,21 @@ HOSTILES = [
     '<div onclick="f()" role="bottun" aria-hidden="si">',  # sopa de atributos
     '',                                                # vacío
     '<html lang="' + 'e' * 300 + '">',                 # lang absurdo
+    '<html><body><div role>texto</div></body></html>',     # atributo sin valor (HTML5 válido)
+    '<html><head><title>t</title><meta name></head><body><p>x</p></body></html>',
+    '<div role="heading" aria-level="cero">h</div>',   # aria-level basura: jamás tira el parse
+    '<div role="button" aria-label="x" role="link">dup</div>',  # atributo duplicado
 ]
 for h in HOSTILES:
     r = audit_html(h, lang='en')
     assert isinstance(r, dict) and ('findings' in r or 'error' in r), f'crasheó con: {h[:40]!r}'
+# un atributo sin valor (HTML5 VÁLIDO) JAMÁS convierte la auditoría entera en
+# error: 3 MB de página no mueren por un <div role> — el bug exterior de 2026-11
+for _v in ('<html><body><div role>texto</div></body></html>',
+           '<html><head><title>t</title><meta name></head><body><p>x</p></body></html>',
+           '<div role="heading" aria-level="cero">h</div>'):
+    _r = audit_html(_v, lang='en')
+    assert 'error' not in _r, f'un atributo hostil tiró el informe: {_v[:40]!r} → {_r.get("error")}'
 
 # el diff de snapshots con JSON malformado no traza (vía CLI sí; vía API lanza
 # ValueError controlado por el servidor — aquí solo la garantía del auditor)

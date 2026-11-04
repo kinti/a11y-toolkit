@@ -28,6 +28,9 @@ jobs:
           pip install .
           a11ytoolkit pair "#767676" "#ffffff"
           python3 -c "from a11y_toolkit import server, a11ydom; print('server imports OK,', len(server.TOOLS), 'tools,', len(server._PROMPTS), 'prompts')"
+          # in-package data must survive the install: rgaa.json once crashed
+          # pip copies (opened at import time by a11yrgaa)
+          python3 -c "from a11y_toolkit import a11yrgaa; assert len(a11yrgaa.CRITERIA) == 106, 'rgaa.json missing from wheel'"
           pip uninstall -y a11y-toolkit
   build:
     runs-on: ubuntu-latest

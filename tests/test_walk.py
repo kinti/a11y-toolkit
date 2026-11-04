@@ -14,6 +14,82 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(HERE)
 sys.path.insert(0, ROOT)
 
+# ── herméticos del pase de foco del snapshot (2026-11): corren SIEMPRE ──────
+# Regresión: dos enfocables con la MISMA firma (dos botones-icono sin name,
+# un Edit por fila) truncaban el walk a la segunda aparición; y el diff
+# colapsaba claves duplicadas («sin cambios» ante una duplicación).
+from a11y_toolkit.a11ydiff import (FOCUS_KEY_JS, _walk_focus,  # noqa: E402
+                                   _WALK_STAMP_JS, _WALK_IS_STAMPED_JS,
+                                   _WALK_CLEAN_JS, diff)
+
+# 0a. las expresiones de parada son estáticas y por IDENTIDAD de elemento
+assert 'dataset.__a11yWalk' in _WALK_STAMP_JS and 'dataset' in _WALK_IS_STAMPED_JS
+assert "__a11yWalk === '0'" in _WALK_IS_STAMPED_JS
+for _js in (_WALK_STAMP_JS, _WALK_IS_STAMPED_JS, _WALK_CLEAN_JS):
+    assert isinstance(_js, str) and '{' not in _js.split('=>', 1)[0]
+
+
+class _FakeFocusRing:
+    """Anillo de foco con firmas DUPLICADAS a mitad del pase: el stop es la
+    IDENTIDAD del primer elemento (marca dataset), no la firma repetida."""
+
+    class _KB:
+        def __init__(self, ring):
+            self.ring = ring
+
+        def press(self, key):
+            if key == 'Tab' and self.ring.sigs:
+                r = self.ring
+                r.i = 0 if r.i == -1 else (r.i + 1) % len(r.sigs)
+
+    def __init__(self, sigs):
+        self.sigs = sigs
+        self.i = -1                  # body: nada enfocado aún
+        self.stamped = None
+        self.keyboard = self._KB(self)
+
+    def evaluate(self, expr):
+        if expr == _WALK_STAMP_JS:
+            self.stamped = self.i
+            return self.i >= 0
+        if expr == _WALK_IS_STAMPED_JS:
+            return self.stamped is not None and self.i == self.stamped
+        if expr == _WALK_CLEAN_JS:
+            self.stamped = None
+            return None
+        if expr == FOCUS_KEY_JS:
+            return self.sigs[self.i] if self.i >= 0 else None
+        raise AssertionError('evaluate inesperado: %r' % expr[:50])
+
+
+# 0b. el walk atraviesa la firma duplicada y para en la vuelta (identidad)
+_ring = _FakeFocusRing(['button:pay', 'button:edit', 'button:edit', 'button:del'])
+_order = _walk_focus(_ring, 20)
+assert _order == ['button:pay', 'button:edit', 'button:edit', 'button:del'], _order
+assert _ring.stamped is None, 'la marca se limpia al terminar'
+print('0b. walk por identidad: firma duplicada no trunca; vuelta detectada ✓')
+
+# 0c. nada enfocable → orden vacío sin crash
+assert _walk_focus(_FakeFocusRing(['a:x']), 5) == ['a:x']
+assert _walk_focus(_FakeFocusRing([]), 5) == []
+print('0c. walk sin enfocables → [] ✓')
+
+# 0d. diff multiset: duplicar un control con el mismo nombre ES un cambio
+SNAPA = {'elements': [{'key': 'button:edit', 'name': 'Edit'},
+                      {'key': 'button:del', 'name': 'Del'}],
+         'focus_order': ['button:edit', 'button:del']}
+SNAPB = {'elements': [{'key': 'button:edit', 'name': 'Edit'},
+                      {'key': 'button:edit', 'name': 'Edit'},
+                      {'key': 'button:del', 'name': 'Del'}],
+         'focus_order': ['button:edit', 'button:edit', 'button:del']}
+_d = diff(SNAPA, SNAPB)
+assert not _d['ok'] and _d['added'] == ['button:edit'], _d
+assert _d['summary']['elements'] == {'before': 2, 'after': 3}
+assert diff(SNAPA, SNAPA)['ok']            # idénticos siguen ok
+_d2 = diff(SNAPB, SNAPA)
+assert _d2['removed'] == ['button:edit']   # y a la inversa
+print('0d. diff multiset: la duplicación cuenta como añadido ✓')
+
 try:
     import playwright  # noqa: F401
 except ImportError:

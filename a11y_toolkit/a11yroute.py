@@ -105,8 +105,12 @@ ROUTES = [
      'cli': 'a11ytoolkit kbd https://…',
      'prompts': []},
     {'id': 'statement',
+     # 'document' lives HERE, not in the pdf route: the English verb ("document
+     # the accessibility of my site") is a statement goal; pdf keywords stay
+     # unambiguous (pdf/docx/word/'documento')
      'patterns': ['statement', 'declaración', 'declaracion', 'eaa', 'ley',
-                  'legal', 'rd 1112', 'acta', '11/2023', 'compliance doc'],
+                  'legal', 'rd 1112', 'acta', '11/2023', 'compliance doc',
+                  'document'],
      'tools': [
          ('a11y_audit_url', 'los hallazgos alimentan la lista de contenido no accesible',
           'findings feed the non-accessible content list'),
@@ -142,7 +146,7 @@ ROUTES = [
      'cli': 'a11ytoolkit vpat pack.json --product "Acme" -o vpat.html',
      'prompts': []},
     {'id': 'media',
-     'patterns': ['video', 'caption', 'subtítulo', 'subtitulo', 'subtitulo',
+     'patterns': ['video', 'caption', 'subtítulo', 'subtitulo',
                   'vtt', 'audio description', 'audiodescripción', 'podcast'],
      'tools': [
          ('a11y_vtt_check', 'el CONTENIDO de los subtítulos: cps, solapes, cobertura',
@@ -152,7 +156,7 @@ ROUTES = [
      ],
      'cli': None, 'prompts': []},
     {'id': 'pdf',
-     'patterns': ['pdf', 'documento', 'document', 'docx', 'word', 'informe pdf'],
+     'patterns': ['pdf', 'documento', 'docx', 'word', 'informe pdf'],
      'tools': [
          ('a11y_audit_pdf', 'cribado estructural + formularios: lo que nadie automatiza',
           'structural screening + forms: what nobody automates'),
@@ -233,38 +237,54 @@ _NOTE = {
 # ── diagnóstico secuencial: la EVIDENCIA manda, la severidad solo desempata ──
 # Traducción cruzada del diagnóstico diferencial (medicina): primero la
 # constante vital barata —el pase estático— y sus síntomas deciden qué
-# examen reduce más la incertidumbre. No es una prioridad fija de criterios:
+# examen reduce más la incertumbre. No es una prioridad fija de criterios:
 # una página sin formularios no necesita el examen de formularios por muy
 # grave que sea 3.3.1 sobre el papel. detect() devuelve None (síntoma
-# ausente) o la evidencia en una línea.
+# ausente) o el dato crudo; la línea de evidencia se redacta por idioma
+# con _DIAG_EV (antes llegaba siempre en inglés, también con lang='es').
 _DIAG = [
     {'id': 'forms', 'severity': 'high', 'tool': 'a11y_forms',
      # ojo: sin \b dentro de las llaves del f-string (barra invertida DENTRO
      # de llaves es SyntaxError antes de 3.12; el guardián de test_solido lo
      # vigila) — la detección con \b vive en el re.search de fuera
-     'detect': lambda h: (f'{len(re.findall(r"<(?:input|select|textarea)", h))} form fields'
+     'detect': lambda h: (len(re.findall(r"<(?:input|select|textarea)", h))
                           if re.search(r'<(?:input|select|textarea)\b', h) else None),
      'why': ('formularios presentes: rellenar inválido, enviar y juzgar el aviso de errores',
              'forms present: fill invalid data, submit, judge the error announcement')},
     {'id': 'menus', 'severity': 'high', 'tool': 'a11y_keyboard',
-     'detect': lambda h: ('menus or disclosure widgets'
+     'detect': lambda h: (True
                           if re.search(r'<(?:nav|details)\b|aria-expanded', h) else None),
      'why': ('menús o desplegables: la zona clásica de trampas de teclado',
              'menus or disclosure widgets: the classic keyboard-trap zone')},
     {'id': 'video', 'severity': 'medium', 'tool': 'a11y_vtt_check',
-     'detect': lambda h: (f'{h.count("<video")} <video>' if '<video' in h else None),
+     'detect': lambda h: (h.count('<video') if '<video' in h else None),
      'why': ('vídeo presente: que existan subtítulos no basta — juzgar su CONTENIDO',
              'video present: captions existing is not enough — judge their CONTENT')},
     {'id': 'animation', 'severity': 'medium', 'tool': 'a11y_reduced_motion',
-     'detect': lambda h: ('animated content'
+     'detect': lambda h: (True
                           if re.search(r'animation|transition|<marquee', h) else None),
      'why': ('contenido animado: ¿respeta prefers-reduced-motion?',
              'animated content: does it honor prefers-reduced-motion?')},
     {'id': 'svg', 'severity': 'low', 'tool': 'a11y_forced_colors',
-     'detect': lambda h: (f'{h.count("<svg")} inline <svg>' if h.count('<svg') >= 2 else None),
+     'detect': lambda h: (h.count('<svg') if h.count('<svg') >= 2 else None),
      'why': ('iconografía SVG en volumen: los fills fijos caen en forced-colors',
              'SVG iconography at volume: hardcoded fills fall in forced-colors')},
 ]
+
+# evidencia por síntoma e idioma: {n} recibe el dato crudo de detect()
+_DIAG_EV = {
+    'forms': {'es': '{n} campos de formulario', 'en': '{n} form fields'},
+    'menus': {'es': 'menús o desplegables', 'en': 'menus or disclosure widgets'},
+    'video': {'es': '{n} <video>', 'en': '{n} <video>'},
+    'animation': {'es': 'contenido animado', 'en': 'animated content'},
+    'svg': {'es': '{n} <svg> inline', 'en': '{n} inline <svg>'},
+}
+
+
+def _evidence(sid, raw, lang):
+    """La línea de evidencia de un síntoma, en el idioma pedido."""
+    tpl = _DIAG_EV[sid]['es' if lang == 'es' else 'en']
+    return tpl.format(n=raw) if isinstance(raw, int) else tpl
 
 _RANK = {'high': 0, 'medium': 1, 'low': 2}
 
@@ -291,7 +311,8 @@ def diagnose(html_text, url='(html)', lang='en', goal=None):
     for d in _DIAG:
         ev = d['detect'](html_text)
         if ev:
-            symptoms.append({'symptom': d['id'], 'evidence': ev})
+            symptoms.append({'symptom': d['id'],
+                             'evidence': _evidence(d['id'], ev, t)})
             hit.append(d)
     # sort estable: severidad como desempate, orden de tabla dentro de cada nivel
     hit.sort(key=lambda d: _RANK[d['severity']])
@@ -301,7 +322,8 @@ def diagnose(html_text, url='(html)', lang='en', goal=None):
     evidences = {d['id']: d['detect'](html_text) for d in _DIAG}
     for i, d in enumerate(hit, 2):
         steps.append({'step': i, 'tool': d['tool'], 'why': d['why'][idx],
-                      'symptom': d['id'], 'evidence': evidences[d['id']]})
+                      'symptom': d['id'],
+                      'evidence': _evidence(d['id'], evidences[d['id']], t)})
     steps.append({'step': len(steps) + 1, 'tool': 'a11y_audit_dom',
                   'why': ('profundizar lo que el estático no ve: contraste computado, 2.5.8, foco',
                           'deepen what static cannot see: computed contrast, 2.5.8, focus')[idx]})

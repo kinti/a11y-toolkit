@@ -5,6 +5,7 @@ test_dom-tier suites). Focus: pairwise divergence, honest engine failures,
 insufficient-engine semantics, tree-as-informational."""
 import io
 import contextlib
+import json
 import os
 import sys
 
@@ -109,6 +110,42 @@ with contextlib.redirect_stdout(io.StringIO()):
 assert code == 1, code
 print('8. CLI: insufficient engines → exit 1 ✓')
 
+# --- 8b. ImportError is NOT a dead engine (2026-11): it kills the whole
+#         matrix and must reach main's pip advice — the per-engine except
+#         swallowed it and pointed at `playwright install firefox webkit`
+
+
+def _no_playwright(url, engine, auth_state=None):
+    raise ImportError('playwright')
+
+
+try:
+    matrix('https://web', capture=_no_playwright)
+    raise SystemExit('ImportError debía propagarse desde matrix()')
+except ImportError:
+    pass
+
+import a11y_toolkit.a11yengines as _eng_mod  # noqa: E402
+_orig_capture = _eng_mod._capture
+_eng_mod._capture = _no_playwright
+_buf = io.StringIO()
+try:
+    with contextlib.redirect_stdout(_buf):
+        _code = engines_main(['https://web'])
+finally:
+    _eng_mod._capture = _orig_capture
+assert _code == 1, _code
+assert 'pip install playwright' in _buf.getvalue(), _buf.getvalue()
+assert 'playwright install chromium' in _buf.getvalue()  # el consejo completo
+print('8b. ImportError → consejo pip + exit 1, sin traceback ✓')
+
+# --- 8c. a DEAD ENGINE (not a missing package) still lands in engines_failed
+r = matrix('https://web', capture=lambda url, engine, auth_state=None:
+           snap() if engine == 'chromium' else (_ for _ in ()).throw(RuntimeError('dead')))
+assert [f['engine'] for f in r['engines_failed']] == ['firefox', 'webkit']
+assert 'pip install' not in json.dumps(r)
+print('8c. engine muerto ≠ paquete ausente: engines_failed, sin consejo pip ✓')
+
 # --- 9. live smoke: the REAL capture path launches (auto-skip without
 #        Playwright) — the hermetic checks above mock capture, so only this
 #        pins the wiring between matrix() and a11ydiff.snapshot(engine=)
@@ -128,4 +165,4 @@ r = matrix('file://' + _fixture, engines=['chromium'], capture=None)
 assert 'error' not in r
 assert any(e['engine'] == 'chromium' for e in r['engines_ok']), r['engines_failed']
 print('9. live smoke: snapshot(engine=chromium) lanza de verdad ✓')
-print('OK test_engines: 10 checks')
+print('OK test_engines: 12 checks')

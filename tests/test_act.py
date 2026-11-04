@@ -62,4 +62,13 @@ d = json.loads(out.stdout)
 assert set(d['act_map']) == set(ACT_MAP)
 assert out.returncode == 0
 
-print(f'ACT/EARL OK ✓ ({len(ACT_MAP)} señales mapeadas, {sum(len(v) for v in ACT_MAP.values())} rules; sin rules inventadas)')
+# 6. _NOT_DEAD: única fuente (a11yact) — vpat y sarif filtran con EL MISMO
+#    conjunto (regresión 4-nov: cada módulo tenía el suelto y Remarks/SARIF
+#    citaban hallazgos desmentidos)
+import a11y_toolkit.a11yvpat as _vp                                # noqa: E402
+import a11y_toolkit.a11ysarif as _sf                               # noqa: E402
+from a11y_toolkit.a11yact import _NOT_DEAD                         # noqa: E402
+assert _NOT_DEAD == {'rejected', 'not-rechecked'}
+assert _vp._NOT_DEAD is _NOT_DEAD and _sf._NOT_DEAD is _NOT_DEAD
+
+print(f'ACT/EARL OK ✓ ({len(ACT_MAP)} señales mapeadas, {sum(len(v) for v in ACT_MAP.values())} rules; sin rules inventadas, _NOT_DEAD única fuente)')

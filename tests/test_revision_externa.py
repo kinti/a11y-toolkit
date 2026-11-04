@@ -113,5 +113,103 @@ i_use = src_dom.index('ratioOf(over_(fgE, bg), bg)')
 assert i_over < i_use
 print('13. pase principal: alfa del text compuesto (over_ before del uso) ✓')
 
+
+# ── Ronda 3 (noviembre 2026): segunda revisión externa de a11yfix ──
+
+# 14. máscara anidada: un <script> DENTRO de un comentario se enmascara dos
+#     veces; el unmask en orden de creación restauraba el interno dentro del
+#     ORIGINAL almacenado del externo y el token quedaba en la salida
+r14 = autofix('A<!-- <script>old()</script> -->B<p>x</p>')
+assert 'A11YFXMASK' not in r14['fixed_html'], r14['fixed_html']
+assert '<!-- <script>old()</script> -->' in r14['fixed_html']
+print('14. unmask en orden inverso: script en comentario sin token filtrado ✓')
+
+# 15. el guard "la página ya maneja sus errores" mira los scripts ORIGINALES:
+#     en el texto vivo ya están enmascarados y el findall no veía NADA — la
+#     capa se inyectaba aunque la página hiciera setCustomValidity
+H15 = ('<html><head><title>t</title></head><body>'
+       "<script>document.querySelector('form').addEventListener('submit',"
+       "function(e){e.preventDefault();el.setCustomValidity('bad')})</script>"
+       '<form><input type="email" required></form></body></html>')
+r15 = autofix(H15)
+assert not any(a['signal'] == 'form_error_missing' for a in r15['applied']), r15['applied']
+assert 'a11yfx-err' not in r15['fixed_html']
+print('15. guard 3.3.1 sobre scripts reales: setCustomValidity propio se respeta ✓')
+
+# 16. la apertura de <form> respeta comillas: un `>` dentro de action= no
+#     cierra el tag (el prefijo ingenuo mutilaba la URL)
+r16 = autofix('<html><body><form action="/search?q=a>b">'
+              '<input type="email" required></form></body></html>')
+assert 'action="/search?q=a>b"' in r16['fixed_html'], r16['fixed_html']
+assert '<form action="/search?q=a>b" data-a11yfx>' in r16['fixed_html']
+# hostil: un block que ACABA dentro de una cita (action="x</form>") no es
+# delimitable con apertura quote-aware — se deja intacto, jamás caer
+r16b = autofix('<html><body><form action="x</form>">'
+               '<input type="email" required></form></body></html>')
+assert 'data-a11yfx' not in r16b['fixed_html']
+print('16. <form action="…a>b"> quote-aware: la URL sobrevive byte a byte ✓')
+
+# 17. textarea con `>` citado en un atributo: contenido intacto, capa tras el
+#     cierre y sin fragmento suelto del opening ingenuo
+r17 = autofix('<form><textarea required placeholder="Use > 8 chars">x</textarea></form>')
+assert '>x</textarea>' in r17['fixed_html'], r17['fixed_html']
+assert '> 8 chars">' not in r17['fixed_html'], r17['fixed_html']   # fragmento del opening ingenuo
+assert re.search(r'</textarea>\n<p class="a11yfx-err"', r17['fixed_html'])
+print('17. textarea con ">" citado: contenido intacto, capa tras el cierre ✓')
+
+# 18. autocomplete tras autocierre: la barra no es un atributo; y un value
+#     citado que ACABA en / es dato, nunca markup
+tag_a = re.search(r'<input[^>]*>', autofix('<form><input type="email" required></form>')['fixed_html']).group(0)
+tag_b = re.search(r'<input[^>]*>', autofix('<form><input type="email"/></form>')['fixed_html']).group(0)
+assert 'autocomplete="email"' in tag_a and '/ autocomplete' not in tag_a
+assert 'autocomplete="email"' in tag_b and '/ autocomplete' not in tag_b, tag_b
+r18c = autofix('<form><input type="email" value="a/" required></form>')
+assert 'value="a/"' in r18c['fixed_html'] and 'autocomplete="email"' in r18c['fixed_html']
+print('18. autocierre y value="a/": el token entra sin romper el tag ✓')
+
+# 19. viewport fantasma: maximum-scale=5 NO bloquea el zoom — no hay fix;
+#     maximum-scale<2 sí se quita y se registra
+r19a = autofix('<html><head><meta name="viewport" content="width=device-width, maximum-scale=5">'
+               '<title>t</title></head><body>x</body></html>')
+assert not any(a['signal'] == 'zoom_no' for a in r19a['applied']), r19a['applied']
+assert 'maximum-scale=5' in r19a['fixed_html']
+r19b = autofix('<html><head><meta name="viewport" content="width=device-width, maximum-scale=1">'
+               '<title>t</title></head><body>x</body></html>')
+assert any(a['signal'] == 'zoom_no' for a in r19b['applied'])
+print('19. viewport: maximum-scale=5 sin fix fantasma; <2 sigue arreglándose ✓')
+
+# 20. lang es el ATRIBUTO lang: xml:lang= / lang="" no cumplían 3.1.1 y el
+#     test de sucadena los daba por buenos; lang="es" no se toca
+r20a = autofix('<html xml:lang="es"><body>x</body></html>', lang='en')
+r20b = autofix('<html lang=""><body>x</body></html>', lang='en')
+r20c = autofix('<html lang="es"><body>x</body></html>', lang='en')
+assert any(a['signal'] == 'lang_missing' for a in r20a['applied'])
+assert '<html lang="en" xml:lang="es">' in r20a['fixed_html']
+assert any(a['signal'] == 'lang_missing' for a in r20b['applied'])
+assert '<html lang="en">' in r20b['fixed_html']       # se RELLENA, no se duplica
+assert r20b['fixed_html'].count('lang=') == 1
+assert not any(a['signal'] == 'lang_missing' for a in r20c['applied'])
+print('20. lang real (no subcadena): xml:lang y lang="" arreglados; lang="es" no ✓')
+
+# 21. hint tel con límite de palabra: "hotel"/"intel" NO son campos tel
+r21a = autofix('<form><input type="text" name="hotel"></form>')
+r21b = autofix('<form><input type="text" name="tel"></form>')
+assert 'autocomplete="tel"' not in r21a['fixed_html'], r21a['fixed_html']
+assert 'autocomplete="tel"' in r21b['fixed_html']
+assert 'autocomplete="tel"' in autofix('<form><input type="text" name="telefono"></form>')['fixed_html']
+assert 'autocomplete="tel"' in autofix('<form><input type="text" name="phone"></form>')['fixed_html']
+print('21. hint tel con \\btel\\b: hotel NO; tel/telefono/phone SÍ ✓')
+
+# 22. </BODY> mayúscula: el JS de la capa se inyecta igual — antes se perdía
+#     y `applied` seguía declarando form_error_missing (ids colgantes)
+H22 = ('<html><head><title>t</title></head><body>'
+       '<form><input type="email" required></form></BODY></html>')
+r22 = autofix(H22)
+cuerpo22 = r22['fixed_html'].rsplit('</BODY>', 1)[0]
+assert any(a['signal'] == 'form_error_missing' for a in r22['applied'])
+assert 'noValidate' in cuerpo22 and 'data-a11yfx-err' in cuerpo22
+print('22. inyección de la capa case-insensitive: </BODY> también la recibe ✓')
+
+print('REVISIÓN EXTERNA — RONDA 3: CONFIRMADO, CORREGIDO Y FIJADO ✓')
 print('REVISIÓN EXTERNA — RONDA 2: CONFIRMADO, CORREGIDO Y FIJADO ✓')
 print('REVISIÓN EXTERNA 2026-10: TODOS LOS CASOS CONFIRMADOS, CORREGIDOS Y PINNED ✓')

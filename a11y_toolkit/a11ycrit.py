@@ -849,6 +849,7 @@ _SIGNAL_CRIT = {
     'chart_no_data_equivalent': '1.1.1',
     'char_shortcut': '2.1.4',
     'click_nonfocusable': '2.1.1',
+    'role_no_tabindex': '2.1.1',
     'color_only_link': '1.4.1',
     'contrast_fail': '1.4.3',
     'contrast_image_fail': '1.4.3',
@@ -957,20 +958,33 @@ _SIGNAL_CRIT = {
     'zoom_no': '1.4.4'
 }
 
+# Errores de lookup, bilingües (el repositorio exige es y en en el contenido;
+# el español ya no puede colarse en una respuesta lang='en')
+_CRIT_ERRORS = {
+    'es': {'unknown_signal': 'señal desconocida: {signal}',
+           'unknown_criterion': 'criterio desconocido: {code}',
+           'hint': 'los ids de señal aparecen en cada hallazgo de auditoría'},
+    'en': {'unknown_signal': 'unknown signal: {signal}',
+           'unknown_criterion': 'unknown criterion: {code}',
+           'hint': 'signal ids appear in every audit finding'},
+}
+
+
 def criterion(code=None, lang='en', signal=None):
     from .a11yact import act_rules_for
+    _t = _CRIT_ERRORS['es' if lang == 'es' else 'en']
     if signal:
         from .a11yaudit import normalize_signal
         signal = normalize_signal(signal.strip())
         if signal in _SIGNAL_CRIT:
             code = _SIGNAL_CRIT[signal]
         else:
-            return {'error': f'señal desconocida: {signal}',
+            return {'error': _t['unknown_signal'].format(signal=signal),
                     'known_signals': len(_SIGNAL_CRIT),
-                    'hint': 'signal ids appear in every audit finding'}
+                    'hint': _t['hint']}
     code = code.strip()
     if code not in _C:
-        return {'error': f'criterio desconocido: {code}',
+        return {'error': _t['unknown_criterion'].format(code=code),
                 'available': sorted(_C)}
     level, languages = _C[code]
     name, requires, failures, how_to_check = languages.get(lang) or languages['es']
@@ -1024,34 +1038,35 @@ def main(argv):
     ap.add_argument('--json', action='store_true', help='--list: machine-readable output')
     a = ap.parse_args(argv)
     if a.list or not (a.code or a.signal):
-        if a.level or a.new_in or a.signal_filter:
-            from .a11yevidence import MANUAL_AA  # lazy: avoids the import cycle
-            no_signal = {m.split(' ')[0] for m in MANUAL_AA}
-            rows = []
-            for code, (level, loc) in sorted(_C.items()):
-                if a.level and level != a.level:
-                    continue
-                if a.new_in and code not in NEW_IN_22:
-                    continue
-                if a.signal_filter == 'yes' and code in no_signal:
-                    continue
-                if a.signal_filter == 'no' and code not in no_signal:
-                    continue
-                row = {'code': code, 'level': level,
-                       'name': (loc.get(a.lang) or loc['en'])[0],
-                       'new_in_22': code in NEW_IN_22,
-                       'signal': code not in no_signal}
-                if a.standard:
-                    from .a11yen301549 import clause_for as _cf
-                    row['clause'] = _cf(code, a.target)
-                rows.append(row)
-            print(json.dumps({'count': len(rows), 'criteria': rows},
-                             ensure_ascii=False, indent=1))
-            return 0
-        print(json.dumps({'available_criteria': sorted(_C)}, indent=1))
+        # listing: --level/--new-in/--signal-filter narrow it, --standard +
+        # --target add the EN clause column, --json is the (machine) shape the
+        # rows already have — none of them needs another filter flag to apply
+        from .a11yevidence import MANUAL_AA  # lazy: avoids the import cycle
+        no_signal = {m.split(' ')[0] for m in MANUAL_AA}
+        rows = []
+        for code, (level, loc) in sorted(_C.items()):
+            if a.level and level != a.level:
+                continue
+            if a.new_in and code not in NEW_IN_22:
+                continue
+            if a.signal_filter == 'yes' and code in no_signal:
+                continue
+            if a.signal_filter == 'no' and code not in no_signal:
+                continue
+            row = {'code': code, 'level': level,
+                   'name': (loc.get(a.lang) or loc['en'])[0],
+                   'new_in_22': code in NEW_IN_22,
+                   'signal': code not in no_signal}
+            if a.standard:
+                from .a11yen301549 import clause_for as _cf
+                row['clause'] = _cf(code, a.target)
+            rows.append(row)
+        print(json.dumps({'count': len(rows), 'criteria': rows},
+                         ensure_ascii=False, indent=1))
         return 0
-    print(json.dumps(criterion(a.code, a.lang, signal=a.signal), ensure_ascii=False, indent=1))
-    return 0
+    res = criterion(a.code, a.lang, signal=a.signal)
+    print(json.dumps(res, ensure_ascii=False, indent=1))
+    return 1 if 'error' in res else 0
 
 
 if __name__ == '__main__':

@@ -591,7 +591,7 @@ TOOLS = [
             'output_path': {'type': 'string', 'description': 'write the full verdict JSON here instead of returning it inline'},
             'seal': {'type': 'boolean', 'description': 'return the sealed a11y-journey/1 record instead: the walk + judgment + steps, sha-sealed (record_verify re-derives the verdict from the steps)'},
             'verify_record': {'type': 'object', 'description': 'an a11y-journey/1 record to verify instead of judging: returns verified or tampered (sha + deterministic re-scoring)'},
-        }, 'required': ['task', 'steps', 'outcome']},
+        }, 'required': []},
     },
     {
         'name': 'a11y_generate_vpat',
@@ -600,7 +600,8 @@ TOOLS = [
                         'the full 55-criterion WCAG 2.2 A/AA table with Remarks auto-filled from '
                         'the pack (status, measured values, examples, remaining human effort) and '
                         'every Conformance Level starting at Not Evaluated — automated fails force '
-                        'Does Not Support and a qualified human sets the final level via overrides '
+                        'Does Not Support, review-level signals stay Not Evaluated with the '
+                        'evidence in Remarks, and a qualified human sets the rest via overrides '
                         '(supports, partially_supports, does_not_support, not_applicable, '
                         'not_evaluated). The document is a DRAFT until the signature block, which '
                         'must reference the pack sha256, is completed. VPAT is the US/ADA '
@@ -629,8 +630,8 @@ TOOLS = [
                         'a11y_evidence pack (or raw audit reports): the full 55-criterion '
                         'WCAG 2.2 A/AA matrix as chapters with one web component per '
                         'criterion, adherence levels starting at not-evaluated (automated '
-                        'fails force does-not-support, review-level signals '
-                        'partially-supports) and notes auto-filled from the pack (status, '
+                        'fails force does-not-support; review-level signals stay not-evaluated '
+                        'with the evidence in notes) and notes auto-filled from the pack (status, '
                         'measured values, remaining human effort, sha256). Same honesty '
                         'rule as a11y_generate_vpat: the machine fills notes, a qualified '
                         'human sets levels via overrides (supports, partially_supports, …; '
@@ -1495,6 +1496,10 @@ def invoke(name, args):
             if action == 'summary':
                 from .a11yledger import summary as _sum
                 return _content(_sum(path=path))
+            # enum inválido: error de tool-result nombrando la action y las
+            # válidas — no caer al 'unknown tool' del dispatcher
+            return _content({'error': f'invalid action: {action}',
+                             'valid_actions': ['record', 'gaps', 'summary']})
         except Exception as e:
             return {'content': [{'type': 'text', 'text': f'error: {e}'}], 'isError': True}
     if name == 'a11y_criterion':
@@ -1506,6 +1511,12 @@ def invoke(name, args):
         if args.get('verify_record') is not None:
             return _content(journey_verify_fn(args['verify_record'],
                                               lang=args.get('lang', 'en')))
+        # verify-only calls need just verify_record; the judge/seal path
+        # (schema-optional since 5.26.1) still requires the walk itself
+        _missing = [k for k in ('task', 'steps', 'outcome') if not args.get(k)]
+        if _missing:
+            return _content({'error': f'{", ".join(_missing)} required '
+                                      '(only verify_record calls omit task/steps/outcome)'})
         if args.get('seal'):
             rec = journey_seal_fn(args['task'], args['steps'], args['outcome'],
                                   url=args.get('url', ''),
@@ -1636,13 +1647,27 @@ def invoke(name, args):
         else:
             with open(os.path.join(HERE, 'arialive.js'), encoding='utf-8') as f:
                 js = f.read()
-        if args.get('lang') == 'en':
+        if (args.get('lang') or 'en') != 'es':
+            # the snippet's built-in labels are Spanish; the schema documents
+            # en as the default, so only an explicit lang='es' keeps them
             js = "window.ALM_LANG='en';\n" + js
         return {'content': [{'type': 'text', 'text': js}]}
     raise ValueError(f'unknown tool: {name}')
 
 
 def main():
+    # stdio MCP is UTF-8 by spec, but the process locale decides the pipe
+    # encoding (cp1252 on Windows): one CJK/emoji finding would raise
+    # UnicodeEncodeError OUTSIDE any try and kill the server mid-protocol.
+    # stdin decodes with errors='replace' so a hostile line can never crash
+    # the read either; stdout must encode everything we emit.
+    for _stream, _kw in ((sys.stdin, {'encoding': 'utf-8', 'errors': 'replace'}),
+                         (sys.stdout, {'encoding': 'utf-8'})):
+        if hasattr(_stream, 'reconfigure'):
+            try:
+                _stream.reconfigure(**_kw)
+            except (ValueError, OSError, AttributeError):
+                pass  # exotic/closed streams: keep their default encoding
     for line in sys.stdin:
         line = line.strip()
         if not line:
@@ -1665,7 +1690,10 @@ def main():
         try:
             if method == 'initialize':
                 resp = {'jsonrpc': '2.0', 'id': mid, 'result': {
-                    'protocolVersion': msg.get('params', {}).get('protocolVersion', '2024-11-05'),
+                    # MCP: answer with the LATEST version we actually support,
+                    # never echo the client's (batching is rejected below, so
+                    # echoing e.g. '2025-06-18' would be a partial lie)
+                    'protocolVersion': '2024-11-05',
                     'capabilities': {'tools': {}, 'prompts': {}},
                     'serverInfo': {'name': 'a11y-toolkit', 'version': VERSION},
                     'instructions': INSTRUCTIONS,

@@ -9,8 +9,10 @@ success_criteria_level_a / _aa, one `web` component per criterion.
 
 Honesty rule (non-negotiable, mirrors the pack and the VPAT): the machine
 fills the adherence `notes`, never the level. Every criterion starts at
-`not-evaluated` unless an automated fail forces `does-not-support` (or
-`partially-supports` for review-level signals). A qualified human sets the
+`not-evaluated`; the only machine-set level is `does-not-support`, forced
+by an automated fail. Review-level signals stay `not-evaluated` with the
+evidence in the notes — the machine never prints a conformance claim from
+review-level evidence. A qualified human sets the
 final level via `overrides` — same vocabulary as a11y_generate_vpat
 (supports, partially_supports, …); the hyphenated forms of the OpenACR
 format itself are accepted too. Every remark references the evidence
@@ -63,7 +65,7 @@ def _remarks(row, finding, pack_sha):
             chunks.append('e.g. ' + str(val['example']))
         parts.append('; '.join(chunks))
     if finding:
-        parts.append('issue: ' + str(finding.get('issue', ''))[:220])
+        parts.append('issue: ' + str(finding.get('issue') or '')[:220])
         if finding.get('remediation'):
             parts.append('remediation: ' + str(finding['remediation'])[:220])
     ef = row.get('effort')

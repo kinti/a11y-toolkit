@@ -248,6 +248,7 @@ a11ytoolkit sarif --from-audit audit.json -o a11y.sarif # GitHub code scanning
 a11ytoolkit badge --score 92 --out badge.svg            # honest SVG
 a11ytoolkit contrast-dom https://mysite --selector ".hero h1"  # auto-region pixel sampling
 a11ytoolkit vpat pack.json --product "Acme" -o vpat.html      # VPAT 2.5 (WCAG) draft
+a11ytoolkit openacr pack.json --product "Acme" -o openacr.yaml # OpenACR YAML (GSA) draft
 a11ytoolkit earl --from-audit audit.json -o earl.json          # ACT Rules / EARL export
 a11ytoolkit wcag3 --from-audit audit.json                      # WCAG 3 draft preview (no score)
 a11ytoolkit route --goal "gate my PR"                          # which tools for the task

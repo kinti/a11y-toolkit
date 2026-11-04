@@ -122,6 +122,50 @@ with tempfile.TemporaryDirectory() as td:
         check('CLI: marks>0 y copia con attrs', out['marks'] > 0
               and 'data-a11y-id' in copy)
 
+print('== 9. source_mismatch CIERRA la inyección (nunca marca equivocada)')
+# un solo byte editado: los paths pueden colisionar por accidente y una marca
+# caería en el elemento equivocado — TODO el informe cae a unplaced
+bugs = ('<html lang="es"><head><title>t</title></head><body>\n'
+        '  <img src="a.png">\n  <p>bug</p>\n</body>\n</html>')
+r9 = audit_html(bugs)
+bugs_editado = bugs.replace('<p>bug</p>', '<p>bug!</p>')   # un byte
+res9 = annotate(bugs_editado, r9)
+check('html editado → marks == []', res9['marks'] == [])
+check('html editado → unplaced == todos los hallazgos',
+      len(res9['unplaced']) == len(r9['findings'])
+      and {u['signal'] for u in res9['unplaced']}
+      == {h['signal'] for h in r9['findings']})
+check('html editado → source_mismatch True', res9['source_mismatch'] is True)
+check('html editado → copia SIN tocar (byte a byte)', res9['annotated_html'] == bugs_editado)
+check('la nota de mismatch existe y es bilingüe',
+      'source_sha256' in res9.get('note', '')
+      and 'source_sha256' in annotate(bugs_editado, r9, lang='es').get('note', '')
+      and annotate(bugs_editado, r9, lang='es')['note'] != res9['note'])
+check('el mismo html sigue marcándose con normalidad',
+      annotate(bugs, r9)['source_mismatch'] is False
+      and len(annotate(bugs, r9)['marks']) >= 1)
+
+print('== 10. dos findings en el MISMO elemento: una sola marca por offset')
+# placeholder_only (3.3.2) y autocomplete (1.3.5) resuelven al mismo input:
+# dos data-a11y-id en el mismo offset serían HTML inválido (el DOM descarta
+# el segundo) — un id por elemento, ambos marks consultables
+campo = '<html lang="es"><head><title>t</title></head><body>' \
+        '<input type="email" name="email" placeholder="Email"></body></html>'
+r10 = audit_html(campo)
+res10 = annotate(campo, r10)
+tag10 = res10['annotated_html'][res10['annotated_html'].index('<input'):]
+tag10 = tag10[:tag10.index('>')]
+check('exactamente un data-a11y-id en el input',
+      tag10.count('data-a11y-id=') == 1 and tag10.startswith('<input data-a11y-id="m'),
+      tag10)
+senales10 = {m['signal'] for m in res10['marks'] if m['path'].endswith('input:nth-of-type(1)')}
+ids10 = {m['id'] for m in res10['marks'] if m['path'].endswith('input:nth-of-type(1)')}
+check('ambos findings llevan mark sobre el mismo elemento',
+      {'placeholder_only', 'autocomplete'} <= senales10, senales10)
+check('y comparten el MISMO id (un attr por offset)', len(ids10) == 1, ids10)
+check('byte preservation sigue intacta',
+      re.sub(r' data-a11y-id="m\d+"', '', res10['annotated_html']) == campo)
+
 if failures:
     print(f'ANNOTATE: {len(failures)} fallos — {failures}')
     sys.exit(1)

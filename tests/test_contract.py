@@ -101,4 +101,16 @@ if errors:
     for e in errors:
         print(' ·', e)
     sys.exit(1)
+
+# 5.26.1: a11y_journey_verdict — task/steps/outcome FUERA del required del
+# schema (las llamadas verify-only llevan solo verify_record) pero exigidos
+# por el dispatch cuando verify_record no viene: schema flexible + dispatch
+# estricto es el contrato, no un hueco
+_jt = next(t for t in server.TOOLS if t['name'] == 'a11y_journey_verdict')
+assert _jt['inputSchema'].get('required', []) == [], 'verify-only debe pasar el schema'
+_jb = _bloque_dispatch('a11y_journey_verdict')
+assert "_missing = [k for k in ('task', 'steps', 'outcome')" in _jb, \
+    'el dispatch debe exigir task/steps/outcome sin verify_record'
+assert "args.get('verify_record')" in _jb, 'el dispatch debe rutar verify_record aparte'
+
 print(f'CONTRATO OK ✓ ({len(server.TOOLS)} tools: schema ↔ dispatch ↔ firma reales)')

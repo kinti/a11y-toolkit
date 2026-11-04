@@ -19,8 +19,13 @@ The honesty rules, same as everywhere:
 
 Artifact (format a11y-patches/1):
   {'format': 'a11y-patches/1', 'source_sha256': str, 'engine_version': str,
-   'created_at': iso8601, 'count': int,
+   'created_at': iso8601, 'params': {lang, title, form_errors}, 'count': int,
    'fixes': [{signal, fix}, ...], 'not_applied': [{signal, criterion, ...}]}
+
+`params` are SEALED in the set: `verify` repeats the autofix with exactly the
+arguments of the build (an older set without `params` verifies with the build
+defaults). Without them, every set carrying the form-error layer verified as
+`mismatch` — the replay silently dropped lang/title/form_errors.
 
 CLI:
   a11ytoolkit patches --file page.html -o patches.json          # build
@@ -60,6 +65,8 @@ def build(html_text, lang=None, title=None, form_errors=True):
         'engine_version': VERSION,
         'created_at': datetime.datetime.now(
             datetime.timezone.utc).isoformat(timespec='seconds'),
+        # params sellados: verify repite el autofix CON ESTOS argumentos
+        'params': {'lang': lang, 'title': title, 'form_errors': form_errors},
         'count': len(res['applied']),
         'fixes': res['applied'],
         'not_applied': res['not_applied'],
@@ -82,7 +89,13 @@ def apply_patches(html_text, patch_set, lang='en'):
         return {'status': 'stale', 'source_sha256': sha,
                 'expected_sha256': patch_set.get('source_sha256'),
                 'note': _t(lang, 'pat_stale')}
-    res = _autofix(html_text, form_errors=False)
+    # replay with the SEALED build params (build defaults for pre-params sets):
+    # re-running with different arguments invents a mismatch that is not there
+    params = patch_set.get('params') or {}
+    res = _autofix(html_text,
+                   lang=params.get('lang'),
+                   title=params.get('title'),
+                   form_errors=params.get('form_errors', True))
     if res['applied'] != patch_set.get('fixes'):
         return {'status': 'mismatch', 'source_sha256': sha,
                 'reproduced': res['applied'],
@@ -112,7 +125,14 @@ def main(argv):
     if a.verify:
         patch_set = json.load(open(a.verify, encoding='utf-8'))
         res = apply_patches(html_text, patch_set)
-        print(json.dumps(res, ensure_ascii=False, indent=1)[:2000])
+        # JSON SIEMPRE válido: el fixed_html completo no se imprime (una
+        # salida cortada a [:2000] partía escapes y dejaba JSON roto) —
+        # quien quiera la copia arreglada usa --fixed
+        out = {k: v for k, v in res.items() if k != 'fixed_html'}
+        print(json.dumps(out, ensure_ascii=False, indent=1))
+        if a.fixed_out and res.get('status') == 'reproduced':
+            with open(a.fixed_out, 'w', encoding='utf-8') as f:
+                f.write(res['fixed_html'])
         return 0 if res['status'] in ('reproduced', 'stale') else 1
     res = build(html_text)
     payload = json.dumps(res['patch_set'], ensure_ascii=False, indent=1)

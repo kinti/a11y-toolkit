@@ -22,6 +22,10 @@ from . import a11yi18n
 _RE_TIME = re.compile(
     r'(?:(\d{2,}):)?(\d{2}):(\d{2})[.,](\d{3})\s*-->\s*(?:(\d{2,}):)?(\d{2}):(\d{2})[.,](\d{3})')
 
+# etiquetas de marcado WebVTT — <v>, <i>, <b>, <c.cls>, anclas/timestamps
+# <00:00:01.000>: no se leen en voz alta, no cuentan como caracteres de lectura
+_RE_TAG = re.compile(r'<[^>]+>')
+
 T = a11yi18n.pair('vtt')  # locales/<lang>.json — community-editable
 
 
@@ -51,7 +55,8 @@ def vtt_check(url, duration=None, lang='en'):
                           'signal': key, 'issue': _t(lang, key).format(**fmt),
                           'remediation': _t(lang, key + '_rem').format(**fmt)})
 
-    if not text.lstrip().startswith('WEBVTT'):
+    # un BOM UTF-8 (U+FEFF) delante de WEBVTT es válido — lstrip() no lo quita
+    if not text.removeprefix('\ufeff').lstrip().startswith('WEBVTT'):
         return {'error': 'does not declare WEBVTT (is it .srt or another format?)',
                 'primeros_bytes': text[:40]}
 
@@ -87,9 +92,15 @@ def vtt_check(url, duration=None, lang='en'):
     if overlaps:
         add('low', 'vtt_overlap', n=overlaps)
 
-    too_fast = [{'t': c['text'][:30], 'cps': round(len(c['text']) / max(c['end'] - c['start'], 0.1), 1)}
-               for c in cues if not c['text'].startswith('<') and c['text']
-               and len(c['text']) / max(c['end'] - c['start'], 0.1) > 21]
+    # cps sobre el texto VISIBLE: las etiquetas (<v>, <i>, <c.cls>, anclas)
+    # no se leen en voz alta — se miden TODAS las cues, incluidas las que
+    # empiezan con etiqueta de voz
+    too_fast = []
+    for c in cues:
+        visible = _RE_TAG.sub('', c['text']).strip()
+        dur = max(c['end'] - c['start'], 0.1)
+        if visible and len(visible) / dur > 21:
+            too_fast.append({'t': visible[:30], 'cps': round(len(visible) / dur, 1)})
     if too_fast:
         add('medium', 'vtt_too_fast', n=len(too_fast),
             example=', '.join(f"{r['t']}… ({r['cps']}cps)" for r in too_fast[:3]))

@@ -21,6 +21,7 @@ jobs:
       - name: Bundle the engine (self-contained package)
         run: |
           cp -r a11y_toolkit npm/a11y_toolkit
+          find npm/a11y_toolkit -name __pycache__ -type d -prune -exec rm -rf {} +
           cp LICENSE npm/LICENSE
       - name: Publish
         run: npm publish ./npm --access public --provenance

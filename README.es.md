@@ -125,8 +125,8 @@ traducción puede ir a la zaga del inglés, que es la fuente canónica.
 | [`a11y_disprove`](docs/tools.md#a11y_disprove) | Cobertura y evidencia | Refutador: re-verifica hallazgos |
 | [`a11y_ledger`](docs/tools.md#a11y_ledger) | Cobertura y evidencia | Libro de cobertura (persistente) |
 | [`a11y_wcag3_preview`](docs/tools.md#a11y_wcag3_preview) | Cobertura y evidencia | Vista previa borrador WCAG 3 (sin score) |
+| [`a11y_scope`](docs/tools.md#a11y_scope) | Cobertura y evidencia | Alcance de aplicabilidad (semiautomático) |
 | [`a11y_route`](docs/tools.md#a11y_route) | Enrutado | Router de herramientas (objetivo o página → pasos) |
-| [`a11y_scope`](docs/tools.md#a11y_scope) | Cobertura y evidencia | Alcance de aplicabilidad (la máquina propone, la persona confirma; cláusulas EN 301 549) |
 <!-- TOOLS:END -->
 
 ## Los 6 prompts
@@ -272,14 +272,14 @@ a11ytoolkit locate --file pagina.html --query "Enviar"         # elemento por no
 a11ytoolkit patches --file pagina.html -o patches.json         # registro sellado de arreglos (verificar con --verify)
 a11ytoolkit criteria --list --level AA --new-in 2.2            # el Quick Ref offline, filtrable
 a11ytoolkit wizard --url https://client.web --lang es          # guiado: 3 preguntas → norma, auditoría, alcance, anexo
+a11ytoolkit corpus verify corpus                               # el corpus congelado, verificado
+```
 
 ## Cobertura de estándares
 
 Qué ley de cada mercado sirve cada comando: [docs/standards-coverage.md](docs/standards-coverage.md)
 — EN 301 549 (UE-27 + EEE + Canadá), Section 508 (EE.UU. federal), RGAA 4.1
 (Francia), WCAG directo (Latam y la práctica ADA) — un motor, la norma de más de 27 países.
-a11ytoolkit corpus verify corpus                               # el corpus congelado, verificado
-```
 
 
 

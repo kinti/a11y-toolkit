@@ -14,6 +14,26 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(HERE)
 sys.path.insert(0, ROOT)
 
+# ── 5.26.1: nameOf (accname) precedence pinned as a STRING — no browser ──────
+# orden accname: labelledby (lista MULTI-id, textos unidos en orden) >
+# aria-label > <label> implícito > contenido > title. El join multi-id se
+# comprueba renderizado abajo si hay Playwright; esto clava el orden fuente.
+from a11y_toolkit.a11ydom import _JS_NAMEOF, _JS as _JS_FULL  # noqa: E402
+assert _JS_FULL.count('const nameOf') == 1 and '/*__NAMEOF__*/' not in _JS_FULL, \
+    'el splice del nameOf dejó restos o copias'
+_o_lb = _JS_NAMEOF.index("getAttribute('aria-labelledby')")
+_o_al = _JS_NAMEOF.index("getAttribute('aria-label')")
+_o_il = _JS_NAMEOF.index('el.labels[0]')
+_o_ct = _JS_NAMEOF.index('el.value')
+_o_ti = _JS_NAMEOF.index("getAttribute('title')")
+assert _o_lb < _o_al < _o_il < _o_ct < _o_ti, 'precedencia accname rota en nameOf'
+# multi-id: split por espacios + join en orden (antes se pasaba el string
+# ENTERO como un solo id a getElementById)
+_lb_zone = _JS_NAMEOF[:_o_al]
+assert '.split(/\\s+/)' in _lb_zone and "parts.join(' ')" in _lb_zone, \
+    'aria-labelledby no separa la lista de ids ni une en orden'
+print('NAMEOF STRING OK ✓ (labelledby multi-id > aria-label > label > contenido > title)')
+
 try:
     import playwright  # noqa: F401
 except ImportError:
@@ -130,3 +150,26 @@ assert ok['worst_ratio'] >= 4.5 and ok['area_passes_aa_normal_text_4_5'] >= 99, 
 mal2 = _cd('file:///tmp/fixture_grad.html', '.claro', lang='en')
 assert mal2['worst_ratio'] < 4.5
 print('TESTS DOM RENDERIZADO PASAN ✓ (1.4.3 computado + degradados por píxeles, 2.5.8, 3.3.2, 1.1.1, modo rendered)')
+
+# ── 5.26.1: aria-labelledby MULTI-id resuelto y unido en orden (renderizado) ──
+# antes el string entero ("l1 l2") se pasaba como UN id a getElementById →
+# null → el control caía en unnamed aunque estuviera perfectamente nombrado.
+# ids en los BOTONES para que path() los distinga en los ejemplos.
+FIX_LBY = '''<!doctype html><html lang="en"><head><meta charset="utf-8"><title>lby</title></head>
+<body><main>
+<span id="l1">First</span><span id="l2">Second</span>
+<button id="multi" aria-labelledby="l1 l2"></button>
+<button id="fb" aria-labelledby="gone" aria-label="fallback-name"></button>
+<button id="noname" aria-labelledby="gone"></button>
+</main></body></html>'''
+with open('/tmp/fixture_lby.html', 'w', encoding='utf-8') as f:
+    f.write(FIX_LBY)
+lb = audit_dom_url('file:///tmp/fixture_lby.html', lang='en')
+_ctrl = next((h for h in lb['findings'] if h['signal'] == 'ctrl_name'), None)
+_ejemplos = ' '.join(str(e) for e in (_ctrl.get('examples', []) if _ctrl else []))
+assert '#multi' not in _ejemplos, \
+    'multi-id labelledby resuelto como un solo id: el botón nombrado aparece en unnamed'
+assert '#fb' not in _ejemplos, 'aria-label debe seguir nombrando cuando falta labelledby'
+assert _ctrl is not None and '#noname' in _ejemplos, \
+    'el botón SIN nombre resoluble debe seguir reportado'
+print('LABELLEDBY MULTI-ID OK ✓ (ids separados y unidos en orden; sin nombre → sigue en unnamed)')

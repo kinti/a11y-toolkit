@@ -67,6 +67,7 @@ def _load(path='a11y-ledger.json'):
             for e in ledger.get('entries', {}).values():
                 e['active_signals'] = sorted(normalize_signal(x) for x in e.get('active_signals', []))
                 e['resolved_signals'] = sorted(normalize_signal(x) for x in e.get('resolved_signals', []))
+                e['resolutions'] = {normalize_signal(k): v for k, v in (e.get('resolutions') or {}).items()}
             # renames de claves 5.11.0 (por si un proceso antiguo reescribe después)
             e['last_audit'] = e.pop('ultimo_audit') if 'ultimo_audit' in e else e.get('last_audit')
             return ledger
@@ -117,16 +118,39 @@ def _record(url, report, ledger=None, path='a11y-ledger.json'):
     # señales activas y score
     signals = sorted({normalize_signal(h.get('signal', '')) for h in report.get('findings', [])})
     score = report.get('score')
+    prev = ledger['entries'].get(entry_key, {})
+
+    # resoluciones PERSISTENTES (señal→{resolved_on, seen_count}): antes se
+    # recalculaban solo contra el audit anterior y la resolución se olvidaba
+    # tras UN audit limpio más (la evidencia de cuándo se arregló se evaporaba).
+    # Ahora: señal ausente del último audit pero presente en el historial
+    # sigue «resolved» con su resolved_on ORIGINAL.
+    resolutions = {normalize_signal(s): (dict(v) if isinstance(v, dict)
+                                         else {'resolved_on': v, 'seen_count': 1})
+                   for s, v in (prev.get('resolutions') or {}).items()}
+    if not resolutions and prev.get('resolved_signals'):
+        # ledger legado sin dict: sembrar desde la lista (fecha más antigua
+        # disponible = el último audit registrado antes de esta llamada)
+        resolutions = {s: {'resolved_on': prev.get('last_audit')
+                           or prev.get('ultimo_audit'), 'seen_count': 1}
+                       for s in prev['resolved_signals']}
+    for s in signals:            # volvió a estar activa → la resolución caduca
+        resolutions.pop(s, None)
+    ever_seen = set(resolutions) | set(prev.get('active_signals', []))
+    for s in ever_seen - set(signals):
+        if s in resolutions:     # sigue ausente: la resolución original aguanta
+            resolutions[s]['seen_count'] = int(resolutions[s].get('seen_count', 1)) + 1
+        else:
+            resolutions[s] = {'resolved_on': now, 'seen_count': 1}
 
     entry = {
         'url': url,
         'last_audit': now,
         'score': score,
-        'previous_score': ledger['entries'].get(entry_key, {}).get('score'),
+        'previous_score': prev.get('score'),
         'active_signals': signals,
-        'resolved_signals': sorted(
-            set(ledger['entries'].get(entry_key, {}).get('active_signals', [])) - set(signals)
-        ),
+        'resolved_signals': sorted(resolutions),
+        'resolutions': resolutions,
         'mode': report.get('mode', 'static'),
         'disprover': report.get('disprover'),
     }
@@ -143,7 +167,13 @@ def _record(url, report, ledger=None, path='a11y-ledger.json'):
 
 
 def gaps(url, ledger=None, path='a11y-ledger.json'):
-    """What has never been checked on this URL?"""
+    """What has never been checked on this URL?
+
+    For an audited URL the ledger knows every signal that EVER fired on it
+    (active now or resolved in history): mapped through the signal→criterion
+    table that is the complement against the A/AA catalog — the honest
+    target list for the next pass. A signal we cannot map (unknown id) is
+    skipped, never guessed."""
     if ledger is None:
         ledger = _load(path)
     from .a11yaudit import CRIT
@@ -152,15 +182,24 @@ def gaps(url, ledger=None, path='a11y-ledger.json'):
     if not entry:
         return {'url': url, 'status': 'never_audited',
                 'criteria_without_signal': len(CRIT['en'])}
-    audited = set(entry.get('active_signals', []))
+    from .a11ycrit import _C, _SIGNAL_CRIT  # read-only: el mapa señal→criterio
+    ever_signaled = set(entry.get('active_signals', [])) \
+        | set(entry.get('resolutions') or {})
+    checked = {_SIGNAL_CRIT[s] for s in ever_signaled if s in _SIGNAL_CRIT}
+    aa = {code for code, v in _C.items() if v[0] in ('A', 'AA')}
     return {
         'url': url,
         'status': 'audited',
         'last_audit': entry.get('last_audit') or entry.get('ultimo_audit'),
         'score': entry['score'],
         'resolved_signals': entry.get('resolved_signals', []),
+        'criteria_with_signal': sorted(checked),
+        'criteria_without_signal': sorted(aa - checked),
         'note': ('re-audit this URL if its content changed since '
-                 + (entry.get('last_audit') or entry.get('ultimo_audit'))),
+                 + (entry.get('last_audit') or entry.get('ultimo_audit'))
+                 + '. criteria_without_signal = A/AA criteria with no engine '
+                   'signal (active or resolved) ever recorded here — many are '
+                   'manual-only by nature; they are targets, not failures'),
     }
 
 

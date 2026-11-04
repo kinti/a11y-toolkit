@@ -151,3 +151,30 @@ print('13. CLI diagnóstico --file ✓')
 
 print('ROUTE OK ✓ (17 rutas, índice determinista, es/en, fallback honesto, '
       'diagnóstico secuencial por evidencia)')
+
+# ── 5.26.1: 'document' rutea a statement (no a pdf); sin keywords duplicadas ──
+r_doc = route('document the accessibility of my site', 'en')
+assert r_doc['route'] == 'statement', r_doc['route']
+assert {s['tool'] for s in r_doc['steps']} >= {'a11y_audit_url', 'a11y_generate_declaration'}
+_pdf_r = next(x for x in ROUTES if x['id'] == 'pdf')
+_stat_r = next(x for x in ROUTES if x['id'] == 'statement')
+assert 'document' not in _pdf_r['patterns'] and 'document' in _stat_r['patterns']
+# el inglés 'document' ya no roba los goals de pdf (documento/pdf siguen suyos)
+assert route('revisar este pdf', 'es')['route'] == 'pdf'
+assert route('audit this Word contract annex', 'en')['route'] == 'pdf'
+# regresión duplicados: el índice es determinista, ninguna lista repite keyword
+for _r in ROUTES:
+    _pats = _r['patterns']
+    assert len(_pats) == len(set(_pats)), f'{_r["id"]} repite keywords: {sorted(_pats)}'
+print("14. 'document' → statement (no pdf), keywords sin duplicados ✓")
+
+# ── 5.26.1: la evidencia del diagnóstico habla el idioma pedido ──────────────
+es_diag = diagnose(_PAG, lang='es')
+_evs_es = ' | '.join(s['evidence'] for s in es_diag['symptoms'])
+assert 'campos de formulario' in _evs_es and 'menús' in _evs_es, _evs_es
+en_diag = diagnose(_PAG, lang='en')
+_evs_en = ' | '.join(s['evidence'] for s in en_diag['symptoms'])
+assert 'form fields' in _evs_en and 'menus or disclosure widgets' in _evs_en
+assert es_diag['steps'][1]['evidence'] != en_diag['steps'][1]['evidence'], \
+    'la evidencia de los steps llegó sin traducir'
+print('15. diagnose: evidencia es/en ✓')

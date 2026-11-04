@@ -137,3 +137,63 @@ assert all(r['url'].startswith('https://www.w3.org/WAI/standards-guidelines/act/
 assert _sig['understanding'].startswith('https://www.w3.org/WAI/WCAG22/Understanding/name-role-value')
 print('A11Y_CRITERION SIGNAL MODE OK ✓ (criterio + 2 reglas ACT + URLs w3.org)')
 print('MULTILINGUE MCP OK ✓ (EN pair + EN/EAA declaration + prompt ES)')
+
+# ── 5.26.1: protocolo — stdio UTF-8 forzado, protocolVersion sin eco, enums ──
+# initialize responde la versión que SOPORTAMOS, nunca eco de la del cliente
+_p3 = subprocess.run([sys.executable, '-m', 'a11y_toolkit.server'], cwd=ROOT,
+                     input=json.dumps({'jsonrpc': '2.0', 'id': 1, 'method': 'initialize',
+                                       'params': {'protocolVersion': '2099-99-99'}}),
+                     capture_output=True, text=True, timeout=60)
+_r3 = json.loads(_p3.stdout.splitlines()[0])
+assert _r3['result']['protocolVersion'] == '2024-11-05', _r3['result']['protocolVersion']
+
+
+# main() reconfigura stdio a UTF-8: un pipe cp1252 no puede matar el server
+class _StubStream:
+    def __init__(self):
+        self.calls = []
+
+    def reconfigure(self, **kw):
+        self.calls.append(kw)
+
+    def __iter__(self):
+        return iter(())
+
+
+_sin, _sout = _StubStream(), _StubStream()
+_real_in, _real_out = sys.stdin, sys.stdout
+sys.stdin, sys.stdout = _sin, _sout
+try:
+    server.main()   # EOF inmediato: solo reconfigurar y salir limpio
+finally:
+    sys.stdin, sys.stdout = _real_in, _real_out
+assert _sin.calls == [{'encoding': 'utf-8', 'errors': 'replace'}], _sin.calls
+assert _sout.calls == [{'encoding': 'utf-8'}], _sout.calls
+
+# aria_live: lang omitido = EN (el schema dice "en default"; antes salía es)
+assert "ALM_LANG='en'" in server.invoke('a11y_aria_live_snippet', {})['content'][0]['text']
+assert "ALM_LANG='en'" not in server.invoke('a11y_aria_live_snippet',
+                                            {'lang': 'es'})['content'][0]['text']
+assert "ALM_LANG='en'" in server.invoke('a11y_aria_live_snippet',
+                                        {'lang': 'en'})['content'][0]['text']
+
+# ledger: action inválida → error de la tool nombrándola, no 'unknown tool'
+_led = json.loads(server.invoke('a11y_ledger', {'action': 'frobnicate'})['content'][0]['text'])
+assert 'frobnicate' in _led['error'] and 'record' in _led['valid_actions'], _led
+assert 'unknown tool' not in _led['error']
+
+# journey: verify-only con SOLO verify_record; el camino juez exige el trio
+_sch = next(t for t in server.TOOLS if t['name'] == 'a11y_journey_verdict')['inputSchema']
+assert not [k for k in ('task', 'steps', 'outcome') if k in _sch.get('required', [])]
+_TASK = {'goal': 'sign up', 'kind': 'sign-up'}
+_STEPS = [{'action': 'click', 'target': 'Sign up', 'perceived': 'ok'}]
+_OUT = {'completed': True, 'gave_up': False, 'workaround_used': False, 'notes': ''}
+_rec = json.loads(server.invoke('a11y_journey_verdict',
+                                {'task': _TASK, 'steps': _STEPS, 'outcome': _OUT,
+                                 'seal': True})['content'][0]['text'])
+_ver = json.loads(server.invoke('a11y_journey_verdict',
+                                {'verify_record': _rec})['content'][0]['text'])
+assert 'error' not in _ver, _ver
+_miss = json.loads(server.invoke('a11y_journey_verdict', {'steps': _STEPS})['content'][0]['text'])
+assert 'error' in _miss and 'task' in _miss['error'] and 'outcome' in _miss['error'], _miss
+print('PROTOCOLO 5.26.1 OK ✓ (UTF-8 forzado, protocolVersion 2024-11-05, ledger enum, snippet en, journey verify-only)')

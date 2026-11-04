@@ -18,7 +18,10 @@ level the toolkit evaluates.
 The families beyond the WCAG mirror (5, 6, 7, 8, 12, 13) are real
 applicability territory — closed functionality, RTT, hardware, relay — that
 no HTML audit can answer. They appear here as honest rows for the scope
-engine (a11yscope), never as something this toolkit evaluates.
+engine (a11yscope), never as something this toolkit evaluates. For software
+targets the same honesty applies to the EN-only sub-clauses of clause 11
+itself (11.5 interoperability with AT, 11.6 documented accessibility usage,
+11.7 user preferences): surfaced as human-review rows, never evaluated.
 
 No network, no third parties: this module is pure data.
 """
@@ -45,6 +48,45 @@ FAMILIES = (
     {'family': '12', 'key': 'products_info'},
     {'family': '13', 'key': 'relay_emergency'},
 )
+
+# EN-only sub-clauses of clause 11 (software) beyond the WCAG mirror
+# (11.1-11.4 mirror the SC by principle): 11.5-11.7. Titles are the
+# standard's own clause titles (verified against the V4.1.1 table of
+# contents). These are applicability rows only — the toolkit does NOT
+# evaluate them and never proposes on them (unlike families 6/7/8 for web,
+# the product's shape does not decide: a human answers).
+SOFTWARE_CLAUSES = ('11.5', '11.6', '11.7')
+
+# Module-level bilingual texts (the families live in locales; these clauses
+# postdate them — same pattern as a11yaudit's _labels dicts)
+_SOFTWARE_CLAUSE_TEXTS = {
+    'en': {
+        '11.5': ('Interoperability with assistive technology',
+                 'Name, role, value and states exposed through the platform '
+                 'accessibility services can only be verified with the software '
+                 'running alongside a real assistive technology — human review.'),
+        '11.6': ('Documented accessibility usage',
+                 'The software must document its accessibility features; a '
+                 'documentation question no markup audit answers — human review.'),
+        '11.7': ('User preferences',
+                 'Respecting the platform user-preference settings requires the '
+                 'software running on each platform — human review.'),
+    },
+    'es': {
+        '11.5': ('Interoperabilidad con productos de apoyo',
+                 'Exponer nombre, rol, valor y estados vía los servicios de '
+                 'accesibilidad de la plataforma solo puede verificarse con el '
+                 'software corriendo junto a un producto de apoyo real — '
+                 'revisión humana.'),
+        '11.6': ('Uso documentado de la accesibilidad',
+                 'El software debe documentar sus funciones de accesibilidad; '
+                 'una pregunta de documentación que ninguna auditoría de '
+                 'marcado responde — revisión humana.'),
+        '11.7': ('Preferencias del usuario',
+                 'Respetar las preferencias del usuario de la plataforma exige '
+                 'el software corriendo en cada plataforma — revisión humana.'),
+    },
+}
 
 
 def clause_for(code, target='web'):
@@ -81,6 +123,16 @@ def family_rows(lang='en'):
             row['note'] = entry['note']
         rows.append(row)
     return rows
+
+
+def software_clause_rows(lang='en'):
+    """Filas de las cláusulas EN-only de software (11.5-11.7): número, título
+    bilingüe y nota honesta. Igual que family_rows: aquí solo vive el texto
+    — el estado (revisión humana, no evaluado por este motor) lo pone el
+    llamador (a11yscope, target software)."""
+    texts = _SOFTWARE_CLAUSE_TEXTS.get(lang) or _SOFTWARE_CLAUSE_TEXTS['en']
+    return [{'clause': cl, 'title': texts[cl][0], 'note': texts[cl][1]}
+            for cl in SOFTWARE_CLAUSES]
 
 
 def standard_block(target='web', lang='en'):

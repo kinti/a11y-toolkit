@@ -110,11 +110,11 @@ Blindfold journey verdict — the capability no other accessibility tool has: th
 
 **Arguments**
 
-- `task` *(required)*: {"goal": what the agent attempted, "kind": sign-up|checkout|password-reset|search|onboarding|settings|data-export|custom}.
+- `task`: {"goal": what the agent attempted, "kind": sign-up|checkout|password-reset|search|onboarding|settings|data-export|custom}.
 
-- `steps` *(required)*: journey steps: {action, target (accessible name), perceived, friction?} — friction is {pattern: journey_* key} or {criterion, severity, issue, remediation?}.
+- `steps`: journey steps: {action, target (accessible name), perceived, friction?} — friction is {pattern: journey_* key} or {criterion, severity, issue, remediation?}.
 
-- `outcome` *(required)*: {"completed": bool, "gave_up": bool, "workaround_used": bool, "notes"}.
+- `outcome`: {"completed": bool, "gave_up": bool, "workaround_used": bool, "notes"}.
 
 - `url`: page(s) where the journey ran.
 
@@ -281,7 +281,7 @@ Generates an Accessibility Statement in HTML: art. 10 RD 1112/2018 (Spanish publ
 
 <sub>mutates state</sub>
 
-Generates a VPAT 2.5 (WCAG edition) accessibility conformance report in accessible HTML from an a11y_evidence pack (or raw audit reports): the full 55-criterion WCAG 2.2 A/AA table with Remarks auto-filled from the pack (status, measured values, examples, remaining human effort) and every Conformance Level starting at Not Evaluated — automated fails force Does Not Support and a qualified human sets the final level via overrides (supports, partially_supports, does_not_support, not_applicable, not_evaluated). The document is a DRAFT until the signature block, which must reference the pack sha256, is completed. VPAT is the US/ADA counterpart of a11y_generate_declaration (EU/EAA): the machine fills Remarks, the human signs the claim. — The US/ADA counterpart of a11y_generate_declaration; feed it the a11y_evidence pack — levels stay Not Evaluated until a qualified human sets them. Returns {html, summary {level: count}, levels {code: level}, pack_sha256, draft} — the VPAT draft; writes a file only when output_path is given. Run after the audits you trust; a qualified human must set the final levels (overrides) and sign before publishing — the machine fills Remarks, never the claim.
+Generates a VPAT 2.5 (WCAG edition) accessibility conformance report in accessible HTML from an a11y_evidence pack (or raw audit reports): the full 55-criterion WCAG 2.2 A/AA table with Remarks auto-filled from the pack (status, measured values, examples, remaining human effort) and every Conformance Level starting at Not Evaluated — automated fails force Does Not Support, review-level signals stay Not Evaluated with the evidence in Remarks, and a qualified human sets the rest via overrides (supports, partially_supports, does_not_support, not_applicable, not_evaluated). The document is a DRAFT until the signature block, which must reference the pack sha256, is completed. VPAT is the US/ADA counterpart of a11y_generate_declaration (EU/EAA): the machine fills Remarks, the human signs the claim. — The US/ADA counterpart of a11y_generate_declaration; feed it the a11y_evidence pack — levels stay Not Evaluated until a qualified human sets them. Returns {html, summary {level: count}, levels {code: level}, pack_sha256, draft} — the VPAT draft; writes a file only when output_path is given. Run after the audits you trust; a qualified human must set the final levels (overrides) and sign before publishing — the machine fills Remarks, never the claim.
 
 
 **Arguments**
@@ -316,7 +316,7 @@ Generates a VPAT 2.5 (WCAG edition) accessibility conformance report in accessib
 
 <sub>mutates state</sub>
 
-Generates an OpenACR (the GSA open standard, VPAT-derived) accessibility conformance report in machine-readable YAML from an a11y_evidence pack (or raw audit reports): the full 55-criterion WCAG 2.2 A/AA matrix as chapters with one web component per criterion, adherence levels starting at not-evaluated (automated fails force does-not-support, review-level signals partially-supports) and notes auto-filled from the pack (status, measured values, remaining human effort, sha256). Same honesty rule as a11y_generate_vpat: the machine fills notes, a qualified human sets levels via overrides (supports, partially_supports, …; hyphenated OpenACR forms accepted). OpenACR is what US federal procurement and GSA buyers parse — emit it from the same pack as the human-readable VPAT. — The machine-readable (GSA OpenACR YAML) sibling of a11y_generate_vpat — emit both from the same pack: humans read the VPAT, procurement systems parse the OpenACR. Returns {yaml, summary {level: count}, levels {code: level}, pack_sha256, format, draft} — the OpenACR YAML draft; writes a file only when output_path is given. Run after the audits you trust; validate and render in the GSA OpenACR editor (gsa.github.io/openacr-editor) — a qualified human must set the final adherence levels before publishing.
+Generates an OpenACR (the GSA open standard, VPAT-derived) accessibility conformance report in machine-readable YAML from an a11y_evidence pack (or raw audit reports): the full 55-criterion WCAG 2.2 A/AA matrix as chapters with one web component per criterion, adherence levels starting at not-evaluated (automated fails force does-not-support; review-level signals stay not-evaluated with the evidence in notes) and notes auto-filled from the pack (status, measured values, remaining human effort, sha256). Same honesty rule as a11y_generate_vpat: the machine fills notes, a qualified human sets levels via overrides (supports, partially_supports, …; hyphenated OpenACR forms accepted). OpenACR is what US federal procurement and GSA buyers parse — emit it from the same pack as the human-readable VPAT. — The machine-readable (GSA OpenACR YAML) sibling of a11y_generate_vpat — emit both from the same pack: humans read the VPAT, procurement systems parse the OpenACR. Returns {yaml, summary {level: count}, levels {code: level}, pack_sha256, format, draft} — the OpenACR YAML draft; writes a file only when output_path is given. Run after the audits you trust; validate and render in the GSA OpenACR editor (gsa.github.io/openacr-editor) — a qualified human must set the final adherence levels before publishing.
 
 
 **Arguments**

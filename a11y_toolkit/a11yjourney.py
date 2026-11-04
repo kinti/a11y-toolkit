@@ -178,6 +178,7 @@ def seal_record(task, steps, outcome, url='', lang='en', trace=None):
     `record_verify` can RE-DERIVE the verdict from the stored steps and
     demand it matches. A record is evidence, never conformance."""
     import hashlib
+    lang = 'es' if lang == 'es' else 'en'
     v = verdict(task, steps, outcome, url=url, lang=lang)
     if 'error' in v:
         return v
@@ -186,6 +187,7 @@ def seal_record(task, steps, outcome, url='', lang='en', trace=None):
         'format': JOURNEY_FORMAT,
         'engine_version': VERSION,
         'created_at': datetime.now(timezone.utc).isoformat(timespec='seconds'),
+        'lang': lang,
         'task': v['task'],
         'url': v['url'],
         'steps': steps,
@@ -202,30 +204,46 @@ def seal_record(task, steps, outcome, url='', lang='en', trace=None):
     return record
 
 
+def _canonical_findings(findings):
+    """Language-independent projection of a findings list: the sealed verdict
+    must re-derive identically regardless of the VERIFIER's lang — issue and
+    remediation are localized catalog text, signal/criterion/severity/step
+    are the stable contract."""
+    return [(f.get('signal'), f.get('criterion'), f.get('severity'),
+             f.get('step')) for f in (findings or [])]
+
+
 def record_verify(record, lang='en'):
     """Re-derive the verdict from the stored steps and demand it matches.
 
     Returns {'status': 'verified'|'tampered'|'invalid', ...}: `tampered`
     means the sha no longer covers the payload OR the deterministic scoring
     of the stored steps no longer produces the stored verdict — either way
-    the record cannot be trusted. `invalid` means it is not a record."""
+    the record cannot be trusted. `invalid` means it is not a record.
+
+    The record's sealed `lang` wins over the param (a record sealed in es
+    verifies from an en session without false 'tampered'); legacy records
+    without lang fall back to the param."""
     import hashlib
+    lang = 'es' if lang == 'es' else 'en'
     if not isinstance(record, dict) or record.get('format') != JOURNEY_FORMAT \
             or not record.get('sha256'):
         _JR = a11yi18n.pair('journeyrec')
         return {'status': 'invalid',
                 'note': _JR.get(lang, _JR['en']).get('bad_format')}
+    eff_lang = record.get('lang') if record.get('lang') in ('es', 'en') else lang
     body = {k: v for k, v in record.items() if k != 'sha256'}
     payload = json.dumps(body, sort_keys=True, ensure_ascii=False,
                          default=str).encode('utf-8')
     sha_ok = hashlib.sha256(payload).hexdigest() == record['sha256']
     re_v = verdict(record.get('task', {}), record.get('steps', []),
                    record.get('outcome', {}), url=record.get('url', ''),
-                   lang=lang)
+                   lang=eff_lang)
     derived_ok = ('error' not in re_v and isinstance(record.get('verdict'), dict)
                   and re_v['verdict'] == record['verdict'].get('verdict')
                   and re_v['score'] == record['verdict'].get('score')
-                  and re_v['findings'] == record['verdict'].get('findings'))
+                  and _canonical_findings(re_v.get('findings'))
+                  == _canonical_findings(record['verdict'].get('findings')))
     if sha_ok and derived_ok:
         return {'status': 'verified', 'sha256': record['sha256'],
                 'verdict': record['verdict'].get('verdict'),

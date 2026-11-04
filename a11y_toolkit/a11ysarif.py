@@ -17,6 +17,7 @@ CLI:
 import argparse
 import json
 
+from .a11yact import _NOT_DEAD
 from .a11yaudit import normalize_signal  # noqa: E402  (compat 5.10)
 import sys
 
@@ -63,20 +64,35 @@ def from_report(report, driver_version='3.2.0', standard=None, target=None):
     properties/tags con su cláusula EN 301 549 V4.1.1 (9.x web por defecto,
     10.x documents, 11.x software) — filtrable en code scanning."""
     from . import a11yen301549 as _enstd
-    pages = report.get('reports') if 'reports' in report else [report]
+    pages = report.get('reports') if isinstance(report.get('reports'), list) else [report]
     rules = {}
     results = []
+    skipped = 0   # hallazgos truncados/hostiles: se saltan, jamás un KeyError
     _tgt = target or _enstd.target_for_mode(report.get('mode', 'static'))
     for pg in pages:
+        if not isinstance(pg, dict):
+            skipped += 1
+            continue
         url = pg.get('url', '(html)')
-        for h in pg.get('findings', []):
-            code = h['criterion'].split(' ')[0]
+        for h in pg.get('findings', []) or []:
+            if not isinstance(h, dict):
+                skipped += 1
+                continue
+            if h.get('status') in _NOT_DEAD or h.get('disprover_status') in _NOT_DEAD:
+                # hallazgo muerto (disprover rejected / not-rechecked): no es
+                # evidencia y no navega a GitHub como alerta viva
+                continue
+            crit, issue = h.get('criterion'), h.get('issue')
+            if not isinstance(crit, str) or not isinstance(issue, str):
+                skipped += 1
+                continue   # --from-audit hostil/truncado: degradar, no caer
+            code = crit.split(' ')[0]
             rule_id = f'WCAG-{code}-{normalize_signal(h.get("signal", ""))}'
             if rule_id not in rules:
                 rule = {
                     'id': rule_id,
-                    'shortDescription': {'text': h['criterion']},
-                    'helpUri': _help_uri(h['criterion']),
+                    'shortDescription': {'text': crit},
+                    'helpUri': _help_uri(crit),
                 }
                 # target explícito = mandato del usuario: recalcula SIEMPRE
                 # (las cláusulas embebidas pueden ser de otro target); sin
@@ -90,12 +106,12 @@ def from_report(report, driver_version='3.2.0', standard=None, target=None):
                         'tags': [f'en301549:{clause}', 'wcag22:' + code],
                     }
                 rules[rule_id] = rule
-            message = h['issue']
+            message = issue
             if h.get('remediation'):
-                message += ' — Fix: ' + h['remediation']
+                message += ' — Fix: ' + str(h['remediation'])
             results.append({
                 'ruleId': rule_id,
-                'level': LEVEL.get(h['severity'], 'note'),
+                'level': LEVEL.get(h.get('severity'), 'note'),
                 'message': {'text': message},
                 'locations': [{
                     'physicalLocation': {
@@ -103,18 +119,22 @@ def from_report(report, driver_version='3.2.0', standard=None, target=None):
                     },
                 }],
             })
+    run = {
+        'tool': {'driver': {
+            'name': 'a11y-toolkit',
+            'version': driver_version,
+            'informationUri': 'https://github.com/kinti/a11y-toolkit',
+            'rules': sorted(rules.values(), key=lambda r: r['id']),
+        }},
+        'results': results,
+    }
+    if skipped:
+        # exportación degradada, no silenciada: lo saltado queda contado
+        run['properties'] = {'skippedFindings': skipped}
     return {
         '$schema': 'https://json.schemastore.org/sarif-2.1.0.json',
         'version': '2.1.0',
-        'runs': [{
-            'tool': {'driver': {
-                'name': 'a11y-toolkit',
-                'version': driver_version,
-                'informationUri': 'https://github.com/kinti/a11y-toolkit',
-                'rules': sorted(rules.values(), key=lambda r: r['id']),
-            }},
-            'results': results,
-        }],
+        'runs': [run],
     }
 
 
@@ -152,6 +172,8 @@ def main(argv):
     summary = report.get('summary', {'high': 0, 'medium': 0, 'low': 0})
     print(json.dumps({'sarif': a.out,
                       'results': len(sarif['runs'][0]['results']),
+                      'skipped': sarif['runs'][0].get('properties', {})
+                                     .get('skippedFindings', 0),
                       'score': report.get('score'),
                       'summary': summary}))
     return 0

@@ -24,11 +24,10 @@ _TEXTS = a11yi18n.pair('badge')  # locales/<lang>.json — community-editable
 _COLORS = [(90, '#2da44e'), (75, '#8bdb5e'), (50, '#d29922'), (0, '#cf222e')]
 
 
-def _color(score):
-    for threshold, c in _COLORS:
-        if score >= threshold:
-            return c
-    return _COLORS[-1][1]
+def _esc(value):
+    """XML escape INCLUDING double quotes: the title lands in an attribute
+    (aria-label), where a raw quote breaks out of the SVG."""
+    return _xesc(value, {'"': '&quot;'})
 
 
 def badge(score, date=None, scope=None, lang='en', brand=None, palette=None, height=None):
@@ -41,7 +40,7 @@ def badge(score, date=None, scope=None, lang='en', brand=None, palette=None, hei
     score = max(0, min(100, int(round(score))))
     t = dict(_TEXTS.get(lang, _TEXTS['en']))
     if brand:
-        t['name'] = brand[:24]
+        t['name'] = str(brand)[:24]
     colors = palette or _COLORS
 
     def _color(s):
@@ -50,17 +49,22 @@ def badge(score, date=None, scope=None, lang='en', brand=None, palette=None, hei
                 return c
         return colors[-1][1]
 
-    date = date or datetime.date.today().isoformat()
-    scope = scope or t['scope']
-    date = _xesc(date)[:30]
-    scope = _xesc(scope)[:60]
-    title = _xesc(t['title'].format(score=score, date=date, scope=scope))
+    # truncate FIRST, escape ONCE, per field: truncating escaped text can cut
+    # an entity in half (&amp; → &amp), and re-escaping pre-escaped values
+    # double-escapes (& → &amp;amp;). Metrics (width) use the raw truncated
+    # strings; the SVG gets the escaped ones.
+    raw_date = str(date or datetime.date.today().isoformat())[:30]
+    raw_scope = str(scope or t['scope'])[:60]
+    date_e = _esc(raw_date)
+    scope_e = _esc(raw_scope)
+    name_e = _esc(t['name'])   # brand incluido: nada crudo entra al SVG
+    title = _esc(t['title']).format(score=score, date=date_e, scope=scope_e)
     color = _color(score)
     h = height or 20
     font = 11 if h == 20 else round(h * 0.58)
     y = h / 2 + font * 0.35
     left = len(t['name']) * (font * 0.60) + 14
-    right = len(f'{score}/100 · {date}') * (font * 0.60) + 14
+    right = len(f'{score}/100 · {raw_date}') * (font * 0.60) + 14
     width = left + right
     return f'''<svg xmlns="http://www.w3.org/2000/svg" width="{width:.0f}" height="{h}" role="img" aria-label="{title}">
   <title>{title}</title>
@@ -72,10 +76,10 @@ def badge(score, date=None, scope=None, lang='en', brand=None, palette=None, hei
     <rect width="{width:.0f}" height="{h}" fill="url(#s)"/>
   </g>
   <g fill="#fff" text-anchor="middle" font-family="Verdana,Geneva,DejaVu Sans,sans-serif" font-size="{font}">
-    <text x="{left / 2:.0f}" y="{y + 1:.1f}" fill="#010409" fill-opacity=".3">{t['name']}</text>
-    <text x="{left / 2:.0f}" y="{y:.1f}">{t['name']}</text>
-    <text x="{left + right / 2:.0f}" y="{y + 1:.1f}" fill="#010409" fill-opacity=".3">{score}/100 · {date}</text>
-    <text x="{left + right / 2:.0f}" y="{y:.1f}">{score}/100 · {date}</text>
+    <text x="{left / 2:.0f}" y="{y + 1:.1f}" fill="#010409" fill-opacity=".3">{name_e}</text>
+    <text x="{left / 2:.0f}" y="{y:.1f}">{name_e}</text>
+    <text x="{left + right / 2:.0f}" y="{y + 1:.1f}" fill="#010409" fill-opacity=".3">{score}/100 · {date_e}</text>
+    <text x="{left + right / 2:.0f}" y="{y:.1f}">{score}/100 · {date_e}</text>
   </g>
 </svg>'''
 

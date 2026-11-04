@@ -125,7 +125,9 @@ with tempfile.TemporaryDirectory() as d:
 ok, detail = a11ycorpus.verify(os.path.join(ROOT, 'corpus'))
 assert ok, 'el corpus commiteado diverge de su manifiesto: ' + detail
 repo_m = json.load(open(os.path.join(ROOT, 'corpus', 'MANIFEST.json'), encoding='utf-8'))
-assert repo_m['version'] == '2026.10.0' and repo_m['counts']['mutants'] == 18
+# 2026.11.0: rebuild que sella README.md en el manifiesto (contrato de
+# submission verificable); banco de mutantes intacto (seeds [7], 18+3)
+assert repo_m['version'] == '2026.11.0' and repo_m['counts']['mutants'] == 18
 repo_ref = json.load(open(os.path.join(ROOT, 'corpus', 'results', 'reference.json'),
                           encoding='utf-8'))
 assert repo_ref['kill_rate'] == 1.0 and repo_ref['false_positives'] == []

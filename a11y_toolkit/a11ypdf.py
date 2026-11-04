@@ -38,11 +38,20 @@ def _t(lang, key):
     return T.get(lang, T['en'])[key]
 
 
+# Techos anti-bomba de descompresión: por stream y ACUMULADO entre streams
+# (una bomba repartida en 100 streams de 20MB no descomprime 2GB; lo que
+# llegó hasta el techo basta para auditar — doctrina de lectura parcial).
+_STREAM_CAP = 20_000_000      # 20 MB por stream descomprimido
+_STREAM_BUDGET = 120_000_000  # 120 MB en total entre todos los streams
+
+
 def _uncompressed_streams(data, limit=60):
     """Los streams FlateDecode, descomprimidos (zlib es stdlib) — ahí viven
     el XMP, el contenido y buena parte de la estructura."""
-    out = []
+    out, total = [], 0
     for m in re.finditer(rb'stream\r?\n', data):
+        if total >= _STREAM_BUDGET:
+            break  # techo acumulado: dejar de inflar, auditar lo que llegó
         start = m.end()
         end = data.find(b'endstream', start)
         if end == -1:
@@ -50,12 +59,90 @@ def _uncompressed_streams(data, limit=60):
         chunk = data[start:end].rstrip(b'\r\n')
         try:
             d = zlib.decompressobj()
-            out.append(d.decompress(chunk, 20_000_000))  # bomba: techo por stream
+            dec = d.decompress(chunk, _STREAM_CAP)  # bomba: techo por stream
         except Exception:  # noqa: BLE001
             continue
+        out.append(dec)
+        total += len(dec)
         if len(out) >= limit:
             break
     return out
+
+
+# ── 1.4.3 en PDF: contraste del texto contra el fondo efectivo ──
+# Parseo de la secuencia de operadores: `rg`/`g`/`k` cambian el color de
+# relleno (con el que se escribe texto), `re` declara un rectángulo —
+# candidato a FONDO solo si un operador de pintado (f/F/B/B*/b) lo pinta
+# después, con el relleno VIGENTE —, y `Tj`/`TJ` escriben texto (TJ también
+# en forma de array: `[(H) -3 (ola)] TJ`). El fondo por defecto del PDF es
+# blanco si nadie lo pinta: un rect oscuro pintado antes del texto cambia
+# el fondo efectivo — no acusar blanco-sobre-oscuro como bajo (el mismo bug
+# que CSS var() en HTML). Los operandos de `re` NUNCA se interpretan como
+# color (bug histórico: `0 0 612 792 re` se leía como triple RGB).
+_RE_STREAM_OPS = re.compile(
+    r'(?P<r>[\d.]+)\s+(?P<g>[\d.]+)\s+(?P<b>[\d.]+)\s+rg\b'                     # relleno RGB
+    r'|(?P<gray>[\d.]+)\s+g\b'                                                   # relleno gris
+    r'|(?P<k1>[\d.]+)\s+(?P<k2>[\d.]+)\s+(?P<k3>[\d.]+)\s+(?P<k4>[\d.]+)\s+k\b'  # relleno CMYK
+    r'|(?P<x1>[\d.]+)\s+(?P<y1>[\d.]+)\s+(?P<w1>[\d.]+)\s+(?P<h1>[\d.]+)\s+re\b'  # rectángulo
+    r'|(?P<paint>\b[fFBb]\*?(?![\w*]))'                                          # pintado del path
+    r'|(?P<text>\((?:[^()\\]|\\.)*\)\s*(?:Tj|TJ)|\]\s*TJ)')                      # texto (cadena o array)
+
+
+def _l(r, g, b):
+    def lin(v):
+        v /= 255.0
+        return v / 12.92 if v <= 0.03928 else ((v + 0.055) / 1.055) ** 2.4
+    return 0.2126 * lin(r) + 0.7152 * lin(g) + 0.0722 * lin(b)
+
+
+def _ratio(f, b):
+    l1, l2 = max(f, b), min(f, b)
+    return (l1 + 0.05) / (l2 + 0.05)
+
+
+def _stream_low_contrast(text):
+    """Un content stream (ya decodificado latin-1) → lista de ejemplos
+    'color sobre fondo' por debajo de 4.5:1. Escaneo secuencial
+    determinista de los operadores de color/pintado/texto."""
+    hits = []
+    fill = (0, 0, 0)         # relleno vigente: el color con el que se escribe
+    bg = (255, 255, 255)     # fondo efectivo: blanco salvo rect pintado
+    rect_pending = False     # un `re` declarado, esperando su operador de pintado
+    for m in _RE_STREAM_OPS.finditer(text):
+        if m.group('r') is not None:            # rg — relleno RGB
+            try:
+                fill = tuple(max(0, min(255, round(float(x) * 255)))
+                             for x in (m.group('r'), m.group('g'), m.group('b')))
+            except ValueError:
+                pass
+        elif m.group('gray') is not None:       # g — relleno en escala de grises
+            try:
+                v = max(0, min(255, round(float(m.group('gray')) * 255)))
+                fill = (v, v, v)
+            except ValueError:
+                pass
+        elif m.group('k1') is not None:         # k — relleno CMYK (aprox. naive)
+            try:
+                c_, mm_, y_, black = (max(0.0, min(1.0, float(x))) for x in
+                                      (m.group('k1'), m.group('k2'),
+                                       m.group('k3'), m.group('k4')))
+                fill = tuple(max(0, min(255, round(255 * (1 - x) * (1 - black))))
+                             for x in (c_, mm_, y_))
+            except ValueError:
+                pass
+        elif m.group('x1') is not None:         # re — rectángulo: solo candidato a fondo
+            rect_pending = True                 # sin pintado posterior no cambia nada
+        elif m.group('paint') is not None:      # f/F/B/B*/b — pinta el path pendiente
+            if rect_pending:
+                bg = fill   # pintado con el relleno VIGENTE: ese rect es el fondo
+                rect_pending = False
+        else:                                   # Tj / TJ — texto con el relleno vigente
+            ratio_ = _ratio(_l(*fill), _l(*bg))
+            if ratio_ < 4.5:
+                hits.append(f'rgb({fill[0]},{fill[1]},{fill[2]})'
+                            f' sobre rgb({bg[0]},{bg[1]},{bg[2]})'
+                            f' \u2192 {ratio_:.2f}:1')
+    return hits
 
 
 def pdf_screen(path_or_bytes, lang='en'):
@@ -75,19 +162,33 @@ def pdf_screen(path_or_bytes, lang='en'):
         return {'error': 'not a PDF (no %PDF- marker)'}
 
     streams = _uncompressed_streams(data)
-    todo = data + b'\n'.join(streams[:40])
+    # `todo` respeta el MISMO presupuesto acumulado: ensamblar 40 streams de
+    # 20MB sería una segunda bomba
+    parts, total_todo = [data], len(data)
+    for s in streams[:40]:
+        if total_todo + len(s) > _STREAM_BUDGET:
+            break
+        parts += [b'\n', s]
+        total_todo += len(s) + 1
+    todo = b''.join(parts)
 
     def present(pat):
         return re.search(pat, todo) is not None
 
     encrypted = b'/Encrypt' in data  # el trailer vive al FINAL del fichero
-    tagged = present(rb'/StructTreeRoot\s+\d+\s+0\s+R') or present(rb'/StructTreeRoot')
+    # tagged: la forma canónica es la referencia del catálogo (/StructTreeRoot
+    # N 0 R). Una mención suelta (p. ej. dentro de un content stream) solo
+    # cuenta como estructura cuando el documento además declara /Marked true.
     marked = present(rb'/Marked\s+true')
+    tagged = present(rb'/StructTreeRoot\s+\d+\s+0\s+R') or \
+        (marked and present(rb'/StructTreeRoot'))
     lang_doc = re.search(rb'/Lang\s*\(([^)]{2,20})\)', todo)
     title_meta = re.search(rb'/Title\s*\(([^)]{1,300})\)', todo) or \
         re.search(rb'<dc:title>.{0,200}?<rdf:li[^>]*>([^<]{1,300})</rdf:li>', todo, re.S)
     n_pages = len(re.findall(rb'/Type\s*/Page[^s]', todo))
-    n_alt = len(re.findall(rb'/Alt\s*\(', todo))
+    # /Alt acepta literal (/Alt (…)) y hex (/Alt <FEFF…>, la forma natural
+    # UTF-16BE para alt no latino) — misma paridad que /TU
+    n_alt = len(re.findall(rb'/Alt\s*[<(]', todo))
     n_actual = len(re.findall(rb'/ActualText', todo))
     n_imgs = len(re.findall(rb'/Subtype\s*/Image', todo))
     n_outline = len(re.findall(rb'/Outlines\s+\d+\s+0\s+R', todo))
@@ -100,56 +201,11 @@ def pdf_screen(path_or_bytes, lang='en'):
     findings = []
 
     # ── 1.4.3 en PDF: contraste del texto contra el fondo efectivo ──
-    # Parseo de la secuencia: `rg` cambia el color de relleno de texto,
-    # `re` + `f` pinta un rectángulo (fondo), `Tj`/`TJ` escriben texto.
-    # El fondo por defecto del PDF es blanco si nadie lo pinta. Si un rect
-    # oscuro precede al texto, el fondo efectivo es ese fill — no acusar
-    # blanco-sobre-oscuro como bajo (el mismo bug que CSS var() en HTML).
-    def _l(r, g, b):
-        def lin(v):
-            v /= 255.0
-            return v / 12.92 if v <= 0.03928 else ((v + 0.055) / 1.055) ** 2.4
-        return 0.2126 * lin(r) + 0.7152 * lin(g) + 0.0722 * lin(b)
-
-    def _ratio(f, b):
-        l1, l2 = max(f, b), min(f, b)
-        return (l1 + 0.05) / (l2 + 0.05)
-
-    blanc = _l(255, 255, 255)
     low_hits = []
     for stream in streams:
-        text = stream.decode('latin-1', 'replace')
-        text_color = (0, 0, 0)
-        bg_color = (255, 255, 255)   # el PDF no pinta fondo por defecto
-        painted_bg = False
-        for m in re.finditer(
-                r'([\d.]+)\s+([\d.]+)\s+([\d.]+)\s+(rg|re)\b'
-                r'|\b(f)\b'
-                r'|\((?:[^()\\]|\\.)*\)\s*(Tj|TJ)'
-                , text):
-            op = m.group(4) or m.group(5) or m.group(6)
-            if op in ('rg', 're'):
-                try:
-                    text_color = tuple(
-                        max(0, min(255, round(float(x) * 255)))
-                        for x in m.groups()[:3])
-                except ValueError:
-                    pass
-                if op == 're':
-                    # el rect se pinta con el fill actual: es el FONDO
-                    bg_color = text_color
-            elif op == 'f':
-                pass  # el f pinta con el fill ya establecido (fondo ya guardado)
-            else:  # Tj / TJ
-                lt = _l(*text_color)
-                lb = _l(*bg_color)
-                ratio = _ratio(lt, lb)
-                if ratio < 4.5:
-                    ej = (f'rgb({text_color[0]},{text_color[1]},{text_color[2]})'
-                          f' sobre rgb({bg_color[0]},{bg_color[1]},{bg_color[2]})'
-                          f' \u2192 {ratio:.2f}:1')
-                    if ej not in [x.split(' \u2014 ')[0] for x in low_hits]:
-                        low_hits.append(ej)
+        for ej in _stream_low_contrast(stream.decode('latin-1', 'replace')):
+            if ej not in low_hits:
+                low_hits.append(ej)
         if len(low_hits) >= 4:
             break
     if low_hits:

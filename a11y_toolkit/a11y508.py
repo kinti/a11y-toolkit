@@ -13,7 +13,7 @@ EN 301 549 families:
 - product questions that change applicability (public-facing, official
   communication, authoring tool, is-assistive-technology)
 - WCAG EXCEPTIONS for non-web content/software: 2.4.1, 2.4.5, 3.2.3,
-  3.2.4 do not apply (E203/E204)
+  3.2.4 do not apply (E205.4.1 word-substitution provisions)
 - chapters beyond WCAG: 302, 502, 503, 602, 603 always for software;
   504 when authoring; hardware chapter list is data (not evaluated here)
 

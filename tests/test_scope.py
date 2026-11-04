@@ -244,8 +244,117 @@ with tempfile.TemporaryDirectory() as td:
     out = json.loads(pr.stdout)
     check('CLI confirma 1 exclusión', out['counters']['excluded'] == 1)
 
+print('== 9. SARIF: hallazgos muertos fuera, hostiles degradados (4-nov)')
+sar_disp = from_report({'mode': 'static', 'url': 'u', 'findings': [
+    {'criterion': '1.1.1 Non-text Content', 'severity': 'high',
+     'signal': 'img_no_alt', 'issue': 'live failure'},
+    {'criterion': '1.1.1 Non-text Content', 'severity': 'high',
+     'signal': 'img_no_alt', 'issue': 'rejected one', 'status': 'rejected'},
+    {'criterion': '1.1.1 Non-text Content', 'severity': 'high',
+     'signal': 'img_no_alt', 'issue': 'not rechecked one',
+     'disprover_status': 'not-rechecked'},
+]})
+check('sarif: solo el hallazgo vivo navega a GitHub',
+      [x['message']['text'] for x in sar_disp['runs'][0]['results']] == ['live failure'])
+sar_bad = from_report({'mode': 'static', 'url': 'u', 'findings': [
+    {'criterion': '1.1.1 x', 'severity': 'high', 'signal': 'img_no_alt', 'issue': 'ok'},
+    {'criterion': '1.1.1 x', 'severity': 'high', 'signal': 'img_no_alt'},   # sin issue
+    {'criterion': 7, 'severity': 'high', 'signal': 'x', 'issue': 'y'},      # criterion no-str
+    'no soy un hallazgo',
+]})
+check('sarif hostil: sin KeyError, el válido cuenta',
+      len(sar_bad['runs'][0]['results']) == 1
+      and sar_bad['runs'][0]['results'][0]['message']['text'] == 'ok')
+check('sarif hostil: lo saltado queda contado, no silenciado',
+      sar_bad['runs'][0].get('properties', {}).get('skippedFindings') == 3)
+
+print('== 10. apply_scope recalcula el esfuerzo pendiente (4-nov)')
+from a11y_toolkit.a11yevidence import apply_scope                     # noqa: E402
+from a11y_toolkit.a11ycrit import effort as _effort                   # noqa: E402
+r_bare = audit_html(BARE)
+base_pack = build_pack([r_bare], lang='en')
+scoped_pack = apply_scope(base_pack, {'format': 'a11y-scope/1', 'criteria': [
+    {'criterion': '1.2.1 Audio-only and Video-only (Prerecorded)',
+     'status': 'excluded', 'reason': 'no audio in the product'},
+    {'criterion': '3.3.7 Redundant Entry', 'status': 'excluded',
+     'reason': 'single-step flow'},
+]}, lang='en')
+check('apply_scope: resumen cuenta las not-applicable',
+      scoped_pack['summary']['not-applicable'] == 2)
+drop = [a - b for a, b in zip(base_pack['effort_pending']['total_minutes'],
+                              scoped_pack['effort_pending']['total_minutes'])]
+expected = [sum(_effort(c)['minutes'][i] for c in ('1.2.1', '3.3.7')) for i in (0, 1)]
+check('apply_scope: el esfuerzo cae EXACTO lo excluido', drop == expected,
+      f'drop={drop} expected={expected}')
+check('apply_scope: manual_pending ya no nombra las excluidas',
+      not [m for m in scoped_pack['manual_pending']
+           if m.split(' ')[0] in ('1.2.1', '3.3.7')])
+check('apply_scope: by_class tampoco las cuenta',
+      sum(v['criteria'] for v in scoped_pack['effort_pending']['by_class'].values())
+      == sum(v['criteria'] for v in base_pack['effort_pending']['by_class'].values()) - 2)
+check('apply_scope: el pack original queda intacto (sello)',
+      not [c for c in base_pack['criteria'] if c['status'] == 'not-applicable'])
+
+print('== 11. RGAA: las respuestas humanas aplican (4-nov)')
+s_rgaa = build_scope([r_bare], standard='rgaa', lang='en',
+                     answers={'1.1': {'status': 'excluded', 'reason': 'sin imágenes'},
+                              '1.2.1': 'in-scope'})
+rg11 = next(c for c in s_rgaa['criteria'] if c['criterion'].startswith('1.1 '))
+check('rgaa: la exclusión humana aplica con su razón',
+      rg11['status'] == 'excluded' and rg11.get('reason') == 'sin imágenes'
+      and rg11.get('evidence_source') == 'human')
+check('rgaa: counters cuentan la exclusión (antes siempre 0)',
+      s_rgaa['counters']['excluded'] == 1
+      and s_rgaa['counters']['criteria'] == 106)
+check('rgaa: respuesta string in-scope también aplica (clave con cola de test)',
+      next(c for c in s_rgaa['criteria']
+           if c['criterion'].split(' ')[0] == '1.2')['status'] == 'in-scope')
+s_rgaa_plain = build_scope([r_bare], standard='rgaa', lang='en')
+check('rgaa sin respuestas: 106 in-scope, cero propuestas',
+      s_rgaa_plain['counters']['excluded'] == 0
+      and s_rgaa_plain['counters']['in_scope'] == 106)
+
+print('== 12. 508: la propuesta de la máquina no pisa al humano (4-nov)')
+s_508 = build_scope([r_bare], standard='508', target='web', lang='en',
+                    answers={'3.3.1': {'status': 'in-scope',
+                                       'reason': 'the checkout form exists'},
+                             '508:public_facing': {'answer': 'no'},
+                             '508:official_comm': {'answer': 'no'}})
+r_331 = next(c for c in s_508['criteria'] if c['criterion'].startswith('3.3.1'))
+check('508: un in-scope HUMANO sobrevive al content_exempt',
+      r_331['status'] == 'in-scope' and r_331.get('evidence_source') == 'human'
+      and r_331.get('reason') == 'the checkout form exists')
+check('508: sin palabra humana la máquina sigue proponiendo',
+      s_508['counters']['proposed_excluded'] == 54)
+
+print('== 13. EN 301 549: cláusulas EN-only de software 11.5-11.7 (4-nov)')
+s_sw = build_scope([r_bare], standard='en301549', target='software', lang='en')
+sw = s_sw.get('en301549_software_clauses') or []
+check('software: 11.5-11.7 presentes',
+      [row['clause'] for row in sw] == ['11.5', '11.6', '11.7'])
+check('software: revisión humana, no propuesta, no claim',
+      all(row['status'] == 'human-review' and row['evaluated_by_toolkit'] is False
+          for row in sw))
+check('software: título del estándar + nota honesta',
+      sw[0]['title'] == 'Interoperability with assistive technology'
+      and all(row.get('note') for row in sw))
+s_sw_es = build_scope([r_bare], standard='en301549', target='software', lang='es')
+check('software: títulos bilingües',
+      next(row for row in s_sw_es['en301549_software_clauses']
+           if row['clause'] == '11.7')['title'] == 'Preferencias del usuario')
+check('web/documents: las cláusulas de software NO aparecen',
+      'en301549_software_clauses' not in build_scope([r_bare], standard='en301549',
+                                                     target='web', lang='en')
+      and 'en301549_software_clauses' not in build_scope([r_bare], standard='en301549',
+                                                         target='documents', lang='en'))
+check('multi-target con software también las trae',
+      'en301549_software_clauses' in build_scope([r_bare], standard='en301549',
+                                                  target='web', targets=['web', 'software'],
+                                                  lang='en'))
+
 if failures:
     print(f'SCOPE: {len(failures)} fallos — {failures}')
     sys.exit(1)
 print('SCOPE OK ✓ (EN 301 549 55/55 × 3 cláusulas, la máquina propone y nunca '
-      'excluye, solo lo humano confirmado fluye con su razón, CLI+MCP reales)')
+      'excluye, solo lo humano confirmado fluye con su razón, RGAA escucha '
+      'respuestas, 508 no pisa al humano, cláusulas software 11.5-11.7, CLI+MCP reales)')

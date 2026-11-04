@@ -175,3 +175,76 @@ _r4 = subprocess.run([sys.executable, '-m', 'a11y_toolkit.a11y', 'fix', '--file'
                      text=True, timeout=180, env=_env_ci)
 assert 'star helps' not in _r4.stderr, 'el aviso no debe disparar en CI'
 print('STAR NUDGE OK ✓ (una vez por máquina, stderr limpio para JSON, silenciable, CI mudo)')
+
+# ── badge hardening (revisión externa 4-nov): comillas, orden escape, brand ──
+import xml.etree.ElementTree as _ET                                     # noqa: E402
+_b_q = badge(90, scope='x" onload="evil')
+assert 'onload="evil' not in _b_q, 'payload con comilla rompe el aria-label'
+_start = _b_q.find('aria-label="') + len('aria-label="')
+_val = _b_q[_start:_b_q.find('"', _start)]
+assert 'evil' in _val and '&quot;' in _val and '"' not in _val, \
+    'la comilla viaja escapada DENTRO del atributo'
+_ET.fromstring(_b_q)   # strict XML: la inyección no rompe el documento
+_b_amp = badge(90, scope='&' * 25)   # 25 '&': la truncación no puede cortar una entidad
+_ET.fromstring(_b_amp)
+assert '&amp;' in _b_amp, 'el & del scope viaja escapado'
+# límite 60: cortar DESPUÉS de escapar dejaba una entidad a medias (&am) o un
+# doble-escape (&amp;amp;) — ahora se trunca primero y se escapa UNA vez
+_b_cut = badge(90, scope='x' * 52 + '&' * 8)
+_ET.fromstring(_b_cut)
+_cut_start = _b_cut.find('aria-label="') + len('aria-label="')
+_cut_val = _b_cut[_cut_start:_b_cut.find('"', _cut_start)]
+assert _cut_val.count('&amp;') == 8 and '&amp;amp;' not in _b_cut, \
+    'entidad cortada a medias o doble escape en la truncación'
+_b_brand = badge(90, brand='A<B&C')
+_ET.fromstring(_b_brand)
+assert '&lt;B&amp;C' in _b_brand, 'el brand se interpola escapado'
+import a11y_toolkit.a11ybadge as _bm                                    # noqa: E402
+assert not hasattr(_bm, '_color'), 'el _color muerto a nivel de módulo no vuelve'
+print('BADGE HARDENING OK ✓ (payload de comilla contenido, sin entidades cortadas, '
+      'brand escapado, XML estricto, sin _color muerto)')
+
+# ── 5.26.1: subcomandos del README hechos reales + criterio exit 1 en error ──
+# criteria = alias de criterion; --standard/--target/--json ya no se ignoran
+r = run('criteria', '--list', '--level', 'AA', '--new-in', '2.2')
+assert r.returncode == 0 and json.loads(r.stdout)['count'] == 4, r.stderr[-300:]
+r = run('criteria', '--list', '--standard', 'en301549', '--target', 'documents', '--json')
+d = json.loads(r.stdout)
+assert r.returncode == 0 and all('clause' in c for c in d['criteria']), d['criteria'][:2]
+assert d['criteria'][0]['clause'].startswith('10.'), d['criteria'][0]['clause']  # target documents
+# error de lookup → exit 1 (antes 0), y bilingüe
+r = run('criterion', '9.9.9')
+assert r.returncode == 1 and 'unknown criterion' in r.stdout, (r.returncode, r.stdout[-200:])
+r = run('criterion', '--signal', 'zzz_noexiste', '--lang', 'en')
+assert r.returncode == 1 and 'unknown signal' in r.stdout
+r = run('criterion', '--signal', 'zzz_noexiste', '--lang', 'es')
+assert r.returncode == 1 and 'señal desconocida' in r.stdout
+
+# wizard por stdin canalizado (--file: sin red) — registrado en el hub
+_wd = tempfile.mkdtemp()
+r = run('wizard', '--file', FIX, '--lang', 'en', '-o', os.path.join(_wd, 'scope.json'),
+        stdin='1\n2\nn\n')
+assert r.returncode == 0 and os.path.exists(os.path.join(_wd, 'scope.json')), \
+    (r.returncode, r.stdout[-300:], r.stderr[-300:])
+
+# dom: el score_note del estático lo anuncia; hover: el README lo anuncia
+if TIENE_PW:
+    r = run('dom', 'file://' + FIX)
+    assert r.returncode == 0 and json.loads(r.stdout)['mode'] == 'rendered', r.stderr[-300:]
+else:
+    r = run('dom', 'file://' + FIX)
+    assert r.returncode == 1 and 'Playwright not installed' in r.stdout, r.stdout[-200:]
+    r = run('hover', 'file://' + FIX)
+    assert r.returncode == 1 and 'Playwright not installed' in r.stdout, r.stdout[-200:]
+    print('SKIP dom/hover rendered: Playwright no instalado — camino limpio verificado')
+
+# init: BEGIN sin END ya no lanza ValueError (merge_block) — mensaje claro
+from a11y_toolkit import a11yinit  # noqa: E402
+_md = tempfile.mkdtemp()
+with open(os.path.join(_md, 'AGENTS.md'), 'w') as f:
+    f.write('# Proyecto\n\n' + a11yinit.MARKER_BEGIN + '\nfragmento huérfano\n')
+r = run('init', _md)
+assert r.returncode == 0 and 'BEGIN without END' in r.stdout, (r.returncode, r.stdout[-200:])
+_txt = open(os.path.join(_md, 'AGENTS.md')).read()
+assert 'fragmento huérfano' in _txt and _txt.count(a11yinit.MARKER_END) == 1
+print('HUB 5.26.1 OK ✓ (criteria/wizard/hover/dom reales, criterio exit 1, init sin crash)')

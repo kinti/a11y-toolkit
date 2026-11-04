@@ -39,6 +39,17 @@ _RANK = {'automated-fail': 0, 'not-run': 1, 'automated-review': 2,
 
 _TYPES = ('structured', 'random', 'process', 'common-view')
 
+# packs hechos a mano: un status fuera de _RANK reventaba con KeyError mudo;
+# el mensaje es accionable y bilingüe (aggregate recibe lang)
+_STATUS_ERR = {
+    'es': 'estado de criterio desconocido: {st!r} en {crit!r} — válidos: '
+          '{valid}. Los packs manuales deben usar los estados del evidence '
+          'pack (a11y-evidence-pack/2), no texto libre',
+    'en': 'unknown criterion status: {st!r} on {crit!r} — valid statuses: '
+          '{valid}. Hand-made packs must use the evidence-pack statuses '
+          '(a11y-evidence-pack/2), not free text',
+}
+
 _STEPS = [
     {'step': '1', 'what': 'Define the evaluation scope',
      'where': 'plan.product (enclosure: all views, states, functionality)'},
@@ -126,11 +137,16 @@ def aggregate(plan, packs, lang='en', inference_seed=7):
             codes.add(code)
             names[code] = c['criterion']
             st = c['status']
+            if st not in _RANK:
+                raise ValueError(_STATUS_ERR['es' if lang == 'es' else 'en'].format(
+                    st=st, crit=c.get('criterion'), valid=', '.join(_RANK)))
             if code not in worst or _RANK[st] < _RANK[worst[code]]:
                 worst[code] = st
             if st == 'automated-fail':
                 fail_counts[code] = fail_counts.get(code, 0) + 1
-            ef = c.get('effort', {}).get('class')
+            # "effort": null es un pack manual válido de facto: .get con
+            # default solo cubre la clave AUSENTE, no el null explícito
+            ef = (c.get('effort') or {}).get('class')
             if ef in effort and st != 'agent-verified':
                 effort[ef] += 1
 
@@ -162,7 +178,7 @@ def aggregate(plan, packs, lang='en', inference_seed=7):
             if code in seen:
                 continue
             seen.add(code)
-            mins = c.get('effort', {}).get('minutes')
+            mins = (c.get('effort') or {}).get('minutes')
             if isinstance(mins, (list, tuple)) and len(mins) == 2:
                 lo += min(mins)
                 hi += max(mins)

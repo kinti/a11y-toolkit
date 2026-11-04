@@ -76,20 +76,26 @@ def build_plan(report, pack=None):
                 and f.get('signal')]
     effort_by_criterion = {}
     if pack:
-        for c in pack.get('criteria', []):
-            if c.get('effort', {}).get('minutes'):
+        for c in (pack.get('criteria') or []):  # "criteria": null → nada, no TypeError
+            # effort puede existir con valor null (JSON "effort": null) — el
+            # contrato es contarla como desconocida, nunca AttributeError
+            if (c.get('effort') or {}).get('minutes'):
                 effort_by_criterion[c['criterion'].split(' ')[0]] = c['effort']
     assumptions = dict(ASSUMPTIONS_HEURISTIC)
     if pack:
         assumptions = {'source': 'pack effort',
                        'note': 'minutes from the evidence pack effort pricing'}
 
-    # redesign zones: one URL accumulating many distinct signals
+    # redesign zones: one URL accumulating many distinct signals. A key
+    # vacía (report sin URL) NO es una zona: sus batches se quedan en
+    # instances — una URL vacía no se rediseña y el colapso acallaba
+    # audits de una sola página.
     by_url = {}
     for f in findings:
         u = f.get('url') or report.get('url') or ''
         by_url.setdefault(u, set()).add(f['signal'])
-    zones = {u for u, sigs in by_url.items() if len(sigs) >= REDESIGN_SIGNAL_THRESHOLD}
+    zones = {u for u, sigs in by_url.items()
+             if u and len(sigs) >= REDESIGN_SIGNAL_THRESHOLD}
 
     # batch by signal inside each phase (one signal = one kind of fix)
     by_signal = {}

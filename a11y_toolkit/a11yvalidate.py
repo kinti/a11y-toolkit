@@ -22,16 +22,13 @@ import urllib.request
 from .a11yaudit import compute_score
 
 BASE = 'https://validator.w3.org/nu/'
-UA = 'a11y-toolkit/3.16 (WCAG audit; github.com/kinti/a11y-toolkit)'
 
-# known Nu messages → WCAG criteria (the honest subset; the rest are
-# plain HTML validity findings, reported under their own label)
-_MAPPING = (
-    ('must have an "alt" attribute', '1.1.1'),
-    ('"lang" attribute', '3.1.1'),
-    ('Bad value' and 'role', None),  # placeholder, refined below
-    ('duplicate id', None),
-)
+
+def _ua():
+    # lazy: server importa este módulo arriba; la versión vive en un solo
+    # sitio (antes: UA hardcodeado dos majors atrás)
+    from .server import VERSION
+    return f'a11y-toolkit/{VERSION} (WCAG audit; github.com/kinti/a11y-toolkit)'
 
 
 def _criterion_for(message):
@@ -49,11 +46,11 @@ def _call(data=None, url=None, timeout=60, base_url=None):
     target = (base_url or BASE).rstrip('/') + '/'
     if url:
         target += '?' + urllib.parse.urlencode({'doc': url, 'out': 'json'})
-        req = urllib.request.Request(target, headers={'User-Agent': UA})
+        req = urllib.request.Request(target, headers={'User-Agent': _ua()})
     else:
         target += '?out=json'
         req = urllib.request.Request(target, data=data.encode('utf-8'),
-                                     headers={'User-Agent': UA,
+                                     headers={'User-Agent': _ua(),
                                               'Content-Type': 'text/html; charset=utf-8'},
                                      method='POST')
     with urllib.request.urlopen(req, timeout=timeout) as r:

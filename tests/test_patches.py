@@ -95,6 +95,34 @@ for hostile in ('<button><button>A', '<html', '<<<>>>', '\x00<meta\x01>\xff', ''
         break
 check('hostile HTML never crashes', ok)
 
+# ── sealed params: verify replays the autofix with the BUILD's arguments ────
+# (regression: the replay used to run form_errors=False, so every set carrying
+#  the form-error layer verified as 'mismatch' — a false tampering accusation)
+HTML_FORM = ('<html lang="es"><head><title>OK</title></head><body>'
+             '<form><input type="email" required></form></body></html>')
+bf = build(HTML_FORM)
+psf = bf['patch_set']
+check('params sealed in the set', psf.get('params') == {'lang': None, 'title': None,
+                                                        'form_errors': True})
+check('form layer recorded', any(f['signal'] == 'form_error_missing' for f in psf['fixes']))
+vf = apply_patches(HTML_FORM, psf)
+check('form set round-trips → reproduced (params sealed)', vf['status'] == 'reproduced')
+check('reproduced html matches the build', 'fixed_html' in vf
+      and bf['fixed_html'] == vf['fixed_html'])
+# a set built with non-default params replays with THOSE params
+bf_es = build(HTML_FORM, lang='es', form_errors=False)
+check('build with lang/form_errors round-trips',
+      apply_patches(HTML_FORM, bf_es['patch_set'])['status'] == 'reproduced')
+# tampered params → mismatch (the replay no longer reproduces the fixes)
+ps_p = dict(psf)
+ps_p['params'] = {'lang': None, 'title': None, 'form_errors': False}
+check('tampered params → mismatch', apply_patches(HTML_FORM, ps_p)['status'] == 'mismatch')
+# pre-params sets (old format) verify with the build defaults
+ps_old = dict(psf)
+del ps_old['params']
+check('old set without params verifies with build defaults',
+      apply_patches(HTML_FORM, ps_old)['status'] == 'reproduced')
+
 # ── MCP surface ──────────────────────────────────────────────────────────────
 names = [t['name'] for t in server.TOOLS]
 check('tool registered as a11y_patches (#37)', names.count('a11y_patches') == 1

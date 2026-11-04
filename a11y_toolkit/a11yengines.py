@@ -82,6 +82,12 @@ def matrix(url, engines=None, auth_state=None, capture=None):
             ok.append({'engine': name, 'elements': len(s.get('elements', [])),
                        'focus_steps': len(s.get('focus_order', [])),
                        'tree': 'arbol_accesible' in s})
+        except ImportError:
+            # playwright ausente NO es «un motor muerto»: es un error de
+            # instalación que mata TODA la matriz — relanzar para que main
+            # aconseje `pip install playwright` (no `playwright install …`,
+            # el consejo equivocado cuando falta el paquete pip) y salga 1
+            raise
         except Exception as e:  # noqa: BLE001 — one dead engine must not kill the matrix
             msg = str(e).splitlines()[0][:200] if str(e) else e.__class__.__name__
             failed.append({'engine': name, 'error': msg})

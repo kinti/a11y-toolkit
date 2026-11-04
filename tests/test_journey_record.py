@@ -99,6 +99,36 @@ check('es note travels', 'Evidencia de usabilidad' in r_es['score_note'])
 v_es = record_verify({'format': 'x'}, lang='es')
 check('es invalid note resolves', 'a11y-journey/1' in v_es['note'])
 
+# ── sealed lang (2026-11): es record verified from an en session ───────────
+# Antes: record_verify comparaba los findings COMPLETOS (issue/remediation
+# localizados) → sellar en es y verificar en en daba 'tampered' con el sha
+# intacto. Ahora: el lang viaja sellado en el registro y la re-derivación
+# compara solo los campos estables (signal/criterion/severity/step).
+check('lang sealed in the record body', r_es.get('lang') == 'es')
+check('es record verified with lang=en', record_verify(r_es, lang='en')['status'] == 'verified')
+check('es record verified with default lang', record_verify(r_es)['status'] == 'verified')
+check('en record verified with lang=es', record_verify(r, lang='es')['status'] == 'verified')
+
+# legacy record without lang: falls back to the param lang, still verifies
+_r_leg = json.loads(json.dumps(r))
+_r_leg.pop('lang', None)
+_body = {k: v for k, v in _r_leg.items() if k != 'sha256'}
+_r_leg['sha256'] = hashlib.sha256(json.dumps(
+    _body, sort_keys=True, ensure_ascii=False,
+    default=str).encode('utf-8')).hexdigest()
+check('legacy record (no lang) still verifies', record_verify(_r_leg)['status'] == 'verified')
+
+# tampering a step is STILL caught, whatever the langs involved
+_r_tam = json.loads(json.dumps(r_es))
+_r_tam['steps'][0].pop('friction', None)
+_body = {k: v for k, v in _r_tam.items() if k != 'sha256'}
+_r_tam['sha256'] = hashlib.sha256(json.dumps(
+    _body, sort_keys=True, ensure_ascii=False,
+    default=str).encode('utf-8')).hexdigest()
+v_tam = record_verify(_r_tam, lang='en')
+check('tampered step → tampered (cross-lang)', v_tam['status'] == 'tampered'
+      and v_tam.get('verdict_reproducible') is False)
+
 # ── MCP: seal=true → record; verify_record → verification ───────────────────
 resp = server.invoke('a11y_journey_verdict', {'task': TASK, 'steps': STEPS,
                                               'outcome': OUTCOME, 'url': URL,

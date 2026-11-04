@@ -93,5 +93,44 @@ res = generate_openacr(pack=pack, product='Demo', lang='en', output_path=output)
 assert os.path.exists(output) and res.get('saved_to') == output
 os.unlink(output)
 
+# ── regresiones de la revisión externa (4-nov) ─────────────────────────────
+# 1) las notes citan solo hallazgos VIVOS: lo que el disprover rechazó (o
+#    dejó not-rechecked) no es evidencia y no enmascara al confirmado
+disproved = {'mode': 'static', 'url': 'https://example.com', 'score': 1,
+             'summary': {}, 'findings': [
+                 {'criterion': '1.1.1 Non-text Content', 'severity': 'high',
+                  'signal': 'img_no_alt', 'issue': 'rejected old snapshot',
+                  'remediation': 'x', 'status': 'rejected'},
+                 {'criterion': '1.1.1 Non-text Content', 'severity': 'high',
+                  'signal': 'img_no_alt', 'issue': 'confirmed live failure',
+                  'remediation': 'add alt'},
+                 {'criterion': '3.2.1 On Focus', 'severity': 'low',
+                  'signal': 'kbd_trap', 'issue': 'never rechecked signal',
+                  'remediation': 'check', 'disprover_status': 'not-rechecked'},
+             ]}
+pack_disp = build_pack([disproved])
+res_disp = generate_openacr(pack=pack_disp, product='Demo', lang='en')
+assert 'error' not in res_disp
+assert 'confirmed live failure' in res_disp['yaml']
+assert 'rejected old snapshot' not in res_disp['yaml'], \
+    'un hallazgo desmentido jamás viaja en las notes'
+assert 'never rechecked signal' not in res_disp['yaml']
+assert res_disp['levels']['1.1.1'] == 'does_not_support'
+
+# 2) review-level: not-evaluated con la evidencia en las notes — la máquina
+#    nunca imprime partially-supports desde evidencia de revisión (regresión
+#    4-nov: el mapeo lo hacía)
+pack_low = build_pack([{'mode': 'static', 'url': 'https://x', 'score': 80,
+                        'summary': {}, 'findings': [
+                            {'criterion': '3.2.1 On Focus', 'severity': 'low',
+                             'signal': 'kbd_trap', 'issue': 'low severity review signal',
+                             'remediation': 'check'}]}])
+res_low = generate_openacr(pack=pack_low, product='Demo', lang='en')
+assert res_low['levels']['3.2.1'] == 'not_evaluated', res_low['levels']['3.2.1']
+assert 'low severity review signal' in res_low['yaml']
+assert res_low['summary'].get('partially_supports', 0) == 0
+assert '              level: partially-supports' not in res_low['yaml']
+
 print('OPENACR OK ✓ (esquema GSA, 55 criterios, derivación honesta, overrides '
-      '+ formas con guion, anti-inyección, hash del pack en cada remark, es/en)')
+      '+ formas con guion, anti-inyección, hallazgos muertos fuera de las notes, '
+      'review → not-evaluated, hash del pack en cada remark, es/en)')

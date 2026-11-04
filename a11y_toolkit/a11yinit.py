@@ -65,12 +65,30 @@ MCP_CONFIG = {
 }
 
 
+# BEGIN sin su END (fichero truncado a mano): mensaje claro, nunca un
+# ValueError — el fragmento huérfano se respeta y se añade bloque nuevo
+_MERGE_MSGS = {
+    'es': 'Marcador a11y-toolkit incompleto en AGENTS.md (BEGIN sin END): se '
+          'dejó el fragmento tal cual y se añadió un bloque nuevo y completo.',
+    'en': 'Incomplete a11y-toolkit marker in AGENTS.md (BEGIN without END): '
+          'the fragment was left as-is and a fresh complete block was appended.',
+}
+
+
 def merge_block(content):
-    """Merge the hook block into existing AGENTS.md content (idempotent)."""
-    if MARKER_BEGIN in content:
-        start = content.index(MARKER_BEGIN)
+    """Merge the hook block into existing AGENTS.md content (idempotent).
+
+    A BEGIN marker without its END (hand-truncated file) is left untouched
+    and a fresh complete block is appended — never a crash."""
+    if MARKER_BEGIN in content and MARKER_END in content:
+        # anchor the COMPLETE pair: the BEGIN closest before the first END —
+        # an orphan BEGIN above it must not clobber the live block
         end = content.index(MARKER_END) + len(MARKER_END)
+        start = content.rindex(MARKER_BEGIN, 0, end - len(MARKER_END))
         return content[:start] + BLOCK.strip('\n') + content[end:]
+    if MARKER_BEGIN in content or MARKER_END in content:
+        # malformed marker pair: keep hands off the fragment, append fresh
+        return (content.rstrip('\n') + '\n\n') + BLOCK.strip('\n') + '\n'
     return (content.rstrip('\n') + '\n\n' if content.strip() else '') + BLOCK.strip('\n') + '\n'
 
 
@@ -78,11 +96,16 @@ def init(path='.'):
     """Install the agent hook. Returns dict with what happened."""
     filepath = os.path.join(path, 'AGENTS.md')
     previous = open(filepath, encoding='utf-8').read() if os.path.exists(filepath) else ''
+    malformed = (MARKER_BEGIN in previous) != (MARKER_END in previous)
     merged = merge_block(previous)
     with open(filepath, 'w', encoding='utf-8') as f:
         f.write(merged)
-    return {'file': filepath, 'already_present': MARKER_BEGIN in previous,
-            'created': not previous.strip()}
+    out = {'file': filepath, 'already_present': MARKER_BEGIN in previous,
+           'created': not previous.strip()}
+    if malformed:
+        out['malformed_marker'] = True
+        out['warning'] = _MERGE_MSGS['en']
+    return out
 
 
 def main(argv):
@@ -96,6 +119,8 @@ def main(argv):
         print(json.dumps({'hook_present': present, 'file': target}))
         return 0 if present else 1
     res = init(a.path)
+    if res.get('malformed_marker'):
+        print('! ' + res['warning'])
     verb = 'updated' if res['already_present'] else ('created' if res['created'] else 'installed into')
     print(f"✓ agent hook {verb}: {res['file']}")
     print('\nMCP config (any MCP client that accepts stdio servers):')

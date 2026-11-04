@@ -8,7 +8,10 @@
  "audit": {
   "accesskey_dup": "{n} teclas accesskey duplicadas: {example}.",
   "accesskey_dup_rem": "Accesskey repetidas disparan el control equivocado y chocan con atajos del navegador; elimínalas o hazlas únicas.",
-  "aria_hidden_focusable": "{n} elementos interactivos (<{tag}>) con aria-hidden=\"true\": ocultos al lector pero siguen recibiendo foco.",
+  "aria_hidden_focusable": {
+   "one": "1 elemento interactivo (<{tag}>) con aria-hidden=\"true\": oculto al lector pero sigue recibiendo foco.",
+   "other": "{n} elementos interactivos (<{tag}>) con aria-hidden=\"true\": ocultos al lector pero siguen recibiendo foco."
+  },
   "aria_hidden_focusable_rem": "Quita aria-hidden del elemento enfocable, o añade tabindex=\"-1\" si debe quedar fuera de la interacción.",
   "aria_ref_missing": "{n} referencias aria-labelledby/describedby apuntan a ids que no existen: {example}.",
   "aria_ref_missing_rem": "Corrige o elimina la referencia: un aria-labelledby roto deja el control sin nombre accesible.",
@@ -16,7 +19,10 @@
   "aria_value_invalid_rem": "Los aria-* booleanos solo admiten true/false/undefined, los de posición enteros, los de token su lista cerrada (4.1.2). Corrige o elimina el atributo.",
   "audio_desc_missing": "{n} <video> sin track de audiodescripción (1.2.3/1.2.5): pendiente de juicio humano.",
   "audio_desc_missing_rem": "Si el vídeo tiene información visual esencial no narrada, publica audiodescripción (track kind=\"descriptions\" o alternativa) — decide una persona viendo el vídeo.",
-  "autocomplete": "{n} campos que recogen datos de la persona usuaria sin atributo autocomplete: {example}.",
+  "autocomplete": {
+   "one": "1 campo que recoge datos personales sin atributo autocomplete: {example}.",
+   "other": "{n} campos que recogen datos de la persona usuaria sin atributo autocomplete: {example}."
+  },
   "autocomplete_invalid": "{n} valores de autocomplete no válidos: {example}. El token debe ser uno del estándar HTML (§7.5 autofill), o el lector no identificará el propósito (1.3.5).",
   "autocomplete_invalid_rem": "Usa tokens del estándar: email, tel, name, postal-code, one-time-code… (lista completa en la herramienta).",
   "autocomplete_rem": "Añade autocomplete con el token correcto (email, tel, name, postal-code…, 1.3.5): relleno automático y voz de accesibilidad con sobrecoste cero.",
@@ -26,11 +32,17 @@
   "captcha_rem": "Ofrece alternativas: email mágico, OAuth, soporte humano. Un CAPTCHA sin alternativa excluye (3.3.8, nuevo en WCAG 2.2 AA).",
   "char_shortcut": "{n} atajos de teclado de carácter único detectados: {example}. Revisar (2.1.4).",
   "char_shortcut_rem": "Los atajos de una tecla deben poder desactivarse o remapearse, o activarse solo con foco (2.1.4): el usuario que dicta por voz dispara cada letra.",
-  "click_nonfocusable": "{n} elementos no interactivos (<{tag}>) con onclick sin role, tabindex ni manejo de teclado.",
+  "click_nonfocusable": {
+   "one": "1 elemento no interactivo (<{tag}>) con onclick, sin role, tabindex ni manejo de teclado.",
+   "other": "{n} elementos no interactivos (<{tag}>) con onclick sin role, tabindex ni manejo de teclado."
+  },
   "click_nonfocusable_rem": "Usa <button> real; si no es posible, añade role=\"button\", tabindex=\"0\" y manejo de Enter/Espacio (2.1.1).",
   "color_only_link": "Enlaces distinguibles solo por color detectados en el pase renderizado (1.4.1).",
   "color_only_link_rem": "El enlace dentro de texto necesita subrayado u otro distintivo, o contraste ≥3:1 con el texto que lo rodea (1.4.1).",
-  "ctrl_name": "{n} <{tag}> sin nombre accesible (sin texto, aria-label ni title).",
+  "ctrl_name": {
+   "one": "1 <{tag}> sin nombre accesible (sin texto, aria-label ni title).",
+   "other": "{n} <{tag}> sin nombre accesible (sin texto, aria-label ni title)."
+  },
   "ctrl_name_rem": "El nombre accesible llega del texto interno, aria-label, title o de una imagen interna con alt. Un control vacío es invisible para lectores de pantalla.",
   "dom_visual_order": "Orden DOM distinto del orden visual en {n} bloques de texto: revisar con teclado (1.3.2).",
   "dom_visual_order_rem": "El orden de lectura programático debe coincidir con el visual: revisa flex order, grid placement y position absolute (1.3.2).",
@@ -38,18 +50,33 @@
   "down_event_rem": "Activa en el UP-event (onclick/onmouseup): permite abortar arrastrando fuera — la regla de 2.5.2.",
   "drag_no_alt": "{n} manejadores de arrastre sin alternativa visible de clic/botón: {example}. Revisar (2.5.7).",
   "drag_no_alt_rem": "Toda acción por arrastre necesita alternativa sin arrastre: botones «arriba/abajo», menú contextual, flechas (2.5.7).",
-  "dup_ids": "{n} ids duplicados; pueden romper asociaciones label-for y aria-labelledby.",
+  "dup_ids": {
+   "one": "1 id duplicado; puede romper asociaciones label-for y aria-labelledby.",
+   "other": "{n} ids duplicados; pueden romper asociaciones label-for y aria-labelledby."
+  },
   "dup_ids_rem": "Haz únicos los ids: los <label for> y aria-labelledby apuntan solo al primero.",
   "element_lang_invalid": "{n} atributos lang en elementos no válidos (BCP-47): {example}.",
   "element_lang_invalid_rem": "Los fragmentos en otro idioma llevan lang con código válido (3.1.2): <blockquote lang=\"en\">…</blockquote>.",
-  "empty_heading": "{n} encabezados vacíos (<h*> sin texto).",
+  "empty_heading": {
+   "one": "1 encabezado vacío (<h*> sin texto).",
+   "other": "{n} encabezados vacíos (<h*> sin texto)."
+  },
   "empty_heading_rem": "Elimina los encabezados vacíos o dales texto: aparecen como huecos en el índice del lector.",
   "fetch_error": "no se pudo descargar: {e}",
-  "field_label": "{n} campos de formulario sin <label> asociado ni nombre accesible.",
+  "field_label": {
+   "one": "1 campo de formulario sin <label> asociado ni nombre accesible.",
+   "other": "{n} campos de formulario sin <label> asociado ni nombre accesible."
+  },
   "field_label_rem": "Asocia <label for=\"id\"> al campo (o envuélvelo), o usa aria-label. Aplica a input, select y textarea.",
-  "fieldset_missing": "{n} grupos de radio/checkbox sin <fieldset><legend>: los lectores no anuncian la pregunta común (1.3.1).",
+  "fieldset_missing": {
+   "one": "1 grupo de radio/checkbox sin <fieldset><legend>: el lector no anuncia el grupo.",
+   "other": "{n} grupos de radio/checkbox sin <fieldset><legend>: los lectores no anuncian la pregunta común (1.3.1)."
+  },
   "fieldset_missing_rem": "Envuelve los grupos en <fieldset><legend>Pregunta común</legend>…</fieldset> (1.3.1): sin esto, cada radio se anuncia suelto sin contexto.",
-  "financial_no_confirm": "{n} formulario(s) financiero(s)/legal(es) sin paso de confirmación detectable (3.3.4).",
+  "financial_no_confirm": {
+   "one": "1 formulario financiero/legal sin paso de confirmación detectable (3.3.4).",
+   "other": "{n} formulario(s) financiero(s)/legal(es) sin paso de confirmación detectable (3.3.4)."
+  },
   "financial_no_confirm_rem": "Los envíos con consecuencias legales/financieras deben ser reversibles, verificados o confirmados (3.3.4): checkbox de términos, botón \"Revisar y confirmar\", o paso de revisión.",
   "forced_colors_svg": "{n} SVG con fill coloreado hardcoded: en forced-colors (Windows High Contrast) el fill cae al heredado y el icono puede volverse invisible.",
   "forced_colors_svg_rem": "Usa fill=\"currentColor\" (hereda el color del texto que el sistema ya ajusta) o fuerza los keywords del sistema (CanvasText).",
@@ -65,16 +92,28 @@
   "help_inconsistent_rem": "Si la ayuda aparece en varias páginas, debe aparecer en el mismo orden relativo y de forma consistente (3.2.6, nuevo en 2.2): mismo menú, misma ubicación.",
   "iframe_title": "{n} <iframe> sin title accesible.",
   "iframe_title_rem": "Añade title descriptivo al iframe (lo anuncian los lectores al llegar a él).",
-  "images_of_text": "{n} imágenes que parecen ser texto renderizado (alt muy largo{ej2}). Revisar (1.4.5).",
+  "images_of_text": {
+   "one": "1 imagen sospechosa de texto (1.4.5): {ej2}",
+   "other": "{n} imágenes que parecen ser texto renderizado (alt muy largo{ej2}). Revisar (1.4.5)."
+  },
   "images_of_text_rem": "Salvo logotipos, presenta el texto como texto real (1.4.5): se re escala, se re-fluye y se traduce; una imagen no.",
   "overlay_widgets_note": "Se ha detectado un widget de accesibilidad de terceros (overlay; véase overlay_widgets). Un overlay no hace accesible un sitio — véase el Overlay Fact Sheet comunitario (overlayfactsheet.com). Se informa como dato para la diligencia de compra, no como hallazgo WCAG.",
-  "img_no_alt": "{n} <img> sin atributo alt (ni siquiera alt=\"\").",
+  "img_no_alt": {
+   "one": "1 <img> sin atributo alt (ni siquiera alt=\"\").",
+   "other": "{n} <img> sin atributo alt (ni siquiera alt=\"\")."
+  },
   "img_no_alt_rem": "Añade alt a cada <img>: texto descriptivo si aporta información, alt=\"\" si es decorativa. En <input type=\"image\"> y <area> es igual de obligatorio.",
-  "canvas_no_accessible_layer": "{n} <canvas> sin capa accesible estática (sin aria-label/labelledby/title/role ni texto de reserva dentro).",
+  "canvas_no_accessible_layer": {
+   "one": "1 <canvas> sin capa accesible estática (sin aria-label/labelledby/title/role ni texto de reserva).",
+   "other": "{n} <canvas> sin capa accesible estática (sin aria-label/labelledby/title/role ni texto de reserva dentro)."
+  },
   "canvas_no_accessible_layer_rem": "Dale a cada canvas una capa accesible: aria-label o role=\"img\" con nombre, más texto de reserva dentro de la etiqueta; para gráficos, los datos como tabla o resumen es el arreglo fuerte. Filtro estático: si la librería de gráficos inyecta la capa al renderizar, el pase rendered es el juez.",
   "chart_no_data_equivalent": "{n} gráfico CON nombre no expone equivalente de datos visible para la máquina (sin aria-details/aria-describedby resolubles, sin tabla cerca).",
   "chart_no_data_equivalent_rem": "Un gráfico que lleva datos necesita esos datos en texto: enlaza la tabla o descripción larga con aria-details o aria-describedby, o coloca una tabla real junto al gráfico. Hallazgo de REVISIÓN: si los datos viven en la prosa cercana puede pasar — juzga la zona.",
-  "input_img_alt": "<input type=\"image\"> sin alt (botón gráfico sin nombre).",
+  "input_img_alt": {
+   "one": "1 <input type=\"image\"> sin atributo alt.",
+   "other": "<input type=\"image\"> sin alt (botón gráfico sin nombre)."
+  },
   "input_img_alt_rem": "Añade alt descriptivo al input type=\"image\" (es su nombre accesible), o sustitúyelo por <button> con texto o <input type=\"submit\" value=\"…\">.",
   "label_in_name": "{n} controles cuyo aria-label no contiene el texto visible («{example}»): quien dicta por voz dice lo que ve (2.5.3).",
   "label_in_name_rem": "El nombre accesible debe CONTENER la etiqueta visible: «Ofertas de verano (abre en ventana nueva)», no «Más info». Sustituye el aria-label por texto visible + sufijo.",
@@ -99,9 +138,15 @@
   "motion_actuation_rem": "Lo que se activa moviendo el dispositivo debe poder activarse también con UI (botón) y desactivarse (2.5.4).",
   "motion_moving": "{n} contenidos en movimiento/bucle sin control de pausa visible: {example}. Revisar (2.2.2).",
   "motion_moving_rem": "Contenido que se mueve/parpadea >5 s necesita un mecanismo de pausa/parada (2.2.2): <marquee> no tiene ninguno; las animaciones en bucle, tampoco por defecto.",
-  "multi_h1": "{n} <h1> en la página (máximo recomendado: 1).",
+  "multi_h1": {
+   "one": "1 <h1> en la página es lo correcto; más de uno no se recomienda.",
+   "other": "{n} <h1> en la página (máximo recomendado: 1)."
+  },
   "multi_h1_rem": "Conserva un solo h1 (título de la página) y baja el resto un nivel.",
-  "multi_label": "{n} campos con más de un <label for> asociado.",
+  "multi_label": {
+   "one": "1 campo con varios labels asociados; el lector puede leerlos concatenados o pelearse.",
+   "other": "{n} campos con más de un <label for> asociado."
+  },
   "multi_label_rem": "Un campo, una etiqueta: los lectores anuncian los labels concatenados. Agrupa el texto en uno.",
   "nav_inconsistent": "La navegación repetida cambia entre páginas del sitio ({example}) (3.2.3).",
   "nav_inconsistent_rem": "Los mecanismos de navegación repetidos deben aparecer en el mismo orden relativo en todas las páginas (3.2.3): plantilla común.",
@@ -117,7 +162,10 @@
   "no_status_regions_rem": "Añade role=\"status\" o aria-live=\"polite\" para toasts, confirmaciones de guardado, resultados de búsqueda (4.1.3).",
   "orientation_lock": "Bloqueo de orientación detectado: {example}. Revisar (1.3.4).",
   "orientation_lock_rem": "El contenido no debe bloquearse a una orientación salvo excepción demostrable (1.3.4): elimina screen.orientation.lock() y los media queries que fuercen una sola orientación.",
-  "placeholder_only": "{n} campos con placeholder como única etiqueta (sin <label>): {example}. El placeholder desaparece al teclear (3.3.2).",
+  "placeholder_only": {
+   "one": "1 campo usando el placeholder como única etiqueta (sin <label>): {example}. El placeholder desaparece al escribir.",
+   "other": "{n} campos con placeholder como única etiqueta (sin <label>): {example}. El placeholder desaparece al teclear (3.3.2)."
+  },
   "placeholder_only_rem": "El placeholder NO es una etiqueta: añade <label for=\"id\"> visible. El placeholder desaparece al empezar a escribir y los lectores no siempre lo anuncian (3.3.2).",
   "reduced_motion_ignored": "{n} animaciones en bucle siguen moviéndose con prefers-reduced-motion activo (antes {n}, ahora {nr}): la preferencia del usuario se ignora (2.2.2).",
   "reduced_motion_ignored_rem": "Envuelve las animaciones en @media (prefers-reduced-motion: reduce) { animation: none } — o paúsala con la API Animation. El usuario pidió menos movimiento; respóndelo.",
@@ -128,7 +176,7 @@
   "role_unknown": "{n} roles ARIA desconocidos: {example}. Los lectores los ignoran.",
   "role_unknown_rem": "Usa roles de la especificación ARIA (button, dialog, navigation…) o elimina el atributo y confía en el HTML semántico.",
   "same_name_links": {
-   "one": "1 par de enlaces con idéntico texto y destinos distintos.",
+   "one": "1 nombre de enlace resuelve a destinos distintos — comprueba que el contexto lo desambigüe.",
    "other": "{n} pares de enlaces con idéntico texto y destinos distintos."
   },
   "same_name_links_rem": "Diferencia los nombres (o unifica el destino): «Informes» ×3 con tres URLs distintas es un problema para quien navega por lista de enlaces.",
@@ -137,7 +185,10 @@
   "sensory_text_rem": "No instruyas por posición/forma/color solos («el botón de la derecha»): nombra las cosas (1.3.3).",
   "tabindex_pos": "{n} elementos con tabindex positivo (modifica el orden natural).",
   "tabindex_pos_rem": "Usa tabindex=\"0\" o elimina el atributo: el orden de tabulación debe seguir al DOM.",
-  "table_no_th": "{n} <table> sin celdas <th>.",
+  "table_no_th": {
+   "one": "1 <table> sin celdas <th>.",
+   "other": "{n} <table> sin celdas <th>."
+  },
   "table_no_th_rem": "Marca encabezados de fila/columna con <th> (y scope) para que el lector asocie celdas.",
   "text_spacing_clip": "{n} textos recortados al aplicar los espaciados de 1.4.12 (line-height 1.5, letter 0.12em): revisar.",
   "text_spacing_clip_rem": "El contenido debe sobrevivir a los overrides de espaciado de texto sin recortarse: sustituye alturas fijas por min-height (1.4.12).",
@@ -145,15 +196,29 @@
   "title_generic_rem": "Un título único por página: contenido + sitio («Contacto — MaisMedia»), nunca «Untitled», «Inicio» o «Documento».",
   "title_missing": "La página no tiene <title> con contenido.",
   "title_missing_rem": "Escribe un <title> único y descriptivo por página (primer anuncio del lector, texto de la pestaña).",
-  "video_autoplay": "{n} medios con autoplay (audio >3s sin control para pararlo).",
+  "video_autoplay": {
+   "one": "1 elemento de medios con autoplay (audio >3s sin forma de pararlo).",
+   "other": "{n} medios con autoplay (audio >3s sin control para pararlo)."
+  },
   "video_autoplay_rem": "Quita autoplay o añade muted + control visible de pausa/parada (1.4.2): el audio que arranca solo desordena a quien usa lector de pantalla.",
-  "video_captions": "{n} <video> sin <track kind=\"captions\">.",
+  "video_captions": {
+   "one": "1 <video> sin <track kind=\"captions\">.",
+   "other": "{n} <video> sin <track kind=\"captions\">."
+  },
   "video_captions_rem": "Publica subtítulos para el audio del vídeo (1.2.2). Si es decorativo y sin audio, márcalo como tal.",
   "zoom_max": "El viewport limita el zoom (maximum-scale={v}; se recomienda no limitar o ≥2).",
   "zoom_max_rem": "Elimina maximum-scale del viewport o déjalo en 2 o más, para que se pueda agrandar la letra (1.4.4).",
   "zoom_no": "El viewport bloquea el zoom del usuario (user-scalable=no/0).",
   "zoom_no_rem": "Elimina user-scalable=no y maximum-scale: el zoom es un derecho del usuario (1.4.4).",
-  "rendered_reason": "requiere la auditoría renderizada (a11y_audit_dom / a11ytoolkit dom): estilos computados, cascada, var(), layout real"
+  "rendered_reason": "requiere la auditoría renderizada (a11y_audit_dom / a11ytoolkit dom): estilos computados, cascada, var(), layout real",
+  "err_unparseable": "HTML no analizable: {e}",
+  "err_too_big": "HTML de más de {mb} MB",
+  "err_not_html": "la URL no devuelve HTML (Content-Type: {ct})",
+  "role_no_tabindex": {
+   "one": "1 elemento con rol interactivo (button/link) sin tabindex: inalcanzable por teclado (el JS puede añadirlo en runtime — el pase rendered confirma).",
+   "other": "{n} elementos con rol interactivo (button/link) sin tabindex: inalcanzables por teclado (el JS puede añadirlo en runtime — el pase rendered confirma)."
+  },
+  "role_no_tabindex_rem": "Añade tabindex=\"0\" a todo elemento con role=\"button\"/\"link\", más manejo de Enter/Espacio — o usa el elemento nativo <button>/<a href>."
  },
  "badge": {
   "name": "a11y-toolkit",
@@ -432,7 +497,7 @@
   "pdf_form_no_label": "{n} de {m} campos de formulario sin etiqueta accesible (/TU): el lector de pantalla anuncia el nombre técnico, o nada.",
   "pdf_form_no_label_rem": "Da a cada campo su /TU (el tooltip — lo que anuncia el lector de pantalla): en Acrobat, propiedades del campo → General → Texto de herramientas; en LibreOffice, el nombre del control.",
   "pdf_low_contrast": "{n} fragmentos de texto con color de relleno cercano al fondo (ratio < 4.5): el PDF no tiene cascada — el color actual lo fija el operador `rg` antes del Tj, y es medible. Ejemplos: {example}.",
-  "pdf_low_contrast_rem": "Sube el contraste del texto: en PDF el fondo por defecto es blanco si nadie lo pinta. m viewed con veraPDF/acrobat para confirmar el fondo real.",
+  "pdf_low_contrast_rem": "Sube el contraste del texto: en PDF el fondo por defecto es blanco si nadie lo pinta. Compruébalo con veraPDF/Acrobat para confirmar el fondo real.",
   "pdf_no_alt": "árbol etiquetado con imágenes pero 0 entradas /Alt: los gráficos son opacos (1.1.1).",
   "pdf_no_alt_rem": "Añade texto alternativo a las figuras al exportar/remediar.",
   "pdf_no_lang": "sin /Lang: los lectores no saben en qué idioma pronunciar (3.1.1 en documentos).",

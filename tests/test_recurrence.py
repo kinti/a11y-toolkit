@@ -80,4 +80,48 @@ with open(outf, encoding='utf-8') as f:
     assert json.load(f)['build'] == {'commit': 'abc'}
 print('7. CLI --build string/JSON ✓')
 
-print('OK test_recurrence: 7 checks')
+# ── 8. (2026-11) resoluciones persistentes: no se evaporan tras un audit
+#        limpio adicional — la evidencia de cuándo se arregló sobrevive ──────
+from a11y_toolkit.a11yledger import gaps, summary  # noqa: E402
+
+tmp2 = os.path.join(tempfile.mkdtemp(), 'ledger2.json')
+FIX_URL = 'https://fix.example'
+e1 = record(FIX_URL, {'score': 70, 'mode': 'static',
+                      'findings': [{'signal': 'img_no_alt', 'severity': 'high'}]},
+            path=tmp2)
+e2 = record(FIX_URL, {'score': 100, 'mode': 'static', 'findings': []}, path=tmp2)
+assert e2['resolved_signals'] == ['img_no_alt'], e2
+_first_date = e2['resolutions']['img_no_alt']['resolved_on']
+e3 = record(FIX_URL, {'score': 100, 'mode': 'static', 'findings': []}, path=tmp2)
+# ANTES: e3 recalculaba contra e2 (limpio) → resolved_signals vacío y la
+# resolución se olvidaba; AHORA persiste con su fecha ORIGINAL
+assert e3['resolved_signals'] == ['img_no_alt'], e3
+assert e3['resolutions']['img_no_alt']['resolved_on'] == _first_date
+assert e3['resolutions']['img_no_alt']['seen_count'] == 2
+assert summary(path=tmp2)['total_resolved'] == 1
+# y si la señal VUELVE, la resolución caduca (honestidad en los dos sentidos)
+e4 = record(FIX_URL, {'score': 70, 'mode': 'static',
+                      'findings': [{'signal': 'img_no_alt', 'severity': 'high'}]},
+            path=tmp2)
+assert e4['resolved_signals'] == [] and e4['active_signals'] == ['img_no_alt']
+print('8. resolución persiste con fecha original; recaída la caduca ✓')
+
+# ── 9. (2026-11) gaps sobre URL auditada: el complemento A/AA real ───────────
+record(FIX_URL, {'score': 70, 'mode': 'static',
+                 'findings': [{'signal': 'img_no_alt', 'severity': 'high'},
+                              {'signal': 'kbd_trap', 'severity': 'high'}]},
+       path=tmp2)
+g = gaps(FIX_URL, path=tmp2)
+assert g['status'] == 'audited'
+assert g['criteria_with_signal'] == ['1.1.1', '2.1.2'], g
+assert isinstance(g['criteria_without_signal'], list) and g['criteria_without_signal']
+assert '1.1.1' not in g['criteria_without_signal']      # señalada → cubierta
+assert '2.1.2' not in g['criteria_without_signal']
+assert '1.4.3' in g['criteria_without_signal']          # nunca señalada → gap
+assert len(g['criteria_without_signal']) == 55 - 2      # catálogo A/AA completo
+assert 'criteria_without_signal' in g['note']           # documentado en la salida
+gn = gaps('https://never.example', path=tmp2)
+assert gn['status'] == 'never_audited' and isinstance(gn['criteria_without_signal'], int)
+print(f"9. gaps auditada: {len(g['criteria_without_signal'])} criterios sin señal ✓")
+
+print('OK test_recurrence: 9 checks')

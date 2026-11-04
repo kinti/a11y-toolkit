@@ -109,4 +109,146 @@ with tempfile.TemporaryDirectory() as tmp:
         assert budget_main(['--budget', bpath, '--snapshot', s2]) == 2   # added → blocked
 print('11. CLI --init-snapshot / --snapshot exit 0 / 2 ✓')
 
-print('OK test_budget_structural: 11 checks')
+# --- 12. (2026-11) --snapshot contra un presupuesto NO estructural → error
+#         limpio exit 1 (antes: KeyError 'ok' con traceback) ---
+from a11y_toolkit.a11ybudget import _CLI_MSG  # noqa: E402
+
+with tempfile.TemporaryDirectory() as tmp:
+    classic = {'url': 'https://web', 'signals': ['img_no_alt'],
+               'blocking': ['high'], 'max_new': 0}
+    cpath, spath = os.path.join(tmp, 'c.json'), os.path.join(tmp, 's.json')
+    with open(cpath, 'w', encoding='utf-8') as f:
+        json.dump(classic, f)
+    with open(spath, 'w', encoding='utf-8') as f:
+        json.dump(SNAP, f)
+    buf = io.StringIO()
+    with contextlib.redirect_stdout(buf):
+        code = budget_main(['--budget', cpath, '--snapshot', spath])
+    assert code == 1, code                       # error de uso, no KeyError
+    assert 'not a structural budget' in buf.getvalue()
+    # y un snapshot malformado con presupuesto estructural: mismo trato
+    bpath = os.path.join(tmp, 'b.json')
+    with open(bpath, 'w', encoding='utf-8') as f:
+        json.dump(init_structural(SNAP), f)
+    with open(spath, 'w', encoding='utf-8') as f:
+        json.dump({'foo': 1}, f)
+    buf = io.StringIO()
+    with contextlib.redirect_stdout(buf):
+        code = budget_main(['--budget', bpath, '--snapshot', spath])
+    assert code == 1 and 'not a snapshot' in buf.getvalue()
+print('12. --snapshot con input equivocado → error limpio exit 1 ✓')
+
+# --- 13. (2026-11) --init con stdin vacío no-tty: mensaje accionable, exit 1 ---
+assert set(_CLI_MSG) == {'es', 'en'} and set(_CLI_MSG['en']) == set(_CLI_MSG['es'])
+_old_stdin, sys.stdin = sys.stdin, io.StringIO('')   # isatty() → False
+try:
+    buf = io.StringIO()
+    with contextlib.redirect_stdout(buf):
+        code = budget_main(['--init'])
+finally:
+    sys.stdin = _old_stdin
+assert code == 1, code
+assert 'stdin' in buf.getvalue() and 'a11ytoolkit audit' in buf.getvalue()
+print('13. --init stdin vacío → qué esperar + exit 1, sin traceback ✓')
+
+# ── regresiones CLI/robutez de datos cruzadas (2026-11) ──────────────────────
+# Mismo patrón de bug (input hostil → traceback o exit 0 mentiroso) en los
+# módulos hermanos; herméticas todas (monkeypatch / datos sintéticos).
+
+# --- 14. a11yscroll: carga fallida → exit 1, no 0 (un gate CI no puede
+#         seguir tras un error de carga) ---
+from a11y_toolkit import a11yscroll  # noqa: E402
+
+_orig_scroll = a11yscroll.audit_scroll
+a11yscroll.audit_scroll = lambda *a, **k: {'error': 'could not load: boom'}
+try:
+    buf = io.StringIO()
+    with contextlib.redirect_stdout(buf):
+        code = a11yscroll.main(['https://dead.example'])
+finally:
+    a11yscroll.audit_scroll = _orig_scroll
+assert code == 1 and 'error' in buf.getvalue(), (code, buf.getvalue())
+print('14. a11yscroll carga fallida → exit 1 ✓')
+
+# --- 15. a11ywcagem: pack manual con status desconocido → ValueError limpio;
+#          "effort": null no revienta el agregado ---
+from a11y_toolkit import a11ywcagem  # noqa: E402
+
+_PLAN = {'product': {'name': 'X'}, 'conformance_target': 'WCAG 2.2 AA',
+         'sample': [{'id': 's1', 'type': 'structured', 'url': 'https://x'}]}
+
+
+def _hand(status, effort):
+    return {'format': 'a11y-evidence-pack/2', 'sha256': '0' * 64,
+            'criteria': [{'criterion': '1.1.1 Non-text Content',
+                          'status': status, 'effort': effort}]}
+
+
+try:
+    a11ywcagem.aggregate(_PLAN, [_hand('probably-fine', None)])
+    raise SystemExit('status desconocido debía lanzar ValueError')
+except ValueError as e:
+    assert 'probably-fine' in str(e) and 'valid statuses' in str(e), str(e)
+rep_null = a11ywcagem.aggregate(_PLAN, [_hand('not-flagged', None)])
+assert rep_null['criteria'][0]['status'] == 'not-flagged'
+rep_ok = a11ywcagem.aggregate(_PLAN, [_hand('automated-review',
+                                            {'class': 'MIN', 'minutes': [1, 3]})])
+assert rep_ok['effort_pending']['MIN'] == 1 and rep_ok['criteria'][0]['status'] == 'automated-review'
+print('15. wcagem: status desconocido → ValueError accionable; effort null ok ✓')
+
+# --- 16. corpus: README sellado en el manifiesto + JSONL hostil no tumba el
+#          evaluate (invalid_lines declarado en el resultado) ---
+from a11y_toolkit import a11ycorpus  # noqa: E402
+
+with tempfile.TemporaryDirectory() as cdir:
+    m = a11ycorpus.build(version='2026.11.0', seeds=(7,), n_per_seed=3,
+                         out=cdir, date='2026-11-04')
+    assert 'README.md' in m['files'], 'el contrato de sumisión debe ir sellado'
+    ok, detail = a11ycorpus.verify(cdir)
+    assert ok, detail
+    # determinismo con el README sellado: misma ubicación-independencia
+    cdir2 = tempfile.mkdtemp()
+    m2 = a11ycorpus.build(version='2026.11.0', seeds=(7,), n_per_seed=3,
+                          out=cdir2, date='2026-11-04')
+    assert m2['sha256'] == m['sha256'], 'el sello no puede depender de la ruta'
+    import shutil as _sh  # noqa: E402
+    _sh.rmtree(cdir2)
+    # README manipulado con manifiesto QUE LO SELLÓ → verify False (hash)
+    with open(os.path.join(cdir, 'README.md'), 'a', encoding='utf-8') as f:
+        f.write('\ntampered')
+    ok, detail = a11ycorpus.verify(cdir)
+    assert not ok and 'README.md' in detail, detail
+    # manifiesto LEGADO (sin fila README) + README en disco → fallo declarado
+    import hashlib as _h  # noqa: E402
+    a11ycorpus.build(version='2026.11.0', seeds=(7,), n_per_seed=3,
+                     out=cdir, date='2026-11-04')   # restaura el corpus
+    mpath = os.path.join(cdir, 'MANIFEST.json')
+    man = json.load(open(mpath, encoding='utf-8'))
+    man['files'].pop('README.md')
+    man['sha256'] = _h.sha256(a11ycorpus._canon(
+        {k: v for k, v in man.items() if k != 'sha256'}).encode('utf-8')).hexdigest()
+    with open(mpath, 'w', encoding='utf-8') as f:
+        json.dump(man, f, ensure_ascii=False, indent=1, sort_keys=True)
+    ok, detail = a11ycorpus.verify(cdir)
+    assert not ok and 'NOT sealed' in detail, detail
+    # JSONL mixto válido/corrupto → evaluate responde con invalid_lines
+    a11ycorpus.build(version='2026.11.0', seeds=(7,), n_per_seed=3,
+                     out=cdir, date='2026-11-04')   # manifiesto sano otra vez
+    sub = os.path.join(cdir, 'sub.jsonl')
+    with open(sub, 'w', encoding='utf-8') as f:
+        f.write('{"case_id": "m7-0", "criteria_found": ["1.1.1"]}\n'
+                '{"case_id": "m7-1", criteria_broken\n'
+                '{"case_id": "m7-2", "criteria_found": ["1.1.1"]}\n')
+    entries, invalid = a11ycorpus._read_submission(sub)
+    assert len(entries) == 2 and invalid and invalid['count'] == 1
+    assert invalid['example'].startswith('line 2:')
+    res = a11ycorpus.evaluate(entries, cdir, submission_name='sub.jsonl')
+    assert res['mutants'] == 3 and 'invalid_lines' not in res  # API directo: limpio
+    buf = io.StringIO()
+    with contextlib.redirect_stdout(buf):
+        code = a11ycorpus.main(['evaluate', '--submission', sub, cdir])
+    out = json.loads(buf.getvalue())
+    assert code == 0 and out['invalid_lines']['count'] == 1, out
+print('16. corpus: README sellado + JSONL hostil declarado, sin crash ✓')
+
+print('OK test_budget_structural: 16 checks')

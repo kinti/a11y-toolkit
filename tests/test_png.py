@@ -101,3 +101,24 @@ peq = sample_rgb(10, 10, white, parse_color('#000000'))
 assert 'worst_zone' not in peq and peq['worst_ratio'] == 21.0
 
 print('PNG + muestreo OK ✓ (decodificador puro, filtros 0-4, paleta/gris/RGBA, exclusión de text)')
+
+# 10. color type 4 (gris+alfa): antes caía en la rama RGBA → IndexError;
+# ahora ValueError claro (mismo estilo que bit depth / color type)
+ihdr4 = struct.pack('>IIBBBBB', 1, 1, 8, 4, 0, 0, 0)
+png4 = sig + _chunk(b'IHDR', ihdr4) + _chunk(b'IDAT', zlib.compress(b'\x00\x00\x80')) + _chunk(b'IEND', b'')
+try:
+    decode_png(png4)
+    raise AssertionError('ct 4 debería fallar con ValueError')
+except ValueError as e:
+    assert '4' in str(e), e
+
+# 11. entrelazado Adam7 (byte interlace del IHDR, antes nunca se leía):
+# ValueError claro, no IndexError
+ihdr_i = struct.pack('>IIBBBBB', 1, 1, 8, 2, 0, 0, 1)
+png_i = sig + _chunk(b'IHDR', ihdr_i) + _chunk(b'IDAT', zlib.compress(b'\x00\x00\x00')) + _chunk(b'IEND', b'')
+try:
+    decode_png(png_i)
+    raise AssertionError('interlaced debería fallar con ValueError')
+except ValueError as e:
+    assert 'interlac' in str(e).lower(), e
+print('10-11. PNG ct 4 e interlaced → ValueError claro ✓')

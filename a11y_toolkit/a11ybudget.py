@@ -45,6 +45,20 @@ import json
 from .a11yaudit import normalize_signal  # noqa: E402  (compat 5.10)
 import sys
 
+# mensajes CLI bilingües (patrón _labels): el stdin de --init espera el JSON
+# del informe de auditoría — un input vacío/corrupto debe decir QUÉ espera,
+# no tronar con un traceback
+_CLI_MSG = {
+    'es': {'stdin_json': ('stdin no contiene un JSON de informe válido — '
+                          'esperado: la salida de `a11ytoolkit audit` '
+                          '(p. ej. {"url": …, "score": …, "findings": […]}) '
+                          'por tubería, o usa --audit fichero.json')},
+    'en': {'stdin_json': ('stdin is not a valid audit-report JSON — expected: '
+                          'the output of `a11ytoolkit audit` (e.g. {"url": …, '
+                          '"score": …, "findings": […]}), or pass '
+                          '--audit report.json instead')},
+}
+
 
 def init(audit):
     """Informe (o site) → fichero de presupuesto inicial."""
@@ -203,7 +217,14 @@ def main(argv):
     if a.init:
         inform = None
         if not sys.stdin.isatty():
-            inform = json.loads(sys.stdin.read())
+            try:
+                inform = json.loads(sys.stdin.read())
+            except json.JSONDecodeError:
+                # stdin vacío/corrupto (no-tty): decir qué se espera, no un
+                # traceback — el JSON del informe, con la forma de arriba
+                print(json.dumps({'error': _CLI_MSG['en']['stdin_json']},
+                                 ensure_ascii=False))
+                return 1
         elif a.audit:
             with open(a.audit, encoding='utf-8') as f:
                 inform = json.load(f)
@@ -218,6 +239,11 @@ def main(argv):
         with open(a.snapshot, encoding='utf-8') as f:
             snap = json.load(f)
         verdict = compare_structural(budget, snap)
+        if 'error' in verdict:
+            # presupuesto no-estructural / snapshot malformado: error de USO
+            # limpio (exit 1), no un KeyError 'ok' con traceback
+            print(json.dumps(verdict, ensure_ascii=False, indent=1))
+            return 1
         print(json.dumps(verdict, ensure_ascii=False, indent=1))
         return 0 if verdict['ok'] else 2
     if not (a.audit or a.url):

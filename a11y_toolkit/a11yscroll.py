@@ -205,7 +205,7 @@ def main(argv):
         print(json.dumps({'error': 'Playwright not installed'}))
         return 1
     print(json.dumps(res, ensure_ascii=False, indent=1))
-    return 0
+    return 1 if 'error' in res else 0
 
 
 if __name__ == '__main__':

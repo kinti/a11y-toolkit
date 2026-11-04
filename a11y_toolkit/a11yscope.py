@@ -182,6 +182,25 @@ def build_scope(reports, standard='wcag22', target='web', answers=None,
         from . import a11yrgaa
         criteria = [{'criterion': c['num'] + ' ' + c['title'],
                      'status': 'in-scope'} for c in a11yrgaa.CRITERIA]
+        # las respuestas humanas también aplican a RGAA (antes se descartaban:
+        # counters.excluded siempre 0). La máquina NUNCA propone en rgaa —
+        # solo una respuesta humana mueve filas. La clave puede venir como el
+        # num exacto ('1.1') o con cola de test ('1.1.1'): el num de la fila
+        # es el prefijo — el match con separador evita 1.1 vs 1.10.
+        for key, ans in answers.items():
+            if not isinstance(key, str):
+                continue
+            a = {'status': ans} if isinstance(ans, str) else (
+                ans if isinstance(ans, dict) else None)
+            if not a or a.get('status') not in STATUS_ORDER:
+                continue
+            for row in criteria:
+                num = row['criterion'].split(' ')[0]
+                if key == num or key.startswith(num + '.'):
+                    row['status'] = a['status']
+                    row['evidence_source'] = 'human'
+                    if a.get('reason'):
+                        row['reason'] = str(a['reason'])[:500]
 
     std508_block = None
     if standard == '508':
@@ -191,6 +210,11 @@ def build_scope(reports, standard='wcag22', target='web', answers=None,
         for row in criteria:
             code = row['criterion'].split(' ')[0]
             if row['status'] == 'excluded':
+                continue
+            if row.get('evidence_source') == 'human':
+                # el humano ya habló sobre esta fila (p. ej. un 'in-scope'
+                # explícito): la propuesta de la máquina no la pisa en
+                # NINGUNA dirección — propone solo donde nadie ha hablado
                 continue
             if app['content_exempt']:
                 row['status'] = 'proposed-excluded'
@@ -252,6 +276,14 @@ def build_scope(reports, standard='wcag22', target='web', answers=None,
                 row_f['status_per_target'] = {tg: _status_for(tg) for tg in targets}
             fam_rows.append(row_f)
         scope['en301549_families'] = fam_rows
+        if 'software' in targets:
+            # cláusulas EN-only de la cláusula 11 (11.5-11.7): aplicabilidad
+            # honesta que este motor NO evalúa — revisión humana, jamás una
+            # propuesta (la forma del producto NO las decide, a diferencia de
+            # 6/7/8 en web) y jamás un claim de conformidad
+            scope['en301549_software_clauses'] = [
+                {**row, 'status': 'human-review', 'evaluated_by_toolkit': False}
+                for row in enstd.software_clause_rows(lang)]
     # el sello excluye el reloj: re-emitir el mismo alcance → mismo sha
     scope['sha256'] = _sha256({k: v for k, v in scope.items() if k != 'generated'})
     return scope

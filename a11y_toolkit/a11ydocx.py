@@ -87,7 +87,10 @@ def docx_screen(path, lang='en'):
     for para in re.findall(r'<w:p\b.*?</w:p>', body, re.S):
         if 'w:val="Heading' in para:
             continue
-        has_bold = '<w:b/>' in para or '<w:b ' in para
+        # bold real: <w:b> presente SIN val de apagado explícito (0/false)
+        # — `<w:b w:val="0"/>` es bold-OFF y no cuenta
+        has_bold = any(not re.search(r'w:val="(?:0|false)"', tag)
+                       for tag in re.findall(r'<w:b\b[^>]*>', para))
         m_sz = re.search(r'<w:sz w:val="(\d+)"', para)
         large = bool(m_sz) and int(m_sz.group(1)) >= 28
         text = ''.join(re.findall(r'<w:t[^>]*>([^<]*)</w:t>', para)).strip()
@@ -102,16 +105,15 @@ def docx_screen(path, lang='en'):
     order = {'high': 0, 'medium': 1, 'low': 2}
     findings.sort(key=lambda h: order[h['severity']])
 
-    def score(hs):
-        return max(0, 100 - 25 * sum(1 for h in hs if h['severity'] == 'high')
-                   - 10 * sum(1 for h in hs if h['severity'] == 'medium')
-                   - 5 * sum(1 for h in hs if h['severity'] == 'low'))
+    # misma puntuación que pdf/vtt: compute_score compartido (12/6/2) — los
+    # scores cross-mode son comparables
+    from .a11yaudit import compute_score
 
     return {
         'mode': 'docx', 'file': str(path).rsplit('/', 1)[-1],
         'language': language, 'images': len(docprs),
         'tables': n_tables, 'tables_with_header': n_tblheader,
-        'score': score(findings),
+        'score': compute_score(findings),
         'findings': findings,
         'summary': {s2: sum(1 for h in findings if h['severity'] == s2)
                     for s2 in ('high', 'medium', 'low')},

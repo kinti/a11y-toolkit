@@ -113,6 +113,30 @@ def main():
         check('exit 0, plan written, seal printed',
               r.returncode == 0 and p2.get('sha256', '') == plan['sha256'], r.stderr[-150:])
 
+    print('== 8. Regressions: null pack effort, URL-less redesign collapse')
+    pack_null = {'criteria': [{'criterion': '1.1.1', 'effort': None},
+                              {'criterion': '1.3.1', 'effort': {'minutes': [3, 5]}}]}
+    plan3 = a11yplan.build_plan(REPORT, pack=pack_null)
+    check('null effort does not crash; valid effort still used',
+          plan3['batches'] and isinstance(plan3['total_minutes'], list))
+
+    signals5 = ('tab_order', 'duplicate_id', 'accesskey', 'meta_refresh',
+                'aria_hidden')  # ninguna es INFRA/DESIGN → fase instances
+    rep5 = {'findings': [_f(s, url='') for s in signals5]}
+    plan4 = a11yplan.build_plan(rep5)
+    check('URL-less report with 5 signals stays instances (no empty zone)',
+          plan4['redesign_zones'] == []
+          and len(plan4['batches']) == 5
+          and all(b['phase'] == 'instances' for b in plan4['batches']),
+          str(plan4['redesign_zones']))
+
+    rep6 = {'findings': [_f(s) for s in signals5]}  # mismas señales, CON url
+    plan5 = a11yplan.build_plan(rep6)
+    check('real URL with 5 signals still flags the redesign zone',
+          plan5['redesign_zones'] == ['https://x.test/']
+          and any(b['phase'] == 'redesign-zone' for b in plan5['batches']),
+          str(plan5['redesign_zones']))
+
     print(f"\n{'ALL OK' if not FAILS else 'FAILURES: ' + ', '.join(FAILS)}")
     return 1 if FAILS else 0
 
