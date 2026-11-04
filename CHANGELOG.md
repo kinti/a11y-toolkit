@@ -2,6 +2,21 @@
 
 ## main — pendiente — "external QA 2026-11: engine truth pass"
 
+- **Round 2 (same day, "soluciona todo")**: element paths extended to the
+  attribute-level signals — zoom_no/zoom_max point at the viewport meta,
+  meta_refresh at its meta, field_label/blank_no_warning/tabindex_pos at
+  their elements (bugs.html fixture: 18/27 findings now carry paths, up
+  from 6/27; the rest are page-level or inherently ambiguous — duplicate
+  ids/accesskeys make selectors meaningless by definition). Layout-table
+  heuristic: a `<table>` with presentational-era attributes (width/
+  cellpadding/cellspacing/border) and NO data markers (th, caption,
+  summary, scope, headers) is treated as layout — not flagged under 1.3.1
+  (the classic false positive on 1990s-style sites like Hacker News);
+  with any data marker the th requirement stands. SECURITY.md documents
+  the default private-IP redirect guard. Both READMEs gain the
+  `a11ytoolkit dom` CLI line (the command registered earlier today).
+  Pinned by regression tests (paths per signal, layout-vs-data table).
+
 - **Static engine — 13 false positives and 3 false negatives fixed, every
   one reproduced live before the fix and pinned by a regression test.**
   A page built only from canonical W3C patterns (search landmark,

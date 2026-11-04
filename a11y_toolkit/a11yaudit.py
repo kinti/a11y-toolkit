@@ -335,6 +335,7 @@ class _Auditor(HTMLParser):
         self.autocomplete_elems = []
         self.controls_by_kind = {}          # tag → lista de atributos de controles sin nombre
         self.fields_no_label = []
+        self.fields_no_label_elems = []
         self.iframes_no_title = []
         self.lang = None
         self.lang_region_invalid = None
@@ -348,7 +349,11 @@ class _Auditor(HTMLParser):
         self._heading_text = []
         self._visible_text = []
         self.positive_tabindices = []
+        self.positive_tabindex_elems = []
+        self.blank_no_warning_elems = []   # anchors _blank sin aviso (paths)
         self.viewport = None
+        self._viewport_elem = None          # attrs del meta viewport (path)
+        self._meta_refresh_elems = []       # attrs de cada meta refresh (path)
         self.elements = 0
         # Pila de controles interactivos (a/button/summary) para recoger su
         # texto interno, que es la fuente más habitual de nombre accesible.
@@ -555,6 +560,7 @@ class _Auditor(HTMLParser):
                         and not _BLANK_HINT.search(a.get('title') or '') \
                         and not _BLANK_HINT.search(_img_alts):
                     self.blank_no_warning += 1
+                    self.blank_no_warning_elems.append(a)
             elif (a.get('href') or '').strip().startswith('#') \
                     and len((a.get('href') or '').strip()) > 1 and text:
                 # skip link REAL: ancla interna cuyo objetivo es un landmark o
@@ -701,9 +707,12 @@ class _Auditor(HTMLParser):
         elif tag == 'meta':
             if (a.get('name') or '').lower() == 'viewport':
                 self.viewport = (a.get('content') or '')
+                if not self._viewport_elem:
+                    self._viewport_elem = a
             elif (a.get('http-equiv') or '').lower() == 'refresh':
                 self.meta_refresh = (a.get('content') or '')
                 self.meta_refreshes.append((a.get('content') or ''))
+                self._meta_refresh_elems.append(a)
         elif tag == 'img':
             # la decisión de nombre es POST-parse (nombre accesible = alt u
             # otras fuentes; presentación/none y hiddens quedan fuera)
@@ -860,11 +869,21 @@ class _Auditor(HTMLParser):
             else:
                 self.tables += 1
                 self._in_table = True
+                # sospecha de maquetación (attrs presentacionales de la era
+                # <table width=…>): sin th NI marcadores de datos (caption,
+                # summary, scope, headers) no se exige th — el FP clásico en
+                # sitios años-90 tipo HN; con marcador de datos SÍ se exige
+                _suspect = bool({'cellpadding', 'cellspacing', 'width', 'border'} & set(a))
+                _data = 'summary' in a
                 # pila por tabla anidada: la interna no borra el th de la externa
-                self._table_stack.append((self._th_in_table, a))
+                self._table_stack.append([self._th_in_table, a, _suspect, _data])
                 self._th_in_table = False
         elif tag == 'th':
             self._th_in_table = True
+        elif tag == 'caption' and self._table_stack:
+            self._table_stack[-1][3] = True   # marcador de tabla de DATOS
+        elif tag == 'td' and self._table_stack and ('scope' in a or 'headers' in a):
+            self._table_stack[-1][3] = True   # asociaciones explícitas = datos
         elif tag == 'main' or (a.get('role') or '').lower() == 'main':
             self.hay_main = True
             if a.get('id'):
@@ -1121,6 +1140,7 @@ class _Auditor(HTMLParser):
         ti = a.get('tabindex')
         if ti and ti.isdigit() and int(ti) > 0 and not self._in_template:
             self.positive_tabindices.append((tag, int(ti)))
+            self.positive_tabindex_elems.append(a)
 
     def handle_endtag(self, tag):
         # pila de rutas del kernel: pop normal si casa; si hay anidamiento
@@ -1251,13 +1271,17 @@ class _Auditor(HTMLParser):
                     self.videos_no_caps_elems.append(_vattrs)
         elif tag == 'table':
             if self._table_stack:
-                _th_saved, _tattrs = self._table_stack.pop()
+                _th_saved, _tattrs, _suspect, _data = self._table_stack.pop()
                 # el estado th de ESTA tabla decide; el guardado restaura al
                 # padre (el <th> de una tabla interna no satisface a la externa)
                 if self._th_in_table:
                     self.tables_with_th += 1
-                else:
+                elif _data or not _suspect:
                     self.tables_no_th_elems.append(_tattrs)
+                else:
+                    # maquetación por heurística: fuera del cómputo (ni tables
+                    # ni finding — un grid de la era width= no debe 1.3.1)
+                    self.tables -= 1
                 self._th_in_table = _th_saved
             self._in_table = bool(self._table_stack)
         elif tag == 'th':
@@ -1649,6 +1673,7 @@ def audit_html(html_text, url='(html)', lang='en', standard=None, target=None):
                 or _content_name)
         if not (_has_real_name or _placeholder):
             p.fields_no_label.append((kind or tag, (a.get('name') or '')[:60], a.get('id')))
+            p.fields_no_label_elems.append(a)
     for tag, a, en_label, hidden in p._placeholder_candidates:
         # placeholder como ÚNICO nombre: revisión 3.3.2 (el accname del
         # navegador lo cuenta, pero como etiqueta es débil — se declara)
@@ -1699,7 +1724,9 @@ def audit_html(html_text, url='(html)', lang='en', standard=None, target=None):
     if p.fields_no_label:
         add_ej('high', '3.3.2', 'field_label',
                [f'{t} name={n or "(no name)"}' for t, n, _i in p.fields_no_label],
-               n=len(p.fields_no_label))
+               n=len(p.fields_no_label),
+               paths=[p._elem_paths[id(_a)] for _a in p.fields_no_label_elems
+                      if id(_a) in p._elem_paths][:5])
     if p.stray_clicks:
         add('high', '2.1.1', 'click_nonfocusable',
             n=len(p.stray_clicks), tag=p.stray_clicks[0],
@@ -1755,7 +1782,9 @@ def audit_html(html_text, url='(html)', lang='en', standard=None, target=None):
             except ValueError:
                 allows = v in ('yes', 'true')
             if not allows:
-                add('high', '1.4.4', 'zoom_no')
+                add('high', '1.4.4', 'zoom_no',
+                    paths=([p._elem_paths[id(p._viewport_elem)]]
+                           if p._viewport_elem and id(p._viewport_elem) in p._elem_paths else None))
         m_ms = re.search(r'maximum-scale\s*=\s*([\w.-]+)', p.viewport, re.I)
         if m_ms:
             _v_ms = m_ms.group(1)
@@ -1768,23 +1797,32 @@ def audit_html(html_text, url='(html)', lang='en', standard=None, target=None):
             if blocks:
                 # mismo daño que user-scalable=no (bloquea el zoom del usuario):
                 # misma severidad — ACT b4f0c3 no las distingue
-                add('high', '1.4.4', 'zoom_max', v=_v_ms)
+                add('high', '1.4.4', 'zoom_max', v=_v_ms,
+                    paths=([p._elem_paths[id(p._viewport_elem)]]
+                           if p._viewport_elem and id(p._viewport_elem) in p._elem_paths else None))
     # meta refresh (2.2.1/ACT bc659a): gana el PRIMER meta que parsea según
     # los pasos del HTML (dígitos + ; o , o fin — un «0: url» con dos puntos
     # NO parsea y se salta); 0 segundos = redirección inmediata y > 72000
     # (20 h) quedan EXENTOS
     _mr = None
-    for _content in p.meta_refreshes or ([p.meta_refresh] if p.meta_refresh else []):
+    _mr_elem = None
+    for _idx_mr, _content in enumerate(p.meta_refreshes
+                                       or ([p.meta_refresh] if p.meta_refresh else [])):
         _m = re.match(r'\s*(\d+)\s*(?:[;,]|$)', _content or '')
         if _m:
             _mr = int(_m.group(1))
+            _mr_elem = p._meta_refresh_elems[_idx_mr] if _idx_mr < len(p._meta_refresh_elems) else None
             break
     if _mr is not None and 0 < _mr <= 72000:
-        add('medium', '2.2.1', 'meta_refresh', v=_mr)
+        add('medium', '2.2.1', 'meta_refresh', v=_mr,
+            paths=([p._elem_paths[id(_mr_elem)]]
+                   if _mr_elem and id(_mr_elem) in p._elem_paths else None))
     if p.positive_tabindices:
         add_ej('medium', '2.4.3', 'tabindex_pos',
                [f'{t}[tabindex={i}]' for t, i in p.positive_tabindices],
-               n=len(p.positive_tabindices))
+               n=len(p.positive_tabindices),
+               paths=[p._elem_paths[id(_a)] for _a in p.positive_tabindex_elems
+                      if id(_a) in p._elem_paths][:5])
     # un toggle cuenta como mecanismo de abatido SOLO si la función que
     # invoca colapsa de verdad (su cuerpo, en el script de la página, toca
     # `display`): mover off-screen o aria-hidden no colapsa el bloque (3e12e1)
@@ -1838,7 +1876,9 @@ def audit_html(html_text, url='(html)', lang='en', standard=None, target=None):
             paths=[p._elem_paths[id(_a)] for _a in p.tables_no_th_elems
                    if id(_a) in p._elem_paths][:5])
     if p.blank_no_warning:
-        add('low', '3.2.5', 'blank_no_warning', n=p.blank_no_warning)
+        add('low', '3.2.5', 'blank_no_warning', n=p.blank_no_warning,
+            paths=[p._elem_paths[id(_a)] for _a in p.blank_no_warning_elems
+                   if id(_a) in p._elem_paths][:5])
     dups = sum(1 for _c, k in p.ids.items() if k > 1)
     if dups:
         add_ej('low', '4.1.2', 'dup_ids',

@@ -239,6 +239,7 @@ a11ytoolkit reflow https://mysite                       # reflow 320px
 a11ytoolkit scroll https://medium.com/feed              # scroll infinito
 a11ytoolkit validate --url https://example.com          # W3C Nu
 a11ytoolkit hover https://mysite                        # descartabilidad de tooltips
+a11ytoolkit dom https://mysite                          # auditoría renderizada (contraste, 2.5.8, foco)
 a11ytoolkit fix --file page.html -o fixed.html          # autofix seguro
 a11ytoolkit declaration --entity "Acme" --url https://… --status partial --framework eaa
 a11ytoolkit snapshot https://mysite --out before.json   # antes del deploy

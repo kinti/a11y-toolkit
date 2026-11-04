@@ -338,3 +338,31 @@ r = audit_html(BASE.format('<h1>k</h1><main><button></button></main>'), lang='es
 _i = [h['issue'] for h in r['findings'] if h['signal'] == 'ctrl_name'][0]
 assert '1 <button> sin nombre' in _i, f'plural roto ES: {_i!r}'
 print('revisión externa 2026-11: 13 FP + 3 FN del estático pineados ✓')
+
+# ── ronda 2 (mismo día): paths en señales de atributo + tabla de maquetación ──
+# zoom/meta_refresh/tabindex/blank/field_label llevan SU elemento (annotate)
+r = audit_html(BASE.format('<h1>k</h1><main><input type="tel" name="phone">'
+                           '<a href="/x" target="_blank">no aviso</a>'
+                           '<a href="/y" tabindex="5">orden</a></main>'), lang='en')
+for sig in ('field_label', 'blank_no_warning', 'tabindex_pos'):
+    f = [h for h in r['findings'] if h['signal'] == sig]
+    assert f and f[0].get('paths'), f'{sig} sin paths'
+r = audit_html('<html lang="en"><head><title>t</title><meta name="viewport" '
+               'content="width=device-width, user-scalable=no"></head><body><h1>k</h1>'
+               '<main><p>x</p></main></body></html>')
+f = [h for h in r['findings'] if h['signal'] == 'zoom_no']
+assert f and f[0].get('paths') and 'meta' in f[0]['paths'][0], 'zoom_no sin path al meta'
+
+# tabla de MAQUETACIÓN (attrs presentacionales, sin marcadores de datos): sin
+# 1.3.1 — el FP clásico de los sitios años-90; con marcadores SÍ se exige th
+lay = audit_html(BASE.format('<h1>k</h1><main><table width="100%" cellpadding="0" border="0">'
+                             '<tr><td>Name</td><td>Age</td></tr></table>'
+                             '<table><tr><td>a</td></tr></table></main>'))
+tno = [h for h in lay['findings'] if h['signal'] == 'table_no_th']
+assert len(tno) == 1 and 'table:nth-of-type(2)' in tno[0]['paths'][0], \
+    'la tabla de maquetación no debe acusarse; la de datos sin th sí'
+datos = audit_html(BASE.format('<h1>k</h1><main><table width="100%"><caption>Datos</caption>'
+                               '<tr><td>a</td></tr></table></main>'))
+assert any(h['signal'] == 'table_no_th' for h in datos['findings']), \
+    'con marcador de datos (caption/summary/scope) la tabla SÍ exige th'
+print('ronda 2: paths de atributo + maquetación-vs-datos pineados ✓')
