@@ -2,6 +2,10 @@
 
 ## main — pendiente — "the consulting layer goes private (Tier 1+2)"
 
+- AGENTS.md documents the constellation (the private pro layer, the
+  vendoring products, the frozen draft generators and what they imply for
+  any change here) — the map agents and contributors read first.
+
 - **Founder decision (2026-11-04): the consulting playbook leaves the
   public engine.** Moved to a private repo (`a11y-toolkit-pro`, what our
   SaaS consumes by pin): the Section 508 GSA applicability tree

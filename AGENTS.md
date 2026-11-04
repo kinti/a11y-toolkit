@@ -9,6 +9,27 @@ A zero-dependency (stdlib-only) WCAG 2.2 accessibility engine + MCP server
 (`a11ytoolkit`), and is vendored by a11y.es (production). Zero telemetry is a
 product promise — never add phone-home code.
 
+## The constellation (who consumes this engine)
+
+This is the PUBLIC layer of a 4-repo system (canonical map lives in the
+private `a11y-toolkit-pro/ARCHITECTURE.md`):
+
+- **a11y-toolkit-pro** (private) — the consulting playbook (508 GSA tree,
+  tender annexes, WCAG-EM sampling, remediation planning), extracted from
+  this repo on 2026-11-04 by founder decision. Depends on this engine,
+  never the reverse. Nothing from those modules comes back here.
+- **a11y.es** (private product) — vendors this engine into its Docker
+  image; changes here ship to production via their sync ritual.
+- **Lince/cpa11y** (private product) — pins this engine by commit.
+
+Implications for ANY change here: keep the engine runnable with the pro
+package absent; the conformance DRAFT generators (`a11yvpat`,
+`a11yopenacr`, `a11ystatement`) are a FROZEN layer — maintenance fixes
+only, new conformance capability goes to the SaaS, not here (each carries
+a "FROZEN LAYER" docstring stamp). Severities/messages are calibrated
+against expert review — a change that moves a score is a public behavior
+change and needs its regression test in the same commit.
+
 ## Non-negotiable invariants (all pinned by tests — `make test` runs them)
 
 - `python3 tests/test_solido.py` — es/en message catalogs key-identical, every
