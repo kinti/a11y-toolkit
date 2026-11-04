@@ -696,9 +696,9 @@
  "wiz": {
   "wiz_q_target": "¿Qué estás construyendo?\n  1 = web o aplicación web\n  2 = documentos (PDF/Office)\n  3 = software no web\n  4 = varios de esos\nRespuesta (1-4): ",
   "wiz_q_multi": "¿Cuáles? separa por comas (web,documents,software): ",
-  "wiz_q_std": "¿Qué norma te aplica o te exige tu mercado?\n  1 = WCAG 2.2 (global)\n  2 = EN 301 549 (UE / EAA / Ley 11/2023)\n  3 = Section 508 (EE.UU. federal)\n  4 = RGAA 4.1 (Francia)\nRespuesta (1-4): ",
-  "wiz_done": "Hecho. Alcance: {scope}\nAnexo: {annex}\nNota: {score} · en alcance: {ins} · propuestas fuera: {pro}",
-  "wiz_abort": "No llegó ninguna respuesta — abortado. Todo lo que hace el wizard está disponible como: a11ytoolkit scope --standard … / audit --standard … / --solicitation.",
+  "wiz_q_std": "¿Qué norma te aplica o te exige tu mercado?\n  1 = WCAG 2.2 (global)\n  2 = EN 301 549 (UE / EAA / Ley 11/2023)\n  3 = RGAA 4.1 (Francia)",
+  "wiz_done": "Hecho. Alcance: {scope}\nNota: {score} · en alcance: {ins} · propuestas fuera: {pro}\n(el anexo de pliego y el árbol 508 viven en la capa privada pro)",
+  "wiz_abort": "No llegó ninguna respuesta — abortado. Todo lo que hace el wizard está disponible como: a11ytoolkit scope --standard … / audit --standard … (a11ytoolkit scope --help)",
   "wiz_need_url": "Se necesita una URL (o HTML con --file) para lanzar la auditoría."
  },
  "locate": {

@@ -696,9 +696,9 @@
  "wiz": {
   "wiz_q_target": "What are you building?\n  1 = web site/app\n  2 = documents (PDF/Office)\n  3 = non-web software\n  4 = several of those\nAnswer (1-4): ",
   "wiz_q_multi": "Which ones? comma-separated (web,documents,software): ",
-  "wiz_q_std": "Which standard applies to your market or contract?\n  1 = WCAG 2.2 (global)\n  2 = EN 301 549 (EU / EAA / Ley 11/2023)\n  3 = Section 508 (US federal)\n  4 = RGAA 4.1 (France)\nAnswer (1-4): ",
-  "wiz_done": "Done. Scope: {scope}\nAnnex: {annex}\nScore: {score} · in scope: {ins} · proposed out: {pro}",
-  "wiz_abort": "No input received — aborted. Everything the wizard does is also available as: a11ytoolkit scope --standard … / audit --standard … / --solicitation.",
+  "wiz_q_std": "Which standard applies to your market or contract?\n  1 = WCAG 2.2 (global)\n  2 = EN 301 549 (EU / EAA / Ley 11/2023)\n  3 = RGAA 4.1 (France)",
+  "wiz_done": "Done. Scope: {scope}\nScore: {score} · in scope: {ins} · proposed out: {pro}\n(the tender annex and the 508 tree live in the private pro layer)",
+  "wiz_abort": "No input received — aborted. Everything the wizard does is also available as: a11ytoolkit scope --standard … / audit --standard … (a11ytoolkit scope --help)",
   "wiz_need_url": "A URL (or HTML via --file) is needed to run the audit."
  },
  "locate": {
