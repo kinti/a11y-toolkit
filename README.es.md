@@ -268,6 +268,8 @@ a11ytoolkit audit --url pagina.html --standard en301549        # cláusula EN 30
 a11ytoolkit annotate pagina.html --report r.json -o copia.html # marcas por elemento en copia exacta
 a11ytoolkit locate --file pagina.html --query "Enviar"         # elemento por nombre accesible → ruta selector
 a11ytoolkit patches --file pagina.html -o patches.json         # registro sellado de arreglos (verificar con --verify)
+a11ytoolkit journey friccion.json -o veredicto.json           # journey a ciegas: registro de friccion -> veredicto puntuable
+a11ytoolkit scope auditoria.json --standard en301549 -o alcance.json  # aplicabilidad con clausulas EN, confirmado por una persona
 a11ytoolkit criteria --list --level AA --new-in 2.2            # el Quick Ref offline, filtrable
 a11ytoolkit wizard --url https://client.web --lang es          # guiado: 3 preguntas → norma, auditoría, alcance
 a11ytoolkit corpus verify corpus                               # el corpus congelado, verificado

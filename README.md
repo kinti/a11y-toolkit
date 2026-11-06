@@ -259,6 +259,8 @@ a11ytoolkit audit --url page.html --standard en301549          # EN 301 549 clau
 a11ytoolkit annotate page.html --report r.json -o marked.html  # per-element marks on a byte-exact copy
 a11ytoolkit locate --file page.html --query "Submit"           # element by accessible name → route selector
 a11ytoolkit patches --file page.html -o patches.json           # sealed fix record (verify with --verify)
+a11ytoolkit journey friction.json -o verdict.json             # blindfold journey: friction log -> scored verdict
+a11ytoolkit scope audit.json --standard en301549 -o scope.json  # applicability scope, EN clauses, human-confirmed
 a11ytoolkit criteria --list --level AA --new-in 2.2            # the offline Quick Ref, filterable
 a11ytoolkit wizard --url https://client.web --lang es          # guided: 3 questions → standard, audit, scope, annex
 a11ytoolkit corpus verify corpus                  # the frozen corpus, verified

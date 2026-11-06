@@ -1,6 +1,6 @@
 # Changelog
 
-## main — pendiente — "the consulting layer goes private (Tier 1+2)"
+## 5.27.0 — 2026-11-06 — "the ladder: annotate, trace, locate, seal"
 - **`financial_no_confirm` recognizes the Spanish confirmation-checkbox
   pattern** (found by eating our own cooking: the Action flagged a11y.es
   forms that DO have an enforced review checkbox named `confirmo`): the

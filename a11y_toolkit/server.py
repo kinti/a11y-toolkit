@@ -97,7 +97,7 @@ try:
 except ImportError:
     ARIALIVE_JS = None  # repo checkout: read the file
 
-VERSION = '5.26.0'
+VERSION = '5.27.0'
 
 # Params renombrados a inglés en 5.11.0; se aceptan los nombres previos.
 PARAM_ALIASES = {
