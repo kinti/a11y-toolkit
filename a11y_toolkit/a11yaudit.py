@@ -1042,7 +1042,11 @@ class _Auditor(HTMLParser):
             # checkbox de términos
         if tag == 'input' and a.get('type') == 'checkbox':
             nm = (a.get('name') or '').lower()
-            if re.search(r'terms|accept|agree|terminos|aceptar|legal|privacy', nm):
+            # el patrón español más común («confirmo», «revisado») era
+            # invisible para un regex anglocéntrico: una casilla de
+            # confirmación/revisión ES un paso de revisión (3.3.4)
+            if re.search(r'terms|accept|agree|terminos|aceptar|legal|privacy'
+                         r'|confirm|revisado|revisar', nm):
                 self._confirm_form = True
         if a.get('draggable') and (a.get('draggable') or '').lower() != 'false':
             if not a.get('onclick') and tag not in ('input', 'button'):

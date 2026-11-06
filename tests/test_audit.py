@@ -434,3 +434,17 @@ q2 = audit_html(junk, lang='es')
 qq = [h for h in q2['findings'] if h['signal'] == 'alt_quality'][0]
 assert 'imágenes' in qq['issue'] and qq['remediation'] != q['remediation']
 print('alt_quality: es/en con mismo n y remediation propia ✓')
+
+# ── 3.3.4: el detector reconoce el patrón español de casilla confirmación ──
+def _fin(html):
+    r = audit_html(html)
+    return any(h['signal'] == 'financial_no_confirm' for h in r['findings'])
+
+base = ('<html lang="es"><head><title>t</title></head><body><main>'
+        '<form action="/billing_checkout">{}</form></main></body></html>')
+assert _fin(base.format('<input type="checkbox" name="loquesea"> marca'))
+for nombre in ('confirmo', 'confirmar_datos', 'revisado'):
+    assert not _fin(base.format(
+        f'<input type="checkbox" name="{nombre}" required> ok')), nombre
+assert _fin(base.format('<button>Enviar</button>')), 'sin casilla sigue acusando'
+print('financial_no_confirm: casillas confirmo/confirmar/revisado satisfacen; irrelevante no ✓')
