@@ -382,3 +382,55 @@ assert not any(h['signal'] == 'ctrl_name' for h in r['findings'])
 r = audit_html(BASE.format('<h1>k</h1><main><button><svg aria-hidden="true"></svg></button></main>'))
 assert any(h['signal'] == 'ctrl_name' for h in r['findings'])
 print('ronda 4: svg-child aria-label nombra el control (W3C WAI live) ✓')
+
+# ── alt_quality (1.1.1): alt presente pero basura — robo honrado del plugin
+#    alt-text de GitHub: filenames/genéricos/placeholder/duplicados en masa ──
+def _altq(html):
+    r = audit_html(html)
+    return [h for h in r['findings'] if h['signal'] == 'alt_quality']
+
+junk = '''<!doctype html><html lang="es"><head><meta charset="utf-8"><title>t</title></head>
+<body><main>
+<img src="a.png" alt="imagen">
+<img src="b.png" alt="IMG_2023.jpg">
+<img src="c.png" alt="chart.webp">
+<img src="d.png" alt="-">
+<img src="ok.png" alt="Ventas mensuales por región en 2026">
+<img src="e.png" alt="">
+<img src="f.png" alt="icon"><img src="g.png" alt="icon">
+<img src="h.png" alt="icon"><img src="i.png" alt="icon">
+</main></body></html>'''
+q = _altq(junk)
+assert len(q) == 1, 'una sola señal agregada'
+q = q[0]
+assert q['severity'] == 'medium' and q['criterion'].startswith('1.1.1')
+assert '5' in q['issue'], q['issue']   # imagen, IMG_2023.jpg, chart.webp, '-', icon(dedup)
+assert q['examples'] == ['imagen', 'IMG_2023.jpg', 'chart.webp', '-', 'icon'], q['examples']
+assert q['remediation'] and len(q['paths']) == 5, 'rutas annotate-compatibles'
+print('alt_quality: filenames+genéricos+placeholder+repetidos agregados, dedupe ✓')
+
+# el alt limpio y alt="" no acusan; sin alt sigue siendo img_no_alt
+clean = '''<!doctype html><html lang="es"><head><meta charset="utf-8"><title>t</title></head>
+<body><main><img src="ok.png" alt="Retrato de la fundadora en su despacho">
+<img src="deco.png" alt=""><img src="x.png"></main></body></html>'''
+r = audit_html(clean)
+assert not any(h['signal'] == 'alt_quality' for h in r['findings'])
+assert any(h['signal'] == 'img_no_alt' for h in r['findings'])
+print('alt_quality: limpio y alt="" no acusan; sin-alt sigue en img_no_alt ✓')
+
+# decorativo declarado y oculto no acusan aunque su alt sea basura
+skip = '''<!doctype html><html lang="es"><head><meta charset="utf-8"><title>t</title></head>
+<body><main>
+<img src="a.png" alt="image" role="presentation">
+<img src="b.png" alt="image" aria-hidden="true">
+</main></body></html>'''
+assert not _altq(skip), 'presentation/hidden excluidos'
+print('alt_quality: presentation/hidden excluidos ✓')
+
+# bilingüe: mismo n, texto distinto
+q_es = _altq(junk.replace('lang="es"', 'lang="xx"').replace(
+    '<html lang="xx">', '<html>'))  # audit igualmente en en por defecto
+q2 = audit_html(junk, lang='es')
+qq = [h for h in q2['findings'] if h['signal'] == 'alt_quality'][0]
+assert 'imágenes' in qq['issue'] and qq['remediation'] != q['remediation']
+print('alt_quality: es/en con mismo n y remediation propia ✓')

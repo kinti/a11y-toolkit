@@ -137,7 +137,7 @@ TOOLS = [
     {
         'name': 'a11y_audit_url',
         'description': ('Express WCAG 2.2 audit of a URL or an HTML string: 20+ automated '
-                        'signals with a weighted 0-100 score — images without alt (1.1.1), '
+                        'signals with a weighted 0-100 score — images without alt (1.1.1), low-quality alt text (filenames, generics, placeholders; also 1.1.1), '
                         'controls without accessible names (4.1.2), form fields without labels '
                         '(3.3.2), missing autocomplete on user-data fields (1.3.5), click '
                         'handlers on non-interactive elements (2.1.1), unknown ARIA roles and '

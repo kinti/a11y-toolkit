@@ -219,7 +219,9 @@
    "other": "{n} elements with an interactive role (button/link) and no tabindex: not reachable by keyboard (JS could add it at runtime — the rendered pass confirms)."
   },
   "role_no_tabindex_rem": "Add tabindex=\"0\" to every element that receives role=\"button\"/\"link\", plus Enter/Space key handling — or use the native <button>/<a href> element.",
-  "err_redirect_blocked": "redirect to a disallowed destination (private network): {url}"
+  "err_redirect_blocked": "redirect to a disallowed destination (private network): {url}",
+  "alt_quality": "{n} images with low-quality alt text (filenames, generic words or placeholders).",
+  "alt_quality_rem": "Alt like \"image\", \"foto\", \"img_123.jpg\" or a dash says nothing to a screen-reader user. Replace it with what the image conveys in its context; if the image is decorative, use alt=\"\" so assistive tech skips it."
  },
  "badge": {
   "name": "a11y-toolkit",

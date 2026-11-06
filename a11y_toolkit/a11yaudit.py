@@ -27,6 +27,20 @@ from . import a11yi18n
 
 MAX_HTML = 3_000_000
 
+# alt_quality (1.1.1): alt que "existe" pero no comunica. La mina de
+# patentes lo confirma (el plugin alt-text de GitHub): filenames, palabras
+# genéricas y marcadores PASAN el chequeo de presencia y aun así fallan.
+_ALT_EXT_RX = re.compile(r'\.(jpe?g|png|gif|webp|svg|avif|bmp)$', re.I)
+_ALT_DUMP_RX = re.compile(
+    r'^(dsc[f]?[-_ ]?\d+|img[-_ ]?\d+|imagen\d*|foto\d*|screenshot[\w-]*)$', re.I)
+_ALT_GENERIC = {
+    'image', 'imagen', 'photo', 'foto', 'picture', 'pic', 'img',
+    'grafico', 'gráfico', 'grafica', 'gráfica', 'graphic', 'chart',
+    'icon', 'icono', 'logo', 'logotipo', 'spacer', 'banner', 'avatar',
+    'drawing', 'dibujo', 'figure', 'figura', 'media', 'button', 'botón',
+    'boton', 'link', 'enlace', 'svg', 'png', 'jpg', 'jpeg',
+}
+
 # Campos de formulario que necesitan etiqueta visible o nombre accesible
 _FIELDS = {'text', 'email', 'tel', 'url', 'search', 'password', 'number',
            'date', 'time', 'datetime-local', 'month', 'week', 'checkbox',
@@ -327,6 +341,7 @@ class _Auditor(HTMLParser):
         self._elem_paths = {}      # id(attrs) → ruta del elemento
         super().__init__(convert_charrefs=True)
         self.imgs_no_alt = []
+        self.alt_quality_bad = []   # (razón, alt, attrs) — emitida en findings
         # elementos (attrs) detrás de cada ejemplo, para el kernel de anotación
         self.imgs_no_alt_elems = []
         self.canvas_no_layer = []        # canvas sin capa accesible (1.1.1)
@@ -1655,6 +1670,47 @@ def audit_html(html_text, url='(html)', lang='en', standard=None, target=None):
         if not (al or lb or ti or _svgt):
             p.imgs_no_alt.append((a.get('src') or a.get('aria-label') or '(role=img)')[:100])
             p.imgs_no_alt_elems.append(a)
+
+    # 1.1.1: alt PRESENTE pero basura — filenames, palabras genéricas o
+    # marcadores que PASAN el chequeo de presencia (axe image-alt incluido)
+    # y aun así no dicen nada. Filtro, no veredicto: media, con ejemplos y
+    # rutas. alt="" no entra (decorativo legítimo); sin alt lo juzga arriba.
+    _alt_bad = []
+    _alt_seen = {}
+    for a, hidden in p.imgs_all:
+        if hidden or (a.get('role') or '').strip().lower() in ('presentation', 'none'):
+            continue
+        _altv = ' '.join((a.get('alt') or '').split())
+        if not _altv:
+            continue
+        _low = _altv.casefold()
+        _reason = ''
+        if _ALT_EXT_RX.search(_low):
+            _reason = 'filename'
+        elif _ALT_DUMP_RX.match(_low):
+            _reason = 'filename'
+        elif _low in _ALT_GENERIC:
+            _reason = 'generic'
+        elif len(_low.replace('.', '').strip()) <= 2:
+            _reason = 'placeholder'
+        if _reason:
+            _alt_bad.append((_reason, _altv, a))
+        else:
+            _alt_seen.setdefault(_low, []).append(a)
+    # duplicación en masa: el MISMO alt no vacío en ≥4 imágenes casi siempre
+    # es una icon-list que debía ser alt=""
+    for _low, _elems in _alt_seen.items():
+        if len(_elems) >= 4:
+            _alt_bad.append(('repeated', _elems[0].get('alt', _low), _elems[0]))
+    _alt_pair_seen = set()
+    _alt_bad_d = []
+    for _reason, _altv, _a in _alt_bad:
+        _key = (_reason, _altv.casefold())
+        if _key in _alt_pair_seen:
+            continue
+        _alt_pair_seen.add(_key)
+        _alt_bad_d.append((_reason, _altv, _a))
+    p.alt_quality_bad = _alt_bad_d
     for a, hidden in p.inputs_image:
         if hidden:
             continue
@@ -1780,6 +1836,12 @@ def audit_html(html_text, url='(html)', lang='en', standard=None, target=None):
         add(severity, code, key_msg, **fmt)
         findings[-1]['examples'] = examples[:5]
 
+    if p.alt_quality_bad:
+        _p_q = [p._elem_paths[id(_a)] for _r, _alt, _a in p.alt_quality_bad
+                if id(_a) in p._elem_paths][:5]
+        add_ej('medium', '1.1.1', 'alt_quality',
+               [_alt[:40] for _r, _alt, _a in p.alt_quality_bad],
+               n=len(p.alt_quality_bad), paths=_p_q)
     if p.imgs_no_alt:
         _p_img = [p._elem_paths[id(_a)] for _a in p.imgs_no_alt_elems
                   if id(_a) in p._elem_paths][:5]

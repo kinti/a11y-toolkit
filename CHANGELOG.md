@@ -1,6 +1,15 @@
 # Changelog
 
 ## main — pendiente — "the consulting layer goes private (Tier 1+2)"
+- **`alt_quality` — low-quality alt text signal (1.1.1)** (stolen from
+  GitHub's accessibility-scanner alt-text plugin, the honest way): alt that
+  PASSES the presence check (axe `image-alt` included) but says nothing —
+  filenames (`chart.webp`, `IMG_2023.jpg`), generic words (`image`, `foto`,
+  `icon`, `logo`), placeholders (`-`, `x`), and the SAME alt repeated on 4+
+  images (an icon list that should be `alt=""`). Aggregate medium finding
+  with examples, distinct-value dedupe, annotate-compatible paths;
+  presentation/hidden/empty alts excluded (missing alt stays `img_no_alt`).
+  Scores move on pages with junk alts — regression tests pin the fixture.
 
 - AGENTS.md documents the constellation (the private pro layer, the
   vendoring products, the frozen draft generators and what they imply for
