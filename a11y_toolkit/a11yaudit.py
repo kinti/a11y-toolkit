@@ -510,6 +510,8 @@ class _Auditor(HTMLParser):
         self.has_search = False
         self.has_sitemap = False
         self.gestures = []            # touchmove/drag handlers (2.5.1)
+        self.focus_blur = []          # onfocus="blur()": foco robado (2.1.1)
+        self.focus_blur_elems = []
         self.features = {}            # tag → n (rasgos de aplicabilidad)
         self.motions = []           # deviceorientation/devicemotion (2.5.4)
         self.orientation_locks = [] # screen.orientation.lock / orientation MQ (1.3.4)
@@ -1007,6 +1009,13 @@ class _Auditor(HTMLParser):
         if a.get('ontouchmove') or a.get('ondrag'):
             if not (a.get('onclick') or tag in ('input', 'button', 'a')):
                 self.gestures.append(f'{tag}[{list(a)[0] if a else ""}]')
+        # 2.1.1: onfocus="blur()" — el control se quita a sí mismo el foco
+        # en cuanto el teclado lo deja ahí: inalcanzable por teclado. El
+        # caso exacto que el scanner de GitHub no caza (issue 288 suyo).
+        _of = (a.get('onfocus') or '')
+        if 'blur' in _of.lower():
+            self.focus_blur.append(f'<{tag} onfocus="{_of[:30]}">')
+            self.focus_blur_elems.append(a)
         # forms: placeholder-only, required sin indicio, financial
         if tag == 'form':
             self._financial_form = False
@@ -2118,6 +2127,11 @@ def audit_html(html_text, url='(html)', lang='en', standard=None, target=None):
     if p.gestures:
         add_ej('low', '2.5.1', 'gesture_no_click', p.gestures,
                n=len(p.gestures), example=', '.join(p.gestures[:3]))
+    if p.focus_blur:
+        add_ej('high', '2.1.1', 'onfocus_blur', p.focus_blur,
+               n=len(p.focus_blur),
+               paths=[p._elem_paths[id(_a)] for _a in p.focus_blur_elems
+                      if id(_a) in p._elem_paths][:5])
     if p.motions:
         add_ej('low', '2.5.4', 'motion_actuation', p.motions,
                n=len(p.motions), example=', '.join(p.motions[:3]))

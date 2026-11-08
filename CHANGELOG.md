@@ -1,5 +1,7 @@
 # Changelog
 
+## main — pendiente
+- **`onfocus_blur` — focus-stealing static signal (2.1.1, high)** (the exact case GitHub's scanner misses, their issue #288): an element whose `onfocus` handler calls `blur()` removes itself from keyboard reach entirely — aggregate high finding with the element snippet as example and annotate-compatible paths. Harmless onfocus handlers (highlight etc.) do not trigger.
 ## 5.27.0 — 2026-11-06 — "the ladder: annotate, trace, locate, seal"
 - **`financial_no_confirm` recognizes the Spanish confirmation-checkbox
   pattern** (found by eating our own cooking: the Action flagged a11y.es

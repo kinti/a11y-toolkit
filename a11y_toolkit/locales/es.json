@@ -221,7 +221,9 @@
   "role_no_tabindex_rem": "Añade tabindex=\"0\" a todo elemento con role=\"button\"/\"link\", más manejo de Enter/Espacio — o usa el elemento nativo <button>/<a href>.",
   "err_redirect_blocked": "redirección a un destino no permitido (red privada): {url}",
   "alt_quality": "{n} imágenes con texto alt de baja calidad (nombres de fichero, palabras genéricas o marcadores).",
-  "alt_quality_rem": "Un alt como «imagen», «foto», «img_123.jpg» o una raya no dice nada a quien usa lector de pantalla. Sustitúyelo por lo que la imagen transmite en su contexto; si es decorativa, usa alt=\"\" para que la tecnología asistiva la salte."
+  "alt_quality_rem": "Un alt como «imagen», «foto», «img_123.jpg» o una raya no dice nada a quien usa lector de pantalla. Sustitúyelo por lo que la imagen transmite en su contexto; si es decorativa, usa alt=\"\" para que la tecnología asistiva la salte.",
+  "onfocus_blur": "{n} elemento(s) cuyo manejador onfocus quita el foco (onfocus=\"blur()\"): con teclado no se puede llegar a ellos.",
+  "onfocus_blur_rem": "Quita el manejador onfocus=\"blur()\": robar el foco deja el elemento inalcanzable por teclado (2.1.1). Si el elemento no debe ser enfocable, usa tabindex=\"-1\" en vez de robar el foco."
  },
  "badge": {
   "name": "a11y-toolkit",

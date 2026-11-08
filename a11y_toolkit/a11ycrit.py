@@ -885,6 +885,7 @@ _SIGNAL_CRIT = {
     'iframe_title': '4.1.2',
     'images_of_text': '1.4.5',
     'img_no_alt': '1.1.1',
+    'onfocus_blur': '2.1.1',
     'alt_quality': '1.1.1',
     'input_img_alt': '1.1.1',
     'input_navigates': '3.2.2',

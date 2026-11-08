@@ -448,3 +448,29 @@ for nombre in ('confirmo', 'confirmar_datos', 'revisado'):
         f'<input type="checkbox" name="{nombre}" required> ok')), nombre
 assert _fin(base.format('<button>Enviar</button>')), 'sin casilla sigue acusando'
 print('financial_no_confirm: casillas confirmo/confirmar/revisado satisfacen; irrelevante no ✓')
+
+# ── onfocus_blur (2.1.1): foco robado — el patrón exacto de su issue 288 ──
+def _oblur(html):
+    r = audit_html(html)
+    return [h for h in r['findings'] if h['signal'] == 'onfocus_blur']
+
+junk = ('<!doctype html><html lang="en"><head><meta charset="utf-8">'
+        '<title>t</title></head><body><main>'
+        '<input type="text" onfocus="blur()" name="a">'
+        '<button onfocus="this.blur()">B</button>'
+        '<div onfocus="highlight()">ok</div>'
+        '</main></body></html>')
+q = _oblur(junk)
+assert len(q) == 1 and q[0]['severity'] == 'high'
+assert q[0]['criterion'].startswith('2.1.1')
+assert q[0]['examples'] == ['<input onfocus="blur()">',
+                            '<button onfocus="this.blur()">'], q[0]['examples']
+assert len(q[0]['paths']) == 2 and q[0]['remediation']
+q_es = [h for h in audit_html(junk, lang='es')['findings']
+        if h['signal'] == 'onfocus_blur'][0]
+assert 'no se puede llegar' in q_es['issue'], q_es['issue']
+clean = ('<!doctype html><html lang="en"><head><meta charset="utf-8">'
+         '<title>t</title></head><body><main>'
+         '<input onfocus="highlight()" name="b"></main></body></html>')
+assert not _oblur(clean), 'onfocus inofensivo no acusa'
+print('onfocus_blur: blur() acusa (2 ejemplos + rutas), inofensivo no, es/en ✓')

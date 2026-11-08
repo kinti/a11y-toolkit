@@ -221,7 +221,9 @@
   "role_no_tabindex_rem": "Add tabindex=\"0\" to every element that receives role=\"button\"/\"link\", plus Enter/Space key handling — or use the native <button>/<a href> element.",
   "err_redirect_blocked": "redirect to a disallowed destination (private network): {url}",
   "alt_quality": "{n} images with low-quality alt text (filenames, generic words or placeholders).",
-  "alt_quality_rem": "Alt like \"image\", \"foto\", \"img_123.jpg\" or a dash says nothing to a screen-reader user. Replace it with what the image conveys in its context; if the image is decorative, use alt=\"\" so assistive tech skips it."
+  "alt_quality_rem": "Alt like \"image\", \"foto\", \"img_123.jpg\" or a dash says nothing to a screen-reader user. Replace it with what the image conveys in its context; if the image is decorative, use alt=\"\" so assistive tech skips it.",
+  "onfocus_blur": "{n} element(s) whose onfocus handler removes focus (onfocus=\"blur()\"): keyboard users cannot reach them at all.",
+  "onfocus_blur_rem": "Remove the onfocus=\"blur()\" handler: stealing focus makes the element unreachable by keyboard (2.1.1). If the element must not be focusable, use tabindex=\"-1\" instead of taking focus away."
  },
  "badge": {
   "name": "a11y-toolkit",
