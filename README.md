@@ -289,6 +289,15 @@ agent exactly how to verify them by hand. The boundary is printed on every repor
 [a11y.es](https://a11y.es) is a Spanish-market accessibility service that runs
 this engine. The service is a separate codebase; this repository is the engine.
 
+Monitoring? You can absolutely build it yourself with this engine: a cron
+running `a11ytoolkit audit` plus `budget` and `diff` is a legitimate path —
+deliberately so, that is what the MIT license promises. [a11y.es](https://a11y.es)
+exists for those who would rather not maintain it: scheduled audits with a real
+browser, alerts on what breaks between releases, a sealed evidence vault anyone
+can verify years later, and an agency portfolio — start free with 3 sites. And
+the one thing no script can give: a human auditor's signature when you have to
+prove it.
+
 ## Validated against real pages
 
 Benchmarked against axe-core 4.10 on real pages monthly ([methodology and

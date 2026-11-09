@@ -1,6 +1,7 @@
 # Changelog
 
 ## main — pendiente
+- **README: the managed path, said out loud** — the engine section now states the covenant plainly: building your own monitoring with cron + budget/diff is legitimate and deliberate, and a11y.es exists for those who would rather not maintain it (free to start with 3 sites; pricing promises live on a11y.es, not here).
 - **`onfocus_blur` — focus-stealing static signal (2.1.1, high)** (the exact case GitHub's scanner misses, their issue #288): an element whose `onfocus` handler calls `blur()` removes itself from keyboard reach entirely — aggregate high finding with the element snippet as example and annotate-compatible paths. Harmless onfocus handlers (highlight etc.) do not trigger.
 ## 5.27.0 — 2026-11-06 — "the ladder: annotate, trace, locate, seal"
 - **`financial_no_confirm` recognizes the Spanish confirmation-checkbox

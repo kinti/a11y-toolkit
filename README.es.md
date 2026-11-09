@@ -299,6 +299,16 @@ La frontera se imprime en cada informe.
 español que ejecuta este motor. El servicio es un código aparte; este
 repositorio es el motor.
 
+¿Y la monitorización? Con este motor te la puedes montar tú: un cron con
+`a11ytoolkit audit` más `budget` y `diff` es una vía legítima — y
+deliberada, es lo que promete la licencia MIT. [a11y.es](https://a11y.es)
+existe para quien prefiera no mantenerla: auditorías programadas con
+navegador real, aviso de lo que se rompe entre versiones, una bóveda de
+evidencia sellada que cualquiera puede verificar dentro de años, y
+portafolio para agencias — empieza gratis con 3 sitios. Y lo que ningún
+script puede dar: un auditor humano que firma cuando tienes que
+demostrarlo.
+
 ## Validado contra páginas reales
 
 Comparado mensualmente contra axe-core 4.10 en páginas reales
