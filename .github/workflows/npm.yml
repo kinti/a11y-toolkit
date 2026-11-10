@@ -7,9 +7,7 @@ on:
     tags: ['v*']
 
 permissions:
-  id-token: write   # habilita trusted publishing (OIDC) cuando se configure en npm
-
-permissions:
+  id-token: write   # trusted publishing (OIDC) hacia npm; contents: read lo demás
   contents: read
 
 jobs:
