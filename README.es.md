@@ -50,7 +50,7 @@ además Playwright:
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![MCP](https://img.shields.io/badge/Model%20Context%20Protocol-server-purple)](https://modelcontextprotocol.io)
 [![Sponsor](https://img.shields.io/badge/Sponsor-%E2%9D%A4-pink)](https://github.com/sponsors/kinti)
-[![Supply chain](https://img.shields.io/badge/supply%20chain-audited%20by%20Socket-blueviolet)](https://socket.dev/pypi/package/a11y-toolkit/overview)
+[![Socket score](https://socket.dev/api/badge/pypi/package/a11y-toolkit)](https://socket.dev/pypi/package/a11y-toolkit/overview)
 [![OpenSSF Scorecard](https://api.securityscorecards.dev/projects/github.com/kinti/a11y-toolkit/badge)](https://scorecard.dev/viewer/?uri=github.com/kinti/a11y-toolkit)
 [![OpenSSF Best Practices](https://www.bestpractices.dev/projects/16107/badge)](https://www.bestpractices.dev/en/projects/16107)
 [![ACT Rules](https://img.shields.io/badge/ACT%20Rules-20%2F20%20consistent-brightgreen)](https://github.com/kinti/a11y-toolkit/blob/main/docs/act-report-summary.md)
