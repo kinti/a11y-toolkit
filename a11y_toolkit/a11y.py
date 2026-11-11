@@ -43,6 +43,7 @@
   a11ytoolkit annotate page.html --report r.json -o copy.html  # per-element marks on a copy
   a11ytoolkit locate --file page.html --query "Submit"     # element by accessible name → route
   a11ytoolkit patches --file page.html -o patches.json     # sealed fix record (verify with --verify)
+  a11ytoolkit guard --file page.html                       # write-time gate: NEW high/medium refuse the save
 """
 
 import sys
@@ -78,6 +79,7 @@ from . import a11yscope
 from . import a11yannotate
 from . import a11ylocate
 from . import a11ypatches
+from . import a11ygate
 from . import a11yengines
 from . import a11ytrace
 from . import a11ypatterns
@@ -124,6 +126,7 @@ SUBCOMMANDS = {
     'annotate': (a11yannotate, None),
     'locate': (a11ylocate, None),
     'patches': (a11ypatches, None),
+    'guard': (a11ygate, None),
     'engines': (a11yengines, None),
     'trace': (a11ytrace, None),
     'patterns': (a11ypatterns, None),

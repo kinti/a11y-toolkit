@@ -1,6 +1,7 @@
 # Changelog
 
 ## main — pendiente
+- **`a11ygate` — the write-time guard** (the edit-gate pattern, our engine under it): `a11ytoolkit init` now installs a real client hook (Claude Code PreToolUse) that audits every save of a user-facing file against git HEAD — NEW high/medium findings refuse the write with the fix right there (the AI holding the pen applies it instantly); low severity and known findings warn. Kinds, not counts (the engine aggregates); fails open on unreadable input; `A11Y_GATE=off` disables; `--no-gate` skips install. The gate refuses on OUR engine error too... never: it fails open by design. What it does NOT do: it is not a conformance verdict — the refusal carries the honesty line.
 - **README: the managed path, said out loud** — the engine section now states the covenant plainly: building your own monitoring with cron + budget/diff is legitimate and deliberate, and a11y.es exists for those who would rather not maintain it (free to start with 3 sites; pricing promises live on a11y.es, not here).
 - **`onfocus_blur` — focus-stealing static signal (2.1.1, high)** (the exact case GitHub's scanner misses, their issue #288): an element whose `onfocus` handler calls `blur()` removes itself from keyboard reach entirely — aggregate high finding with the element snippet as example and annotate-compatible paths. Harmless onfocus handlers (highlight etc.) do not trigger.
 ## 5.27.0 — 2026-11-06 — "the ladder: annotate, trace, locate, seal"

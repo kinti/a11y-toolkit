@@ -197,6 +197,7 @@ con los comandos exactos:
 ```bash
 cd tu-proyecto
 uvx --from a11y-toolkit a11ytoolkit init     # escribe/fusiona el hook en AGENTS.md (idempotente)
+uvx --from a11y-toolkit a11ytoolkit guard --file pagina.html  # puerta de escritura: lo NUEVO alto/medio rechaza el guardado
 ```
 
 También imprime el bloque de configuración MCP y el paso opcional de la skill.

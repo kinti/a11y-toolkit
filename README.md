@@ -188,11 +188,21 @@ done* — with the exact commands:
 ```bash
 cd your-project
 uvx --from a11y-toolkit a11ytoolkit init     # writes/merges the AGENTS.md hook (idempotent)
+uvx --from a11y-toolkit a11ytoolkit guard --file index.html   # write-time gate: NEW high/medium refuse the save
 ```
 
 It also prints the MCP config block and the optional skill install step.
 `--check` reports whether the hook is present (exit 1 if not — CI-friendly).
 
+
+**The gate**: `init` also installs a write-time guard (Claude Code
+PreToolUse hook). Every save of a user-facing file is audited against git
+HEAD — **new high/medium findings refuse the save** with the remediation
+right there, so the AI holding the pen fixes them in the same second the
+failure would have been born. Low severity and findings already in HEAD
+warn. `A11Y_GATE=off` disables; `--no-gate` skips install; the refusal
+carries the honesty line: the gate audits what the engine sees — a filter,
+not a verdict.
 ## Languages — community locale packs
 
 All user-facing messages (findings, remediations, legal wording) live in

@@ -17,6 +17,9 @@ import sys
 MARKER_BEGIN = '<!-- BEGIN a11y-toolkit agent hook -->'
 MARKER_END = '<!-- END a11y-toolkit agent hook -->'
 
+GATE_MATCHER = 'Write|Edit|MultiEdit'
+GATE_CMD = 'a11ytoolkit guard-hook'
+
 BLOCK = f'''{MARKER_BEGIN}
 
 ## Accessibility guardrails — a11y-toolkit
@@ -24,6 +27,11 @@ BLOCK = f'''{MARKER_BEGIN}
 After any UI change (HTML, CSS, templates, components, copy that becomes
 visible text), run an accessibility audit BEFORE considering the work done.
 The audit is part of the change, not an afterthought.
+
+The write-time gate (installed by this command when the a11y-toolkit CLI is
+on PATH): saves of user-facing files are audited against git HEAD — NEW
+high/medium findings refuse the save with the fix right there. Disable with
+the A11Y_GATE=off environment variable; the gate says so in every refusal.
 
 Quick loop (no install needed — uvx runs it from PyPI):
 
@@ -92,7 +100,33 @@ def merge_block(content):
     return (content.rstrip('\n') + '\n\n' if content.strip() else '') + BLOCK.strip('\n') + '\n'
 
 
-def init(path='.'):
+def install_gate(path='.'):
+    """Install the write-time gate hook in .claude/settings.json (idempotent:
+    an existing a11ytoolkit guard-hook entry is left alone, as is every hook
+    the user added). Returns {'gate': 'installed'|'already', 'file': path}."""
+    sdir = os.path.join(path, '.claude')
+    os.makedirs(sdir, exist_ok=True)
+    spath = os.path.join(sdir, 'settings.json')
+    data = {}
+    if os.path.exists(spath):
+        try:
+            data = json.load(open(spath, encoding='utf-8'))
+        except Exception:  # noqa: BLE001 — never clobber an unparseable file
+            data = {}
+    hooks = data.setdefault('hooks', {}).setdefault('PreToolUse', [])
+    for entry in hooks:
+        cmds = [h.get('command', '') for h in entry.get('hooks', [])]
+        if any(GATE_CMD in c for c in cmds):
+            return {'gate': 'already', 'file': spath}
+    hooks.append({'matcher': GATE_MATCHER,
+                  'hooks': [{'type': 'command', 'command': GATE_CMD}]})
+    with open(spath, 'w', encoding='utf-8') as f:
+        json.dump(data, f, ensure_ascii=False, indent=2)
+        f.write('\n')
+    return {'gate': 'installed', 'file': spath}
+
+
+def init(path='.', gate=True):
     """Install the agent hook. Returns dict with what happened."""
     filepath = os.path.join(path, 'AGENTS.md')
     previous = open(filepath, encoding='utf-8').read() if os.path.exists(filepath) else ''
@@ -105,6 +139,8 @@ def init(path='.'):
     if malformed:
         out['malformed_marker'] = True
         out['warning'] = _MERGE_MSGS['en']
+    if gate:
+        out.update(install_gate(path))
     return out
 
 
@@ -112,15 +148,20 @@ def main(argv):
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument('path', nargs='?', default='.', help='project directory (default: current)')
     ap.add_argument('--check', action='store_true', help='only report whether the hook is present')
+    ap.add_argument('--no-gate', action='store_true',
+                    help='do not install the write-time gate (prose hook only)')
     a = ap.parse_args(argv)
     if a.check:
         target = os.path.join(a.path, 'AGENTS.md')
         present = os.path.exists(target) and MARKER_BEGIN in open(target, encoding='utf-8').read()
         print(json.dumps({'hook_present': present, 'file': target}))
         return 0 if present else 1
-    res = init(a.path)
+    res = init(a.path, gate=not a.no_gate)
     if res.get('malformed_marker'):
         print('! ' + res['warning'])
+    if res.get('gate'):
+        print(f"✓ write-time gate {res['gate']}: {res['file']}"
+              f"  (block: NEW high/medium · disable: A11Y_GATE=off)")
     verb = 'updated' if res['already_present'] else ('created' if res['created'] else 'installed into')
     print(f"✓ agent hook {verb}: {res['file']}")
     print('\nMCP config (any MCP client that accepts stdio servers):')
