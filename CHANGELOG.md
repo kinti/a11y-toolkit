@@ -1,6 +1,16 @@
 # Changelog
 
 ## main — pendiente
+- **`llms-install.md` + `docs/logo-400.png` — the directory-submission kit** (Cline
+  Marketplace's llms-install convention + its 400×400 PNG logo requirement): a
+  two-path install guide for agents (uv via `uvx`, npm via `npx -y -p` — the `-p`
+  matters, the package ships the CLI and the MCP server as two bins and plain npx
+  would run the CLI), where BOTH paths were verified over real stdio before landing
+  (initialize, tools/list = 37 tools, tools/call `a11y_contrast_pair` with the real
+  `fg`/`bg` arguments), and the square transparent logo rendered from the a11y.es
+  medal SVG. What it does NOT do: no engine change, no new tool — and the directory
+  submissions themselves (SkillsMD, Cline Marketplace, Raycast Registry) live
+  outside this repo.
 - **`a11ygate` — the write-time guard** (the edit-gate pattern, our engine under it): `a11ytoolkit init` now installs a real client hook (Claude Code PreToolUse) that audits every save of a user-facing file against git HEAD — NEW high/medium findings refuse the write with the fix right there (the AI holding the pen applies it instantly); low severity and known findings warn. Kinds, not counts (the engine aggregates); fails open on unreadable input; `A11Y_GATE=off` disables; `--no-gate` skips install. The gate refuses on OUR engine error too... never: it fails open by design. What it does NOT do: it is not a conformance verdict — the refusal carries the honesty line.
 - **README: the managed path, said out loud** — the engine section now states the covenant plainly: building your own monitoring with cron + budget/diff is legitimate and deliberate, and a11y.es exists for those who would rather not maintain it (free to start with 3 sites; pricing promises live on a11y.es, not here).
 - **`onfocus_blur` — focus-stealing static signal (2.1.1, high)** (the exact case GitHub's scanner misses, their issue #288): an element whose `onfocus` handler calls `blur()` removes itself from keyboard reach entirely — aggregate high finding with the element snippet as example and annotate-compatible paths. Harmless onfocus handlers (highlight etc.) do not trigger.
