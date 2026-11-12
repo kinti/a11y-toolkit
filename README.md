@@ -203,6 +203,9 @@ failure would have been born. Low severity and findings already in HEAD
 warn. `A11Y_GATE=off` disables; `--no-gate` skips install; the refusal
 carries the honesty line: the gate audits what the engine sees — a filter,
 not a verdict.
+
+![The gate refusing a save with new findings, the AI fixing them, the save
+allowed](docs/gate-demo.gif)
 ## Languages — community locale packs
 
 All user-facing messages (findings, remediations, legal wording) live in
