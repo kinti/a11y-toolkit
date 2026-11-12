@@ -203,6 +203,18 @@ uvx --from a11y-toolkit a11ytoolkit guard --file pagina.html  # puerta de escrit
 También imprime el bloque de configuración MCP y el paso opcional de la skill.
 `--check` informa de si el hook está presente (exit 1 si no — apto para CI).
 
+
+**La puerta**: `init` también instala un guardián de escritura (hook
+PreToolUse de Claude Code). Cada guardado de un fichero user-facing se
+audita contra git HEAD: **los hallazgos nuevos de severidad alta o media
+rechazan el guardado** con el remedio delante, así el asistente que sostiene
+el bolígrafo los arregla en el mismo segundo en que el fallo iba a nacer.
+La severidad baja y lo que ya estaba en HEAD avisan. `A11Y_GATE=off`
+desactiva; `--no-gate` salta la instalación; el rechazo lleva la línea de
+honestidad: la puerta audita lo que el motor ve, un filtro, no un veredicto.
+
+![La puerta rechazando un guardado con hallazgos nuevos, el asistente
+arreglándolos, el guardado permitido](docs/gate-demo.gif)
 ## Idiomas — paquetes de locale comunitarios
 
 Todos los mensajes de usuario (hallazgos, remediaciones, textos legales) viven
