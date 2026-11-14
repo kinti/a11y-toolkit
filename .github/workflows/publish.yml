@@ -55,4 +55,24 @@ jobs:
         with:
           name: dist
           path: dist/
-      - uses: pypa/gh-action-pypi-publish@7245906fb61fa33a13554f9d5fb856fe61758086 # release/v1
+      - name: Skip if this version is already on PyPI
+        id: pypi_guard
+        run: |
+          # PyPI es inmutable: republicar la misma versión da 400 File
+          # already exists — el caso del workflow_dispatch sobre main, donde
+          # el árbol lleva la versión ya publicada desde su tag (run roja
+          # del 2026-11-12). Si ya está en PyPI, el run queda verde con
+          # aviso y el job `registry` cumple su función igualmente. Un
+          # fallo de la comprobación no bloquea: PyPI es la autoridad final.
+          VERSION="$(ls dist/a11y_toolkit-*-py3-none-any.whl | sed -E 's#.*/a11y_toolkit-([^-]+)-py3-none-any\.whl#\1#')"
+          echo "version in this tree: ${VERSION}"
+          if curl -fsS "https://pypi.org/pypi/a11y-toolkit/${VERSION}/json" > /dev/null 2>&1; then
+            echo "::notice::a11y-toolkit ${VERSION} is already on PyPI; upload skipped (PyPI versions are immutable). To ship new code, release a new version (make release V=x.y.z). The registry job still publishes server.json."
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "not on PyPI yet; uploading"
+            echo "skip=false" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Publish to PyPI
+        if: steps.pypi_guard.outputs.skip != 'true'
+        uses: pypa/gh-action-pypi-publish@7245906fb61fa33a13554f9d5fb856fe61758086 # release/v1
