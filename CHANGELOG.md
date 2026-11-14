@@ -1,14 +1,15 @@
 # Changelog
 
 ## main — pendiente
-- **publish.yml: the already-published guard** (the 400 File already exists from the
-  12-nov manual dispatch: main carried 5.27.0 and PyPI is immutable): the publish job
-  now reads the version off the built wheel, checks PyPI for it, and if it is already
-  published the upload is skipped with a `::notice::` and the run goes green — while
-  the `registry` job keeps publishing server.json on manual dispatches, which is what
-  that dispatch was actually for. A failed check does not block: PyPI stays the final
-  authority. What it does NOT do: tag-driven releases are untouched — a new version is
-  not on PyPI, the guard passes, and the upload happens exactly as before.
+- **publish.yml: the already-published guards** (the 400 File already exists from the
+  12-nov manual dispatch: main carried 5.27.0 and PyPI is immutable — and the 14-nov
+  verification dispatch proved the MCP registry rejects duplicate versions too):
+  the publish job now reads the version off the built wheel and skips the PyPI upload
+  with a `::notice::` when it is already there, and the registry job reads the version
+  off server.json and skips the same way when the registry already has it — both runs
+  go green, and a failed check never blocks (PyPI and the registry stay the final
+  authorities). What it does NOT do: tag-driven releases are untouched — a new version
+  exists nowhere yet, both guards pass, everything publishes exactly as before.
 - **`llms-install.md` + `docs/logo-400.png` — the directory-submission kit** (Cline
   Marketplace's llms-install convention + its 400×400 PNG logo requirement): a
   two-path install guide for agents (uv via `uvx`, npm via `npx -y -p` — the `-p`
