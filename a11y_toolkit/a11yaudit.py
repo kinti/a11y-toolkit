@@ -71,9 +71,18 @@ _ROLE_FIELDS = {'textbox', 'searchbox', 'spinbutton', 'combobox', 'listbox',
                 'checkbox', 'radio', 'switch'}
 
 # Subetiquetas BCP-47 principales habituales (validación blanda)
-_LANG_CODES = set('''af am ar az be bg bn bs ca cs cy da de el en es et eu fa fi fr ga gl
-gu he hi hr hu hy id is it ja ka kk km kn ko ky lo lt lv mk ml mn mr ms my ne nl or pa
-pl ps pt ro ru rw si sk sl sq sr sv sw ta te tg th ti tk tr uk ur uz vi zh'''.split())
+# ISO 639-1 COMPLETO: los 190 subtags de idioma de 2 letras del registro IANA
+# language-subtag-registry (File-Date 2026-09-17, la fuente canónica de BCP-47),
+# deprecados incluidos — in/iw/ji/jw/mo/sh siguen vivos en páginas reales. La
+# lista corta de la era v3 (77 códigos) rechazaba válidos como gd/eo/yi — FP de
+# la revisión externa de 2026-11.
+_LANG_CODES = set('''aa ab ae af ak am an ar as av ay az ba be bg bh bi bm bn bo br bs ca ce ch co cr cs cu cv cy
+da de dv dz ee el en eo es et eu fa ff fi fj fo fr fy ga gd gl gn gu gv ha he hi ho hr ht hu
+hy hz ia id ie ig ii ik in io is it iu iw ja ji jv jw ka kg ki kj kk kl km kn ko kr ks ku kv
+kw ky la lb lg li ln lo lt lu lv mg mh mi mk ml mn mo mr ms mt my na nb nd ne ng nl nn no nr
+nv ny oc oj om or os pa pi pl ps pt qu rm rn ro ru rw sa sc sd se sg sh si sk sl sm sn so sq
+sr ss st su sv sw ta te tg th ti tk tl tn to tr ts tt tw ty ug uk ur uz ve vi vo wa wo xh yi
+yo za zh zu'''.split())
 
 _REGIONS = set('''af ax al dz as ad ao ai aq ag ar am aw au at az bs bh bd bb by be bz
 bm bt bo bq ba bw bv io br io bn bg bf bi cv kh cm ca ky cf td cl cn cx cc co km cg cd

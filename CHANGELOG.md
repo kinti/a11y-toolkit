@@ -1,6 +1,16 @@
 # Changelog
 
 ## main — pendiente
+- **`lang_invalid` — the complete ISO 639-1 table** (FP from the 2026-11 external
+  review: valid BCP-47 tags gd, eo, yi were rejected because the v3-era hand list
+  carried only 77 of the registry's codes): `_LANG_CODES` now embeds the complete
+  two-letter language set straight from the canonical BCP-47 source, the IANA
+  language-subtag-registry (File-Date 2026-09-17): 190 subtags, deprecated ones
+  included (in/iw/ji/jw/mo/sh are still alive on real pages), so the page-level
+  (3.1.1) and element-level (3.1.2) checks accept every valid two-letter code while
+  typos like `lang="xx-YY"` or `lang="english"` keep failing. What it does NOT do:
+  it does not add a new signal or move any other score — same signal, same severity,
+  a wider honest pass set.
 - **publish.yml: the already-published guards** (the 400 File already exists from the
   12-nov manual dispatch: main carried 5.27.0 and PyPI is immutable — and the 14-nov
   verification dispatch proved the MCP registry rejects duplicate versions too):

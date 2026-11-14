@@ -56,6 +56,22 @@ assert any('BCP-47' in h['issue'] for h in li['findings'])
 lv = audit_html('<html lang="pt-BR"><head><title>t</title></head><body><h1>Informe principal</h1><main></main></body></html>')
 assert not any(h['criterion'].startswith('3.1.1') for h in lv['findings'])
 
+# ISO 639-1 completo: gd/eo/yi, los legacy ji/jw/mo/sh y los que la fuente
+# débil había perdido (aa/io/kl/lg/kv) NO son inválidos (FP de la revisión
+# externa 2026-11: la lista corta de la era v3, 77 códigos, los rechazaba);
+# la tabla nueva son los 190 subtags del registro IANA de BCP-47.
+for _lg in ('gd', 'eo', 'yi', 'ji', 'jw', 'mo', 'sh', 'gv', 'oc', 'aa', 'io', 'kl', 'lg', 'kv', 'in'):
+    _rok = audit_html(f'<html lang="{_lg}"><head><title>t</title></head><body>'
+                      f'<h1>Informe principal</h1><main></main></body></html>')
+    assert not any(h['criterion'].startswith('3.1.1') for h in _rok['findings']), _lg
+# 3.1.2 por-elemento con el mismo criterio: gd válido, zz sigue inválido
+_gd_el = audit_html('<html lang="es"><head><title>t</title></head><body><main><h1>k</h1>'
+                    '<blockquote lang="gd">cita</blockquote></main></body></html>')
+assert not any(h['signal'] == 'element_lang_invalid' for h in _gd_el['findings'])
+_zz_el = audit_html('<html lang="es"><head><title>t</title></head><body><main><h1>k</h1>'
+                    '<blockquote lang="zz">cita</blockquote></main></body></html>')
+assert any(h['signal'] == 'element_lang_invalid' for h in _zz_el['findings'])
+
 # saltar contenido: con <main> already no hay finding 2.4.1; ancla interna con text tampoco
 sk = audit_html('<html lang="es"><head><title>t</title></head><body>'
                 '<a href="#c">Saltar al contenido</a><h1>Informe principal</h1><div id="c"></div></body></html>')
