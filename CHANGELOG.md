@@ -1,6 +1,17 @@
 # Changelog
 
 ## main — pendiente
+- **`docs/severity-data.md` — the user-pain axis gets its source** (from the
+  Bruce Lawson deep-read: his landmark posts cite the 2015-era survey 6
+  figures that no longer hold): a short doc pinning WHERE the "how much does
+  it hurt" ordering comes from — WebAIM Screen Reader Survey #10 (Dec
+  2023 to Jan 2024, 1,539 responses) with its exact most-problematic list,
+  the quotable numbers (71.6% navigate by headings first; landmarks 3.7%
+  primary method; 85.9% websites over AT; 99.8% JS enabled) and the quoting
+  rules (retire the 63% landmarks figure of survey 6; never claim sample
+  representativeness). What it does NOT do: it moves no score — severity
+  stays calibrated against the expert benches; this informs docs, roadmap
+  and panel ordering only. Linked from docs/sr-crosscheck.md.
 - **`skip_target_hidden` — rendered bypass landing check (2.4.1)** (from the Bruce
   Lawson deep-read: his 2024 "drive-by accessibility tweaks" post shows the
   tabindex-on-skip-target bug alive 18 years after IE, and TetraLogical's own

@@ -76,3 +76,10 @@ Until NVDA capture runs in CI at least once a month, the transcript tool
 keeps saying "linearized reading order — approximation". The day the
 cross-check lands in CI, that sentence gets a measured qualifier. Same
 honesty rule as every other signal in this toolkit.
+
+## The other half of "real": user-pain data
+
+Transcript validation answers "what is announced"; how much each failure
+HURTS is a different axis. The severity tie-breaker data (WebAIM Screen
+Reader Survey #10, with the exact numbers and the quoting rules) lives in
+[severity-data.md](./severity-data.md).
