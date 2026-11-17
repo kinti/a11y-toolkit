@@ -227,6 +227,15 @@ assert 'overlay_widgets' in r_ov, 'UserWay no detectado'
 assert r_ov['overlay_widgets'][0]['vendor'] == 'UserWay'
 assert 'userway.org' in r_ov['overlay_widgets'][0]['evidence']
 assert 'overlayfact' in r_ov['overlay_widgets_note']
+# ronda 17-nov: los históricos del sector público entran en la misma lista
+con_texthelp = con_overlay.replace('cdn.userway.org/widget.js',
+                                   'wwwbrowsealoud.com/bridge/app.js')
+assert audit_html(con_texthelp)['overlay_widgets'][0]['vendor'] == 'Texthelp (Browsealoud/ReachDeck)'
+for _dom, _vend in (('api.recite.me/sdk.js', 'Recite Me'),
+                    ('cdn.user1st.com/widget.js', 'User1st'),
+                    ('cdn.usablenet.com/wt.js', 'UsableNet')):
+    _h = con_overlay.replace('cdn.userway.org/widget.js', _dom)
+    assert audit_html(_h)['overlay_widgets'][0]['vendor'] == _vend, _vend
 # NO es un hallazgo: ni findings, ni score, ni señal — ningún criterio WCAG dice
 # "no uses overlays"; la posición pública es comunitaria (overlayfactsheet.com)
 assert not any('overlay' in h['signal'] for h in r_ov['findings'])

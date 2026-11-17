@@ -311,6 +311,13 @@ _OVERLAY_WIDGETS = (
     ('AudioEye', ('audioeye.com',)),
     ('EqualWeb', ('equalweb.com',)),
     ("FACIL'ITI", ('facil-iti.com', 'facil-iti.org')),
+    # los históricos del sector público (la investigación 17-nov: Birmingham
+    # 2010 recomendaba Browsealoud; el linaje overlay va de Browsealoud a las
+    # barras modernas) y el resto del overlayfactsheet común
+    ('Texthelp (Browsealoud/ReachDeck)', ('texthelp.com', 'browsealoud.com', 'reachdeck.com')),
+    ('Recite Me', ('recite.me',)),
+    ('User1st', ('user1st.com',)),
+    ('UsableNet', ('usablenet.com',)),
 )
 
 # texto de un skip link (es/en/pt/fr — el vocabulario del patrón 3e12e1)

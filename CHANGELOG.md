@@ -1,6 +1,17 @@
 # Changelog
 
 ## main — pendiente
+- **`overlay_widgets`: the public-sector ancestors join the list** (from the
+  Bruce Lawson deep-read: Birmingham's 2010 post-mortem recommended Browsealoud,
+  the read-aloud plugin that is the direct ancestor of today's accessibility
+  bars): `_OVERLAY_WIDGETS` gains Texthelp (Browsealoud/ReachDeck, domains
+  texthelp.com/browsealoud.com/reachdeck.com), Recite Me (recite.me), User1st
+  (user1st.com) and UsableNet (usablenet.com) — same domain-of-script detection,
+  same report-only treatment: still data for buying diligence, still zero
+  findings, zero score, dedup per vendor. Test pins each new vendor. What it
+  does NOT do: it does not judge (no criterion says "don't use overlays"; the
+  public position stays the community overlayfactsheet.com) and it does not
+  change any existing report beyond recognizing four more script domains.
 - **`docs/severity-data.md` — the user-pain axis gets its source** (from the
   Bruce Lawson deep-read: his landmark posts cite the 2015-era survey 6
   figures that no longer hold): a short doc pinning WHERE the "how much does
