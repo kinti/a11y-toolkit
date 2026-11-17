@@ -1,6 +1,16 @@
 # Changelog
 
 ## main — pendiente
+- **bench/tetra-acl — calibration against known-good components** (TetraLogical's
+  accessible-components-library v1.0.0, ISC, commit-pinned): the 16 vendored example
+  pages are audited by this engine and every finding is reviewed and pinned — first
+  reading: 13 static findings, ALL of them the expected page-context `no_headings`/
+  `no_h1` (1.3.1, the upstream examples are heading-less fragments) and zero component-
+  markup noise; rendered keyboard walk + 320px reflow clean on 16/16 with Playwright.
+  `tests/test_tetra_acl.py` makes the reviewed allowlist the invariant: a new signal
+  firing on known-good markup fails the suite until triaged. What it does NOT do: it
+  does not vendor their Gherkin scenarios or docs (upstream's, only referenced), and
+  the rendered half degrades to static without Playwright, like test_engines.
 - **`lang_invalid` — the complete ISO 639-1 table** (FP from the 2026-11 external
   review: valid BCP-47 tags gd, eo, yi were rejected because the v3-era hand list
   carried only 77 of the registry's codes): `_LANG_CODES` now embeds the complete

@@ -1,0 +1,253 @@
+{
+ "meta": {
+  "upstream": {
+   "repo": "https://github.com/TetraLogical/accessible-components-library",
+   "commit": "214baddf9a0500fd067a37c83583bd288f5a4f72",
+   "version": "1.0.0",
+   "license": "ISC"
+  },
+  "engine": "5.27.0",
+  "date": "2026-11-17",
+  "rendered": true,
+  "pages": 16
+ },
+ "static": [
+  {
+   "component": "accordion",
+   "page": "accordion/examples/default.html",
+   "signal": "no_headings",
+   "criterion": "1.3.1",
+   "severity": "low"
+  },
+  {
+   "component": "accordion",
+   "page": "accordion/examples/one-at-a-time.html",
+   "signal": "no_headings",
+   "criterion": "1.3.1",
+   "severity": "low"
+  },
+  {
+   "component": "breadcrumbs",
+   "page": "breadcrumbs/examples/default.html",
+   "signal": "no_headings",
+   "criterion": "1.3.1",
+   "severity": "low"
+  },
+  {
+   "component": "disclosure",
+   "page": "disclosure/examples/default.html",
+   "signal": "no_headings",
+   "criterion": "1.3.1",
+   "severity": "low"
+  },
+  {
+   "component": "disclosure",
+   "page": "disclosure/examples/with-heading.html",
+   "signal": "no_h1",
+   "criterion": "1.3.1",
+   "severity": "low"
+  },
+  {
+   "component": "pagination",
+   "page": "pagination/examples/default.html",
+   "signal": "no_headings",
+   "criterion": "1.3.1",
+   "severity": "low"
+  },
+  {
+   "component": "pagination",
+   "page": "pagination/examples/few-pages.html",
+   "signal": "no_headings",
+   "criterion": "1.3.1",
+   "severity": "low"
+  },
+  {
+   "component": "text-input",
+   "page": "text-input/examples/default.html",
+   "signal": "no_headings",
+   "criterion": "1.3.1",
+   "severity": "low"
+  },
+  {
+   "component": "text-input",
+   "page": "text-input/examples/error.html",
+   "signal": "no_headings",
+   "criterion": "1.3.1",
+   "severity": "low"
+  },
+  {
+   "component": "text-input",
+   "page": "text-input/examples/without-hint.html",
+   "signal": "no_headings",
+   "criterion": "1.3.1",
+   "severity": "low"
+  },
+  {
+   "component": "textarea",
+   "page": "textarea/examples/default.html",
+   "signal": "no_headings",
+   "criterion": "1.3.1",
+   "severity": "low"
+  },
+  {
+   "component": "textarea",
+   "page": "textarea/examples/error.html",
+   "signal": "no_headings",
+   "criterion": "1.3.1",
+   "severity": "low"
+  },
+  {
+   "component": "textarea",
+   "page": "textarea/examples/without-hint.html",
+   "signal": "no_headings",
+   "criterion": "1.3.1",
+   "severity": "low"
+  }
+ ],
+ "rendered": [
+  {
+   "component": "accordion",
+   "page": "accordion/examples/default.html",
+   "kbd_score": 100,
+   "kbd_trap": null,
+   "kbd_stops": 4,
+   "reflow_scroll": null,
+   "reflow_offenders": 0
+  },
+  {
+   "component": "accordion",
+   "page": "accordion/examples/one-at-a-time.html",
+   "kbd_score": 100,
+   "kbd_trap": null,
+   "kbd_stops": 4,
+   "reflow_scroll": null,
+   "reflow_offenders": 0
+  },
+  {
+   "component": "breadcrumbs",
+   "page": "breadcrumbs/examples/default.html",
+   "kbd_score": 100,
+   "kbd_trap": null,
+   "kbd_stops": 3,
+   "reflow_scroll": null,
+   "reflow_offenders": 0
+  },
+  {
+   "component": "dialog",
+   "page": "dialog/examples/default.html",
+   "kbd_score": 100,
+   "kbd_trap": null,
+   "kbd_stops": 2,
+   "reflow_scroll": null,
+   "reflow_offenders": 0
+  },
+  {
+   "component": "dialog",
+   "page": "dialog/examples/non-modal.html",
+   "kbd_score": 100,
+   "kbd_trap": null,
+   "kbd_stops": 2,
+   "reflow_scroll": null,
+   "reflow_offenders": 0
+  },
+  {
+   "component": "disclosure",
+   "page": "disclosure/examples/default.html",
+   "kbd_score": 100,
+   "kbd_trap": null,
+   "kbd_stops": 1,
+   "reflow_scroll": null,
+   "reflow_offenders": 0
+  },
+  {
+   "component": "disclosure",
+   "page": "disclosure/examples/with-heading.html",
+   "kbd_score": 100,
+   "kbd_trap": null,
+   "kbd_stops": 1,
+   "reflow_scroll": null,
+   "reflow_offenders": 0
+  },
+  {
+   "component": "pagination",
+   "page": "pagination/examples/default.html",
+   "kbd_score": 100,
+   "kbd_trap": null,
+   "kbd_stops": 10,
+   "reflow_scroll": null,
+   "reflow_offenders": 0
+  },
+  {
+   "component": "pagination",
+   "page": "pagination/examples/few-pages.html",
+   "kbd_score": 100,
+   "kbd_trap": null,
+   "kbd_stops": 5,
+   "reflow_scroll": null,
+   "reflow_offenders": 0
+  },
+  {
+   "component": "tabs",
+   "page": "tabs/examples/default.html",
+   "kbd_score": 100,
+   "kbd_trap": null,
+   "kbd_stops": 2,
+   "reflow_scroll": null,
+   "reflow_offenders": 0
+  },
+  {
+   "component": "text-input",
+   "page": "text-input/examples/default.html",
+   "kbd_score": 100,
+   "kbd_trap": null,
+   "kbd_stops": 2,
+   "reflow_scroll": null,
+   "reflow_offenders": 0
+  },
+  {
+   "component": "text-input",
+   "page": "text-input/examples/error.html",
+   "kbd_score": 100,
+   "kbd_trap": null,
+   "kbd_stops": 1,
+   "reflow_scroll": null,
+   "reflow_offenders": 0
+  },
+  {
+   "component": "text-input",
+   "page": "text-input/examples/without-hint.html",
+   "kbd_score": 100,
+   "kbd_trap": null,
+   "kbd_stops": 1,
+   "reflow_scroll": null,
+   "reflow_offenders": 0
+  },
+  {
+   "component": "textarea",
+   "page": "textarea/examples/default.html",
+   "kbd_score": 100,
+   "kbd_trap": null,
+   "kbd_stops": 2,
+   "reflow_scroll": null,
+   "reflow_offenders": 0
+  },
+  {
+   "component": "textarea",
+   "page": "textarea/examples/error.html",
+   "kbd_score": 100,
+   "kbd_trap": null,
+   "kbd_stops": 1,
+   "reflow_scroll": null,
+   "reflow_offenders": 0
+  },
+  {
+   "component": "textarea",
+   "page": "textarea/examples/without-hint.html",
+   "kbd_score": 100,
+   "kbd_trap": null,
+   "kbd_stops": 1,
+   "reflow_scroll": null,
+   "reflow_offenders": 0
+  }
+ ]
+}
