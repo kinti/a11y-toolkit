@@ -1,6 +1,20 @@
 # Changelog
 
 ## main — pendiente
+- **publish.yml: the registry job waits for PyPI and npm** (the 5.28.0 release
+  race, hit twice live: the MCP registry validates BOTH packages declared in
+  server.json against their public indexes while this workflow's own PyPI and
+  npm publishes are still landing — two 400 "version was not found" on a
+  release where build, publish and npm all finished green, both cleared by a
+  manual failed-jobs rerun once the indexes caught up): the registry job now
+  polls PyPI and the npm index for the server.json version before attempting
+  the publish (active wait, 8 minute ceiling, `::notice::` and proceed
+  anyway if they never show — the registry stays the final authority). What
+  it does NOT do: it does not merge the npm workflow into this one
+  (cross-workflow `needs` does not exist in GitHub Actions) and it does not
+  retry the publish step itself.
+
+## 5.28.0 — 2026-11-17 — "the write-time gate, the known-good bench"
 - **`placeholder_contrast` — rendered 1.4.3 for `::placeholder`** (from Léonie
   Watson's state-of-accessibility account: placeholder-as-label fails cognitive
   users AND low-vision users get gray-on-white guidance text they must read; the

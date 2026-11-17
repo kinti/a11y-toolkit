@@ -39,6 +39,25 @@ jobs:
           curl -fsSL -o pub.tar.gz "https://github.com/modelcontextprotocol/registry/releases/download/v1.8.9/mcp-publisher_linux_amd64.tar.gz"
           tar -xzf pub.tar.gz mcp-publisher
           chmod +x mcp-publisher && sudo mv mcp-publisher /usr/local/bin/
+      - name: Wait for PyPI and npm to serve this version
+        run: |
+          # El registro valida AMBOS paquetes declarados en server.json
+          # (PyPI + npm) contra sus índices públicos, y este workflow corre
+          # en paralelo a los dos publishes: la carrera dio 400 "version
+          # was not found" DOS veces en la 5.28.0 (17-nov) con build, publish
+          # y npm en verde. Espera activa con techo de 8 minutos; si aún no
+          # aparecen, se intenta igualmente: el registro es la autoridad
+          # final y la guardia de abajo decide.
+          VERSION="$(python3 -c "import json; print(json.load(open('server.json'))['version'])")"
+          for i in $(seq 1 16); do
+            PY="no"; NP="no"
+            curl -fsS "https://pypi.org/pypi/a11y-toolkit/${VERSION}/json" > /dev/null 2>&1 && PY="ok"
+            NP="$(curl -fsS "https://registry.npmjs.org/@kinti/a11y-toolkit" 2>/dev/null | python3 -c 'import json,sys; print("ok" if sys.argv[1] in json.load(sys.stdin).get("versions",{}) else "no")' "$VERSION")"
+            echo "intento $i: pypi=$PY npm=$NP"
+            [ "$PY" = "ok" ] && [ "$NP" = "ok" ] && exit 0
+            sleep 30
+          done
+          echo "::notice::PyPI/npm siguen sin servir ${VERSION} tras 8 minutos; se intenta publicar igualmente"
       - name: Skip if this version is already in the MCP registry
         id: registry_guard
         run: |
