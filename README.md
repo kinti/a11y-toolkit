@@ -34,6 +34,8 @@ a11ytoolkit audit --url https://example.com
 a11ytoolkit pair "#1f2328" "#fbfaf7"
 ```
 
+**Agents that prefer copy-paste configs** (Cline and similar): [`llms-install.md`](llms-install.md) carries both install paths, verified end to end.
+
 Static audits, contrast math, PDF/DOCX screening and the evidence pack run with
 **zero dependencies**. The rendered tools (real contrast over images, keyboard
 traps, reflow, forms) additionally need Playwright:
@@ -329,7 +331,11 @@ w3c/wcag-act-rules repository; per-rule breakdown in
 [docs/act-report-summary.md](docs/act-report-summary.md)). The WCAG 2.2 catalog
 (86 criteria, A/AA/AAA) and the WCAG 3 outcome registry are likewise verified
 against their canonical w3.org sources (`scripts/wcag22_ingest.py`,
-`scripts/wcag3_ingest.py`).
+`scripts/wcag3_ingest.py`). Calibration also runs against known-good component
+implementations: the [TetraLogical accessible-components-library](https://github.com/TetraLogical/accessible-components-library)
+(ISC, commit-pinned under [`bench/tetra-acl/`](bench/tetra-acl/README.md)):
+16 example pages audited with zero component-markup findings and clean rendered
+keyboard + 320px reflow on all of them.
 
 ## Why I built this
 

@@ -161,6 +161,10 @@ Fetch…) — [docs/interop.md](docs/interop.md). Recetas de principio a fin
 claude mcp add a11y-toolkit -- uvx --from a11y-toolkit a11y-toolkit-mcp
 ```
 
+**Agentes que prefieren configuraciones listas para pegar** (Cline y
+similares): [`llms-install.md`](llms-install.md) trae las dos vías de
+instalación verificadas de punta a punta.
+
 O con configuración JSON:
 
 ```json
@@ -343,7 +347,12 @@ w3c/wcag-act-rules; desglose por regla en
 [docs/act-report-summary.md](docs/act-report-summary.md)). El catálogo WCAG
 2.2 (86 criterios, A/AA/AAA) y el registro de outcomes WCAG 3 se verifican
 igualmente contra sus fuentes canónicas de w3.org
-(`scripts/wcag22_ingest.py`, `scripts/wcag3_ingest.py`).
+(`scripts/wcag22_ingest.py`, `scripts/wcag3_ingest.py`). La calibración
+corre también contra implementaciones de componentes conocidas-buenas: la
+[librería de componentes accesibles de TetraLogical](https://github.com/TetraLogical/accessible-components-library)
+(ISC, pineada por commit en [`bench/tetra-acl/`](bench/tetra-acl/README.md)):
+16 páginas de ejemplo auditadas sin un solo hallazgo de markup de componente
+y con teclado y reflow a 320px limpios en todas.
 
 ## Por qué lo construí
 
