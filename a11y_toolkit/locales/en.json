@@ -311,6 +311,8 @@
   "input_navigates_rem": "Changing a setting must never navigate without user request (3.2.2): add an \"Apply\" button or confirm before submitting.",
   "kbd_trap": "KEYBOARD TRAP: {n} controls caught in a cycle ({cycle}) and Escape does not release. Focus cannot leave (2.1.2).",
   "kbd_trap_rem": "Every focus-containing component (modal, menu) must release with Escape (ideally click-outside too): close it and return focus to the trigger. Test it with the keyboard alone.",
+  "skip_target_hidden": "Skip link \"{label}\" leads to hidden content: after activating it, the target ({id}) is still not exposed (display:none, hidden, closed details or aria-hidden). The bypass mechanism lands on nothing perceivable (2.4.1).",
+  "skip_target_hidden_rem": "A bypass mechanism must land on perceivable content (2.4.1): point the link at visible content, or have the page reveal or expand the target on activation (hashchange or click), and give the target tabindex=\"-1\" so focus follows.",
   "limits": "Rendered audit: honest heuristics, no substitute for a screen reader or manual review. Contrast computed over computed backgrounds; cases with background images are reported as \"review\". 2.5.8 allows exceptions (equivalent inline, spacing) approximated here.",
   "reduced_motion_ignored": "{n} looping animations still run with prefers-reduced-motion set (before {n}, after {nr}): the user's preference is ignored (2.2.2).",
   "reduced_motion_ignored_rem": "Wrap animations in @media (prefers-reduced-motion: reduce) { animation: none } — or pause via the Animation API. The user asked for less motion; honor it.",

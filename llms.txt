@@ -57,7 +57,7 @@ Start with `a11y_route` (the router): state a goal in plain language and get the
 - `a11y_html_validate` — W3C Nu validation
 
 ### Interactions
-- `a11y_keyboard` — Keyboard-trap detector
+- `a11y_keyboard` — Keyboard-trap + skip-link landing detector
 - `a11y_forms` — Form error testing
 - `a11y_hover` — Hover dismissibility (1.4.13)
 - `a11y_reflow` — 320px reflow check

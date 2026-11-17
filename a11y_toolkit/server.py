@@ -376,8 +376,12 @@ TOOLS = [
                         'up to 60 real tab stops, cycle detection (the modal pattern), then '
                         'the decisive test — does ESCAPE release the cycle? A modal that '
                         'cycles and releases on Escape is correct and NOT reported; a cycle '
-                        'Escape cannot leave is a trap (high severity). Returns the full tab '
-                        'stop list too. Requires local Playwright.'),
+                        'Escape cannot leave is a trap (high severity). It also activates '
+                        'the first real skip link once and reports skip_target_hidden '
+                        '(medium, 2.4.1) when the target is still not exposed after '
+                        'activation — focus landing on it is not required (browsers move '
+                        'the sequential-focus start regardless of tabindex). Returns the '
+                        'full tab stop list too. Requires local Playwright.'),
         'inputSchema': {'type': 'object', 'properties': {
             'url': {'type': 'string'},
             'lang': {'type': 'string', 'enum': ['es', 'en']},
@@ -1099,7 +1103,7 @@ _ROUTING = {
  'a11y_audit_url': 'Prefer a11y_audit_dom when JS renders the content or contrast/2.5.8/focus matter; use pages for light multi-page sampling. Static CANNOT measure class/var() CSS contrast (1.4.3): the report\'s not_measured says so — a 100 is never \'contrast is fine\'.',
  'a11y_audit_dom': 'Use instead of a11y_audit_url on JS-heavy pages; needs local Playwright.',
  'a11y_reflow': 'Scope: 320px reflow only (1.4.10); for the full rendered pass use a11y_audit_dom.',
- 'a11y_keyboard': 'Scope: keyboard traps (2.1.2); focus visibility is part of a11y_audit_dom.',
+ 'a11y_keyboard': 'Scope: keyboard traps (2.1.2) + rendered bypass landing; focus visibility is part of a11y_audit_dom.',
  'a11y_scroll': 'For paginated feeds only; general page audit is a11y_audit_url/dom.',
  'a11y_contrast_pair': 'For flat pairs; text over images needs a11y_contrast_image.',
  'a11y_contrast_image': 'Use instead of a11y_contrast_pair whenever the background is a photo/gradient.',
@@ -1133,7 +1137,7 @@ _ANN = {
     'a11y_audit_url':        ('Express WCAG audit', True, True),
     'a11y_audit_dom':        ('Rendered WCAG audit', True, True),
     'a11y_reflow':           ('320px reflow check', True, True),
-    'a11y_keyboard':         ('Keyboard-trap detector', True, True),
+    'a11y_keyboard':         ('Keyboard-trap + skip-link landing detector', True, True),
     'a11y_html_validate':    ('W3C Nu validation', True, True),
     'a11y_forms':            ('Form error testing', True, True),
     'a11y_scroll':           ('Infinite-scroll audit', True, True),

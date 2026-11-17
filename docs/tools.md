@@ -458,7 +458,7 @@ The W3C's own parser as a toolkit mode: checks a URL or raw HTML against the Nu 
 
 <sub>read-only · network</sub>
 
-Keyboard-trap detection (2.1.2) with REAL Tab walking in Chromium: up to 60 real tab stops, cycle detection (the modal pattern), then the decisive test — does ESCAPE release the cycle? A modal that cycles and releases on Escape is correct and NOT reported; a cycle Escape cannot leave is a trap (high severity). Returns the full tab stop list too. Requires local Playwright. — Scope: keyboard traps (2.1.2); focus visibility is part of a11y_audit_dom. Returns JSON: {tab_stops, trap_detected, escape_releases, findings}. Run on pages with modals, dialogs or embedded apps; a plain content page has nothing to trap.
+Keyboard-trap detection (2.1.2) with REAL Tab walking in Chromium: up to 60 real tab stops, cycle detection (the modal pattern), then the decisive test — does ESCAPE release the cycle? A modal that cycles and releases on Escape is correct and NOT reported; a cycle Escape cannot leave is a trap (high severity). It also activates the first real skip link once and reports skip_target_hidden (medium, 2.4.1) when the target is still not exposed after activation — focus landing on it is not required (browsers move the sequential-focus start regardless of tabindex). Returns the full tab stop list too. Requires local Playwright. — Scope: keyboard traps (2.1.2) + rendered bypass landing; focus visibility is part of a11y_audit_dom. Returns JSON: {tab_stops, trap_detected, escape_releases, findings}. Run on pages with modals, dialogs or embedded apps; a plain content page has nothing to trap.
 
 
 **Arguments**

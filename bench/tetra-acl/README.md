@@ -26,6 +26,25 @@ Both passes were run before this directory existed and then re-run through
 `sweep.py`; the raw evidence is [`results/2026-11-17.json`](./results/2026-11-17.json)
 and is never edited by hand.
 
+## Upstream watch
+
+- **Upstream moved to 1.0.2 (2026-10-16)**: fixed a broken blog-post link,
+  `null` `lastUpdated` in sidecar files, added a security policy. No component
+  page, CSS or JS changed, so the pin stands without re-vendoring. The docs we
+  deliberately did NOT copy live upstream in `dist/_assets/`:
+  `available-steps.md` (their shared Gherkin step vocabulary) and
+  `recommendations.md` (their beyond-WCAG best practice, e.g. fragment
+  navigation into a collapsed section must expand it). Their step vocabulary is
+  the reference for our rendered checks: `skip_target_hidden`
+  (a11y_keyboard, since 2026-11-17) activates a skip link the same way their
+  `When I navigate to the fragment` + `Then <selector> should be focused` pair
+  does, minus the focus assertion (browsers move the sequential-focus start
+  with or without tabindex, so we only require the target to end up exposed).
+- The engine's rendered keyboard pass runs on all 16 pages in
+  `tests/test_tetra_acl.py`; the skip-link check adds no findings here because
+  the example pages ship no skip links (`checked=0`), which is itself pinned
+  by the score==100 invariant.
+
 ## Rules
 
 - **The reviewed allowlist is the invariant.** `tests/test_tetra_acl.py`

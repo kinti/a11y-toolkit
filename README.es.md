@@ -112,7 +112,7 @@ traducción puede ir a la zaga del inglés, que es la fuente canónica.
 | [`a11y_aria_live_snippet`](docs/tools.md#a11y_aria_live_snippet) | Vigilar (regresiones) | Snippet monitor aria-live |
 | [`a11y_criterion`](docs/tools.md#a11y_criterion) | Conocimiento y contexto | Criterio WCAG explicado |
 | [`a11y_html_validate`](docs/tools.md#a11y_html_validate) | Conocimiento y contexto | Validación W3C Nu |
-| [`a11y_keyboard`](docs/tools.md#a11y_keyboard) | Interacciones | Detector de trampas de teclado |
+| [`a11y_keyboard`](docs/tools.md#a11y_keyboard) | Interacciones | Trampas de teclado + aterrizaje de skip links |
 | [`a11y_forms`](docs/tools.md#a11y_forms) | Interacciones | Prueba de errores de formulario |
 | [`a11y_hover`](docs/tools.md#a11y_hover) | Interacciones | Descartabilidad de tooltips (1.4.13) |
 | [`a11y_reflow`](docs/tools.md#a11y_reflow) | Interacciones | Comprobación de reflow a 320px |

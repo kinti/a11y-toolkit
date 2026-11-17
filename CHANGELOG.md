@@ -1,6 +1,24 @@
 # Changelog
 
 ## main — pendiente
+- **`skip_target_hidden` — rendered bypass landing check (2.4.1)** (from the Bruce
+  Lawson deep-read: his 2024 "drive-by accessibility tweaks" post shows the
+  tabindex-on-skip-target bug alive 18 years after IE, and TetraLogical's own
+  Gherkin vocabulary activates fragments the same way): after the real Tab walk,
+  `a11y_keyboard` activates the FIRST real skip link (skip-vocabulary text +
+  existing `#id` target, same vocabulary as the static 3e12e1 pattern) and
+  reports a `medium` finding when the target is still not exposed after
+  activation — display:none, hidden, an aria-hidden subtree; a closed `<details>`
+  does NOT fire because Chromium opens it natively on fragment navigation (the
+  calibration pass caught this before the test shipped). Focus landing on the
+  target is deliberately NOT required: modern browsers move the sequential-focus
+  start to the fragment with or without tabindex="-1", so requiring
+  activeElement==target would fabricate failures. New `skip_link` data block in
+  the result; limits text documents the scope. What it does NOT do: it does not
+  touch the static `no_bypass` best-practice signal, does not fire on pages
+  without a real skip link (the TetraLogical 16-page panel stays 16/16 clean,
+  re-verified), and SPA hash routers that swallow the navigation are honestly
+  out of scope (documented in limits).
 - **bench/tetra-acl — calibration against known-good components** (TetraLogical's
   accessible-components-library v1.0.0, ISC, commit-pinned): the 16 vendored example
   pages are audited by this engine and every finding is reviewed and pinned — first

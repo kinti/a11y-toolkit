@@ -311,6 +311,8 @@
   "input_navigates_rem": "Cambiar un ajuste nunca debe navegar sin petición del usuario (3.2.2): añade un botón «Aplicar» o confirma antes de enviar.",
   "kbd_trap": "TRAMPA DE TECLADO: {n} controles atrapados en un ciclo ({cycle}) y Escape no libera. El foco no puede salir (2.1.2).",
   "kbd_trap_rem": "Todo componente con foco contenido (modal, menú) debe liberarse con Escape (y idealmente clic fuera): ciérralo y devuelve el foco al disparador. Pruébalo solo con teclado.",
+  "skip_target_hidden": "El skip link «{label}» lleva a contenido oculto: tras activarlo, el destino ({id}) sigue sin exponerse (display:none, hidden, details cerrado o aria-hidden). El mecanismo de bypass no lleva a nada perceivable (2.4.1).",
+  "skip_target_hidden_rem": "Un mecanismo de bypass debe aterrizar en contenido perceivable (2.4.1): apunta el enlace a contenido visible, o haz que la página revele o expanda el destino al activarlo (hashchange o click), y dale tabindex=\"-1\" al destino para que el foco lo acompañe.",
   "limits": "Auditoría renderizada: heurística honesta, no sustituye lector de pantalla ni revisión manual. Contraste calculado sobre fondos computados; los casos con imagen de fondo se reportan como «revisar». 2.5.8 admite excepciones (inline equivalente, espaciado) que aquí se aproximan.",
   "reduced_motion_ignored": "{n} animaciones en bucle siguen moviéndose con prefers-reduced-motion activo (antes {n}, ahora {nr}): la preferencia del usuario se ignora (2.2.2).",
   "reduced_motion_ignored_rem": "Envuelve las animaciones en @media (prefers-reduced-motion: reduce) { animation: none } — o paúsala con la API Animation. El usuario pidió menos movimiento; respóndelo.",

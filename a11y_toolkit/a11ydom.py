@@ -1324,6 +1324,55 @@ _STOP_META = r"""(i) => {
   return el ? el.getAttribute('data-a11yruta') : ('parada ' + i);
 }"""
 
+# 2.4.1 rendered: el primer skip link REAL (texto del vocabulario del patrón
+# 3e12e1 + destino con id existente) se activa con un click de la acción por
+# defecto (los handlers corren igual que con un usuario) y se comprueba que el
+# destino quede EXPUESTO tras la activación. El foco NO se exige: los
+# navegadores modernos mueven el inicio del recorrido secuencial al destino
+# aunque no tenga tabindex=-1, así que exigir activeElement==destino sería
+# fabricar falsos positivos (la recomendación del tabindex es de calidad, no
+# de cumplimiento). Lo que sí es fallo real: el bypass lleva a contenido que
+# sigue oculto (display:none, hidden, details cerrado, subárbol aria-hidden),
+# es decir, el mecanismo no lleva a nada perceivable.
+_SKIP_TEXT_JS = ('skip|jump to|saltar|ir al contenido|ir para o conte|'
+                 'passer au contenu|main content|contenido principal')
+_JS_SKIP_FIND = ('() => { const re = new RegExp(' + json.dumps(_SKIP_TEXT_JS) + ', "i");\n'
+                 '  for (const a of document.querySelectorAll(\'a[href^="#"]\')) {\n'
+                 '    const href = a.getAttribute("href"); const id = href.slice(1);\n'
+                 '    if (!id) continue;\n'
+                 '    if (!document.getElementById(id)) continue;\n'
+                 '    const txt = ((a.textContent || "") + " " + (a.getAttribute("aria-label") || "")).trim();\n'
+                 '    if (!re.test(txt)) continue;\n'
+                 '    return {href: href, id: id, label: txt.slice(0, 40)};\n'
+                 '  }\n'
+                 '  return null; }')
+_JS_SKIP_AFTER = r"""(id) => {
+  const t = document.getElementById(id);
+  if (!t) return {exposed: false, focus_path: null};
+  let node = t, closed_details = false;
+  while (node && node !== document.documentElement) {
+    if (node.tagName === 'DETAILS' && !node.open) { closed_details = true; break; }
+    node = node.parentElement;
+  }
+  let render_ok = true;
+  if (typeof t.checkVisibility === 'function') {
+    render_ok = t.checkVisibility({checkVisibilityCSS: true, checkOpacity: false});
+  } else {
+    let n = t;
+    while (n && n !== document.documentElement) {
+      const s = getComputedStyle(n);
+      if (s.display === 'none' || s.visibility === 'hidden') { render_ok = false; break; }
+      n = n.parentElement;
+    }
+  }
+  const exposed = render_ok && !t.hidden && !closed_details
+                  && t.closest('[aria-hidden="true"]') === null;
+  const ae = document.activeElement;
+  const focus_path = (ae && ae !== document.body && ae !== document.documentElement)
+    ? (ae.tagName.toLowerCase() + (ae.id ? '#' + ae.id : '')) : null;
+  return {exposed: exposed, focus_path: focus_path};
+}"""
+
 
 def audit_keyboard(url, max_steps=60, lang='en', timeout=45, auth_state=None, browser='auto'):
     """Detección de TRAMPAS DE TECLADO (2.1.2) con Tab real.
@@ -1416,6 +1465,29 @@ def audit_keyboard(url, max_steps=60, lang='en', timeout=45, auth_state=None, br
                     esc_releases = False
             except Exception:
                 esc_releases = None
+        # 2.4.1 rendered: un skip link real debe llevar a contenido expuesto
+        skip = {'checked': 0, 'label': None, 'target_exposed': None,
+                'focus_after': None, 'broken': []}
+        if not focus_navigated:
+            try:
+                found = page.evaluate(_JS_SKIP_FIND)
+                if found:
+                    skip['checked'] = 1
+                    skip['label'] = found.get('label')
+                    # click por acción por defecto (clip del texto visible o
+                    # no, el hash navigation y los handlers corren igual)
+                    page.evaluate(
+                        "h => { for (const a of document.querySelectorAll('a[href]')) {"
+                        " if (a.getAttribute('href') === h) { a.click(); return true; } }"
+                        " return false; }", found['href'])
+                    page.wait_for_timeout(350)
+                    after = page.evaluate(_JS_SKIP_AFTER, found['id'])
+                    skip['target_exposed'] = after.get('exposed')
+                    skip['focus_after'] = after.get('focus_path')
+                    if not after.get('exposed'):
+                        skip['broken'].append(found['id'])
+            except Exception:  # noqa: BLE001 — SPA o contexto destruido: sin dato
+                pass
         try:
             nav.close()
         except Exception:
@@ -1443,6 +1515,13 @@ def audit_keyboard(url, max_steps=60, lang='en', timeout=45, auth_state=None, br
             'remediation': _t(lang, 'kbd_trap_rem'),
             'examples': elems,
         })
+    if skip['broken']:
+        findings.append({
+            'severity': 'medium', 'criterion': CRIT.get(lang, CRIT['es']).get('2.4.1', '2.4.1'),
+            'signal': 'skip_target_hidden',
+            'issue': _t(lang, 'skip_target_hidden').format(
+                label=skip.get('label') or 'skip link', id=', '.join(skip['broken'])),
+            'remediation': _t(lang, 'skip_target_hidden_rem')})
     from .a11yaudit import compute_score
     return {
         'url': url,
@@ -1455,14 +1534,25 @@ def audit_keyboard(url, max_steps=60, lang='en', timeout=45, auth_state=None, br
         'cycle': {'detected': bool(cycle),
                   'elements': [paths.get(i, f'tab stop {i}') for i in cycle] if cycle else [],
                   'escape_releases': esc_releases},
+        'skip_link': {'checked': skip['checked'], 'label': skip.get('label'),
+                      'target_exposed': skip.get('target_exposed'),
+                      'focus_after': skip.get('focus_after')},
         'findings': findings,
         'limits': (('Real Tab walk in Chromium (max {n} steps). Focus inside cross-origin '
                     'iframes is not trackable and is marked as such. A cycle that Escape '
-                    'releases (a correct modal) is NOT reported as a finding.'
+                    'releases (a correct modal) is NOT reported as a finding. The first '
+                    'real skip link is activated once: a target still hidden after '
+                    'activation is reported (2.4.1), but focus not landing on it is not '
+                    'measured (modern browsers move the sequential-focus start regardless '
+                    'of tabindex).'
                     ).format(n=max_steps) if lang == 'en' else
                    ('Recorrido con Tab real en Chromium (tope {n} pasos). El foco dentro de '
                     'iframes entre dominios no es rastreable y se marca como tal. Un ciclo '
-                    'con Escape operativo (modal correcto) NO se reporta como hallazgo.'
+                    'con Escape operativo (modal correcto) NO se reporta como hallazgo. Se '
+                    'activa una vez el primer skip link real: si el destino sigue oculto '
+                    'tras activarlo se reporta (2.4.1), pero que el foco no caiga en él no '
+                    'se mide (los navegadores modernos mueven el inicio del recorrido '
+                    'secuencial con o sin tabindex).'
                     ).format(n=max_steps)),
     }
 

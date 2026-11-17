@@ -104,7 +104,7 @@ Full reference — descriptions, arguments, return shapes and behavior — in [d
 | [`a11y_aria_live_snippet`](docs/tools.md#a11y_aria_live_snippet) | Watch (regressions) | aria-live monitor snippet |
 | [`a11y_criterion`](docs/tools.md#a11y_criterion) | Knowledge & context | WCAG criterion explained |
 | [`a11y_html_validate`](docs/tools.md#a11y_html_validate) | Knowledge & context | W3C Nu validation |
-| [`a11y_keyboard`](docs/tools.md#a11y_keyboard) | Interactions | Keyboard-trap detector |
+| [`a11y_keyboard`](docs/tools.md#a11y_keyboard) | Interactions | Keyboard-trap + skip-link landing detector |
 | [`a11y_forms`](docs/tools.md#a11y_forms) | Interactions | Form error testing |
 | [`a11y_hover`](docs/tools.md#a11y_hover) | Interactions | Hover dismissibility (1.4.13) |
 | [`a11y_reflow`](docs/tools.md#a11y_reflow) | Interactions | 320px reflow check |
