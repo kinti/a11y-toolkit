@@ -169,6 +169,7 @@ _JS_NAMEOF = r'''
 _JS = r'''(maxEj) => {
   const INTER = 'a[href], button, input, select, textarea, summary, [role="button"], [role="link"], [tabindex]';
   const out = { contrast: {}, contrastReview: 0, contrastZones: [], targets: [], unnamed: [], fields: [],
+                placeholderContrast: [],
                 imgs: [], canvasNoName: [], chartsNoEquiv: [], iframes: [], headings: [], tabindex: [], ariaHidden: [],
                 blank: 0, videos: 0, videoSubs: 0, tables: 0, tableTh: 0,
                 focus: [], focusFail: [], focusContrast: [], focusObscured: [], marks: 0,
@@ -405,6 +406,41 @@ _JS = r'''(maxEj) => {
     const cl = parseCol(s.color), cp = parseCol(getComputedStyle(cont).color);
     if (cl && cp && ratioOf(cl, cp) < 3)
       out.colorOnly.push(path(el));
+  }
+
+  // ---- 1.4.3 contraste del placeholder (::placeholder) ----
+  // El placeholder ES texto que la gente con visión baja tiene que leer (y el
+  // 1.4.3 no distingue pseudo-elementos). El gris típico sobre blanco falla.
+  // Excepciones espejo del text_: control disabled (inactivo) y fondos de
+  // imagen (ahí ya manda la revisión manual). Sin color propio del autor el
+  // navegador pinta su gris por defecto: getComputedStyle lo devuelve igual,
+  // y si ese gris falla, el fallo es real y visible — se corrige estilando el
+  // placeholder, no dejando de usarlo.
+  for (const el of deepQ('input[placeholder], textarea[placeholder]')) {
+    if (out.placeholderContrast.length >= 12) break;
+    if (el.disabled || el.closest('fieldset[disabled]')) continue;
+    if (!vis(el)) continue;
+    if ((el.value || '').length) continue;         // con valor, el placeholder no se ve
+    const ps = getComputedStyle(el, '::placeholder');
+    const fg = parseCol(ps.color);
+    if (!fg) continue;
+    const bg = bgOf(el);
+    if (bg.image) continue;
+    const px = parseFloat(ps.fontSize || getComputedStyle(el).fontSize);
+    const bold = parseInt(ps.fontWeight || getComputedStyle(el).fontWeight || '400', 10) >= 700;
+    const isLarge = px >= 24 || (bold && px >= 18.66);
+    const a = (fg.a === undefined) ? 1 : fg.a;
+    const comp = { r: Math.round(fg.r * a + bg.r * (1 - a)),
+                   g: Math.round(fg.g * a + bg.g * (1 - a)),
+                   b: Math.round(fg.b * a + bg.b * (1 - a)), a: 1 };
+    const r = ratioOf(comp, bg);
+    const threshold = isLarge ? 3.0 : 4.5;
+    if (r >= threshold) continue;
+    out.placeholderContrast.push({
+      example: path(el) + ' ::placeholder',
+      fg: 'rgb(' + fg.r + ',' + fg.g + ',' + fg.b + ')',
+      bg: 'rgb(' + bg.r + ',' + bg.g + ',' + bg.b + ')',
+      ratio: Math.round(r * 100) / 100, large: isLarge });
   }
 
   // ---- 1.3.2 meaningful sequence: DOM order vs visual order, same parent ----
@@ -688,6 +724,20 @@ def audit_dom(data, url='(rendered)', lang='en', color_scheme='light'):
     remaining = max(0, data.get('contrastReview', 0) - len(measured))
     if remaining:
         _add(findings, lang, 'low', '1.4.3', 'contrast_review', n=remaining)
+
+    # 1b. Contraste del placeholder (::placeholder): el gris típico sobre
+    # blanco falla 1.4.3 y el AT lo lee como texto real (Léonie Watson,
+    # estado del sector 2026). Severidad de contrast_fail (medium: la misma
+    # clase de texto que falla, no grave como un bloqueo de uso).
+    ph_failures = data.get('placeholderContrast') or []
+    if ph_failures:
+        det = '; '.join(
+            f"{f['fg']} vs {f['bg']} = {f['ratio']}:1 ({f['example']})"
+            for f in ph_failures[:4])
+        _add(findings, lang, 'medium', '1.4.3', 'placeholder_contrast',
+             examples=[f"{f['example']} → {f['fg']} vs {f['bg']} = {f['ratio']}:1"
+                       for f in ph_failures],
+             n=len(ph_failures), det=det)
 
     # 2. Target size 2.5.8 (enlaces inline → baja: la excepción de espaciado
     #    probablemente aplica y no es medible aquí; bloques → media)

@@ -906,6 +906,8 @@ _SIGNAL_CRIT = {
     'journey_unnamed_control': '4.1.2',
     'kbd_trap': '2.1.2',
     'skip_target_hidden': '2.4.1',
+    'placeholder_contrast': '1.4.3',
+    'autocomplete_mismatch': '1.3.5',
     'label_in_name': '2.5.3',
     'label_orphan': '3.3.2',
     'label_vague': '2.4.6',

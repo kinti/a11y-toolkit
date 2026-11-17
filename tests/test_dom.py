@@ -126,6 +126,29 @@ assert '2.85:1' in f14['issue'] and 'remediation' in f14
 f25 = next(h for h in d['findings'] if h['criterion'].startswith('2.5.8'))
 assert any('14×14' in e for e in f25.get('examples', [])), f25
 
+# 1.4.3 del placeholder (::placeholder): gris claro falla, estilo correcto
+# pasa, disabled y con valor quedan exentos (regresión 17-nov, estado del sector)
+FIX_PH = """<!doctype html><html lang="en"><head><meta charset="utf-8"><title>ph</title>
+<style>
+.falla::placeholder{color:#c0c0c0}
+.pasa::placeholder{color:#767676}
+.sinestilo::placeholder{opacity:1}
+</style></head><body><main>
+<input class="falla" placeholder="Search the catalog">
+<input class="pasa" placeholder="Search the catalog">
+<input class="falla" placeholder="I have a value" value="typed">
+<input class="falla" disabled placeholder="Disabled field">
+</main></body></html>"""
+with open('/tmp/fixture_ph.html', 'w', encoding='utf-8') as f:
+    f.write(FIX_PH)
+ph = audit_dom_url('file:///tmp/fixture_ph.html', lang='en')
+phf = [h for h in ph['findings'] if h['signal'] == 'placeholder_contrast']
+assert len(phf) == 1, [(h['signal'], h.get('n')) for h in ph['findings']]
+assert phf[0]['severity'] == 'medium' and phf[0]['criterion'].startswith('1.4.3')
+assert '::placeholder' in str(phf[0].get('examples') or phf[0]['issue'])
+assert len(phf[0].get('examples') or []) == 1, phf[0]  # valor y disabled, fuera
+
+
 # 1.4.3 sobre degradados: el muestreo real de píxeles (regresión del fixture)
 FIX_GRAD = '''<!doctype html><html lang="en"><head><meta charset="utf-8"><title>grad</title>
 <style>.claro{width:640px;height:180px;box-sizing:border-box;

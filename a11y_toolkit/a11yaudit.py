@@ -147,6 +147,31 @@ _AUTOFILL_TOKENS = {
     # nombres de campo que faltaban
     'cc-additional-name', 'tel-extension', 'webauthn',
 }
+# 1.3.5 contradicción de propósito: el type y el token de autocomplete que
+# dicen cosas incompatibles (type=email con autocomplete="postal-code").
+# Solo contradicciones DURAS por familia de dato del estándar; lo raro pero
+# legal queda fuera (type=email + username es EL patrón de login por correo y
+# es legítimo: username queda exento en todas las familias).
+_AC_FAMILIA_TEL = {'tel', 'tel-country-code', 'tel-national', 'tel-area-code',
+                   'tel-local', 'tel-extension'}
+_AC_FAMILIA_ADDR = {'street-address', 'address-line1', 'address-line2',
+                    'address-line3', 'address-level1', 'address-level2',
+                    'address-level3', 'address-level4', 'country',
+                    'country-name', 'postal-code'}
+_AC_FAMILY_TEXT = {'name', 'given-name', 'additional-name', 'family-name',
+                      'nickname', 'honorific-prefix', 'honorific-suffix',
+                      'organization', 'cc-name', 'cc-given-name',
+                      'cc-additional-name', 'cc-family-name'}
+_AC_MISC = {'bday', 'bday-day', 'bday-month', 'bday-year', 'sex', 'language',
+             'photo', 'impp', 'cc-number', 'cc-exp', 'cc-exp-month',
+             'cc-exp-year', 'cc-csc', 'cc-type', 'transaction-currency',
+             'transaction-amount'}
+_AUTOCOMPLETE_CONTRA = {
+    'email': _AC_FAMILIA_TEL | _AC_FAMILIA_ADDR | _AC_FAMILY_TEXT | _AC_MISC,
+    'tel': {'email', 'url'} | _AC_FAMILIA_ADDR | _AC_FAMILY_TEXT | _AC_MISC,
+    'url': {'email'} | _AC_FAMILIA_TEL | _AC_FAMILIA_ADDR | _AC_FAMILY_TEXT | _AC_MISC,
+}
+
 # sección-*: comodín del estándar (section-main, section-top…)
 _SECTION = __import__('re').compile(r'^section-[a-z0-9-]+$')
 
@@ -484,6 +509,7 @@ class _Auditor(HTMLParser):
         self.accesskeys = {}         # accesskey → tag
         self.missing_autocomplete = []
         self.autocomplete_invalid = []
+        self.autocomplete_mismatch = []
         self.links = {}         # nombre normalizado → set de hrefs
         self.generics = 0
         self.labels_for_dups = {}  # id → n labels (los >1, varios)
@@ -880,6 +906,15 @@ class _Auditor(HTMLParser):
                         _mal = _remainder[1]
                     elif len(_remainder) > 2:
                         _mal = _remainder[1]
+                    if _mal is None and _remainder:
+                        # 1.3.5 propósito contradicho: el type y el token de
+                        # autocomplete de familias de dato distintas (determinista:
+                        # type=email + postal-code SIEMPRE es error; type=email +
+                        # username es el login por correo y queda exento)
+                        _contra = _AUTOCOMPLETE_CONTRA.get(kind or 'text')
+                        if _contra and _remainder[0].split(':')[-1] in _contra:
+                            self.autocomplete_mismatch.append(
+                                f'type={kind} autocomplete="{(a.get("autocomplete") or "")[:20]}"'[:56])
             if _mal:
                 self.autocomplete_invalid.append(
                     f'{_mal} (input name={a.get("name") or "?"})'[:60])
@@ -2083,6 +2118,9 @@ def audit_html(html_text, url='(html)', lang='en', standard=None, target=None):
     if p.autocomplete_invalid:
         add_ej('medium', '1.3.5', 'autocomplete_invalid', p.autocomplete_invalid,
                n=len(p.autocomplete_invalid), example=', '.join(p.autocomplete_invalid[:4]))
+    if p.autocomplete_mismatch:
+        add_ej('medium', '1.3.5', 'autocomplete_mismatch', p.autocomplete_mismatch,
+               n=len(p.autocomplete_mismatch), example=', '.join(p.autocomplete_mismatch[:4]))
     if p.media_autoplay:
         add('medium', '1.4.2', 'video_autoplay', n=p.media_autoplay,
             paths=[p._elem_paths[id(_a)] for _a in p.media_autoplay_elems

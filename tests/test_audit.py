@@ -216,6 +216,24 @@ assert 'NO midió contraste' in r_nm_es['score_note']
 print('honradez estática: not_measured (17) + score_note explícito ✓')
 
 
+# ── 1.3.5 contradicción de propósito: type y autocomplete de familias distintas ──
+r_mm = audit_html('<!doctype html><html lang="es"><head><title>t</title></head><body>'
+                  '<form><input type="email" name="cp" autocomplete="postal-code">'
+                  '<input type="tel" name="em" autocomplete="email">'
+                  '<input type="email" name="usuario" autocomplete="username">'
+                  '<input type="url" name="org" autocomplete="organization">'
+                  '</form></body></html>')
+_mm = [f['signal'] for f in r_mm['findings'] if f['signal'] == 'autocomplete_mismatch']
+assert _mm == ['autocomplete_mismatch'], r_mm['findings']
+f_mm = next(f for f in r_mm['findings'] if f['signal'] == 'autocomplete_mismatch')
+assert f_mm['severity'] == 'medium' and f_mm['criterion'].startswith('1.3.5')
+assert len(f_mm.get('examples') or []) == 3, f_mm  # email+postal, tel+email, url+org; email+username EXENTO
+_ej = str(f_mm.get('examples') or f_mm.get('issue'))
+assert 'postal-code' in _ej, _ej
+# el score no se toca más de lo que toca un medium legítimo: el hallazgo viaja
+# con criterio y severidad como cualquier otro
+
+
 # ── overlays de terceros: dato del informe, JAMÁS un finding ──────────────────
 # detección por dominio del script (UserWay/accessiBe/…): diligencia de compra
 con_overlay = ('<!doctype html><html lang="es"><head><title>t</title></head><body>'

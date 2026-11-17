@@ -1,6 +1,33 @@
 # Changelog
 
 ## main — pendiente
+- **`placeholder_contrast` — rendered 1.4.3 for `::placeholder`** (from Léonie
+  Watson's state-of-accessibility account: placeholder-as-label fails cognitive
+  users AND low-vision users get gray-on-white guidance text they must read; the
+  criterion does not distinguish pseudo-elements): `a11y_audit_dom` now reads
+  the computed `::placeholder` color of every visible, enabled input/textarea
+  with an empty value and audits it against the field's effective background
+  with the same thresholds as text (4.5:1, 3:1 large). No author color means the
+  browser's default gray is what gets painted — getComputedStyle returns it, and
+  if it fails, the failure is real and visible. Same exemptions as text: disabled
+  controls, image backgrounds (go to contrast_review territory), fields holding
+  a value. Severity medium (supplementary text, same criterion class).
+  Calibration: the TetraLogical 16-page panel stays 16/16 clean (their
+  text-input placeholder is styled compliant). What it does NOT do: it does not
+  flag placeholder PRESENCE (placeholder_only, 3.3.2, already exists) nor empty
+  hidden fields.
+- **`autocomplete_mismatch` — static 1.3.5 purpose contradiction** (the Formstack
+  doctrine: for machines, don't make me guess): `a11y_audit_html` now flags
+  inputs whose `type` and `autocomplete` token belong to incompatible data
+  families — `type=email` with `postal-code`, `type=tel` with `email`,
+  `type=url` with `organization`, and the whole family tables (tel/address/name/
+  misc families, deterministic, hard contradictions only). Deliberate exemptions:
+  `username` is exempt everywhere (type=email + autocomplete=username is THE
+  email-login pattern and is legitimate), as are password-family tokens. Only
+  fires when the autofill ABNF is already valid (invalid tokens keep their own
+  signal). Severity medium. Test pins the 3-of-4 case (the exempt one included).
+  What it does NOT do: it does not judge rare-but-legal text combos (type=text
+  accepts any token by definition) and does not touch missing_autocomplete.
 - **`overlay_widgets`: the public-sector ancestors join the list** (from the
   Bruce Lawson deep-read: Birmingham's 2010 post-mortem recommended Browsealoud,
   the read-aloud plugin that is the direct ancestor of today's accessibility
