@@ -357,7 +357,7 @@ _SKIP_TEXT = re.compile(
     r'skip|jump to|saltar|ir al contenido|ir para o conte[uú]do|passer au contenu', re.I)
 
 # encabezados cortos legítimos (acrónimos y términos técnicos): «FAQ», «API»…
-_SHORT_HEADINGS = {'FAQ', 'API', 'CSS', 'APP', 'MAP', 'EN', 'DE', 'ES', 'PT', 'FR',
+_SHORT_HEADINGS = {'FAQ', 'API', 'CSS', 'SVG', 'APP', 'MAP', 'EN', 'DE', 'ES', 'PT', 'FR',
                    'IT', 'UI', 'UX', 'ID', 'TV', 'HR', 'PR', 'AI', 'PC', 'OK', '3D',
                    'IOS', 'OS', 'GB', 'MB', 'KB', 'PDF', 'RSS', 'URL', 'WWW', 'XML',
                    'HTTP', 'FAQS', 'BLOG', 'HOME', 'INICIO', 'NOTAS', 'AGENDA'}
@@ -1588,7 +1588,10 @@ class _Auditor(HTMLParser):
                 self._ctrl[-1]['text_visible'].append(data)
             if self._heading_level is not None and not _hidden_ah:
                 self._heading_text.append(data)
-            m = _SENSORIAL.search(data)
+            # las CITAS son menciones legítimas (un checklist que cita el
+            # anti-patrón «el botón de la derecha» para enseñarlo no incumple:
+            # espejo de _sin_citas del corrector de plantillas)
+            m = _SENSORIAL.search(re.sub(r'«[^»]*»|“[^”]*”|"[^"]*"', ' ', data))
             if m and len(self.sensory) < 6:
                 self.sensory.append(m.group(0).strip()[:60])
 

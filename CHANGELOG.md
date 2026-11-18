@@ -1,6 +1,16 @@
 # Changelog
 
 ## main — pendiente
+- **Self-audit calibration (the dog ate its own homework):** deploying 5.29.0
+  to a11y.es ran the site through its own new engine and /checklist surfaced
+  two findings, both calibrations not regressions:
+  - `heading_quality`: «SVG» added to `_SHORT_HEADINGS` — a technical-acronym
+    section title, same class as the already-whitelisted CSS/API/FAQ.
+  - `sensory_text` (1.3.3): QUOTED fragments («...», "...") are mentions, not
+    instructions — /checklist cites the anti-pattern «el botón de la derecha»
+    to teach exactly that; the search now strips quoted spans before matching,
+    same principle as the template spellchecker's `_sin_citas`. Real
+    instructions still fire (pinned both ways).
 
 ## 5.29.0 — 2026-11-18 (batida día 1)
 - **First day of the hunting drive (batida, 2026-11-18) — two new static

@@ -168,6 +168,18 @@ for esperada in ('motion_moving', 'gesture_no_click', 'motion_actuation',
     assert esperada in sv312, f'{esperada} missing: {sorted(sv312)}'
 limpio312 = audit_html('<html lang="es"><head><title>t</title></head><body><main><h1>Informe principal</h1><p>x</p></main></body></html>', lang='en')
 assert not (sv312 & {x['signal'] for x in limpio312['findings']})
+# 18-nov calibración del propio perro (a11y.es /checklist los destapó): la CITA
+# de un anti-patrón es mención, no instrucción; «SVG» es título técnico, como CSS
+r_q = audit_html('<!doctype html><html lang="es"><head><title>t</title></head><body><main>'
+                 '<h2>SVG</h2>'
+                 '<p>«El botón de la derecha» no basta: nombra el elemento.</p>'
+                 '<p>Pulsa el botón de la derecha para continuar.</p>'
+                 '</main></body></html>')
+_s = [(f['signal'], f['severity']) for f in r_q['findings']
+      if f['signal'] in ('sensory_text', 'heading_quality')]
+assert ('sensory_text', 'low') in _s, _s          # la instrucción REAL dispara
+assert not any(s == 'heading_quality' for s, _ in _s), 'SVG ya no es vago (como CSS)'
+assert len([s for s, _ in _s if s == 'sensory_text']) == 1, 'la CITA queda fuera'
 # site-level: pure function separates consistent from drifting nav
 from a11y_toolkit.a11yaudit import _Auditor, evaluate_site
 pages = ['<nav><a href="/">H</a><a href="/x">X</a></nav>' for _ in range(2)] + ['<nav><a href="/">H</a><a href="/y">Y</a></nav>']
