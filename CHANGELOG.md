@@ -1,6 +1,8 @@
 # Changelog
 
 ## main — pendiente
+
+## 5.29.0 — 2026-11-18 (batida día 1)
 - **First day of the hunting drive (batida, 2026-11-18) — two new static
   signals, three verified overlay vendors, one rendered data block:**
 - **`heading_role_removed` (1.3.1, medium)** — any explicit role OTHER than
@@ -17,9 +19,14 @@
 - **`text_spacing_important` (1.4.12, medium)** — inline styles with
   letter/word/line-height set to `!important` block the user's own text
   spacing overrides: mechanical failure, zero ambiguity, straight from ACT
-  rules 24afc2/78fd32/9e45ec (each ships test cases). First signal for
-  1.4.12, taking the coverage claim from 51 to **52 of 55 A/AA criteria
-  (95%)** — READMEs and both suite pins updated in the same commit.
+  rules 24afc2/78fd32/9e45ec (each ships test cases). First signal ever for
+  1.4.12 — and the release-curation pass caught a phantom: the README's
+  compact ranges had listed 1.4.12 as covered for weeks WITHOUT a signal, so
+  real A/AA coverage was 50 while the claim said 51. With this signal the
+  long-claimed **51 of 55 A/AA (93%)** becomes true for the first time
+  (partition now pinned by test: 55 A/AA in the catalog, 51 with signals,
+  4 manual-only; CRIT's 52nd entry is 3.2.5, an AAA bonus via blank_no_warning
+  that the A/AA claim correctly does not count).
 - **`overlay_widgets` +3** — verified against overlayfactsheet.com (which
   names 46 products but no script domains, so each domain was verified
   against the vendor's own site): Eye-Able (eye-able.com), AccessiWay

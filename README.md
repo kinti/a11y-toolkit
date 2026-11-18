@@ -10,7 +10,7 @@
 
 37 MCP tools, 5 prompts and a skill covering the whole WCAG 2.2 loop: audit, fix,
 document, watch, hand off — and now blindfold usability testing, where the agent
-attempts real tasks perceiving only what a screen reader exposes. 52 of 55 A/AA criteria carry automated signals (95%), every
+attempts real tasks perceiving only what a screen reader exposes. 51 of 55 A/AA criteria carry automated signals (93%), every
 finding ships with a concrete remediation your agent can apply, and the rendered tools
 run on whichever browser you have — Chromium, Firefox, WebKit, Chrome or Edge.
 
@@ -290,7 +290,7 @@ the standard of 27+ countries.
 
 
 
-## Coverage: 52 of 55 WCAG 2.2 A/AA criteria (95%)
+## Coverage: 51 of 55 WCAG 2.2 A/AA criteria (93%)
 
 | With automated signal | Manual-only (genuinely human) |
 |---|---|

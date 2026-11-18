@@ -138,10 +138,18 @@ assert 'onclick' not in mal2['fixed_html'], 'rompe atributo vía lang'
 b = badge(90, date='2026"><script>x</script>')
 assert '<script>' not in b and '<' not in b[b.find('2026'):b.find('2026') + 20], 'inyección SVG vía fecha'
 
-# 4. la afirmación del README («26 criterios touched») queda clavada
+# 4. la afirmación del README («51 de 55 A/AA») queda clavada CONTRA el catálogo
 from a11y_toolkit.a11yaudit import CRIT  # noqa: E402
-# 18-nov: 1.4.12 entra al club con señales (text_spacing_important): 52 de 55
-assert len(CRIT['es']) == 52, f'README claims 52 criteria, CRIT has {len(CRIT["es"])}'
+from a11y_toolkit.a11ycrit import _C  # noqa: E402
+# 18-nov (lección del release): CRIT lleva 52 criterios PERO 3.2.5 es AAA (el
+# bonus blank_no_warning): el claim del README cuenta SOLO A/AA. Se clava la
+# partición real, no len(): los rangos compactos del README escondieron un
+# 1.4.12 fantasma (listado sin señal) durante semanas.
+_aa = {k for k, v in _C.items() if v[0] in ('A', 'AA')}
+_cubiertos = set(CRIT['es']) & _aa
+assert len(_aa) == 55 and len(_cubiertos) == 51 and len(_aa - _cubiertos) == 4, \
+    f'partición A/AA: 55={len(_aa)}, cubiertos={len(_cubiertos)}, faltan={sorted(_aa - _cubiertos)}'
+assert len(CRIT['es']) == 52, f'CRIT perdió el bonus AAA 3.2.5: {len(CRIT["es"])}'
 
 print('CLI SMOKE OK ✓ (todos los subcomandos, inyección bloqueada, 26 criterios verificados)')
 

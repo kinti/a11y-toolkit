@@ -12,7 +12,7 @@
 37 herramientas MCP, 5 prompts y una skill que cubren todo el ciclo WCAG 2.2:
 auditar, corregir, documentar, vigilar y entregar — y ahora también pruebas de
 usabilidad «a ciegas», donde el agente intenta tareas reales percibiendo solo lo
-que expone un lector de pantalla. 52 de los 55 criterios A/AA llevan señales
+que expone un lector de pantalla. 51 de los 55 criterios A/AA llevan señales
 automatizadas (93%), cada hallazgo viaja con una remediación concreta que tu
 agente puede aplicar, y las herramientas renderizadas corren en el navegador
 que tengas — Chromium, Firefox, WebKit, Chrome o Edge.
@@ -300,7 +300,7 @@ Qué ley de cada mercado sirve cada comando: [docs/standards-coverage.md](docs/s
 
 
 
-## Cobertura: 52 de 55 criterios WCAG 2.2 A/AA (95%)
+## Cobertura: 51 de 55 criterios WCAG 2.2 A/AA (93%)
 
 | Con señal automatizada | Solo manual (genuinamente humano) |
 |---|---|
