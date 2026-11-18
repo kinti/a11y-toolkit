@@ -988,6 +988,36 @@ _JS_FORM_STATE = r'''(pre) => {
   return out;
 }'''
 
+# 18-nov: label→foco. Click en un <label> asociado debe enfocar su campo:
+# es comportamiento nativo del spec, así que si falla solo puede ser JS
+# saboteándolo (preventDefault de date-pickers y amigos). DATO, no hallazgo:
+# hasta calibrar la prevalencia real, la honesty manda (filter, not verdict).
+_JS_LABEL_FOCUS = r'''() => {
+  const out = {checked: 0, failures: []};
+  for (const lb of document.querySelectorAll('label')) {
+    if (out.checked >= 8) break;
+    const ctl = lb.control
+      || (lb.getAttribute('for') ? document.getElementById(lb.getAttribute('for')) : null);
+    if (!ctl) continue;
+    const tag = ctl.tagName.toLowerCase();
+    const type = (ctl.getAttribute('type') || '').toLowerCase();
+    if (tag === 'button' || tag === 'a'
+        || (tag === 'input' && ['submit', 'button', 'reset', 'image'].includes(type)))
+      continue;                       // click podría ENVIAR: fuera del alcance
+    if (ctl.disabled) continue;
+    if (!ctl.offsetParent && getComputedStyle(ctl).display === 'none'
+        && getComputedStyle(ctl).visibility === 'hidden') continue;
+    out.checked++;
+    const sel = 'label' + (lb.htmlFor ? '[for="' + lb.htmlFor + '"]' : ':nth-of-type(1)');
+    lb.click();
+    const ae = document.activeElement;
+    if (!(ae === ctl || (ae && ctl.contains(ae))))
+      out.failures.push(sel + ' → ' + tag + (type ? '[type=' + type + ']' : ''));
+    try { ctl.blur(); } catch (e) {}
+  }
+  return out;
+}'''
+
 def audit_forms(url, timeout=45, lang='en', auth_state=None, browser='auto'):
     """3.3.1 Error Identification / 3.3.3 Error Suggestion — the guided flow:
     fill every validatable field with INVALID data, really submit, then judge
@@ -1005,6 +1035,10 @@ def audit_forms(url, timeout=45, lang='en', auth_state=None, browser='auto'):
             return {'error': _t(lang, 'fetch_error').format(e=e)}
         url_before = page.url
         pre = page.evaluate(_JS_FORM_PRE)
+        try:
+            label_focus = page.evaluate(_JS_LABEL_FOCUS)
+        except Exception:  # noqa: BLE001 — página hostil: sin dato, sin excusa
+            label_focus = {'checked': 0, 'failures': []}
         touched = page.evaluate(_JS_FORM_FILL)
         page.wait_for_timeout(900)
         navigated = page.url.split('#')[0] != url_before.split('#')[0]
@@ -1035,12 +1069,13 @@ def audit_forms(url, timeout=45, lang='en', auth_state=None, browser='auto'):
     return {
         'url': url, 'mode': 'forms',
         'invalid_fields': len(touched),
+        'label_focus': label_focus,
         'detail': touched[:10],
         'score': compute_score(findings),
         'summary': {s_: sum(1 for h in findings if h['severity'] == s_)
                     for s_ in ('high', 'medium', 'low')},
         'findings': findings,
-        'limits': _t(lang, 'limits'),
+        'limits': _t(lang, 'limits') + ' ' + _t(lang, 'label_focus_note'),
     }
 
 

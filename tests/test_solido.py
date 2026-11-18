@@ -178,7 +178,7 @@ assert all(_J['es'][k][0] == _J['en'][k][0] and _J['es'][k][1] == _J['en'][k][1]
 from collections import Counter  # noqa: E402
 _dist = Counter(c for c, _ in _EFFORT.values())
 assert _dist == Counter({'MIN': 23, 'MED': 19, 'MAX': 13}), f'distribución de esfuerzo derivó: {dict(_dist)}'
-assert '51 of 55 A/AA criteria carry automated signals (93%)' in readme, 'claim de cobertura en README'
+assert '52 of 55 A/AA criteria carry automated signals (95%)' in readme, 'claim de cobertura en README'
 _tools_doc = open(os.path.join(ROOT, 'docs', 'tools.md'), encoding='utf-8').read()
 _faltan_tabla = [t['name'] for t in server.TOOLS if f'[`{t["name"]}`](docs/tools.md' not in readme]
 assert not _faltan_tabla, f'tools sin fila en la tabla del README: {_faltan_tabla}'

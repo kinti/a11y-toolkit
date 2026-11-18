@@ -140,7 +140,8 @@ assert '<script>' not in b and '<' not in b[b.find('2026'):b.find('2026') + 20],
 
 # 4. la afirmación del README («26 criterios touched») queda clavada
 from a11y_toolkit.a11yaudit import CRIT  # noqa: E402
-assert len(CRIT['es']) == 51, f'README claims 51 criteria, CRIT has {len(CRIT["es"])}'
+# 18-nov: 1.4.12 entra al club con señales (text_spacing_important): 52 de 55
+assert len(CRIT['es']) == 52, f'README claims 52 criteria, CRIT has {len(CRIT["es"])}'
 
 print('CLI SMOKE OK ✓ (todos los subcomandos, inyección bloqueada, 26 criterios verificados)')
 

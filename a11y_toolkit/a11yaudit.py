@@ -237,6 +237,7 @@ CRIT = {
         '3.2.6': '3.2.6 Ayuda coherente',
         '1.4.5': '1.4.5 Imágenes de texto',
         '1.4.11': '1.4.11 Contraste no textual',
+        '1.4.12': '1.4.12 Espaciado de texto',
         '1.4.13': '1.4.13 Contenido al pasar el foco o el puntero',
         '3.3.3': '3.3.3 Sugerencia ante errores',
         '1.4.2': '1.4.2 Control del audio',
@@ -293,6 +294,7 @@ CRIT = {
         '3.2.6': '3.2.6 Consistent Help',
         '1.4.5': '1.4.5 Images of Text',
         '1.4.11': '1.4.11 Non-text Contrast',
+        '1.4.12': '1.4.12 Text Spacing',
         '1.4.13': '1.4.13 Content on Hover or Focus',
         '3.3.3': '3.3.3 Error Suggestion',
         '1.4.2': '1.4.2 Audio Control',
@@ -343,6 +345,11 @@ _OVERLAY_WIDGETS = (
     ('Recite Me', ('recite.me',)),
     ('User1st', ('user1st.com',)),
     ('UsableNet', ('usablenet.com',)),
+    # ronda 18-nov contra overlayfactsheet.com (46 productos nombrados allí;
+    # solo entran dominios verificados contra la web oficial de cada vendedor)
+    ('Eye-Able', ('eye-able.com',)),
+    ('AccessiWay', ('accessiway.com',)),
+    ('Equally AI', ('equally.ai',)),
 )
 
 # texto de un skip link (es/en/pt/fr — el vocabulario del patrón 3e12e1)
@@ -510,6 +517,8 @@ class _Auditor(HTMLParser):
         self.missing_autocomplete = []
         self.autocomplete_invalid = []
         self.autocomplete_mismatch = []
+        self.heading_role_removed = []   # h1-h6 con rol que sustituye al de heading
+        self.text_spacing_important = []  # 1.4.12: spacing !important inline (ACT 24afc2/78fd32/9e45ec)
         self.links = {}         # nombre normalizado → set de hrefs
         self.generics = 0
         self.labels_for_dups = {}  # id → n labels (los >1, varios)
@@ -1056,6 +1065,16 @@ class _Auditor(HTMLParser):
         style = a.get('style') or ''
         if 'animation' in style and 'infinite' in style:
             self.mobiles.append(f'{tag}[style animation…infinite]')
+        # 1.4.12 text spacing (ACT 24afc2/78fd32/9e45ec): un !important en
+        # line/letter/word-spacing inline impide al usuario re-espaciar el
+        # texto con su hoja de estilos — fallo mecánico, cero ambigüedad
+        if not self._in_template:
+            _sp = re.search(
+                r'(letter|word)-spacing\s*:[^;"}]*!important|'
+                r'line-height\s*:[^;"}]*!important', style, re.I)
+            if _sp and len(self.text_spacing_important) < 12:
+                self.text_spacing_important.append(
+                    f'{tag}[{_sp.group(0)[:34]}]')
         # v3.12: 2.5.1 gesture without click alternative (attribute-level hint)
         if a.get('ontouchmove') or a.get('ondrag'):
             if not (a.get('onclick') or tag in ('input', 'button', 'a')):
@@ -1239,9 +1258,17 @@ class _Auditor(HTMLParser):
         if tag in ('h1', 'h2', 'h3', 'h4', 'h5', 'h6'):
             # role=none/presentation APAGA la semántica del encabezado; un
             # aria-level válido la SOBRESCRIBE (accname: h3[aria-level=4] ES 4)
-            if (a.get('role') or '').strip().lower() in ('none', 'presentation') \
-                    or self._in_template:
+            _hrole = (a.get('role') or '').strip().lower()
+            if _hrole in ('none', 'presentation') or self._in_template:
                 pass
+            elif _hrole and _hrole != 'heading':
+                # CUALQUIER otro rol explícito SUSTITUYE al de heading (la
+                # primera regla de ARIA): h2 role=button desaparece de la
+                # navegación por encabezados del AT — se registra (1.3.1)
+                if not _hidden and len(self.heading_role_removed) < 12:
+                    _nm = (a.get('aria-label') or '').strip()[:24]
+                    self.heading_role_removed.append(
+                        f'{tag} role="{_hrole}"' + (f' "{_nm}"' if _nm else ''))
             else:
                 self._heading_level = int(tag[1])
                 _alv = re.match(r'\d+', str(a.get('aria-level') or ''))
@@ -2077,6 +2104,12 @@ def audit_html(html_text, url='(html)', lang='en', standard=None, target=None):
         add('low', '1.3.1', 'no_headings')
     if p.empty_h:
         add('low', '1.3.1', 'empty_heading', n=p.empty_h)
+    if p.heading_role_removed:
+        add_ej('medium', '1.3.1', 'heading_role_removed', p.heading_role_removed,
+               n=len(p.heading_role_removed), example=', '.join(p.heading_role_removed[:4]))
+    if p.text_spacing_important:
+        add_ej('medium', '1.4.12', 'text_spacing_important', p.text_spacing_important,
+               n=len(p.text_spacing_important), example=', '.join(p.text_spacing_important[:4]))
     if p.tables and p.tables_with_th < p.tables:
         add('medium', '1.3.1', 'table_no_th', n=p.tables - p.tables_with_th,
             paths=[p._elem_paths[id(_a)] for _a in p.tables_no_th_elems

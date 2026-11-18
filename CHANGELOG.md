@@ -1,6 +1,42 @@
 # Changelog
 
 ## main — pendiente
+- **First day of the hunting drive (batida, 2026-11-18) — two new static
+  signals, three verified overlay vendors, one rendered data block:**
+- **`heading_role_removed` (1.3.1, medium)** — any explicit role OTHER than
+  `heading` on an h1-h6 REPLACES its heading semantics (first rule of ARIA,
+  the siren-song article's own example): the heading silently vanishes from
+  screen-reader heading navigation, which is how 71.6% of SR users find
+  information first (WebAIM SR Survey 10). The engine previously still
+  COUNTED such headings; now it stops counting them and flags each one
+  (h2 role=button, h2 role=link…), with the correct pattern in the
+  remediation (the control goes INSIDE: h2 > button). role=none/presentation
+  stays silent (author intent), template/hidden headings stay out. Pin:
+  4-heading fixture where exactly the role=button one fires and level skips
+  are no longer computed through the replaced heading.
+- **`text_spacing_important` (1.4.12, medium)** — inline styles with
+  letter/word/line-height set to `!important` block the user's own text
+  spacing overrides: mechanical failure, zero ambiguity, straight from ACT
+  rules 24afc2/78fd32/9e45ec (each ships test cases). First signal for
+  1.4.12, taking the coverage claim from 51 to **52 of 55 A/AA criteria
+  (95%)** — READMEs and both suite pins updated in the same commit.
+- **`overlay_widgets` +3** — verified against overlayfactsheet.com (which
+  names 46 products but no script domains, so each domain was verified
+  against the vendor's own site): Eye-Able (eye-able.com), AccessiWay
+  (accessiway.com), Equally AI (equally.ai). MaxAccess, named on the sheet,
+  stays OUT until its domain is verified. Report-only as ever.
+- **`a11y_forms` label_focus data block** — each associated label is clicked
+  once (submit-like controls excluded) and the tool records whether its field
+  received focus: native behavior is spec-mandated, so a failure points at
+  JS sabotaging it (preventDefault). DATA, not a finding, until real-world
+  prevalence is calibrated (filter, not verdict). Limits text documents it;
+  pin: fixture where the honest label passes and the sabotaged one is
+  recorded.
+- What this does NOT do: no rendered checks for the new signals (both are
+  pure-source deterministic), no severity promotion for label_focus, and the
+  remaining ACT gaps (scrollable keyboard access, table headers-attr,
+  orientation, subtag consistency, ARIA owned-context) stay in the drive's
+  backlog (drafts/batida-toolkit-candidatos-2026-11-18.md).
 - **publish.yml: the registry job waits for PyPI and npm** (the 5.28.0 release
   race, hit twice live: the MCP registry validates BOTH packages declared in
   server.json against their public indexes while this workflow's own PyPI and

@@ -147,7 +147,10 @@ TOOLS = [
                         'captions (1.2.2), autoplay audio (1.4.2), generic/duplicated link text '
                         '(2.4.4), target=_blank without warning (3.2.5), positive tabindex '
                         '(2.4.3), aria-hidden on focusable elements, tables without th, '
-                        'duplicate ids, duplicate accesskeys. Each finding includes concrete '
+                        'duplicate ids, duplicate accesskeys, headings overridden by another '
+                        'role (1.3.1), letter/line/word-spacing !important inline (1.4.12, '
+                        'ACT 24afc2/78fd32/9e45ec), autocomplete purpose contradicting the '
+                        'field type (1.3.5). Each finding includes concrete '
                         'remediation. Filter, not verdict: automation covers ~1/3 of WCAG; '
                         'query a11y_criterion for what a criterion means.'),
         'inputSchema': {'type': 'object', 'properties': {

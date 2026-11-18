@@ -234,6 +234,31 @@ assert 'postal-code' in _ej, _ej
 # con criterio y severidad como cualquier otro
 
 
+# ── 1.3.1 encabezado anulado por rol (la primera regla de ARIA) ─────────────
+r_hr = audit_html('<!doctype html><html lang="es"><head><title>t</title></head><body>'
+                  '<h1>Tienda</h1>'
+                  '<h2 role="button" aria-label="Añadir al carrito">Añadir</h2>'
+                  '<h2 role="heading">Ofertas</h2>'
+                  '<h2 role="presentation">Decorativo</h2>'
+                  '<h2>Servicio</h2></body></html>')
+_hr = next(f for f in r_hr['findings'] if f['signal'] == 'heading_role_removed')
+assert _hr['severity'] == 'medium' and _hr['criterion'].startswith('1.3.1')
+assert len(_hr.get('examples') or []) == 1, _hr        # SOLO el role=button
+assert 'role="button"' in _hr['examples'][0] and 'Añadir al carrito' in _hr['examples'][0]
+# el heading sustituido YA no cuenta en la estructura: saltos de nivel sin él
+assert not any(f['signal'] == 'heading_skips' for f in r_hr['findings'])
+
+# ── 1.4.12 spacing !important inline (ACT 24afc2/78fd32/9e45ec) ────────────
+r_ts = audit_html('<!doctype html><html lang="es"><head><title>t</title></head><body>'
+                  '<main><p style="line-height: 1.2 !important">uno</p>'
+                  '<p style="letter-spacing:0.5px !important; color:#333">dos</p>'
+                  '<p style="word-spacing: 2px">tres</p>'
+                  '<p style="line-height: 1.6">cuatro</p></main></body></html>')
+_ts = next(f for f in r_ts['findings'] if f['signal'] == 'text_spacing_important')
+assert _ts['severity'] == 'medium' and _ts['criterion'].startswith('1.4.12')
+assert len(_ts.get('examples') or []) == 2, _ts        # line + letter; sin !important NO
+
+
 # ── overlays de terceros: dato del informe, JAMÁS un finding ──────────────────
 # detección por dominio del script (UserWay/accessiBe/…): diligencia de compra
 con_overlay = ('<!doctype html><html lang="es"><head><title>t</title></head><body>'
@@ -251,7 +276,10 @@ con_texthelp = con_overlay.replace('cdn.userway.org/widget.js',
 assert audit_html(con_texthelp)['overlay_widgets'][0]['vendor'] == 'Texthelp (Browsealoud/ReachDeck)'
 for _dom, _vend in (('api.recite.me/sdk.js', 'Recite Me'),
                     ('cdn.user1st.com/widget.js', 'User1st'),
-                    ('cdn.usablenet.com/wt.js', 'UsableNet')):
+                    ('cdn.usablenet.com/wt.js', 'UsableNet'),
+                    ('cdn.eye-able.com/assist.js', 'Eye-Able'),
+                    ('widget.accessiway.com/w.js', 'AccessiWay'),
+                    ('cdn.equally.ai/equally.js', 'Equally AI')):
     _h = con_overlay.replace('cdn.userway.org/widget.js', _dom)
     assert audit_html(_h)['overlay_widgets'][0]['vendor'] == _vend, _vend
 # NO es un hallazgo: ni findings, ni score, ni señal — ningún criterio WCAG dice

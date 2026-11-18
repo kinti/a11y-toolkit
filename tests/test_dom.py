@@ -149,6 +149,25 @@ assert '::placeholder' in str(phf[0].get('examples') or phf[0]['issue'])
 assert len(phf[0].get('examples') or []) == 1, phf[0]  # valor y disabled, fuera
 
 
+# label→foco (a11y_forms, DATO 18-nov): nativo pasa, JS que sabotea se registra
+FIX_LF = """<!doctype html><html lang="en"><head><meta charset="utf-8"><title>lf</title></head>
+<body><main>
+<form>
+<label for="a">Name</label><input id="a" name="a" required>
+<label for="b">Email</label><input id="b" name="b" type="email" required>
+</form>
+<script>document.querySelector('label[for="b"]').addEventListener('click', e => e.preventDefault());</script>
+</main></body></html>"""
+with open('/tmp/fixture_lf.html', 'w', encoding='utf-8') as f:
+    f.write(FIX_LF)
+from a11y_toolkit.a11ydom import audit_forms as _af
+lf = _af('file:///tmp/fixture_lf.html', lang='en')
+assert 'label_focus' in lf, sorted(lf)
+assert lf['label_focus']['checked'] == 2, lf['label_focus']
+assert lf['label_focus']['failures'] == ['label[for="b"] → input[type=email]'], lf['label_focus']
+assert 'label' in lf['limits'].lower(), 'los límites documentan el chequeo'
+
+
 # 1.4.3 sobre degradados: el muestreo real de píxeles (regresión del fixture)
 FIX_GRAD = '''<!doctype html><html lang="en"><head><meta charset="utf-8"><title>grad</title>
 <style>.claro{width:640px;height:180px;box-sizing:border-box;

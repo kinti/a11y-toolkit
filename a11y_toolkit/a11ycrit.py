@@ -908,6 +908,8 @@ _SIGNAL_CRIT = {
     'skip_target_hidden': '2.4.1',
     'placeholder_contrast': '1.4.3',
     'autocomplete_mismatch': '1.3.5',
+    'heading_role_removed': '1.3.1',
+    'text_spacing_important': '1.4.12',
     'label_in_name': '2.5.3',
     'label_orphan': '3.3.2',
     'label_vague': '2.4.6',
