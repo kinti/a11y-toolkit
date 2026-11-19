@@ -520,7 +520,10 @@ class _Auditor(HTMLParser):
         self.heading_role_removed = []   # h1-h6 con rol que sustituye al de heading
         self.text_spacing_important = []  # 1.4.12: spacing !important inline (ACT 24afc2/78fd32/9e45ec)
         self.links = {}         # nombre normalizado → set de hrefs
+        self.links_elems = {}   # entry_key → primeros elems (marcas 2.4.4)
         self.generics = 0
+        self.generic_link_elems = []   # marcas 2.4.4
+        self._label_elem_stack = []    # elem por <label> abierto (marcas 3.3.2)
         self.labels_for_dups = {}  # id → n labels (los >1, varios)
         self._label_for_stack = []   # valor `for` de cada <label> abierto (None = envolvente)
         self._label_text_for = {}    # id del for → texto del label (decisión post-parse)
@@ -529,6 +532,8 @@ class _Auditor(HTMLParser):
         self._li_depth = 0
         self._bad_list = 0
         self.label_no_name = []     # (texto visible, aria-label) 2.5.3
+        self.label_no_name_elems = []   # marcas 2.5.3
+        self.orphan_label_elems = []    # marcas 3.3.2
         self.lang_parts_invalid = []      # lang inválidos en elementos no-html
         self.down_events = []       # onmousedown/ontouchstart/onpointerdown
         self.captchas = []          # detección 3.3.8 — SOLO en contexto de autenticación
@@ -623,6 +628,8 @@ class _Auditor(HTMLParser):
                                      for i in range(len(_ap2) - len(_vp) + 1))
             if _mismatch:
                 self.label_no_name.append((_vis[:40], _al[:60]))
+                if len(self.label_no_name_elems) < 5:
+                    self.label_no_name_elems.append(a)
         if tag == 'a' and not c.get('hidden'):
             if (a.get('target') or '').lower() == '_blank':
                 self.blank_total += 1
@@ -645,8 +652,13 @@ class _Auditor(HTMLParser):
             if name and href:
                 entry_key = ' '.join(name.lower().split())[:60]
                 self.links.setdefault(entry_key, set()).add(href)
+                _le_list = self.links_elems.setdefault(entry_key, [])
+                if len(_le_list) < 5:
+                    _le_list.append(a)
                 if entry_key in _GENERIC_TEXT:
                     self.generics += 1
+                    if len(self.generic_link_elems) < 5:
+                        self.generic_link_elems.append(a)
 
     def _field_note(self):
         """El elemento que acaba de abrirse es un campo: marca su <label> ancestro."""
@@ -934,6 +946,7 @@ class _Auditor(HTMLParser):
             self._label_depth += 1
             self._label_text_current = []
             self._labels_stack.append(False)
+            self._label_elem_stack.append(a)
             self._label_for_stack.append(a.get('for') or None)
             if a.get('for'):
                 self._labels_for[a['for']] = self._labels_for.get(a['for'], 0) + 1
@@ -1402,8 +1415,13 @@ class _Auditor(HTMLParser):
                     _lfor = self._label_for_stack.pop()
                     if _lfor and txt:
                         self._label_text_for[_lfor] = txt
-            if self._labels_stack and not self._labels_stack.pop():
-                self.orphan_labels += 1
+            if self._labels_stack:
+                # pila paralela de elems: pop SIEMPRE (un pop por cierre)
+                _le = self._label_elem_stack.pop() if self._label_elem_stack else None
+                if not self._labels_stack.pop():
+                    self.orphan_labels += 1
+                    if _le is not None and len(self.orphan_label_elems) < 5:
+                        self.orphan_label_elems.append(_le)
         elif tag == 'fieldset':
             self._in_fieldset = False
         elif tag == 'form':
@@ -1974,7 +1992,9 @@ def audit_html(html_text, url='(html)', lang='en', standard=None, target=None):
                paths=[p._elem_paths[id(_a)] for _a in p.role_no_tabindex_elems
                       if id(_a) in p._elem_paths][:5])
     if p.orphan_labels:
-        add('low', '3.3.2', 'label_orphan', n=p.orphan_labels)
+        add('low', '3.3.2', 'label_orphan', n=p.orphan_labels,
+            paths=[p._elem_paths[id(_a)] for _a in p.orphan_label_elems
+                   if id(_a) in p._elem_paths][:5])
     if p._bad_list:
         add('medium', '1.3.1', 'list_structure', n=p._bad_list)
     if p.root_tag in ('svg', 'math'):
@@ -2165,7 +2185,9 @@ def audit_html(html_text, url='(html)', lang='en', standard=None, target=None):
         _ln = p.label_no_name[0]
         add_ej('medium', '2.5.3', 'label_in_name',
                [f'«{t}» vs aria-label «{al}»' for t, al in p.label_no_name],
-               n=len(p.label_no_name), example=f'{_ln[0]} ≠ {_ln[1]}')
+               n=len(p.label_no_name), example=f'{_ln[0]} ≠ {_ln[1]}',
+               paths=[p._elem_paths[id(_a)] for _a in p.label_no_name_elems
+                      if id(_a) in p._elem_paths][:5])
     if p.lang_parts_invalid:
         add_ej('medium', '3.1.2', 'element_lang_invalid', p.lang_parts_invalid,
                n=len(p.lang_parts_invalid), example=', '.join(p.lang_parts_invalid[:4]))
@@ -2240,10 +2262,16 @@ def audit_html(html_text, url='(html)', lang='en', standard=None, target=None):
         add('low', '1.3.1', 'landmark_dup', n=len(lm_dups), example=', '.join(lm_dups[:4]))
     if p.generics >= 2:   # un enlace genérico único suele desambiguarse por contexto
         gen = [f'«{k}»' for k in p.links if k in _GENERIC_TEXT][:4]
-        add('low', '2.4.4', 'generic_link', n=p.generics, example=', '.join(gen))
+        add('low', '2.4.4', 'generic_link', n=p.generics, example=', '.join(gen),
+            paths=[p._elem_paths[id(_a)] for _a in p.generic_link_elems
+                   if id(_a) in p._elem_paths][:5])
     same = sum(1 for _k, hrefs in p.links.items() if len(hrefs) > 1)
     if same:
-        add('low', '2.4.4', 'same_name_links', n=same)
+        _same_elems = [p.links_elems.get(_k, [None])[0]
+                       for _k, _hs in p.links.items() if len(_hs) > 1]
+        add('low', '2.4.4', 'same_name_links', n=same,
+            paths=[p._elem_paths[id(_a)] for _a in _same_elems
+                   if _a is not None and id(_a) in p._elem_paths][:5])
     ak_dups = [f'"{k}" ×{v}' for k, v in p.accesskeys.items() if v > 1]
     if ak_dups:
         add('low', '2.1.1', 'accesskey_dup', n=len(ak_dups), example=', '.join(ak_dups[:4]))
