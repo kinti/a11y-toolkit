@@ -137,6 +137,13 @@ def verdict(task, steps, outcome, url='', lang='en'):
         verdict = 'blocked'
     elif not completed:
         verdict = 'fail'
+    elif not steps:
+        # un «completado» SIN pasos registrados no es evidencia de nada
+        # (revisión externa, 4ª pasada: steps [] + completed true sellaba
+        # pass con 100) — nadie caminó, nadie miró. fail estructural con
+        # la razón al lado; JAMÁS un pass sellado de un paseo vacío
+        verdict = 'fail'
+        score = 0
     elif (not workaround and high == 0 and score >= _RULES['pass_threshold']):
         verdict = 'pass'
     else:

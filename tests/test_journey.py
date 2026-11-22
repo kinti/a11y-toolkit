@@ -52,12 +52,21 @@ r4 = verdict(TAREA, [
 assert r4['verdict'] == 'fail' and r4['score'] == 75, r4
 print('4. no completada → fail ✓')
 
-# 5. workaround penaliza y tira del pass al partial
-base = verdict(TAREA, [], {'completed': True})
-rw = verdict(TAREA, [], {'completed': True, 'workaround_used': True})
+# 5. workaround penaliza y tira del pass al partial. (4ª pasada: el fixture
+# usaba steps=[] como «pase limpio» — un pase VACÍO ya no es pass: se sellaba
+# 100 un trayecto que nadie caminó; el pase limpio lleva pasos sin fricción)
+_PASOS = [{'action': 'open the dialog', 'perceived': 'dialog titled Add file'},
+          {'action': 'submit', 'perceived': 'confirmation announced'}]
+base = verdict(TAREA, _PASOS, {'completed': True})
+rw = verdict(TAREA, _PASOS, {'completed': True, 'workaround_used': True})
 assert base['verdict'] == 'pass' and rw['verdict'] == 'partial' and rw['score'] == 85
 assert 'workaround_penalty' in rw['rules']
 print('5. workaround → parcial 85 ✓')
+
+# 5b. (revisión externa, 4ª pasada) un «completado» SIN pasos JAMÁS es pass
+_vacio = verdict(TAREA, [], {'completed': True})
+assert _vacio['verdict'] == 'fail' and _vacio['score'] == 0, _vacio
+print('5b. journey vacío completado → fail/0 (no pass sellado) ✓')
 
 # 6. criterios removed del conjunto A/AA rechazados; severidad inválida rechazada
 bad = verdict(TAREA, [

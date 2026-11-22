@@ -300,15 +300,18 @@ Qué ley de cada mercado sirve cada comando: [docs/standards-coverage.md](docs/s
 
 
 
-## Cobertura: 51 de 55 criterios WCAG 2.2 A/AA (93%)
+## Cobertura: 48 de 55 criterios WCAG 2.2 A/AA (87%)
 
-| Con señal automatizada | Solo manual (genuinamente humano) |
+| Con señal automatizada | Manual-only (genuinamente humano) |
 |---|---|
-| 1.1.1, 1.2.2, 1.2.3, 1.2.5, 1.3.1–1.3.5, 1.4.1–1.4.5, 1.4.10–1.4.13, 2.1.1, 2.1.2, 2.1.4, 2.2.1, 2.2.2, 2.4.1–2.4.7, 2.4.11, 2.5.1–2.5.4, 2.5.7, 2.5.8, 3.1.1, 3.1.2, 3.2.1–3.2.4, 3.2.6, 3.3.1–3.3.4, 3.3.8, 4.1.2, 4.1.3 | 1.2.1 (transcripciones de audio), 1.2.4 (subtítulos en directo), 2.3.1 (detección de destellos), 3.3.7 (entrada redundante) |
+| 1.1.1, 1.2.2, 1.2.3, 1.3.1–1.3.5, 1.4.1–1.4.5, 1.4.10, 1.4.12, 1.4.13, 2.1.1, 2.1.2, 2.1.4, 2.2.1, 2.2.2, 2.4.1–2.4.7, 2.4.11, 2.5.1–2.5.4, 2.5.7, 2.5.8, 3.1.1, 3.1.2, 3.2.1–3.2.3, 3.2.6, 3.3.1–3.3.4, 3.3.8, 4.1.2, 4.1.3 | 1.2.1 (transcripciones de audio), 1.2.4 (subtítulos en directo), 1.2.5 (audiodescripción), 1.4.11 (contraste no textual — heurística renderizada), 2.3.1 (detección de destellos), 3.2.4 (identificación coherente), 3.3.7 (entrada redundante) |
 
-Los 4 criterios solo-manuales tienen cada uno una entrada de conocimiento
-(`a11y_criterion`) que dice al agente exactamente cómo verificarlos a mano.
-La frontera se imprime en cada informe.
+La columna solo-manual se deriva de las señales que cada modo emite de
+verdad (revisión externa, 4ª pasada: 1.2.5, 1.4.11 y 3.2.4 se reclamaban sin
+señal mapeada — el aviso de audiodescripción dispara bajo 1.2.3, y 1.4.11 y
+3.2.4 solo tienen cobertura heurística). Cada uno tiene su entrada de
+conocimiento (`a11y_criterion`) con cómo verificarlo a mano. La frontera se
+imprime en cada informe.
 
 ## El motor detrás de a11y.es
 
@@ -375,7 +378,7 @@ auditor lo encuentre. Si no, abre un issue y dime qué falta.
 
 ## Honestidad, de fábrica
 
-Cada auditoría dice: **la automatización cubre el 93% de los 55 criterios
+Cada auditoría dice: **la automatización cubre el 87% de los 55 criterios
 A/AA** (aproximadamente un tercio de todo WCAG contando AAA y las comprobaciones
 genuinamente humanas) **— el resto necesita una persona**.
 El prompt `audit-page` y la skill hacen que el agente compruebe lo que puede

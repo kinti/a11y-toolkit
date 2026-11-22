@@ -48,19 +48,32 @@ def _capture(url, engine, auth_state=None):
 def _pair_entry(name_a, name_b, sa, sb):
     d = a11ydiff.diff(sa, sb)
     # behavioral verdict: DOM-level facts only — the tree is informational
-    # across engines (engines compute some roles/names differently by design)
-    focus = d['focus']
+    # across engines (engines compute some roles/names differently by design).
+    # SIMÉTRICO (revisión externa, 4ª pasada): diff es direccional y el orden
+    # de los pares sale del nombre del motor — una parada que falta en un
+    # motor leía «removed» (bloquea) y en el otro «added» (no bloqueaba); y
+    # una reordenación con UNA alta quedaba enmascarada. El veredicto se
+    # calcula aquí por conjunto en AMBAS direcciones, y el ORDEN de las
+    # paradas compartidas se juzga independiente de altas y bajas
+    oa, ob = sa.get('focus_order', []), sb.get('focus_order', [])
+    sa_set, sb_set = set(oa), set(ob)
+    focus_missing = sorted((sa_set - sb_set) | (sb_set - sa_set))
+    common_a = [x for x in oa if x in sb_set]
+    common_b = [x for x in ob if x in sa_set]
+    order_diverged = common_a != common_b
     ok = not (d['added'] or d['removed'] or d['renamed']
-              or focus['removed'] or focus['reordered'])
+              or focus_missing or order_diverged)
     return {
         'engines': [name_a, name_b],
         'ok': ok,
         'added': d['added'],
         'removed': d['removed'],
         'renamed': d['renamed'],
-        'focus': {'removed': focus['removed'], 'added': focus['added'],
-                  'reordered': focus['reordered'],
-                  'first_divergence': focus['first_divergence']},
+        'focus': {'removed': d['focus']['removed'], 'added': d['focus']['added'],
+                  'reordered': d['focus']['reordered'],
+                  'first_divergence': d['focus']['first_divergence'],
+                  'missing_in_either': focus_missing,
+                  'order_diverged': order_diverged},
         'tree_changed': bool(d['tree']['changed']),
         'tree_first_differences': (d['tree']['first_differences'] or [])[:3],
     }

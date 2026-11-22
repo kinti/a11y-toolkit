@@ -10,7 +10,7 @@
 
 37 MCP tools, 5 prompts and a skill covering the whole WCAG 2.2 loop: audit, fix,
 document, watch, hand off — and now blindfold usability testing, where the agent
-attempts real tasks perceiving only what a screen reader exposes. 51 of 55 A/AA criteria carry automated signals (93%), every
+attempts real tasks perceiving only what a screen reader exposes. 48 of 55 A/AA criteria carry automated signals (87%), every
 finding ships with a concrete remediation your agent can apply, and the rendered tools
 run on whichever browser you have — Chromium, Firefox, WebKit, Chrome or Edge.
 
@@ -290,11 +290,13 @@ the standard of 27+ countries.
 
 
 
-## Coverage: 51 of 55 WCAG 2.2 A/AA criteria (93%)
+## Coverage: 48 of 55 WCAG 2.2 A/AA criteria (87%)
 
 | With automated signal | Manual-only (genuinely human) |
 |---|---|
-| 1.1.1, 1.2.2, 1.2.3, 1.2.5, 1.3.1–1.3.5, 1.4.1–1.4.5, 1.4.10–1.4.13, 2.1.1, 2.1.2, 2.1.4, 2.2.1, 2.2.2, 2.4.1–2.4.7, 2.4.11, 2.5.1–2.5.4, 2.5.7, 2.5.8, 3.1.1, 3.1.2, 3.2.1–3.2.4, 3.2.6, 3.3.1–3.3.4, 3.3.8, 4.1.2, 4.1.3 | 1.2.1 (audio transcripts), 1.2.4 (live captions), 2.3.1 (flash detection), 3.3.7 (redundant entry) |
+| 1.1.1, 1.2.2, 1.2.3, 1.3.1–1.3.5, 1.4.1–1.4.5, 1.4.10, 1.4.12, 1.4.13, 2.1.1, 2.1.2, 2.1.4, 2.2.1, 2.2.2, 2.4.1–2.4.7, 2.4.11, 2.5.1–2.5.4, 2.5.7, 2.5.8, 3.1.1, 3.1.2, 3.2.1–3.2.3, 3.2.6, 3.3.1–3.3.4, 3.3.8, 4.1.2, 4.1.3 | 1.2.1 (audio transcripts), 1.2.4 (live captions), 1.2.5 (audio description), 1.4.11 (non-text contrast — rendered heuristic), 2.3.1 (flash detection), 3.2.4 (consistent identification), 3.3.7 (redundant entry) |
+
+The manual-only column is derived from the signals each mode actually emits (external review, round 4: 1.2.5, 1.4.11 and 3.2.4 were claimed without a mapped signal — the audio-description absence signal fires under 1.2.3, and 1.4.11/3.2.4 carry heuristic-only coverage). Each of them has a knowledge entry (`a11y_criterion`) telling the agent exactly how to verify it by hand. The boundary is printed on every report.
 
 The 4 manual-only criteria each have a knowledge entry (`a11y_criterion`) telling the
 agent exactly how to verify them by hand. The boundary is printed on every report.
@@ -356,7 +358,7 @@ find it. If it doesn't, open an issue and tell me what is missing.
 
 ## Honesty, built in
 
-Every audit says: **automation covers 93% of the 55 A/AA criteria** (roughly a
+Every audit says: **automation covers 87% of the 55 A/AA criteria** (roughly a
 third of all WCAG once AAA and the genuinely-human checks are counted) **— the
 rest needs a human**.
 The `audit-page` prompt and the skill have the agent check what it can (keyboard,

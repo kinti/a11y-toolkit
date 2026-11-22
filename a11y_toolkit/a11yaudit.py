@@ -533,8 +533,9 @@ class _Auditor(HTMLParser):
         self._list_depth = 0
         self._li_depth = 0
         self._bad_list = 0
-        self.label_no_name = []     # (texto visible, aria-label) 2.5.3
+        self.label_no_name = []     # (texto visible, nombre efectivo) 2.5.3
         self.label_no_name_elems = []   # marcas 2.5.3
+        self.label_in_name_raw = []     # (visible, aria-label, ids labelledby, attrs) — crudo, POST-parse decide
         self.orphan_label_elems = []    # marcas 3.3.2
         self.lang_parts_invalid = []      # lang inválidos en elementos no-html
         self.down_events = []       # onmousedown/ontouchstart/onpointerdown
@@ -544,7 +545,7 @@ class _Auditor(HTMLParser):
         self._required_pend = []    # (tag, attrs) required: decide post-parse con el label
         self.mobiles = []           # marquee/blink/inline infinite animation (2.2.2)
         self._landmark_ids = set()  # ids de landmarks: objetivos válidos de skip link
-        self.nav_hrefs = set()      # hrefs inside <nav> (site-level 3.2.3 signature)
+        self.nav_hrefs = []         # hrefs inside <nav> EN ORDEN (3.2.3 juzga el ORDEN relativo)
         self.help_hrefs = set()     # help/contact links (site-level 3.2.6 signature)
         self.images_of_text = []
         self.vague_headings = []
@@ -567,6 +568,7 @@ class _Auditor(HTMLParser):
         self._group_role_depth = 0    # <div role=group/radiogroup> abierto (con nombre)
         self.has_search = False
         self.has_sitemap = False
+        self.has_index = False    # índice/TOC/relacionados: vía 2.4.5 (4ª pasada)
         self.gestures = []            # touchmove/drag handlers (2.5.1)
         self.focus_blur = []          # onfocus="blur()": foco robado (2.1.1)
         self.focus_blur_elems = []
@@ -584,54 +586,29 @@ class _Auditor(HTMLParser):
             return
         self._ctrl.pop()
         a = c['attrs']
-        text = ' '.join(c['text']).strip()
+        # nombre desde el texto VISIBLE (4ª pasada): el crudo incluía texto
+        # con display:none/visibility:hidden que accname excluye. .sr-only
+        # (clip) sigue contando: está en el árbol de accesibilidad; y el
+        # <title> de un svg interno entra por su canal (alternativo, no
+        # renderizado, PERO sí nombre)
+        text = ' '.join(x for x in (
+            ''.join(c.get('text_visible', [])).strip(),
+            ' '.join(c.get('text_alt', [])).strip()) if x)
         # decisión de nombre POST-parse: los ids de un aria-labelledby pueden
         # declararse después del control; se registra todo en crudo
         self.controls_raw.append((c.get('kind') or tag, a, text, c.get('img_attrs', []),
                                   c.get('hidden', False)))
-        # 2.5.3 label in name — algoritmo de WCAG Understanding 2.5.3: sin el
-        # contenido entre paréntesis, minúsculas, sin puntuación, y la
-        # etiqueta visible contenida POR PALABRAS en el nombre («just ice» ≠
-        # «justice»; «Discover It» falla contra «Discover Italy»). Una
-        # etiqueta visible de un solo carácter/símbolo (X, emoji) es texto no
-        # verbal: exenta. La etiqueta es la que se VEE (la oculta por CSS no)
-        # concatenación DOM fiel: sin espacios artificiales — los del DOM ya
-        # vienen en los propios nodos de texto (2ee8b8: «W C A G» ≠ «ACT»)
+        # 2.5.3 label in name — el VEREDICTO se decide POST-parse (los ids de
+        # aria-labelledby pueden declararse después del control). Aquí solo se
+        # registra lo crudo; el algoritmo vive abajo, sobre el nombre EFECTIVO
+        # por precedencia accname (revisión externa, 4ª pasada: comparar
+        # contra aria-label penalizaba controles nombrados por labelledby y
+        # aprobaba el caso inverso)
         _vis = ''.join(c.get('text_visible', [])).strip()
         _al = (a.get('aria-label') or '').strip()
-        # página con fuente-icono declarada (Material Icons, Font Awesome…):
-        # el «texto» de un botón puede ser un glifo no verbal — exento
-        _icon_font = bool(re.search(
-            r"font-family\s*:[^;}]*?(Material[+ ]Icons|Font Awesome|glyphicon|icomoon|feather)"
-            r"|@font-face[^}]*?(Material[+ ]Icons|Font Awesome|glyphicon|icomoon|feather)",
-            self._styles_text, re.I)) or bool(re.search(
-            r'fonts\.googleapis\.com/icon|/material-icons|font-?awesome|/icomoon',
-            ' '.join(getattr(self, '_icon_links', [])), re.I))
-        # página con fuente-icono: el «texto» del control puede ser un glifo
-        # no verbal (ligadura Material «shopping_cart») — exento en CUALQUIER
-        # control (enlaces-icono incluidos), no solo <button>
-        if not _icon_font and _vis and _al:
-            def _lin_words(txt):
-                txt = re.sub(r'\([^)]*\)', ' ', txt)
-                # la puntuación se ELIMINA sin partir palabras («11×3=33» →
-                # «1133»: una sola palabra) — algoritmo 2.5.3
-                return [w for w in re.sub(r'[^\w\s]|_', '', txt.lower()).split() if w]
-            _vp, _ap2 = _lin_words(_vis), _lin_words(_al)
-            _mismatch = False
-            if _vp and _ap2:
-                if len(_vp) == 1 and len(_vp[0]) <= 2 and _vp[0].isalpha():
-                    _mismatch = False   # letra-símbolo única (X): texto no verbal
-                else:
-                    # RODAJA CONTIGUA EXACTA: «discover it» no cabe en
-                    # «discover italy» (it ≠ italy); «download specification»
-                    # no cabe en «download the specification»; «you how are»
-                    # no en «how are you» aunque estén todas las palabras
-                    _mismatch = not any(_ap2[i:i + len(_vp)] == _vp
-                                     for i in range(len(_ap2) - len(_vp) + 1))
-            if _mismatch:
-                self.label_no_name.append((_vis[:40], _al[:60]))
-                if len(self.label_no_name_elems) < 5:
-                    self.label_no_name_elems.append(a)
+        _lb_ids = (a.get('aria-labelledby') or '').split()
+        if _vis and (_al or _lb_ids) and len(self.label_in_name_raw) < 30:
+            self.label_in_name_raw.append((_vis[:80], _al[:120], _lb_ids[:6], a))
         if tag == 'a' and not c.get('hidden'):
             if (a.get('target') or '').lower() == '_blank':
                 self.blank_total += 1
@@ -751,8 +728,10 @@ class _Auditor(HTMLParser):
             _hidden_aria = True
         elif _ah_val == 'false':
             _hidden_aria = False
+        # inert (4ª pasada): el subtroke queda no interactivo Y fuera del
+        # árbol de accesibilidad — un botón dentro de inert JAMÁS es enfocable
         _hidden = _inh or 'hidden' in a or 'display:none' in _style \
-            or 'visibility:hidden' in _style or _hidden_aria
+            or 'visibility:hidden' in _style or _hidden_aria or 'inert' in a
         # <template> es contenido INERTE (spec HTML): no renderiza, no recibe
         # foco, sus ids no existen — se audita como oculto y los colectores
         # que no consultan _hidden llevan guardia explícita
@@ -886,12 +865,20 @@ class _Auditor(HTMLParser):
                                    'img_attrs': [], 'hidden': _hidden})
                 href = (a.get('href') or '').strip()
                 if self._in_nav and href and not href.startswith('#'):
-                    self.nav_hrefs.add(href.split('#')[0].rstrip('/'))
+                    _nv = href.split('#')[0].rstrip('/')
+                    if _nv not in self.nav_hrefs:
+                        self.nav_hrefs.append(_nv)
                 if href and re.search(r'help|contact|support|ayuda|contacto|soporte|asistencia',
                                       href, re.I):
                     self.help_hrefs.add(href.split('#')[0].rstrip('/'))
                 if href and re.search(r'sitemap|site-map|mapa-del-sitio|mapa_web|mapaweb', href, re.I):
                     self.has_sitemap = True
+                # 2.4.5 vía adicional (4ª pasada): un índice/TOC o bloque de
+                # relacionados SON formas de encontrar páginas
+                if href and re.search(
+                        r'(?:^|[/\-_!.])(?:index|indice|indice-de-contenidos|contents|toc|related|relacionados|ver-tambien|see-also)(?:$|[/\-_!.])',
+                        href.split('#')[0].rstrip('/'), re.I):
+                    self.has_index = True
         elif tag == 'input':
             self._field_note()
             kind = (a.get('type') or 'text').lower()
@@ -909,7 +896,16 @@ class _Auditor(HTMLParser):
                 if self._wrap_labels(a):
                     self._fields_in_label.append(id(a))
                 self.fields_raw.append((tag, kind, a, self._wrap_labels(a), _hidden))
-                if 'autocomplete' not in a and kind != 'search' and (
+                # 1.3.5 aplicabilidad y cobertura por SEPARADO (4ª pasada):
+                # type=email asumía «dato de la persona usuaria» aunque fuera
+                # el correo del DESTINATARIO, y autocomplete=off daba la
+                # condición por cubierta — off/on no identifican propósito
+                _recipient = re.search(
+                    r'(?<![a-z0-9])(to|recipient|destinatari[oa]s?|destino|friend|amigo)(?![a-z0-9])',
+                    ((a.get('name') or '') + ' ' + (a.get('id') or '')), re.I)
+                _tok_ac = (a.get('autocomplete') or '').strip().lower()
+                _covered = bool(_tok_ac) and _tok_ac not in ('off', 'on')
+                if (not _covered) and kind != 'search' and not _recipient and (
                         kind in ('email', 'tel')
                         or _PERSONAL_DATA.search((a.get('name') or '') + ' ' + (a.get('id') or ''))):
                     self.missing_autocomplete.append(f'input type={kind} name={a.get("name") or "?"}'[:44])
@@ -1401,8 +1397,11 @@ class _Auditor(HTMLParser):
                 if _svgtxt:
                     if self._ctrl:
                         # nombre SÍ (accname from content); VISIBLE no — el
-                        # <title> de svg es texto alternativo, no renderizado
+                        # <title> de svg es texto alternativo, no renderizado.
+                        # Canal aparte (4ª pasada): el nombre del control parte
+                        # del texto VISIBLE y el título-vía-svg entra aquí
                         self._ctrl[-1]['text'].append(_svgtxt)
+                        self._ctrl[-1].setdefault('text_alt', []).append(_svgtxt)
                     for _fr in reversed(self._el_stack):
                         if _fr[0] == 'svg':
                             self._svg_titles[id(_fr[1])] = _svgtxt
@@ -1937,9 +1936,14 @@ def audit_html(html_text, url='(html)', lang='en', standard=None, target=None):
                  if _fa.get('role') == a.get('role') and not a.get('id') and not _fa.get('id')),
                 '')
         _placeholder = (a.get('placeholder') or '').strip() if tag != 'select' else ''
+        # el <label> SOLO cuenta con TEXTO (4ª pasada: un label VACÍO daba
+        # nombre y Chromium exponía el campo sin nombre)
+        _label_txt = (getattr(p, '_label_text_for', {}).get(a.get('id'), '')
+                      or getattr(p, '_wrap_label_text', {}).get(id(a), '')).strip()
         _has_real_name = bool(al or lb or ti
-                or (en_label and _is_labelable)
-                or (_is_labelable and a.get('id') and a['id'] in p._labels_for)
+                or (en_label and _is_labelable and _label_txt)
+                or (_is_labelable and a.get('id') and a['id'] in p._labels_for
+                    and getattr(p, '_label_text_for', {}).get(a.get('id'), '').strip())
                 or _content_name)
         if not (_has_real_name or _placeholder):
             p.fields_no_label.append((kind or tag, (a.get('name') or '')[:60], a.get('id')))
@@ -2203,10 +2207,40 @@ def audit_html(html_text, url='(html)', lang='en', standard=None, target=None):
         add('medium', '1.4.2', 'video_autoplay', n=p.media_autoplay,
             paths=[p._elem_paths[id(_a)] for _a in p.media_autoplay_elems
                    if id(_a) in p._elem_paths][:5])
+    # 2.5.3, veredicto POST-parse (4ª pasada): el nombre EFECTIVO por
+    # precedencia accname — labelledby (ids resueltos, unidos en orden) GANA
+    # a aria-label. El nombre del propio contenido cumple trivialmente.
+    def _lin_words(txt):
+        txt = re.sub(r'\([^)]*\)', ' ', txt)
+        return [w for w in re.sub(r'[^\w\s]|_', '', txt.lower()).split() if w]
+    _icon_font = bool(re.search(
+        r"font-family\s*:[^;}]*?(Material[+ ]Icons|Font Awesome|glyphicon|icomoon|feather)"
+        r"|@font-face[^}]*?(Material[+ ]Icons|Font Awesome|glyphicon|icomoon|feather)",
+        getattr(p, '_styles_text', ''), re.I)) or bool(re.search(
+        r'fonts\.googleapis\.com/icon|/material-icons|font-?awesome|/icomoon',
+        ' '.join(getattr(p, '_icon_links', [])), re.I))
+    for _vis, _al, _lb_ids, _a in p.label_in_name_raw:
+        _lb_txt = ' '.join((p._id_texts.get(i, '') or '').strip()
+                           for i in _lb_ids if (p._id_texts.get(i, '') or '').strip())
+        _name_eff = _lb_txt or _al
+        _vp, _np2 = _lin_words(_vis), _lin_words(_name_eff)
+        if not (_vp and _np2):
+            continue
+        if len(_vp) == 1 and len(_vp[0]) <= 2 and _vp[0].isalpha():
+            continue    # letra-símbolo única (X, emoji): texto no verbal
+        # fuente-icono: SOLO controles de token único (ligadura); un botón de
+        # texto con dos palabras JAMÁS es un glifo (4ª pasada)
+        if _icon_font and len(_vp) == 1:
+            continue
+        # RODAJA CONTIGUA EXACTA: «discover it» no cabe en «discover italy»
+        if not any(_np2[i:i + len(_vp)] == _vp for i in range(len(_np2) - len(_vp) + 1)):
+            p.label_no_name.append((_vis[:40], _name_eff[:60]))
+            if len(p.label_no_name_elems) < 5:
+                p.label_no_name_elems.append(_a)
     if p.label_no_name:
         _ln = p.label_no_name[0]
         add_ej('medium', '2.5.3', 'label_in_name',
-               [f'«{t}» vs aria-label «{al}»' for t, al in p.label_no_name],
+               [f'«{t}» vs name «{al}»' for t, al in p.label_no_name],
                n=len(p.label_no_name), example=f'{_ln[0]} ≠ {_ln[1]}',
                paths=[p._elem_paths[id(_a)] for _a in p.label_no_name_elems
                       if id(_a) in p._elem_paths][:5])
@@ -2419,7 +2453,7 @@ class _CheckedRedirect(urllib.request.HTTPRedirectHandler):
 _OPENER = urllib.request.build_opener(_CheckedRedirect)
 
 
-def _fetch(url, timeout=30, truncate_at=None, accept_ct=()):
+def _fetch(url, timeout=30, truncate_at=None, accept_ct=(), _meta=None):
     scheme = url.split(':', 1)[0].lower() if ':' in url else ''
     if scheme not in ('http', 'https'):
         # política única para TODAS las rutas de descarga (audit_url la
@@ -2431,6 +2465,11 @@ def _fetch(url, timeout=30, truncate_at=None, accept_ct=()):
         'Accept-Encoding': 'gzip',
     })
     with _OPENER.open(req, timeout=timeout) as r:
+        # verdad de navegación (4ª pasada): seguir una redirección en
+        # silencio hacía puntuar 100 la pantalla de acceso BAJO la URL pedida
+        if _meta is not None:
+            _meta['final_url'] = r.geturl()
+            _meta['status'] = getattr(r, 'status', None)
         ceiling = truncate_at or MAX_HTML
         # TOTAL-CLOCK reading: the socket timeout is per-operation and a server
         # dribbling one byte per operation reset it forever. Read in chunks
@@ -2488,15 +2527,29 @@ _T_SCHEME = {
 def audit_url(url, timeout=30, lang='en', standard=None, target=None):
     if url.split(':')[0].lower() not in ('http', 'https'):
         return {'error': _T_SCHEME.get(lang, _T_SCHEME['es'])}
+    _meta = {}
     try:
-        html_text = _fetch(url, timeout=timeout)
+        html_text = _fetch(url, timeout=timeout, _meta=_meta)
     except _FetchError as e:
         return {'error': _t(lang, e.key).format(**e.fmt)}
     except ValueError as e:
         return {'error': str(e)}
     except Exception as e:  # noqa: BLE001
         return {'error': _t(lang, 'fetch_error').format(e=e)}
-    return audit_html(html_text, url, lang=lang, standard=standard, target=target)
+    # verdad de navegación (4ª pasada): el informe lleva la URL FINAL (la
+    # página que de verdad se miró), la PEDIDA y el estado HTTP
+    final_url = _meta.get('final_url') or url
+    res = audit_html(html_text, final_url.split('#')[0], lang=lang,
+                     standard=standard, target=target)
+    if final_url.split('#')[0] != url.split('#')[0]:
+        res['requested_url'] = url
+        res['redirect_note'] = (
+            'la URL pedida redirigió: el informe es de la página FINAL'
+            if lang == 'es' else
+            'the requested URL redirected: this report is for the FINAL page')
+    if _meta.get('status'):
+        res['http_status'] = _meta['status']
+    return res
 
 
 _LOC = re.compile(r'<loc>\s*([^<\s]+)\s*</loc>', re.I)
@@ -2563,13 +2616,28 @@ def evaluate_site(parsers, lang='en'):
     2.4.5 multiple ways. Pure function so tests need no network."""
     out = []
     if len(parsers) >= 3:
-        signatures = [frozenset(p.nav_hrefs) for p in parsers if p.nav_hrefs]
-        if len(signatures) >= 3 and len(set(signatures)) > 1:
-            out.append({'severity': 'medium', 'criterion': _crit(lang, '3.2.3'),
-                        'signal': 'nav_inconsistent',
-                        'issue': _t(lang, 'nav_inconsistent').format(
-                            example=f'{len(set(signatures))} distintas en {len(signatures)} páginas'),
-                        'remediation': _t(lang, 'nav_inconsistent_rem')})
+        # 3.2.3 evalúa el ORDEN RELATIVO de la navegación repetida (4ª
+        # pasada): comparar conjuntos dejaba pasar dos enlaces intercambiados
+        # y disparaba ante un enlace contextual INSERTADO sin mover a los
+        # demás. Se juzga la secuencia de los enlaces COMPARTIDOS por par
+        seqs = [list(p.nav_hrefs) for p in parsers if p.nav_hrefs]
+        if len(seqs) >= 3:
+            reordered_pairs = 0
+            for i in range(len(seqs)):
+                for j in range(i + 1, len(seqs)):
+                    shared = set(seqs[i]) & set(seqs[j])
+                    if len(shared) < 2:
+                        continue
+                    order_a = [h for h in seqs[i] if h in shared]
+                    order_b = [h for h in seqs[j] if h in shared]
+                    if order_a != order_b:
+                        reordered_pairs += 1
+            if reordered_pairs:
+                out.append({'severity': 'medium', 'criterion': _crit(lang, '3.2.3'),
+                            'signal': 'nav_inconsistent',
+                            'issue': _t(lang, 'nav_inconsistent').format(
+                                example=f'{reordered_pairs} pares de páginas con orden distinto en {len(seqs)}'),
+                            'remediation': _t(lang, 'nav_inconsistent_rem')})
     # 3.2.6 Consistent Help (A, new in 2.2): help links stable across pages
     signatures_help = [frozenset(p.help_hrefs) for p in parsers if p.help_hrefs]
     if len(signatures_help) >= 2 and len(parsers) >= 3 and len(set(signatures_help)) > 1:
@@ -2581,11 +2649,22 @@ def evaluate_site(parsers, lang='en'):
     # 2.4.5 exige múltiples formas de encontrar PÁGINAS: con una muestra de
     # una sola página no hay proceso multi-página que reclamarlo (FP en
     # sitios de una página — la excepción del propio criterio)
-    if len(parsers) >= 2 and not any(p.has_search or p.has_sitemap for p in parsers):
-        out.append({'severity': 'medium', 'criterion': _crit(lang, '2.4.5'),
-                    'signal': 'no_multiple_ways',
-                    'issue': _t(lang, 'no_multiple_ways'),
-                    'remediation': _t(lang, 'no_multiple_ways_rem')})
+    # 2.4.5 (4ª pasada): un índice/TOC o enlaces relacionados SON vías; sin
+    # buscador NI sitemap en una muestra pequeña, la evidencia es PARCIAL —
+    # la reseña baja a low y lo declara
+    _has_way = any(p.has_search or p.has_sitemap for p in parsers)
+    _has_index_way = any(getattr(p, 'has_index', False) for p in parsers)
+    if len(parsers) >= 2 and not _has_way and not _has_index_way:
+        entry = {'criterion': _crit(lang, '2.4.5'),
+                 'signal': 'no_multiple_ways',
+                 'issue': _t(lang, 'no_multiple_ways'),
+                 'remediation': _t(lang, 'no_multiple_ways_rem')}
+        entry['severity'] = 'medium' if len(parsers) >= 4 else 'low'
+        entry['issue'] = entry['issue'] + (
+            ' (partial evidence: search and sitemap not found in a small sample)'
+            if lang == 'en' else
+            ' (evidencia parcial: ni buscador ni sitemap en una muestra pequeña)')
+        out.append(entry)
     return out
 
 
@@ -2630,17 +2709,24 @@ def audit_site(url, max_pages=5, timeout=30, lang='en', from_sitemap=True,
         if next in seen:
             continue
         seen.add(next)
+        _m = {}
         try:
-            html_pg = _fetch(next, timeout=timeout)
+            html_pg = _fetch(next, timeout=timeout, _meta=_m)
         except Exception:  # noqa: BLE001
             continue
-        pg, pg_err = _parse_page(html_pg, next)
+        # enlaces y reporte contra la URL FINAL (4ª pasada: tras una
+        # redirección, resolver contra la PEDIDA visitaba rutas equivocadas)
+        next_final = ((_m.get('final_url') or next).split('#')[0]).rstrip('/')
+        if next_final != next and next_final in seen:
+            continue        # la redirección aterrizó en una ya auditada
+        seen.add(next_final)
+        pg, pg_err = _parse_page(html_pg, next_final)
         if pg_err is not None:
             continue   # página rota: no cuenta, el crawl sigue
-        reports.append(audit_html(html_pg, next, lang=lang))
+        reports.append(audit_html(html_pg, next_final, lang=lang))
         parsers.append(pg)
         if len(reports) < max_pages and not from_sitemap:
-            for new in _internal_links(html_pg, next, url):
+            for new in _internal_links(html_pg, next_final, url):
                 if new not in seen:
                     queue.append(new)
     site_findings = evaluate_site(parsers, lang=lang)

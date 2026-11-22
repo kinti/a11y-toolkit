@@ -111,14 +111,16 @@ class _Serializer(HTMLParser):
     def _emit(self, tag, attrs, depth):
         region = self._region()
         cls = sorted((attrs.get('class') or '').split())
-        # sin \n/\r en los valores: un attr hostil no puede falsificar
-        # líneas del material que se hashea (dos documentos distintos, un
-        # mismo digest sería una divergencia perdida)
-        stable = sorted('{}={}'.format(k, v.replace('\n', ' ').replace('\r', ' '))
+        # (4ª pasada) serialización SIN colisiones: json.dumps cita cada
+        # valor y cada token — class="alpha.beta" y class="alpha beta" ya no
+        # comparten vista, y un valor con espacios jamás se lee como dos
+        # atributos. Los digests cambian con respecto a la vista anterior:
+        # 'serialization' declara la versión para no comparar cruces
+        stable = sorted('{}={}'.format(k, json.dumps(v, ensure_ascii=False))
                         for k, v in attrs.items()
                         if k not in _VOLATILE and k != 'class')
         for view, extra in (('structure', ''),
-                            ('classes', ' .' + '.'.join(cls) if cls else ''),
+                            ('classes', ' ' + json.dumps(cls, ensure_ascii=False) if cls else ''),
                             ('attributes', ' ' + ' '.join(stable) if stable else '')):
             self.lines[view].setdefault(region, []).append(
                 '{} {}{}'.format(depth, tag, extra))
@@ -224,6 +226,7 @@ def fingerprint_pages(pages, lang='en'):
 
     return {
         'mode': 'template-fingerprints',
+        'serialization': 'classes-and-attrs-json-2',
         'pages_total': len(entries),
         'templates_total': len(templates),
         'views': list(VIEWS),

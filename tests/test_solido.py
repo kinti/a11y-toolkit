@@ -170,10 +170,9 @@ _journey_cat = json.load(open(os.path.join(ROOT, 'a11y_toolkit', 'locales', 'en.
 for _jkey, _jval in _journey_cat.items():
     if isinstance(_jval, list) and isinstance(_jval[0], str):
         _cubre(_jval[0], 'journey')
-# los 3 documentados sin señal mapeada (comentario en la tabla): fuera de la
-# derivación, dentro de la tabla
-_tabla = {c: set(m) for c, m in _MODES.items()
-          if c not in ('1.2.5', '1.4.11', '3.2.4')}
+# (4ª pasada: los tres que se colaron sin señal mapeada — 1.2.5/1.4.11/3.2.4
+# — cayeron de la tabla y del claim público del README; bijección EXACTA)
+_tabla = {c: set(m) for c, m in _MODES.items()}
 assert _tabla == _esperado, (
     f'MODES_BY_CRITERION diverge de los puntos de emisión: '
     f'faltan={ {c: sorted(m) for c, m in _esperado.items() if _tabla.get(c) != m} } '
@@ -263,7 +262,10 @@ assert all(_J['es'][k][0] == _J['en'][k][0] and _J['es'][k][1] == _J['en'][k][1]
 from collections import Counter  # noqa: E402
 _dist = Counter(c for c, _ in _EFFORT.values())
 assert _dist == Counter({'MIN': 23, 'MED': 19, 'MAX': 13}), f'distribución de esfuerzo derivó: {dict(_dist)}'
-assert '51 of 55 A/AA criteria carry automated signals (93%)' in readme, 'claim de cobertura en README'
+# (4ª pasada): el claim nace de las señales EMITIDAS, no de la esperanza —
+# 48 reales; los tres sin señal mapeada (1.2.5/1.4.11/3.2.4) viven en manual
+assert '48 of 55 A/AA criteria carry automated signals (87%)' in readme, 'claim de cobertura en README'
+assert '1.2.5, 1.3.1' not in readme and '3.2.1–3.2.4' not in readme, 'la tabla vuelve a reclamar lo sin señal'
 _tools_doc = open(os.path.join(ROOT, 'docs', 'tools.md'), encoding='utf-8').read()
 _faltan_tabla = [t['name'] for t in server.TOOLS if f'[`{t["name"]}`](docs/tools.md' not in readme]
 assert not _faltan_tabla, f'tools sin fila en la tabla del README: {_faltan_tabla}'

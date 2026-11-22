@@ -1,6 +1,75 @@
 # Changelog
 
 ## main — pendiente
+- **External review, ROUND 4 (2026-11-22, same audited commit): two failures
+  that could invalidate a whole audit, plus rule and evidence fixes.** Every
+  fix was reproduced against a local server or Chromium before landing, each
+  with its regression pin. Still open from this round: the parser's full-path
+  strings (O(depth²) memory on 1,200-deep chains — parent refs + lazy
+  materialization is the fix, a parser refactor), and the "decorated
+  headings" case (could not be reproduced without the reviewer's fixture).
+- **The audit now says WHICH page it actually looked at (P1):** `/account`
+  redirecting to `/signin` scored 100 "under /account", and a rendered HTTP
+  404 scored 100 as if it were the requested page. Every static and rendered
+  report now carries `http_status` and — after a redirect — `requested_url`
+  plus a `redirect_note`; error responses get an explicit `http_error_note`.
+  The crawler resolves relative links against the FINAL URL of each page
+  (it used the queued one, visiting wrong paths and undercounting the crawl)
+  and dedupes redirect landings. CI consumers can finally tell an audited
+  page from an error response.
+- **2.5.3 Label in Name compares against the EFFECTIVE name (P1):** the rule
+  compared the visible text with `aria-label` while the browser names the
+  control via `aria-labelledby` — correctly-named buttons were penalized and
+  the inverse case (labelledby diverging from visible text) passed at 100.
+  The verdict is now computed post-parse over the accname-precedence name
+  (labelledby > aria-label; content-named controls pass trivially), and the
+  icon-font exemption only covers single-token controls (a ligature like
+  `shopping_cart`), never a two-word text button. All four reviewer cases
+  pinned.
+- **Published coverage now derives from emitted signals:** the README claimed
+  1.2.5, 1.4.11 and 3.2.4 as "with automated signal" — none has one (the
+  audio-description absence fires under 1.2.3; 1.4.11/3.2.4 are
+  heuristic-only). Coverage drops to the true **48 of 55 (87%)** in both
+  READMEs, the three move to the manual column with their reasons, they left
+  `MODES_BY_CRITERION` (a static-only pack can no longer clear them), and
+  the invariant test now pins the claim AND forbids the phantom ranges.
+- **Name/role honesty in the static engine:** an empty `<label>` no longer
+  names a field (Chromium exposes it unnamed — `field_label` fires again);
+  control names come from VISIBLE text only (`display:none` text never
+  contributed to accname; `.sr-only` clip text still does); subtrees under
+  `inert` are non-interactive and out of the a11y tree (a button inside
+  `inert` is no longer "focusable").
+- **3.2.3 judges the ORDER of repeated navigation:** comparing nav-link SETS
+  missed two swapped links and fired on a contextual insertion that moved
+  nothing. The parser now records nav order; the rule compares the sequence
+  of SHARED links per page pair (≥2 shared), so swaps fire and insertions
+  don't. A substituted link (only one shared) is outside the criterion's
+  letter — the old pin that enshrined set-drift was rewritten.
+- **2.4.5 accepts more ways:** an index/TOC/related-links page counts as a
+  way to find content (the rule only looked for search/sitemap and fired on
+  sites with an index); when neither search nor sitemap shows up in a small
+  sample, the finding drops to low and declares its evidence partial.
+- **1.3.5 evaluates applicability and coverage separately:** a recipient
+  email (`to_*`, `recipient*`, `destinatario*`…) is not the user's own data
+  and is exempt; `autocomplete="off"` (or `on`) no longer counts as coverage
+  — per ACT 73f2c2 those tokens don't identify purpose.
+- **Cross-engine verdicts are symmetric:** diff is directional and pair
+  order came from engine names — a stop missing in one engine read
+  "removed" (blocks) and in the other "added" (didn't), and a reorder plus
+  an addition slipped through. The engines pair verdict is computed here in
+  both directions (`missing_in_either`) and the ORDER of shared stops is
+  judged independently of adds/removes (`order_diverged`).
+- **An empty journey can never seal a pass:** `steps: []` + `completed:
+  true` returned pass with 100 — nobody walked, nobody looked. It is now a
+  structural fail at 0, and the corpus evaluator declares itself
+  `incomplete` when a submission carries no control (placebo) pages, because
+  "zero false positives" is unfalsifiable without them (the reviewer's
+  re-score without the three controls still shows 100% kills / 0 FPs).
+- **Fingerprint serialization is collision-free and versioned:** the classes
+  view joined tokens with dots, so `class="alpha.beta"` and
+  `class="alpha beta"` produced the same view, and an attribute value with
+  spaces could read as two attributes. Lists and pairs are now JSON-quoted
+  and the report carries `serialization: classes-and-attrs-json-2`.
 - **External review, ROUND 3 (2026-11-22, same audited commit): autofix and
   WebVTT prioritized as asked — three P1s plus five confirmed accuracy
   fixes.** Every fix was reproduced against real behavior (Chromium, a local

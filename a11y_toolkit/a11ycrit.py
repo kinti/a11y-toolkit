@@ -894,12 +894,6 @@ MODES_BY_CRITERION = {
     '2.4.5': ('site',),
     '3.2.3': ('site',),
     '3.2.6': ('site',),
-    # sin señal MAPEADA pero con medición real: 1.4.11 (contraste de foco/UI
-    # en audit_dom), 1.2.5 y 3.2.4 (el material sí se audita — la señal
-    # mapeada es la que falta). Pendiente de calibración humana.
-    '1.4.11': ('rendered',),
-    '1.2.5': ('static', 'site'),
-    '3.2.4': ('static', 'site'),
 }
 
 

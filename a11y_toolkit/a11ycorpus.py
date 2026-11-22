@@ -308,7 +308,7 @@ def evaluate(submission, directory='corpus', submission_name='submission'):
             additional.append({'case_id': cid, 'additional_criteria': extra})
     n_mut = sum(1 for c in entries.values() if c['kind'] == 'mutant')
     n_pla = len(entries) - n_mut
-    return {
+    out = {
         'format': EVAL_FORMAT,
         'submission_name': submission_name,
         'mutants': n_mut, 'killed': len(killed),
@@ -316,6 +316,12 @@ def evaluate(submission, directory='corpus', submission_name='submission'):
         'missed_detail': missed,
         'control_pages': n_pla,
         'false_positives': fps,
+        # (4ª pasada) sin páginas control, «cero falsos positivos» es
+        # infalsable — la evaluación se declara incompleta, no limpia
+        **({'incomplete': True,
+            'incomplete_reason': 'no control (placebo) pages in the submission: '
+                                 'the false-positive claim cannot be evaluated'}
+           if n_pla == 0 else {'incomplete': False}),
         'additional_findings_on_mutants': {'count': len(additional),
                                            'note': 'reported, not scored: only '
                                                    'placebo flags are false '
@@ -327,6 +333,7 @@ def evaluate(submission, directory='corpus', submission_name='submission'):
         'cases_without_submission': [cid for cid in sorted(entries)
                                      if cid not in by_id][:10],
     }
+    return out
 
 
 def reference(directory='corpus'):

@@ -2008,13 +2008,15 @@ def audit_dom_url(url, timeout=45, lang='en', auth_state=None, browser='auto', c
     iniciada) para auditar detrás de login."""
     nav = _get_browser(preferred=browser)
     page, close_page = _pooled_page(nav, auth_state)
+    _resp = None
+    page_url_final = None
     try:
         if color_scheme in ('dark', 'light'):
             # contraste por esquema: los temas oscuros fallan donde el claro
             # pasa — nadie audita ambos (axe tampoco)
             page.emulate_media(color_scheme=color_scheme)
         try:
-            page.goto(url, wait_until='load', timeout=timeout * 1000)
+            _resp = page.goto(url, wait_until='load', timeout=timeout * 1000)
             page.wait_for_timeout(400)
         except Exception as e:  # noqa: BLE001
             if not page.content() or page.url in ('about:blank', ''):
@@ -2061,10 +2063,35 @@ def audit_dom_url(url, timeout=45, lang='en', auth_state=None, browser='auto', c
             except Exception:  # noqa: BLE001
                 continue
         data['hover'] = hover
+        page_url_final = page.url
     finally:
         close_page()
     _merge_iframes(data)
-    return audit_dom(data, url, lang=lang, color_scheme=color_scheme)
+    report_out = audit_dom(data, url, lang=lang, color_scheme=color_scheme)
+    # verdad de navegación (revisión externa, 4ª pasada): un 404 con HTML
+    # puntuaba 100 como si fuera la página pedida — el informe declara el
+    # estado HTTP y la URL FINAL para que el consumidor distinga
+    final_url = page_url_final or url
+    try:
+        _st = _resp.status if _resp is not None else None
+    except Exception:  # noqa: BLE001 — respuesta ya consumida
+        _st = None
+    if final_url.split('#')[0] != url.split('#')[0]:
+        report_out['requested_url'] = url
+        report_out['redirect_note'] = (
+            'la URL pedida redirigió: el informe es de la página FINAL'
+            if lang == 'es' else
+            'the requested URL redirected: this report is for the FINAL page')
+    if _st:
+        report_out['http_status'] = _st
+        if _st >= 400:
+            report_out['http_error_note'] = (
+                f'la página respondió HTTP {_st}: esto es una respuesta de '
+                'error, no la página pedida'
+                if lang == 'es' else
+                f'the page answered HTTP {_st}: this is an error response, '
+                'not the requested page')
+    return report_out
 
 
 def contrast_dom(url, selector, text_color=None, sample=4, lang='en', timeout=45,

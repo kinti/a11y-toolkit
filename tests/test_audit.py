@@ -180,14 +180,28 @@ _s = [(f['signal'], f['severity']) for f in r_q['findings']
 assert ('sensory_text', 'low') in _s, _s          # la instrucción REAL dispara
 assert not any(s == 'heading_quality' for s, _ in _s), 'SVG ya no es vago (como CSS)'
 assert len([s for s, _ in _s if s == 'sensory_text']) == 1, 'la CITA queda fuera'
-# site-level: pure function separates consistent from drifting nav
+# site-level: pure function separates consistent from drifting nav.
+# (4ª pasada) 3.2.3 evalúa el ORDEN RELATIVO de los enlaces repetidos: dos
+# enlaces INTERCAMBIADOS dispara; un enlace contextual INSERTADO sin mover a
+# los demás NO; y un enlace sustituido por otro (solo 1 compartido) queda
+# fuera de la letra del criterio — antes comparaba conjuntos y las tres
+# cosas leían al revés
 from a11y_toolkit.a11yaudit import _Auditor, evaluate_site
-pages = ['<nav><a href="/">H</a><a href="/x">X</a></nav>' for _ in range(2)] + ['<nav><a href="/">H</a><a href="/y">Y</a></nav>']
+pages = ['<nav><a href="/">H</a><a href="/x">X</a><a href="/c">C</a></nav>' for _ in range(2)] \
+    + ['<nav><a href="/">H</a><a href="/c">C</a><a href="/x">X</a></nav>']
 parsers = []
 for body in pages:
     p = _Auditor(); p.feed(f'<html lang="en"><head><title>t</title></head><body>{body}<main><h1>Informe principal</h1></main></body></html>'); p.close(); parsers.append(p)
 sen_sitio = {f['signal'] for f in evaluate_site(parsers, lang='en')}
-assert {'nav_inconsistent', 'no_multiple_ways'} <= sen_sitio
+assert {'nav_inconsistent', 'no_multiple_ways'} <= sen_sitio, sen_sitio
+# inserción contextual: mismo orden de los compartidos → silencio en 3.2.3
+pages_ins = ['<nav><a href="/">H</a><a href="/x">X</a></nav>' for _ in range(2)] \
+    + ['<nav><a href="/">H</a><a href="/promo">P</a><a href="/x">X</a></nav>']
+parsers_ins = []
+for body in pages_ins:
+    p = _Auditor(); p.feed(f'<html lang="en"><head><title>t</title></head><body>{body}<main><h1>Informe principal</h1></main></body></html>'); p.close(); parsers_ins.append(p)
+sen_ins = {f['signal'] for f in evaluate_site(parsers_ins, lang='en')}
+assert 'nav_inconsistent' not in sen_ins, sen_ins
 parsers_ok = [_p for _p in [(_Auditor()) for _ in range(3)]]
 for _p, body in zip(parsers_ok, ['<nav><a href="/">H</a></nav><input type="search">' for _ in range(3)]):
     _p.feed(f'<html lang="en"><head><title>t</title></head><body>{body}<main><h1>Informe principal</h1></main></body></html>'); _p.close()
