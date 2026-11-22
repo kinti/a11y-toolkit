@@ -151,6 +151,10 @@ def generate_vpat(pack=None, reports=None, product='', product_version=None,
         if not isinstance(scope, dict):
             return {'error': t['error_scope']}
         from .a11yevidence import apply_scope
+        scope_sha = scope.get('sha256') if isinstance(scope, dict) else None
+        if not scope_sha and isinstance(scope, dict):
+            from .a11yevidence import _sha256
+            scope_sha = _sha256(scope)
         pack = apply_scope(pack, scope, lang=lang)
     if not isinstance(pack, dict) or 'criteria' not in pack:
         return {'error': t['error_no_pack']}
@@ -161,6 +165,10 @@ def generate_vpat(pack=None, reports=None, product='', product_version=None,
 
     from .a11ycrit import _C as _CAT
     pack_sha = pack.get('sha256', '')
+    try:
+        scope_sha
+    except NameError:
+        scope_sha = None
     by_code = _findings_by_code(pack)
     report_date = report_date or datetime.date.today().isoformat()
 
@@ -227,6 +235,7 @@ def generate_vpat(pack=None, reports=None, product='', product_version=None,
         + t['col_level'] + '</th><th scope="col">' + t['col_remarks']
         + '</th></tr></thead>\n<tbody>\n' + '\n'.join(rows_html) + '\n</tbody>\n</table>\n</div>\n'
         + f'<h2>{t["signature_title"]}</h2>\n<p>{t["signature"]} <code>{e(pack_sha)}</code></p>\n'
+        + (f'<p>{t["signature_scope"].format(sha=e(scope_sha))}</p>\n' if scope_sha else '')
         + '<p><em>' + t['signature_empty'] + '</em></p>\n'
         + (f'<p>{t["product"]}: {e((reviewer or {}).get("name", "________________"))} — '
            f'{t["credential"]}: {e((reviewer or {}).get("credential", "________________"))} — '
@@ -235,7 +244,8 @@ def generate_vpat(pack=None, reports=None, product='', product_version=None,
         + f'</main>\n<footer><p><small>{t["iti_note"]}</small></p></footer>\n</body>\n</html>'
     )
     res = {'html': doc, 'summary': summary, 'levels': {f['code']: f['conformance'] for f in rows},
-           'pack_sha256': pack_sha, 'draft': True, 'lang': lang}
+           'pack_sha256': pack_sha, 'draft': True, 'lang': lang,
+           **({'scope_sha256': scope_sha, 'derived': True} if scope_sha else {})}
     if output_path:
         with open(output_path, 'w', encoding='utf-8') as f:
             f.write(doc)

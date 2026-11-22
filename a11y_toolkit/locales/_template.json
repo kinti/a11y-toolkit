@@ -453,7 +453,8 @@
   "standards_section": "",
   "table_caption": "",
   "title": "",
-  "version": ""
+  "version": "",
+  "signature_scope": "Applied applicability scope (human-confirmed exclusions): scope seal <code>{sha}</code>. The pack seal covers the reports; this one covers the exclusions that changed this matrix."
  },
  "vtt": {
   "limits": "",

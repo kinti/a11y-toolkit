@@ -106,6 +106,8 @@ def generate_openacr(pack=None, reports=None, product='', product_version=None,
         if not isinstance(scope, dict):
             return {'error': t['error_scope']}
         from .a11yevidence import apply_scope
+        from .a11yevidence import _sha256
+        scope_sha = (scope.get('sha256') or _sha256(scope)) if isinstance(scope, dict) else None
         pack = apply_scope(pack, scope, lang=lang)
     if not isinstance(pack, dict) or 'criteria' not in pack:
         return {'error': t['error_no_pack']}
@@ -116,6 +118,10 @@ def generate_openacr(pack=None, reports=None, product='', product_version=None,
 
     from .a11ycrit import _C as _CAT
     pack_sha = pack.get('sha256', '')
+    try:
+        scope_sha
+    except NameError:
+        scope_sha = None
     by_code = _findings_by_code(pack)
     report_date = report_date or datetime.date.today().isoformat()
 
@@ -177,9 +183,18 @@ def generate_openacr(pack=None, reports=None, product='', product_version=None,
                                                    + ' — ' + f['remarks']))
 
     doc = '\n'.join(lines) + '\n'
+    # (5ª pasada) el alcance aplicado queda VINCULADO al borrador: el sello
+    # del pack cubre los informes; el del alcance, las exclusiones que
+    # cambiaron esta matriz — ambos viajan en el YAML y en el resultado
+    if scope_sha:
+        lines.insert(0, '# applied scope sha256: ' + scope_sha
+                     + '  (exclusions confirmed by a human; the pack seal below '
+                       'covers the reports, this one covers the exclusions)')
+        doc = '\n'.join(lines) + '\n'
     res = {'yaml': doc, 'summary': summary,
            'levels': {f['code']: f['adherence'] for f in rows},
-           'pack_sha256': pack_sha, 'format': 'openacr', 'draft': True, 'lang': lang}
+           'pack_sha256': pack_sha, 'format': 'openacr', 'draft': True, 'lang': lang,
+           **({'scope_sha256': scope_sha, 'derived': True} if scope_sha else {})}
     if output_path:
         with open(output_path, 'w', encoding='utf-8') as fh:
             fh.write(doc)

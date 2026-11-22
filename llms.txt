@@ -61,7 +61,7 @@ Start with `a11y_route` (the router): state a goal in plain language and get the
 - `a11y_forms` — Form error testing
 - `a11y_hover` — Hover dismissibility (1.4.13)
 - `a11y_reflow` — 320px reflow check
-- `a11y_scroll` — Infinite-scroll audit
+- `a11y_scroll` — Infinite-scroll audit (passive by default; interactive=true clicks the exact control you name)
 - `a11y_sr_transcript` — Screen reader transcript
 - `a11y_reduced_motion` — prefers-reduced-motion honored?
 - `a11y_forced_colors` — forced-colors survival heuristic

@@ -1342,22 +1342,42 @@ def audit_hover(url, timeout=45, lang='en', auth_state=None, browser='auto'):
 
 
 _JS_SPACING = r'''() => {
-  // WCAG 1.4.12 Text Spacing: the documented override set, applied globally,
-  // then measure which texts get clipped by height-constrained containers.
+  // WCAG 1.4.12 (5a pasada): ANTES y DESPUES de inyectar los overrides, y
+  // el recorte del CONTENEDOR (propio o de cualquier ancestro con overflow
+  // hidden O clip) -- antes: una sola medicion acusaba parrafos ya recortados
+  // de antes y no veia los que empezaban a recortarse con el espaciado.
+  const SEL = 'p, li, h1, h2, h3, h4, h5, h6, a, span, label';
+  const clippedBy = el => {
+    let n = el;
+    while (n && n !== document.body) {
+      const s = getComputedStyle(n);
+      const modes = [s.overflow, s.overflowY, s.overflowX];
+      if (modes.includes('hidden') || modes.includes('clip')) {
+        const rb = n.getBoundingClientRect(), re = el.getBoundingClientRect();
+        if (re.bottom > rb.bottom + 3 || re.right > rb.right + 3) return true;
+        return false;   // ancestro recortante y el elemento dentro: no clip
+      }
+      n = n.parentElement;
+    }
+    return false;
+  };
+  const snap = {};
+  document.querySelectorAll(SEL).forEach((el, i) => {
+    if (!el.offsetParent) return;
+    snap[i] = clippedBy(el);
+  });
   const css = document.createElement('style');
   css.id = 'a11y-spacing-1412';
   css.textContent = '*{line-height:1.5!important;letter-spacing:0.12em!important;'
     + 'word-spacing:0.16em!important} p{margin-bottom:2em!important}';
   document.head.appendChild(css);
   const clip = [];
-  for (const el of document.querySelectorAll('p, li, h1, h2, h3, h4, h5, h6, a, span, label')) {
-    if (clip.length >= 15) break;
-    if (!el.offsetParent) continue;
-    const s = getComputedStyle(el);
-    const clipped = (s.overflow === 'hidden' || s.overflowY === 'hidden')
-                    && el.scrollHeight > el.clientHeight + 3;
-    if (clipped) clip.push(el.tagName.toLowerCase() + (el.id ? '#' + el.id : ''));
-  }
+  document.querySelectorAll(SEL).forEach((el, i) => {
+    if (clip.length >= 15) return;
+    if (!el.offsetParent) return;
+    if (!snap[i] && clippedBy(el))
+      clip.push(el.tagName.toLowerCase() + (el.id ? '#' + el.id : ''));
+  });
   css.remove();
   return clip;
 }'''
@@ -1941,22 +1961,30 @@ def audit_reduced_motion(url, timeout=45, lang='en', auth_state=None, browser='a
     (2.2.2: pausa/parada/ocultar; 2.3.3 AAA). Nadie más lo automatiza:
     axe lo deja en revisión manual."""
     _JS_RM = r'''() => {
-      let n = 0, examples = [];
+      // (5a pasada) por ELEMENTO y con estado de reproduccion: una lista con
+      // una animacion infinita y otra finita no contaba (iterationCount es
+      // una LISTA 'infinite,1'), y pausar por CSS daba 'no respeta' aunque
+      // el movimiento estuviera detenido
+      const out = {};
       for (const el of document.querySelectorAll('*')) {
-        if (n >= 40) break;
+        if (Object.keys(out).length >= 40) break;
         const cs = getComputedStyle(el);
-        if (cs.animationIterationCount !== 'infinite' || cs.animationName === 'none') continue;
+        const counts = (cs.animationIterationCount || '').split(',');
         const durs = (cs.animationDuration || '0s').split(',').map(
           x => { const v = parseFloat(x) || 0; return x.includes('ms') ? v / 1000 : v; });
-        const dur = Math.max(...durs, 0);
-        if (dur <= 0.15) continue;
-        n++;
-        if (examples.length < 6) examples.push(
-          el.tagName.toLowerCase() + (el.id ? '#' + el.id : '')
-          + '.' + String(el.className).slice(0, 25) + ' (' + cs.animationName.slice(0, 30) + ')');
+        let loops = false;
+        for (let i = 0; i < counts.length; i++)
+          if (counts[i].trim() === 'infinite' && (durs[i] || 0) > 0.15) { loops = true; break; }
+        if (!loops) continue;
+        const paused = (cs.animationPlayState || '').split(',').every(p => p.trim() === 'paused');
+        const key = el.tagName.toLowerCase() + (el.id ? '#' + el.id : '')
+          + ':' + String(cs.animationName).slice(0, 40);
+        if (!(key in out)) out[key] = { paused: paused,
+          example: el.tagName.toLowerCase() + (el.id ? '#' + el.id : '')
+          + ' (' + String(cs.animationName).slice(0, 30) + ')' };
       }
       const videos = document.querySelectorAll('video[autoplay]').length;
-      return { anims: n, examples: examples, videos };
+      return { anims: out, videos };
     }'''
     from .a11yaudit import _t as _t_audit, CRIT, compute_score
 
@@ -1975,21 +2003,36 @@ def audit_reduced_motion(url, timeout=45, lang='en', auth_state=None, browser='a
     finally:
         close_page()
 
-    respects = reduced['anims'] < normal['anims']
+    # veredicto por ELEMENTO (5a pasada): solo cuentan las que CORREN (las
+    # pausadas por CSS estan controladas); reduccion total, PARCIAL (unas
+    # paran y otras siguen -- antes "respeta" con una viva) y sin datos
+    _norm = {k: v for k, v in (normal.get('anims') or {}).items() if not v.get('paused')}
+    _red = {k for k, v in (reduced.get('anims') or {}).items() if not v.get('paused')}
+    _n, _r = len(_norm), len(_red)
+    _stopped = [k for k in _norm if k not in _red]
+    motion = {'normal': _n, 'reduced': _r, 'stopped': len(_stopped),
+              'partial': bool(_stopped) and _r > 0,
+              'paused_css': sum(1 for v in (normal.get('anims') or {}).values() if v.get('paused')),
+              'still_running': [_norm[k]['example'] for k in _norm if k in _red][:6]}
+    respects = (True if (_n > 0 and _r == 0) else (False if _n > 0 else None))
     findings = []
-    if normal['anims'] > 0 and not respects:
+    if _n > 0 and not respects:
         findings.append({
             'severity': 'medium', 'criterion': CRIT.get(lang, CRIT['es']).get('2.2.2', '2.2.2'),
             'signal': 'reduced_motion_ignored',
-            'issue': _t_audit(lang, 'reduced_motion_ignored').format(
-                n=normal['anims'], nr=reduced['anims']),
+            'issue': _t_audit(lang, 'reduced_motion_ignored').format(n=_n, nr=_r),
             'remediation': _t_audit(lang, 'reduced_motion_ignored_rem'),
-            'examples': normal['examples'][:4]})
+            'examples': (motion['still_running']
+                         or [v['example'] for v in _norm.values()])[:4]})
     order = {'high': 0, 'medium': 1, 'low': 2}
     findings.sort(key=lambda h: order[h['severity']])
     return {
         'mode': 'reduced-motion', 'url': url,
-        'normal': normal, 'reduced': reduced,
+        'normal': {'anims': len(normal.get('anims') or {}),
+                   'videos': normal.get('videos', 0)},
+        'reduced': {'anims': len(reduced.get('anims') or {}),
+                    'videos': reduced.get('videos', 0)},
+        'motion': motion,
         'respects': respects,
         'score': compute_score(findings),
         'findings': findings,

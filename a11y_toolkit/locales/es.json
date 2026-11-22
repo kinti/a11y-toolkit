@@ -644,6 +644,7 @@
   "notes": "Notas",
   "product": "Nombre del producto",
   "signature": "Este documento es un <strong>BORRADOR</strong> generado por cribado automatizado. Los niveles marcados «No evaluado» deben ser fijados por una persona cualificada tras la revisión; la declaración de firma debe referenciar el hash del paquete de evidencia:",
+  "signature_scope": "Alcance de aplicabilidad aplicado (exclusiones confirmadas por una persona): sello del alcance <code>{sha}</code>. El sello del pack cubre los informes; este cubre las exclusiones que cambian esta matriz.",
   "signature_empty": "Bloque de firma sin completar: nombre, credencial y fecha pendientes.",
   "signature_title": "Firma y evidencia",
   "standard": "<abbr lang=\"en\" title=\"Web Content Accessibility Guidelines\">WCAG</abbr> 2.2 (niveles A y AA) — Recomendación W3C de octubre de 2023.",

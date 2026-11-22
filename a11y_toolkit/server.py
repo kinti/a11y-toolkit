@@ -398,7 +398,13 @@ TOOLS = [
         'name': 'a11y_scroll',
         'description': ('Infinite-scroll accessibility audit — the documented disaster nobody '
                         'automates (Deque guidance + ARIA APG Feed pattern; criteria 2.4.3, '
-                        '4.1.3, 2.2.2). Real scrolling batches in Chromium with a live-region '
+                        '4.1.3, 2.2.2). PASSIVE BY DEFAULT (external review round 5: the '
+                        'load-more fallback clicked by substring match hit unrelated buttons — '
+                        'the walk now scrolls only and never clicks). To ALSO test the '
+                        'load-more alternative pass interactive=true together with '
+                        'load_more="the exact visible text of the control" — that performs a '
+                        'REAL click on that one control and nothing else. Real scrolling '
+                        'batches in Chromium with a live-region '
                         'observer: does the focused element SURVIVE each batch (re-render '
                         'destroys it — the documented failure)? Is new content ANNOUNCED '
                         '(aria-live/status receives text, role=feed)? Does the feed END or '
@@ -412,6 +418,8 @@ TOOLS = [
             'max_batches': {'type': 'integer', 'description': 'scroll batches (5 default)'},
             'auth_state': {'type': 'string', 'description': 'Path to a Playwright storage_state JSON (exported session) to audit an authenticated feed'},
             'browser': {'type': 'string', 'enum': ['auto', 'chromium', 'firefox', 'webkit', 'chrome', 'msedge'], 'description': 'Browser engine (auto = detect the first available)'},
+            'interactive': {'type': 'boolean', 'description': 'passive walk by default (scroll only, NEVER clicks); true enables the load-more click test (a real action on the page)'},
+            'load_more': {'type': 'string', 'description': 'with interactive=true: the EXACT visible text of the load-more control (full trimmed-text match, never substring)'},
         },
 'required': ['url']},
     },
@@ -1149,7 +1157,6 @@ _ANN = {
     'a11y_keyboard':         ('Keyboard-trap + skip-link landing detector', True, True),
     'a11y_html_validate':    ('W3C Nu validation', True, True),
     'a11y_forms':            ('Form error testing', True, True),
-    'a11y_scroll':           ('Infinite-scroll audit', True, True),
     'a11y_snapshot':         ('A11y snapshot + tab order', True, True),
     'a11y_locate':           ('Locate element by accessible name', True, True),
     'a11y_patches':          ('Sealed patch-set (sha-keyed)', True, False),
@@ -1180,6 +1187,10 @@ _ANN = {
     'a11y_wcag3_preview':    ('WCAG 3 draft preview (no score)', True, False),
     'a11y_route':            ('Tool router (goal or page to steps)', True, True),
     'a11y_scope':            ('Applicability scope (semi-automatic)', True, False),
+    # (5ª pasada) el scroll declaraba readOnlyHint=true mientras clicaba por
+    # subcadena; ahora pasivo por defecto y la prueba activa exige control
+    # explícito — la anotación dice la verdad: PUEDE actuar cuando se le pide
+    'a11y_scroll':           ('Infinite-scroll audit (passive by default; interactive=true clicks the exact control you name)', False, True),
 }
 # TDQS hygiene: annotations must match reality, and every description states
 # its return shape and when (not) to use the tool. a11y_ledger.record mutates
@@ -1385,7 +1396,9 @@ def invoke(name, args):
             return _content(audit_scroll(args['url'], max_batches=args.get('max_batches', 5),
                                        lang=args.get('lang', 'en'),
                                        auth_state=args.get('auth_state'),
-                                       browser=args.get('browser', 'auto')))
+                                       browser=args.get('browser', 'auto'),
+                                       interactive=bool(args.get('interactive', False)),
+                                       load_more=args.get('load_more')))
         except ImportError:
             return {'content': [{'type': 'text',
                                  'text': 'Playwright not installed: pip install playwright && playwright install chromium'}],

@@ -92,10 +92,18 @@ def docx_screen(path, lang='en'):
     if not language:
         add('docx_no_lang')
 
-    # tablas sin fila de encabezado (tblHeader)
+    # tablas sin fila de encabezado (tblHeader) — POR TABLA (5ª pasada: el
+    # encabezado de la primera tapaba la falta de la segunda con un conteo
+    # global, y <w:tblHeader w:val="true"/> —con atributos— no casaba con el
+    # regex de elemento vacío)
     n_tables = len(re.findall(r'<w:tbl>', body))
-    n_tblheader = len(re.findall(r'<w:tblHeader\s*/?>', body))
-    if n_tables and not n_tblheader:
+    tables_missing = 0
+    for tbl in re.findall(r'<w:tbl>.*?</w:tbl>', body, re.S):
+        marked = [m for m in re.findall(r'<w:tblHeader\b[^>]*/?>', tbl)
+                    if not re.search(r'w:val="(?:0|false|off)"', m, re.I)]
+        if not marked:
+            tables_missing += 1
+    if n_tables and tables_missing:
         add('docx_table_no_header')
 
     # falsos encabezados: párrafo todo-bold + tamaño grande sin estilo Heading
@@ -128,7 +136,7 @@ def docx_screen(path, lang='en'):
     return {
         'mode': 'docx', 'file': str(path).rsplit('/', 1)[-1],
         'language': language, 'images': len(docprs),
-        'tables': n_tables, 'tables_with_header': n_tblheader,
+        'tables': n_tables, 'tables_without_header': tables_missing,
         'score': compute_score(findings),
         'findings': findings,
         'summary': {s2: sum(1 for h in findings if h['severity'] == s2)

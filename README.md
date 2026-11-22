@@ -110,7 +110,7 @@ Full reference — descriptions, arguments, return shapes and behavior — in [d
 | [`a11y_forms`](docs/tools.md#a11y_forms) | Interactions | Form error testing |
 | [`a11y_hover`](docs/tools.md#a11y_hover) | Interactions | Hover dismissibility (1.4.13) |
 | [`a11y_reflow`](docs/tools.md#a11y_reflow) | Interactions | 320px reflow check |
-| [`a11y_scroll`](docs/tools.md#a11y_scroll) | Interactions | Infinite-scroll audit |
+| [`a11y_scroll`](docs/tools.md#a11y_scroll) | Interactions | Infinite-scroll audit (passive by default; interactive=true clicks the exact control you name) |
 | [`a11y_sr_transcript`](docs/tools.md#a11y_sr_transcript) | Interactions | Screen reader transcript |
 | [`a11y_reduced_motion`](docs/tools.md#a11y_reduced_motion) | Interactions | prefers-reduced-motion honored? |
 | [`a11y_forced_colors`](docs/tools.md#a11y_forced_colors) | Interactions | forced-colors survival heuristic |

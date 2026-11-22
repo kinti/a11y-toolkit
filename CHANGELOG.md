@@ -1,6 +1,55 @@
 # Changelog
 
 ## main — pendiente
+- **External review, ROUND 5 (2026-11-22, same audited commit): a tool that
+  acted while declaring itself read-only, and drafts whose seal didn't cover
+  what they showed.** Every fix reproduced against Chromium or a local
+  server, each with its pin. Still open from this round: PDF stream filter
+  chains (uncompressed and ASCII85→Flate variants skip the contrast scan —
+  the fix is a declared-filter decoder plus spatial text-background
+  evidence, a stream-layer change with its own fixtures).
+- **a11y_scroll is passive by default (P1):** the load-more fallback matched
+  the SUBSTRING `load` and clicked «Download monthly report» on a page whose
+  feed it did not own — while MCP declared the tool read-only. The walk now
+  scrolls only and never clicks; testing the load-more alternative requires
+  `interactive=true` PLUS `load_more="the exact visible text"` (full
+  trimmed-text match, never substring). MCP annotations now tell the truth:
+  readOnlyHint false — the tool CAN act when explicitly asked. The report
+  carries `interactive` and a passive-mode note.
+- **The scroll focus finding separates cause from observation (P1):** a
+  STATIC feed kept the same focus start-to-end and the audit's own scrollTo
+  took it off-viewport — and `scroll_focus` fired. Off-viewport is now a
+  finding only when the feed GREW (new content left a quiet focus behind);
+  the report records `focus_tracking` (lost / offscreen / feed_grew) so the
+  test-induced scroll is distinguishable from a real 2.4.3 concern.
+- **VPAT/OpenACR drafts bind BOTH seals (P1):** applying a confirmed scope
+  changed 1.2.2 to not-applicable while both drafts kept the ORIGINAL
+  pack_sha256 — a seal that didn't cover the matrix being shown. Both
+  generators now carry `scope_sha256` + `derived: true` in the result, print
+  the scope seal next to the pack seal in the signature (VPAT) and the YAML
+  header (OpenACR), with the i18n line saying which seal covers what.
+- **DOCX tables judged individually:** the first table's header hid the
+  second table's missing one (global count), and `<w:tblHeader
+  w:val="true"/>` — attributes! — didn't match the empty-element regex. Each
+  `<w:tbl>` is checked for itself; `w:val="0/false/off"` doesn't count.
+- **PDF title from the document's metadata only:** the first `/Title` of ANY
+  object was read — a bookmark titled «Chapter one» titled an untitled
+  document. The chain is now: the trailer's /Info object → XMP dc:title →
+  (minimal PDFs without trailer) a /Title in a dict carrying metadata keys
+  (Producer/Author/Creator) — bookmark dicts (Dest/Parent/Next) never
+  qualify.
+- **prefers-reduced-motion judged per element:** the verdict compares the
+  per-element animation signatures of both passes — partial reduction (one
+  stops, one keeps running) is `respects: false` + `motion.partial` with the
+  survivors named (a global count said "respects" with an animation still
+  live); CSS-paused animations count as controlled (`paused_css`); and an
+  element with one infinite and one finite animation (iterationCount is a
+  LIST) counts.
+- **Text spacing compares before and after, container included:** a single
+  post-injection measurement flagged paragraphs clipped BEFORE the change
+  and missed others. The check snapshots clip state (own box or any
+  overflow:hidden/clip ancestor) before injecting the WCAG overrides and
+  reports only the NEWLY clipped — `overflow: clip` included.
 - **External review, ROUND 4 (2026-11-22, same audited commit): two failures
   that could invalidate a whole audit, plus rule and evidence fixes.** Every
   fix was reproduced against a local server or Chromium before landing, each

@@ -182,9 +182,30 @@ def pdf_screen(path_or_bytes, lang='en'):
     marked = present(rb'/Marked\s+true')
     tagged = present(rb'/StructTreeRoot\s+\d+\s+0\s+R') or \
         (marked and present(rb'/StructTreeRoot'))
-    lang_doc = re.search(rb'/Lang\s*\(([^)]{2,20})\)', todo)
-    title_meta = re.search(rb'/Title\s*\(([^)]{1,300})\)', todo) or \
-        re.search(rb'<dc:title>.{0,200}?<rdf:li[^>]*>([^<]{1,300})</rdf:li>', todo, re.S)
+    lang_found = re.search(rb'/Lang\s*\(([^)]{2,20})\)', todo)
+    # (5ª pasada) el título SOLO de los metadatos del documento: el /Title
+    # del objeto /Info del trailer (o el dc:title del XMP) — el primer
+    # /Title de cualquier objeto era un MARCADOR («Chapter one») mientras el
+    # título real estaba vacío
+    title_meta = None
+    _info_refs = re.findall(rb'/Info\s+(\d+)\s+\d+\s+R', todo)
+    if _info_refs:
+        _obj_id = _info_refs[-1]      # actualizaciones incrementales: el último manda
+        _m_obj = re.search(b'\b' + _obj_id + b'\s+\d+\s+obj(.{0,4000}?)endobj', todo, re.S)
+        if _m_obj:
+            title_meta = re.search(rb'/Title\s*\(([^)]{1,300})\)', _m_obj.group(1))
+    if not title_meta:
+        title_meta = re.search(rb'<dc:title>.{0,200}?<rdf:li[^>]*>([^<]{1,300})</rdf:li>', todo, re.S)
+    if not title_meta:
+        # respaldo para PDFs mínimos SIN trailer: un /Title cuyo diccionario
+        # lleva claves de METADATOS (/Producer, /Author, /Creator, /ModDate…)
+        # — los marcadores llevan /Dest//Parent//Next y jamás esas claves
+        for _dic in re.findall(rb'<<(?:[^<>]|<<[^<>]*>>){0,600}?>>', todo):
+            if rb'/Title' in _dic and re.search(rb'/(?:Producer|Author|Creator|ModDate|CreationDate)\b', _dic):
+                _m = re.search(rb'/Title\s*\(([^)]{1,300})\)', _dic)
+                if _m:
+                    title_meta = _m
+                    break
     n_pages = len(re.findall(rb'/Type\s*/Page[^s]', todo))
     # /Alt acepta literal (/Alt (…)) y hex (/Alt <FEFF…>, la forma natural
     # UTF-16BE para alt no latino) — misma paridad que /TU
@@ -282,7 +303,7 @@ def pdf_screen(path_or_bytes, lang='en'):
         add('pdf_untagged')
     if not title_meta:
         add('pdf_no_title')
-    if not lang_doc:
+    if not lang_found:
         add('pdf_no_lang')
     if n_pages > 8 and not n_outline:
         add('pdf_no_outline')
@@ -301,7 +322,7 @@ def pdf_screen(path_or_bytes, lang='en'):
         'pages': n_pages or None,
         'tagged': bool(tagged and marked),
         'encrypted': encrypted,
-        'lang': lang_doc.group(1).decode('latin-1', 'replace') if lang_doc else None,
+        'lang': lang_found.group(1).decode('latin-1', 'replace') if lang_found else None,
         'title': (title_meta.group(1).decode('utf-8', 'replace').strip()[:200]
                   if title_meta else None),
         'images': n_imgs, 'alt_entries': n_alt, 'actual_text': n_actual,

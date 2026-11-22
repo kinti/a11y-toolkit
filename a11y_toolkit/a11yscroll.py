@@ -78,7 +78,8 @@ def _add(findings, lang, sev, code, key, **fmt):
     })
 
 
-def audit_scroll(url, max_batches=5, lang='en', timeout=45, auth_state=None, browser='auto'):
+def audit_scroll(url, max_batches=5, lang='en', timeout=45, auth_state=None, browser='auto',
+                 interactive=False, load_more=None):
     from .a11ydom import _get_browser, _pooled_page
     nav = _get_browser(preferred=browser)
     # BrowserContext.new_page() NO acepta viewport: _pooled_page lo manda al
@@ -110,16 +111,22 @@ def audit_scroll(url, max_batches=5, lang='en', timeout=45, auth_state=None, bro
                         or e['scroll'] > (batches[-1]['scroll'] if batches else before['scroll']):
                     grew = True
                     break
-            if not grew and not via_click:
-                # el scroll no trae nada: ¿hay botón «cargar más»? (la alternativa sana)
-                via_click = page.evaluate(
-                    "() => [...document.querySelectorAll('button, a')].some(b =>"
-                    " /más|more|cargar|load/i.test((b.innerText || '').trim()) && b.offsetParent)")
-                if via_click:
+            if not grew and not via_click and interactive and load_more:
+                # (5ª pasada) la prueba ACTIVA exige un control IDENTIFICADO:
+                # texto visible EXACTO del «cargar más», nada de subcadenas —
+                # /load/ clicaba «Download monthly report» en un feed ajeno al
+                # botón. El modo por defecto es PASIVO (solo scroll, jamás
+                # click) y el MCP lo declara
+                target_found = page.evaluate(
+                    "(txt) => { const b = [...document.querySelectorAll('button, a')]"
+                    " .find(b => (b.innerText || '').trim() === txt && b.offsetParent);"
+                    " return b ? 1 : 0; }", load_more.strip())
+                if target_found:
                     page.evaluate(
-                        "() => { const b = [...document.querySelectorAll('button, a')].find("
-                        "b => /más|more|cargar|load/i.test((b.innerText || '').trim()) && b.offsetParent);"
-                        " if (b) b.click(); }")
+                        "(txt) => { const b = [...document.querySelectorAll('button, a')]"
+                        " .find(b => (b.innerText || '').trim() === txt && b.offsetParent);"
+                        " if (b) b.click(); }", load_more.strip())
+                    via_click = True
                     for _wait in range(6):
                         page.wait_for_timeout(500)
                         e2 = page.evaluate(_STATE)
@@ -137,12 +144,20 @@ def audit_scroll(url, max_batches=5, lang='en', timeout=45, auth_state=None, bro
     findings = []
     last = batches[-1] if batches else before
 
-    # 1. foco (2.4.3): desaparecido o fuera de pantalla tras las tandas
+    # 1. foco (2.4.3), con la causa separada de la observación (5ª pasada):
+    # PERDIDO (activeElement → body) es hallazgo siempre; FUERA DE PANTALLA
+    # solo lo es si el feed creció de verdad (el contenido nuevo dejó atrás a
+    # un foco quieto) — en un feed estático es el PROPIO scrollTo de la
+    # prueba quien lo sacó del viewport, y eso no es un fallo de la página
+    focus_tracking = {'initial': initial_focus, 'final': last.get('focus'),
+                      'lost': bool(initial_focus) and last.get('focus') is None,
+                      'offscreen': bool(last.get('focus_offscreen')),
+                      'feed_grew': bool(last.get('items', 0) > before.get('items', 0))}
     if initial_focus:
         if last['focus'] is None:
             _add(findings, lang, 'high', '2.4.3', 'scroll_focus',
                     where='disappeared', detail=f'was on {initial_focus}')
-        elif last['focus_offscreen']:
+        elif last['focus_offscreen'] and focus_tracking['feed_grew']:
             _add(findings, lang, 'medium', '2.4.3', 'scroll_focus',
                     where='went offscreen', detail=initial_focus)
 
@@ -156,6 +171,17 @@ def audit_scroll(url, max_batches=5, lang='en', timeout=45, auth_state=None, bro
                 'no se detectaron ítems con los selectores estándar (article, role=article, '
                 'li en main): o el feed está tras login/muro de bots, o usa marcado no estándar. '
                 'Las señales de anuncios/fin se omiten; valida feeds propios con marcado conocido.')
+
+    if not interactive:
+        _passive_note = ('passive walk: the load-more alternative was NOT '
+                        'clicked (read-only default). Re-run with '
+                        'interactive=true and load_more="exact visible text" '
+                        'to test it.' if lang == 'en' else
+                        'recorrido pasivo: la alternativa «cargar más» NO se '
+                        'pulsó (por defecto solo lectura). Re-ejecuta con '
+                        'interactive=true y load_more="texto exacto visible" '
+                        'para probarla.')
+        note = (note + ' ' + _passive_note) if note else _passive_note
 
     # 2. anuncios (4.1.3) — solo si hubo feed real
     if hay_feed_real and batches and not last['hasFeed'] and not last['events']:
@@ -184,6 +210,8 @@ def audit_scroll(url, max_batches=5, lang='en', timeout=45, auth_state=None, bro
         'live_announcements': [e['text'] for e in last['events'][:5]],
         'focus': {'initial': initial_focus, 'final': last['focus'],
                  'offscreen': last['focus_offscreen']},
+        'focus_tracking': focus_tracking,
+        'interactive': bool(interactive),
         'load_more_alternative': last['hasMore'],
         'note': note,
         'findings': findings,

@@ -532,9 +532,9 @@ Reflow check at 320px — criterion 1.4.10 (AA), the check axe and Lighthouse do
 
 #### `a11y_scroll`
 
-<sub>read-only · network</sub>
+<sub>mutates state · network</sub>
 
-Infinite-scroll accessibility audit — the documented disaster nobody automates (Deque guidance + ARIA APG Feed pattern; criteria 2.4.3, 4.1.3, 2.2.2). Real scrolling batches in Chromium with a live-region observer: does the focused element SURVIVE each batch (re-render destroys it — the documented failure)? Is new content ANNOUNCED (aria-live/status receives text, role=feed)? Does the feed END or offer a load-more alternative (footer reachability)? APG feed pattern as positive signal. Honest guard: if no standard items are detected (login walls, non-standard markup) the unfounded signals are skipped with a note. Requires local Playwright. — For paginated feeds only; general page audit is a11y_audit_url/dom. Returns JSON: {mode, url, score, findings [{criterion, severity, signal, issue, remediation}], summary} — same shape as the audits.
+Infinite-scroll accessibility audit — the documented disaster nobody automates (Deque guidance + ARIA APG Feed pattern; criteria 2.4.3, 4.1.3, 2.2.2). PASSIVE BY DEFAULT (external review round 5: the load-more fallback clicked by substring match hit unrelated buttons — the walk now scrolls only and never clicks). To ALSO test the load-more alternative pass interactive=true together with load_more="the exact visible text of the control" — that performs a REAL click on that one control and nothing else. Real scrolling batches in Chromium with a live-region observer: does the focused element SURVIVE each batch (re-render destroys it — the documented failure)? Is new content ANNOUNCED (aria-live/status receives text, role=feed)? Does the feed END or offer a load-more alternative (footer reachability)? APG feed pattern as positive signal. Honest guard: if no standard items are detected (login walls, non-standard markup) the unfounded signals are skipped with a note. Requires local Playwright. — For paginated feeds only; general page audit is a11y_audit_url/dom. Returns JSON: {mode, url, score, findings [{criterion, severity, signal, issue, remediation}], summary} — same shape as the audits.
 
 
 **Arguments**
@@ -548,6 +548,10 @@ Infinite-scroll accessibility audit — the documented disaster nobody automates
 - `auth_state`: Path to a Playwright storage_state JSON (exported session) to audit an authenticated feed.
 
 - `browser` — one of ['auto', 'chromium', 'firefox', 'webkit', 'chrome', 'msedge']: Browser engine (auto = detect the first available).
+
+- `interactive`: passive walk by default (scroll only, NEVER clicks); true enables the load-more click test (a real action on the page).
+
+- `load_more`: with interactive=true: the EXACT visible text of the load-more control (full trimmed-text match, never substring).
 
 #### `a11y_sr_transcript`
 

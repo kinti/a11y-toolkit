@@ -345,3 +345,38 @@ assert any(e['verdict'] == 'fail' and e.get('ratio') == 4.5
 assert wk['summary']['unparsed_colors'] == 0
 print('SRGB: color(srgb) medido ≡ #999; walk reprueba 4,4999 con ratio_exact ✓')
 
+# ══ 5ª pasada: reduced motion por elemento + spacing antes/después ════════
+FIX_RM = '''<!doctype html><html lang="en"><head><meta charset="utf-8"><title>rm</title>
+<style>@keyframes a{to{opacity:1}} @keyframes b{to{opacity:1}}
+.total{animation:a 2s infinite} @media (prefers-reduced-motion: reduce){.total{animation:none}}
+.parcial{animation:b 2s infinite}
+.mixta{animation:a 2s infinite, a 1s 1}</style></head>
+<body><main><h1>rm</h1><span class="total">uno</span><span class="parcial">dos</span>
+<span class="mixta">tres</span></main></body></html>'''
+with open('/tmp/fixture_rm.html', 'w', encoding='utf-8') as f:
+    f.write(FIX_RM)
+from a11y_toolkit.a11ydom import audit_reduced_motion as _arm
+rm = _arm('file:///tmp/fixture_rm.html', lang='en')
+# una para y la otra sigue: JAMÁS «respeta» (antes lo daba por conteo global)
+assert rm['respects'] is False and rm['motion']['partial'] is True, (rm['respects'], rm['motion'])
+assert rm['motion']['still_running'] and 'parcial' not in str(rm['motion']['still_running'])
+assert rm['motion']['normal'] == 3, rm['motion']   # la mixta (infinita+finita) CUENTA
+print('5ª RM: parcial declarado, mixta infinita+finita cuenta, still_running nombra ✓')
+
+_FRASE = 'texto justo que desborda espaciado'
+FIX_SP = f'''<!doctype html><html lang="en"><head><meta charset="utf-8"><title>sp</title>
+<style>.caja{{height:2.6em;overflow:hidden;width:260px}}
+.cclip{{height:2.6em;overflow:clip;width:260px}}
+.ya{{height:0.7em;overflow:hidden;width:260px}}</style></head><body><main><h1>sp</h1>
+<div class="caja"><p id="nuevo">{_FRASE}</p></div>
+<div class="ya"><p id="viejo">{_FRASE}</p></div>
+<div class="cclip"><p id="clip">{_FRASE}</p></div>
+</main></body></html>'''
+with open('/tmp/fixture_sp.html', 'w', encoding='utf-8') as f:
+    f.write(FIX_SP)
+sp = audit_dom_url('file:///tmp/fixture_sp.html', lang='en')
+tsc = [f for f in sp['findings'] if f['signal'] == 'text_spacing_clip']
+_ej = str(tsc[0].get('examples', '')) if tsc else ''
+assert tsc and 'nuevo' in _ej and 'clip' in _ej and 'viejo' not in _ej, _ej or 'sin hallazgo'
+print('5ª SPACING: recién-recortado sí (hidden y clip), pre-recortado no ✓')
+
