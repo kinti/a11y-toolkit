@@ -49,6 +49,37 @@ assert {'vtt_empty_cue', 'vtt_too_fast', 'vtt_overlap', 'vtt_coverage'} <= sig, 
 assert r['cues'] == 5 and r['mode'] == 'vtt'
 print('1. VTT: vacío + rápido + solape + cobertura ✓')
 
+# 1b. HTTP REAL con Content-Type: text/vtt (revisión externa, 3ª pasada): el
+# descargador rechazaba EL MIME del formato con err_not_html — y la suite no
+# lo veía porque sustituía _fetch. El parámetro accept_ct ya existía.
+import threading
+from http.server import BaseHTTPRequestHandler, HTTPServer
+
+
+class _VTTHandler(BaseHTTPRequestHandler):
+    def do_GET(self):
+        body = VTT.encode('utf-8')
+        self.send_response(200)
+        self.send_header('Content-Type', 'text/vtt; charset=utf-8')
+        self.send_header('Content-Length', str(len(body)))
+        self.end_headers()
+        self.wfile.write(body)
+
+    def log_message(self, *a):
+        pass
+
+
+_srv = HTTPServer(('127.0.0.1', 0), _VTTHandler)
+threading.Thread(target=_srv.serve_forever, daemon=True).start()
+try:
+    r_http = vtt_check(f'http://127.0.0.1:{_srv.server_port}/c.vtt',
+                       duration=15, lang='en')
+finally:
+    _srv.shutdown()
+assert 'error' not in r_http, r_http.get('error')
+assert r_http['cues'] == 5, r_http.get('cues')
+print('1b. VTT sobre HTTP real con text/vtt: analizado, no err_not_html ✓')
+
 
 def mini_pdf(tagged=True, title=True, lang=True, text=True, pages=3, img=False):
     objs = [b'1 0 obj\n<< /Type /Catalog /Pages 2 0 R' +

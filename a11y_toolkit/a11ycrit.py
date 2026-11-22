@@ -953,6 +953,7 @@ _SIGNAL_CRIT = {
     'form_error_missing': '3.3.1',
     'form_error_no_suggestion': '3.3.3',
     'form_navigated': '3.3.1',
+    'form_untestable': '3.3.1',
     'generic_link': '2.4.4',
     'gesture_no_click': '2.5.1',
     'heading_quality': '2.4.6',

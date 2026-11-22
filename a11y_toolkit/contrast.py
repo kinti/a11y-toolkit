@@ -240,17 +240,24 @@ def pair(fg_s, bg_s, with_suggestion=True, lang='en'):
     if fg.get('a', 1) < 1:
         fg = composite(fg, bg)
         alpha_note = hexs(fg)
-    # se redondea ANTES de los veredictos: lo mostrado y el veredicto nunca
-    # discrepan (un ratio en [4.495,4.5) no puede imprimir "4.5" y fallar)
-    r = round(ratio(fg, bg), 2)
+    # el UMBRAL se aplica al valor EXACTO y el redondeo es solo presentación
+    # (revisión externa, 3ª pasada: #557e7d sobre blanco da 4,499934646:1 —
+    # redondear a 4,50 ANTES del veredicto aprobaba un contraste que el
+    # estándar reprueba). Cuando el redondeo maquilla el veredicto (4,4999 →
+    # «4,50»), el valor exacto viaja aparte para que el lector vea el porqué.
+    r_exact = ratio(fg, bg)
+    r = round(r_exact, 2)
     out = {
         'text': hexs(fg), 'background': hexs(bg),
         'ratio': r,
-        'verdicts': verdicts(r, lang),
+        'verdicts': verdicts(r_exact, lang),
     }
+    if [v['passes'] for v in out['verdicts']] != \
+            [v['passes'] for v in verdicts(r, lang)]:
+        out['ratio_exact'] = round(r_exact, 6)
     if alpha_note:
         out['effective_color'] = alpha_note
-    if with_suggestion and r < 4.5:
+    if with_suggestion and r_exact < 4.5:
         s = suggest(fg, bg, 4.5, lang)
         if s:
             out['aa_suggestion'] = s

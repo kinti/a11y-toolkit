@@ -40,7 +40,11 @@ def _seconds(h, m, s, ms):
 def vtt_check(url, duration=None, lang='en'):
     """Descarga y juzga un .vtt — el contenido de 1.2.2, no su mera presencia."""
     from .a11yaudit import _fetch, compute_score, CRIT
-    data = _fetch(url, timeout=30, truncate_at=2_000_000)
+    # text/vtt es EL MIME del formato (WebVTT spec): el filtro anti-no-HTML
+    # del descargador lo rechazaba con err_not_html servido correctamente
+    # (revisión externa, 3ª pasada — la suite no lo veía porque sustituía el
+    # descargador)
+    data = _fetch(url, timeout=30, truncate_at=2_000_000, accept_ct=('text/vtt',))
     if isinstance(data, dict) and 'error' in data:
         return data
     if isinstance(data, bytes):
@@ -76,6 +80,12 @@ def vtt_check(url, duration=None, lang='en'):
             continue
         start = _seconds(*m.groups()[:4])
         end = _seconds(*m.groups()[4:])
+        if end <= start:
+            # intervalo INVÁLIDO (tiempos invertidos): cue malformada y FUERA
+            # de toda medida (revisión externa, 3ª pasada — antes fabricaba
+            # segundos NEGATIVOS y un «demasiado rápida» por el clamp dur=0.1)
+            malformed.append(m.group(0)[:30])
+            continue
         cues.append({'start': start, 'end': end, 'text': body})
 
     if malformed:
@@ -106,13 +116,33 @@ def vtt_check(url, duration=None, lang='en'):
             example=', '.join(f"{r['t']}… ({r['cps']}cps)" for r in too_fast[:3]))
 
     if duration:
-        covered = sum(max(0.0, min(c['end'], duration) - c['start']) for c in cues if c['start'] < duration)
+        # cobertura por UNIÓN de intervalos (revisión externa, 3ª pasada: dos
+        # cues solapadas 0-5s en un vídeo de 10 contaban 10s cubiertos — el
+        # solape no añade subtítulo, el tiempo cubierto es el de la unión)
+        covered = _union_seconds(cues, duration)
         pct = round(100 * covered / max(duration, 1), 1)
         if pct < 95:
             add('medium', 'vtt_coverage', pct=pct, dur=round(duration))
 
     n_char = sum(len(c['text']) for c in cues)
     return _report(url, findings, len(cues), n_char, lang, duration, cues)
+
+
+def _union_seconds(cues, ceiling=None):
+    """Segundos cubiertos por la UNIÓN de los intervalos (el solape no suma:
+    dos cues sobre el mismo segundo cubren UN segundo, no dos)."""
+    covered, last_end = 0.0, None
+    for s0, e0 in sorted((c['start'], min(c['end'], ceiling) if ceiling else c['end'])
+                         for c in cues):
+        if e0 <= s0:
+            continue
+        if last_end is None or s0 > last_end:
+            covered += e0 - s0
+            last_end = e0
+        elif e0 > last_end:
+            covered += e0 - last_end
+            last_end = e0
+    return covered
 
 
 def _report(url, findings, n_cues, n_char, lang, duration, cues):
@@ -123,7 +153,7 @@ def _report(url, findings, n_cues, n_char, lang, duration, cues):
         'mode': 'vtt', 'url': url,
         'duration': duration,
         'cues': n_cues, 'characters': n_char,
-        'captioned_seconds': round(sum(c['end'] - c['start'] for c in cues), 1) if cues else 0,
+        'captioned_seconds': round(_union_seconds(cues), 1) if cues else 0,
         'score': compute_score(findings),
         'findings': findings,
         'summary': {s: sum(1 for h in findings if h['severity'] == s)

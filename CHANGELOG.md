@@ -1,6 +1,67 @@
 # Changelog
 
 ## main — pendiente
+- **External review, ROUND 3 (2026-11-22, same audited commit): autofix and
+  WebVTT prioritized as asked — three P1s plus five confirmed accuracy
+  fixes.** Every fix was reproduced against real behavior (Chromium, a local
+  HTTP server) before landing, and every fix carries its regression pin.
+- **autofix no longer changes which submissions are possible (P1):** the
+  injected error layer set `noValidate` and only checked DESCENDANT fields —
+  a "Guardar borrador" button with `formnovalidate` stopped submitting, and a
+  required field associated via `form=` outside the tree let empty submits
+  through. The layer now replicates native semantics exactly: it captures the
+  original `novalidate` state BEFORE touching anything (assigning
+  `noValidate=true` reflects into the attribute — the first draft guarded on
+  its own footprint), honors `formnovalidate` on the submitter via
+  `ev.submitter`, and walks `f.elements` (form-associated included). Pinned
+  end-to-end in Chromium against a local server: the draft button submits,
+  the empty required submit is blocked with a message + aria-invalid, and the
+  external field is validated. A fragment without `</body>` now gets the
+  script appended at the end instead of declaring the layer applied with
+  dangling references.
+- **`a11y_vtt_check` accepts `text/vtt` (P1):** the tool borrowed the HTML
+  downloader's MIME allowlist and rejected captions served with the format's
+  own standard MIME (`err_not_html`). It now passes `accept_ct=('text/vtt',)`
+  — the plumbing existed. Pinned with a REAL local HTTP server serving
+  `Content-Type: text/vtt; charset=utf-8`; the old suite never saw it because
+  it substituted the downloader.
+- **Contrast thresholds judge the EXACT ratio (P1):** `pair` and
+  `contrast-dom --walk` rounded to 4.50 before the verdict and approved
+  #557e7d on white (4.499934646:1) — below the WCAG threshold. Both now
+  compare the exact value and round only for display; when rounding masks the
+  verdict, `ratio_exact` travels alongside so the reader sees why. The DOM
+  audit already judged exactly. The old pin that enshrined display=verdict
+  coherence was rewritten to pin the standard's side.
+- **Forms (3.3.1) measurement honesty:** a pre-existing alert UNRELATED to
+  the form cleared a silently-failing submit (only alerts that are NEW after
+  the submit count now — same before/after doctrine as describedby);
+  `aria-invalid` alone no longer counts as error identification (the
+  criterion demands text — it marks state, doesn't explain it); and a form
+  with no fillable-invalid field (checkboxes/radios only) now emits the new
+  scope-review signal `form_untestable` (low) instead of a silent 100.
+- **Keyboard traps longer than 12 stops are detected:** the cycle detector's
+  fixed period cap of 12 let a 13-stop trap burn the whole Tab budget with
+  no finding; the cap now derives from the observed sequence (len/2, with
+  the two-full-repetitions guard), and a page that exhausts the step budget
+  without completing a circle declares `cycle.budget_exhausted` instead of
+  implying "no trap".
+- **`color(srgb …)` is measured (CSS Color 4):** Chromium returns computed
+  colors in that syntax for modern declarations and all three DOM parsers
+  (audit, walk, hover) silently skipped them — `color(srgb .6 .6 .6)`
+  measured nothing while the same color as `#999` failed at 2.85:1. All
+  parsers convert srgb-space colors now (percent and `/ alpha` included);
+  unconvertible color spaces are COUNTED and declared (`unparsed_colors` in
+  the DOM report and the walk summary) — never silently dropped.
+- **EARL keeps the page-finding pair in crawls:** a crawl with a clean cover
+  and an `img_no_alt` on /gallery attributed the failure to the cover URL.
+  Findings from nested page reports now carry their own page's URL (with the
+  evidence-pack precedence: non-empty top-level findings are the re-verified
+  copies).
+- **WebVTT coverage by union, inverted cues rejected:** two cues overlapping
+  0-5s in a 10s video counted as 10s captioned; a cue with inverted
+  timestamps produced −8s and a bogus "too fast". Intervals are validated
+  (`end <= start` → malformed, excluded from every measurement) and coverage
+  plus `captioned_seconds` are computed as the union of intervals.
 - **External review, ROUND 2 (2026-11-22, same audited commit): two more
   ways CI could go green when it should fail, a privacy leak in exported
   traces, and five accuracy fixes.** Every finding was reproduced or read in

@@ -62,10 +62,24 @@ _JS_PHRASES = """<script>
     if(v.patternMismatch)return el.pattern?F.pattern.replace('%%p',el.pattern):F.req;
     return '';}
   document.querySelectorAll('form[data-a11yfx]').forEach(function(f){
+    // la BURBUJA nativa no se anuncia a lectores: la capa la sustituye
+    // replicando su SEMÁNTICA exacta (revisión externa, 3ª pasada: la capa
+    // anterior cambiaba QUÉ envíos eran posibles). OJO: noValidate=true se
+    // REFLEJA al atributo novalidate — el estado nativo se captura ANTES
+    var nativo=f.hasAttribute('novalidate');
     f.noValidate=true;
     f.addEventListener('submit',function(ev){
+      // 1) novalidate ORIGINAL en el form: el envío pasa sin validar (nativo)
+      if(nativo)return;
+      // 2) formnovalidate en el SUBMITTER (el botón «Guardar borrador»):
+      // ese envío NO valida (como nativo) — la capa lo bloqueaba
+      var sub=ev.submitter;
+      if(sub&&sub.formNoValidate)return;
       var first=null;
-      f.querySelectorAll('input,select,textarea').forEach(function(el){
+      // 3) f.elements: TODOS los controles del form, incluidos los
+      // asociados con form= FUERA del árbol (querySelectorAll descendiente
+      // los saltaba y validaba envíos con campos vacíos)
+      Array.prototype.forEach.call(f.elements,function(el){
         var id=el.getAttribute('data-a11yfx-err'),msg=id?document.getElementById(id):null;
         if(!el.checkValidity()){var t=sug(el)||el.validationMessage||'';
           el.setAttribute('aria-invalid','true');
@@ -338,9 +352,14 @@ def autofix(html_text, lang=None, title=None, url='(html)', form_errors=True):
                 fr = _PHRASES.get(lang, _PHRASES['en'])
                 js = _JS_PHRASES % {k: _json.dumps(v) for k, v in fr.items()}
                 # case-insensitive: </BODY> perdía el JS y `applied` seguía
-                # declarando la capa (aria-describedby colgantes)
+                # declarando la capa (aria-describedby colgantes). Y sin
+                # </body> EN ABSOLUTO (fragmento): el script va al FINAL —
+                # declarar la capa sin insertarla dejaba referencias rotas
+                _antes = fixed
                 fixed = re.sub(r'</body\s*>', lambda _mb: js + '\n' + _mb.group(0),
                                fixed, count=1, flags=re.I)
+                if fixed == _antes:
+                    fixed = fixed.rstrip('\n') + '\n' + js + '\n'
                 applied.append({'signal': 'form_error_missing',
                                   'fix': f"accessible error layer on {state['forms']} form(s), "
                                            f"{state['fields']} field(s) — 3.3.1 identification + "

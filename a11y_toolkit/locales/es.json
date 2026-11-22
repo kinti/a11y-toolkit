@@ -313,6 +313,8 @@
   "form_error_no_suggestion_rem": "Cuando la corrección se conoce, dila: «Usa DD/MM/AAAA», no «Fecha inválida» (3.3.3). Sugerimos patrón: texto con formato/ejemplo cerca del campo.",
   "form_navigated": "El formulario navega al enviar; el comportamiento del error no es medible en la página ({example}).",
   "form_navigated_rem": "Captura la página de destino o prueba con un intercepto; el juicio del error requiere ver el DOM tras el envío.",
+  "form_untestable": "{n} formulario(s) sin ningún campo rellenable con dato inválido (solo casillas/radios o botones): la identificación de errores NO se probó en esta muestra.",
+  "form_untestable_rem": "Prueba el flujo a mano: envía el formulario con errores reales y comprueba que el error se anuncia en texto. Las casillas obligatorias también pueden invalidarse (desmárcalas).",
   "hover_not_dismissible": "{n} tooltips/overlays aparecen al hover/focus que NO se cierran con Escape (1.4.13).",
   "hover_not_dismissible_rem": "El contenido emergente debe poder cerrarse con Escape sin mover el puntero (1.4.13): añade keydown Escape que oculte el tooltip.",
   "input_navigates": "Cambiar {example} provocó navegación automática (URL: {url}) — 3.2.2.",

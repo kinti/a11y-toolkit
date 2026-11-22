@@ -313,6 +313,8 @@
   "form_error_no_suggestion_rem": "When the correction is known, say it: \"Use DD/MM/YYYY\", not \"Invalid date\" (3.3.3). Suggestion pattern: format/example text near the field.",
   "form_navigated": "The form navigates on submit; error behavior is not measurable in-page ({example}).",
   "form_navigated_rem": "Capture the destination page or intercept the submit; judging errors requires the post-submit DOM.",
+  "form_untestable": "{n} form(s) with no fillable field taking invalid data (checkboxes/radios/buttons only): error identification was NOT tested on this sample.",
+  "form_untestable_rem": "Test the flow by hand: submit the form with real errors and check the error is announced in text. Required checkboxes can be invalidated too (uncheck them).",
   "hover_not_dismissible": "{n} tooltips/overlays appearing on hover/focus that do NOT dismiss on Escape (1.4.13).",
   "hover_not_dismissible_rem": "Hover/focus-triggered content must be dismissible with Escape without moving the pointer (1.4.13): add a keydown Escape handler that hides the tooltip.",
   "input_navigates": "Changing {example} triggered automatic navigation (URL: {url}) — 3.2.2.",

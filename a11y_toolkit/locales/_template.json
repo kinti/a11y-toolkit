@@ -225,7 +225,9 @@
   "target_small": "",
   "target_small_rem": "",
   "focus_static_indicator": "Ambiguous focus indicator on {n} controls: they carry a border/shadow that does NOT change on focus ({det}). Permanent decoration is not a demonstrated indicator.",
-  "focus_static_indicator_rem": "Tab through and watch whether anything visually changes at each stop. If nothing does, add a real outline on :focus (or :focus-visible) — permanent decoration guides nobody by keyboard."
+  "focus_static_indicator_rem": "Tab through and watch whether anything visually changes at each stop. If nothing does, add a real outline on :focus (or :focus-visible) — permanent decoration guides nobody by keyboard.",
+  "form_untestable": "{n} form(s) with no fillable field taking invalid data (checkboxes/radios/buttons only): error identification was NOT tested on this sample.",
+  "form_untestable_rem": "Test the flow by hand: submit the form with real errors and check the error is announced in text. Required checkboxes can be invalidated too (uncheck them)."
  },
  "evidence": {
   "manual_remaining": "",

@@ -224,6 +224,7 @@ _JS = r'''(maxEj) => {
                 imgs: [], canvasNoName: [], chartsNoEquiv: [], iframes: [], headings: [], tabindex: [], ariaHidden: [],
                 blank: 0, videos: 0, videoSubs: 0, tables: 0, tableTh: 0,
                 focus: [], focusFail: [], focusReview: [], focusContrast: [], focusObscured: [], marks: 0,
+                colorUnparsed: 0,
                 ids: {}, lang: null, title: '', viewport: null, refresh: null,
                 main: false, skip: false, elements: 0, shadow_roots: 0,
                 colorOnly: [], orderInversions: 0, loopingAnims: 0 };
@@ -302,10 +303,31 @@ _JS = r'''(maxEj) => {
 
   // ---- contraste real: fondo efectivo con composición de alfas ----
   const parseCol = c => {
-    const m = /rgba?\(([^)]+)\)/.exec(c || '');
-    if (!m) return null;
-    const p = m[1].split(',').map(x => parseFloat(x));
-    return { r: p[0], g: p[1], b: p[2], a: p.length > 3 ? p[3] : 1 };
+    const s = String(c || '');
+    let m = /rgba?\(([^)]+)\)/.exec(s);
+    if (m) {
+      const p = m[1].split(',').map(x => parseFloat(x));
+      return { r: p[0], g: p[1], b: p[2], a: p.length > 3 ? p[3] : 1 };
+    }
+    // color(srgb r g b [/ a]) — CSS Color 4: Chromium devuelve ESTO para
+    // colores declarados modernos y sin parseo el texto se omitía en
+    // silencio (revisión externa, 3ª pasada). Otros espacios (display-p3,
+    // lab…) no se convierten: cuentan como no convertidos, jamás inventados
+    m = /color\(\s*srgb\s+([^)]+)\)/.exec(s);
+    if (m) {
+      const parts = m[1].split('/');
+      const rgb = parts[0].trim().split(/\s+/);
+      const conv = v => v.endsWith('%') ? parseFloat(v) * 2.55 : parseFloat(v) * 255;
+      const a = parts.length > 1
+        ? (parts[1].trim().endsWith('%') ? parseFloat(parts[1]) / 100 : parseFloat(parts[1]))
+        : 1;
+      if (rgb.length >= 3 && isFinite(conv(rgb[0])) && isFinite(conv(rgb[1]))
+          && isFinite(conv(rgb[2])) && isFinite(a)) {
+        return { r: Math.round(conv(rgb[0])), g: Math.round(conv(rgb[1])),
+                 b: Math.round(conv(rgb[2])), a };
+      }
+    }
+    return null;
   };
   const over = (fg, bg) => ({
     r: Math.round(fg.r * fg.a + bg.r * (1 - fg.a)),
@@ -365,7 +387,7 @@ _JS = r'''(maxEj) => {
       }
       const s = getComputedStyle(el);
       const fg = parseCol(s.color);
-      if (!fg) continue;
+      if (!fg) { out.colorUnparsed++; continue; }   // declarado, jamás omitido en silencio
       // text-shadow: los colores de la sombra pintan DETRÁS del text_ y
       // participan como fondo peor-caso (8c33: #666 con sombra #aaa sobre
       // blanco falla por 1.6:1 aunque el fondo dé 5.7) — se decide, no se
@@ -944,6 +966,10 @@ def audit_dom(data, url='(rendered)', lang='en', color_scheme='light'):
         'color_scheme': color_scheme,
         'nested_iframes': data.get('nested_iframes', 0),
         'shadow_roots': data.get('shadow_roots', 0),
+        # colores computados que ningún parser pudo convertir a sRGB (color
+        # spaces exóticos): DECLARADOS, jamás omitidos en silencio
+        **({'unparsed_colors': data['colorUnparsed']}
+           if data.get('colorUnparsed') else {}),
         'score': compute_score(findings),
         'score_note': _t(lang, 'score_note'),
         'interactive_elements': data.get('elements', 0),
@@ -983,11 +1009,15 @@ _JS_FORM_FILL = r'''() => {
 }'''
 
 _JS_FORM_PRE = r'''() => {
-  // PRE-submit: la ayuda ordinaria que ya existía (describedby, contexto).
-  // Sin esto, "Tu email" contaba como identificación de error y "Use…"
-  // como sugerencia — la crítica externa lo destapó: ayuda ≠ error.
+  // PRE-submit: la ayuda ordinaria que ya existía (describedby, contexto,
+  // alertas vivas). Sin esto, "Tu email" contaba como identificación de error
+  // y "Use…" como sugerencia — la crítica externa lo destapó: ayuda ≠ error.
   const FIELDS_JS = 'input:not([type=hidden]):not([type=submit]):not([type=button]):not([type=reset]):not([type=image]), select, textarea';
-  const pre = {};
+  const pre = { __alerts: [] };
+  for (const a of document.querySelectorAll('[role=alert], [aria-live]')) {
+    const t = (a.innerText || '').trim();
+    if (t) pre.__alerts.push(t);
+  }
   for (const el of document.querySelectorAll(FIELDS_JS)) {
     if (el.disabled) continue;
     const key = (el.name || el.id || el.type) + '@' + (el.form ? (el.form.id || el.form.action || '') : '');
@@ -1011,8 +1041,14 @@ _JS_FORM_STATE = r'''(pre) => {
   const RX_SUG = /(format|example|ejemplo|usa |use |dd\/mm|mm\/dd|pattern|como |like |must be|debe)/i;
   pre = pre || {};
   const out = { forms: [], alerts: 0 };
+  const prev_alerts = (pre.__alerts || []);
   for (const a of document.querySelectorAll('[role=alert], [aria-live]')) {
-    if ((a.innerText || '').trim() && RX_ERR.test(a.innerText)) out.alerts++;
+    const t = (a.innerText || '').trim();
+    // SOLO alertas NUEVAS o CAMBIADAS tras el envío cuentan como
+    // identificación del error (revisión externa, 3ª pasada): una alerta
+    // AJENA preexistente en la página hacia 100 al formulario que fallaba
+    // en silencio
+    if (t && RX_ERR.test(t) && !prev_alerts.includes(t)) out.alerts++;
   }
   const FIELDS_JS = 'input:not([type=hidden]):not([type=submit]):not([type=button]):not([type=reset]):not([type=image]), select, textarea';
   for (const f of document.querySelectorAll('form')) {
@@ -1024,7 +1060,9 @@ _JS_FORM_STATE = r'''(pre) => {
       const key = (el.name || el.id || el.type) + '@' + (f.id || f.action || '');
       const shot_before = pre[key] || {};
       let identified = false, sugerido = false;
-      if (el.getAttribute('aria-invalid') === 'true') identified = true;
+      // aria-invalid SOLO no identifica (3.3.1 exige TEXTO que describa el
+      // error): el atributo marca el estado, no lo explica — cuenta únicamente
+      // acompañado de texto vía describedby/contexto/mensaje nativo abajo
       const db = el.getAttribute('aria-describedby');
       if (db) for (const id of db.split(/\s+/)) {
         const r = document.getElementById(id);
@@ -1134,6 +1172,12 @@ def audit_forms(url, timeout=45, lang='en', auth_state=None, browser='auto'):
         suggested_fields = sum(f['suggested'] for f in state['forms'])
         if error_fields > 0 and suggested_fields == 0:
             add('low', '3.3.3', 'form_error_no_suggestion', n=error_fields)
+    elif not touched and state is not None and state['forms']:
+        # alcance declarado (revisión externa, 3ª pasada): un formulario sin
+        # NINGÚN campo rellenable con dato inválido (solo casillas/radios)
+        # devolvía 100 sin haber probado nada — esto es una reseña de alcance,
+        # no una aprobación
+        add('low', '3.3.1', 'form_untestable', n=len(state['forms']))
 
     from .a11yaudit import compute_score
     return {
@@ -1322,6 +1366,7 @@ _JS_HOVER = r'''(i) => {
   const el = document.querySelector('[data-a11yidx="' + i + '"]');
   if (!el) return null;
   const parseCol = c => { const m = /rgba?\(([^)]+)\)/.exec(c || '');
+    if(!m){const m3=/color\(\s*srgb\s+([^)]+)\)/.exec(c||'');if(m3){const ps=m3[1].split('/');const rgb=ps[0].trim().split(/\s+/);const cv=v=>v.endsWith('%')?parseFloat(v)*2.55:parseFloat(v)*255;const al=ps.length>1?(ps[1].trim().endsWith('%')?parseFloat(ps[1])/100:parseFloat(ps[1])):1;if(rgb.length>=3&&isFinite(cv(rgb[0]))&&isFinite(cv(rgb[1]))&&isFinite(cv(rgb[2]))&&isFinite(al))return{r:Math.round(cv(rgb[0])),g:Math.round(cv(rgb[1])),b:Math.round(cv(rgb[2])),a:al};}return null;}
     if (!m) return null;
     const p = m[1].split(',').map(x => parseFloat(x));
     return { r: p[0], g: p[1], b: p[2], a: p.length > 3 ? p[3] : 1 }; };
@@ -1551,9 +1596,14 @@ def audit_keyboard(url, max_steps=60, lang='en', timeout=45, auth_state=None, br
             seq.append(stop)
             if stop not in paths:
                 paths[stop] = page.evaluate(_STOP_META, stop)
-        # detección de ciclo: el final de la secuencia se repite con periodo p
+        # detección de ciclo: el final de la secuencia se repite con periodo p.
+        # El tope de periodo sale de la SECUENCIA OBSERVADA (len/2; con 2
+        # repeticiones completas exigidas ya no puede afirmar un periodo que
+        # no ocurrió dos veces) — el tope fijo de 12 dejaba trampas de 13+
+        # paradas sin hallazgo consumiendo el presupuesto entero (revisión
+        # externa, 3ª pasada)
         cycle = None
-        for p_ in range(1, min(12, len(seq) // 2) + 1):
+        for p_ in range(1, len(seq) // 2 + 1):
             if seq[-p_:] == seq[-2 * p_:-p_] and len(set(seq[-p_:])) >= 1:
                 # needs al menos 2 repeticiones completas del periodo
                 reps = sum(1 for k in range(len(seq) - p_, 0, -p_)
@@ -1561,6 +1611,9 @@ def audit_keyboard(url, max_steps=60, lang='en', timeout=45, auth_state=None, br
                 if reps >= 2:
                     cycle = seq[-p_:]
                     break
+        # presupuesto agotado sin círculo completo: el veredicto de trampa es
+        # INDECISO, no «sin trampa» — se declara
+        budget_exhausted = (cycle is None and len(seq) >= max_steps)
 
         # 3.2.1: ¿el foco provocó navegación? (context destroyed = navegación)
         focus_navigated = None
@@ -1670,6 +1723,7 @@ def audit_keyboard(url, max_steps=60, lang='en', timeout=45, auth_state=None, br
         'steps': len(seq),
         'tab_stops': [paths.get(i, f'tab stop {i}') for i in seq],
         'cycle': {'detected': bool(cycle),
+                  'budget_exhausted': budget_exhausted,
                   'elements': [paths.get(i, f'tab stop {i}') for i in cycle] if cycle else [],
                   'escape_releases': esc_releases},
         'skip_link': {'checked': skip['checked'], 'label': skip.get('label'),
@@ -2077,7 +2131,13 @@ def contrast_dom(url, selector, text_color=None, sample=4, lang='en', timeout=45
 _JS_WALK = r'''(maxEls) => {
   const visible = el => !!(el.offsetWidth || el.offsetHeight || el.getClientRects().length);
   const directText = el => [...el.childNodes].some(n => n.nodeType === 3 && n.textContent.trim());
-  const parseC = s => { const m = String(s).match(/rgba?\(([\d.]+),\s*([\d.]+),\s*([\d.]+)(?:,\s*([\d.]+))?\)/);
+  const parseC = s => { const m3 = /color\(\s*srgb\s+([^)]+)\)/.exec(String(s));
+    if (m3) { const ps = m3[1].split('/'); const rgb = ps[0].trim().split(/\s+/);
+      const cv = v => v.endsWith('%') ? parseFloat(v) * 2.55 : parseFloat(v) * 255;
+      const al = ps.length > 1 ? (ps[1].trim().endsWith('%') ? parseFloat(ps[1]) / 100 : parseFloat(ps[1])) : 1;
+      if (rgb.length >= 3 && isFinite(cv(rgb[0])) && isFinite(cv(rgb[1])) && isFinite(cv(rgb[2])) && isFinite(al))
+        return {r: Math.round(cv(rgb[0])), g: Math.round(cv(rgb[1])), b: Math.round(cv(rgb[2])), a: al}; }
+  const m = String(s).match(/rgba?\(([\d.]+),\s*([\d.]+),\s*([\d.]+)(?:,\s*([\d.]+))?\)/);
                         return m ? {r:+m[1], g:+m[2], b:+m[3], a: m[4] === undefined ? 1 : +m[4]} : null; };
   const effBg = el => {
     const layers = [];
@@ -2117,7 +2177,7 @@ _JS_WALK = r'''(maxEls) => {
     if (!visible(el) || !directText(el)) continue;
     const cs = getComputedStyle(el);
     const color = parseC(cs.color);
-    if (!color) continue;
+    if (!color) { out.push({skip: 'unparsed-color', path: path(el)}); continue; }
     if (color.a < 1) { out.push({skip: 'translucent', path: path(el)}); continue; }
     const fs = parseFloat(cs.fontSize) || 16;
     const fw = parseInt(cs.fontWeight) || 400;
@@ -2155,14 +2215,22 @@ def contrast_walk(url, max_walk=400, max_sample=24, dark=False,
     def _verdicts(entries):
         for e in entries:
             if e['ratio'] is not None:
-                e['verdict'] = 'pass' if e['ratio'] >= e['threshold'] else 'fail'
+                exact = e.pop('_exact', None)
+                value = exact if exact is not None else e['ratio']
+                e['verdict'] = 'pass' if value >= e['threshold'] else 'fail'
+                if exact is not None and (value >= e['threshold']) != \
+                        (e['ratio'] >= e['threshold']):
+                    e['ratio_exact'] = round(exact, 6)   # el redondeo maquilla: declararlo
 
     def _pass(page):
         raw = page.evaluate(_JS_WALK, max_walk)
-        entries, shot_jobs, skipped = [], [], 0
+        entries, shot_jobs, skipped, unparsed = [], [], 0, 0
         for row in raw:
             if row.get('skip') == 'translucent':
                 skipped += 1
+                continue
+            if row.get('skip') == 'unparsed-color':
+                unparsed += 1
                 continue
             fg = {k: row['color'][k] for k in ('r', 'g', 'b')}
             bg = {k: row['bg'][k] for k in ('r', 'g', 'b')}
@@ -2177,7 +2245,12 @@ def contrast_walk(url, max_walk=400, max_sample=24, dark=False,
             if row['bg_image']:
                 shot_jobs.append((entry, fg))
             else:
-                entry['ratio'] = round(_ratio(fg, bg), 2)
+                # umbral sobre el valor EXACTO (revisión externa, 3ª pasada:
+                # 4,4999346 redondeado a 4,50 pasaba por válido); el redondeo
+                # es presentación — _exact viaja interno hasta el veredicto
+                r_exact = _ratio(fg, bg)
+                entry['ratio'] = round(r_exact, 2)
+                entry['_exact'] = r_exact
             entries.append(entry)
         sampled = 0
         for entry, fg in shot_jobs:
@@ -2197,7 +2270,7 @@ def contrast_walk(url, max_walk=400, max_sample=24, dark=False,
             except Exception:  # noqa: BLE001 — one dead locator must not kill the walk
                 continue
         _verdicts(entries)
-        return entries, skipped
+        return entries, skipped, unparsed
 
     def _summarize(entries, skipped):
         fails = [e for e in entries if e['verdict'] == 'fail']
@@ -2209,6 +2282,7 @@ def contrast_walk(url, max_walk=400, max_sample=24, dark=False,
                 'fails_4_5_normal_text': sum(1 for e in fails if e['threshold'] >= 4.5),
                 'fails_3_0_large_text': sum(1 for e in fails if e['threshold'] < 4.5),
                 'translucent_text_skipped': skipped,
+                'unparsed_colors': unparsed + (locals().get('_unp_d') or 0),
                 'pixel_sampled': sum(1 for e in entries if e['pixel_sampled']),
                 'worst_ratio': worst['ratio'] if worst else None,
                 'worst_element': worst['path'] if worst else None}
@@ -2228,7 +2302,7 @@ def contrast_walk(url, max_walk=400, max_sample=24, dark=False,
             except Exception:  # noqa: BLE001
                 pass
 
-    entries, skipped = _run('light')
+    entries, skipped, unparsed = _run('light')
     report = {'mode': 'contrast-walk', 'url': url, 'scheme': 'light',
               'checked': len(entries),
               'elements': entries,
@@ -2245,7 +2319,7 @@ def contrast_walk(url, max_walk=400, max_sample=24, dark=False,
             e['suggestion'] = s
 
     if dark:
-        entries_d, skipped_d = _run('dark')
+        entries_d, skipped_d, _unp_d = _run('dark')
         report['dark'] = {'scheme': 'dark', 'checked': len(entries_d),
                           'elements': entries_d,
                           'summary': _summarize(entries_d, skipped_d)}

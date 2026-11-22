@@ -51,6 +51,16 @@ assert a0['earl:test']['url'].startswith('https://www.w3.org/WAI/standards-guide
 assert a0['earl:subject']['url'] == 'https://example.com'
 assert a0['earl:mode'] == 'earl:automatic'
 # la ausencia de findings nunca se afirma como pass
+# revisión externa, 3ª pasada: un crawl con portada limpia y un fallo en
+# /gallery atribuía el fallo a la PORTADA (el aplanado perdía la URL)
+crawl = {'url': 'https://example.com/', 'mode': 'site', 'findings': [], 'reports': [
+    {'url': 'https://example.com/gallery', 'findings': [
+        {'criterion': '1.1.1', 'severity': 'high', 'signal': 'img_no_alt',
+         'issue': 'x'}]}]}
+res_c = earl(crawl)
+assert len(res_c['@graph']) == 1
+assert res_c['@graph'][0]['earl:subject']['url'] == 'https://example.com/gallery', \
+    res_c['@graph'][0]['earl:subject']
 vacio = earl({'url': 'https://example.com', 'findings': []})
 assert vacio['@graph'] == []
 assert 'never' in vacio['meta']['note']

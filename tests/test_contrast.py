@@ -108,29 +108,19 @@ d = json.loads(out.stdout)
 assert 'error' in d and out.returncode == 0 and not out.stderr, (d, out.stderr)
 print('8. unidades de matiz + colores malformados → None/JSON, no crash ✓')
 
-# 9. Ratio en [4.495,4.5): lo MOSTRADO y el veredicto siempre de acuerdo
-# (antes: veredicto sobre el ratio sin redondear → "4.5" que fallaba AA)
-def _lin(v):
-    c = v / 255.0
-    return c / 12.92 if c <= 0.03928 else ((c + 0.055) / 1.055) ** 2.4
-frontera = None
-for _r in (118, 117, 119, 120, 116):        # el canal b (paso más fino) barre la ventana
-    for _b in range(256):
-        _L = 0.2126 * _lin(_r) + 0.7152 * _lin(118) + 0.0722 * _lin(_b)
-        _raw = 1.05 / (_L + 0.05)
-        if 4.495 <= _raw < 4.5:
-            frontera = ('#%02x%02x%02x' % (_r, 118, _b), _raw)
-            break
-    if frontera:
-        break
-assert frontera, 'la búsqueda debe encontrar un par en la frontera'
-res = pair(frontera[0], '#ffffff')
-assert res['ratio'] == 4.5, res['ratio']
-assert res['verdicts'][0]['passes'] is True, res['verdicts'][0]
-# invariant general: cada veredicto coincide con el ratio mostrado
-assert all(v['passes'] == (res['ratio'] >= v['threshold'])
-           for v in res['verdicts']), res['verdicts']
-print(f'9. frontera 4.495-4.5 ({frontera[0]}, raw {frontera[1]:.4f}): display = veredicto ✓')
+# 9. (revisión externa, 3ª pasada) El UMBRAL juzga el valor EXACTO; el
+# redondeo es presentación. #557e7d sobre blanco = 4,499934646:1 — WCAG lo
+# reprueba y un «4,50» en pantalla no lo convierte en conforme. Cuando el
+# redondeo maquilla el veredicto, ratio_exact viaja aparte para el lector.
+res = pair('#557e7d', '#ffffff', with_suggestion=False)
+assert res['ratio'] == 4.5, res['ratio']                      # presentación
+_aa = [v for v in res['verdicts'] if v['threshold'] == 4.5 and v['level'] == 'AA'][0]
+assert _aa['passes'] is False, _aa                             # el estándar manda
+assert res['ratio_exact'] == 4.499935, res['ratio_exact']      # el porqué visible
+assert 'aa_suggestion' in pair('#557e7d', '#ffffff')          # reprueba → sugiere
+_ok = pair('#000000', '#ffffff')
+assert _ok['verdicts'][0]['passes'] is True and 'ratio_exact' not in _ok
+print('9. umbral EXACTO: 4,4999 reprueba AA (display 4,50 + ratio_exact); conforme pasa ✓')
 
 # ── revisión externa ronda 2: alfa con barra en hsl() (CSS moderno) ──────────
 import sys as _sys2, os as _os2

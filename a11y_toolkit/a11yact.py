@@ -97,13 +97,22 @@ def act_ids(signal):
 def earl(report, url=None):
     """Informe de auditoría → EARL 1.0 JSON-LD (solo hallazgos con mapeo ACT)."""
     assertions = []
-    # site crawls anidan en reports[]; entrada hostil (no-dict/no-list) → []
-    _hls = report.get('findings') if isinstance(report, dict) else None
-    if not isinstance(_hls, list) and isinstance(report, dict)             and isinstance(report.get('reports'), list):
-        _hls = [h for sub in report['reports']
-                if isinstance(sub, dict) for h in sub.get('findings', [])
-                if isinstance(h, dict)]
-    for h in (_hls if isinstance(_hls, list) else []):
+    # site crawls anidan en reports[]: cada hallazgo pertenece a SU página —
+    # aplanar sin más atribuía el fallo de /gallery a la PORTADA (revisión
+    # externa, 3ª pasada). Se conserva el par (hallazgo, url de su página).
+    pares = []
+    if isinstance(report, dict):
+        _hls = report.get('findings')
+        # precedencia como a11yevidence: findings top-level NO VACÍOS son las
+        # copias re-verificadas; una lista vacía es «sin hallazgos propios» y
+        # los de las páginas anidadas siguen siendo del crawl
+        if isinstance(_hls, list) and _hls:
+            pares = [(h, url or report.get('url', '')) for h in _hls]
+        elif isinstance(report.get('reports'), list):
+            pares = [(h, (sub.get('url') or url or report.get('url', '')))
+                     for sub in report['reports'] if isinstance(sub, dict)
+                     for h in sub.get('findings', []) if isinstance(h, dict)]
+    for h, _subj in pares:
         if not isinstance(h, dict):
             continue
         if h.get('status') in _NOT_DEAD or h.get('disprover_status') in _NOT_DEAD:
@@ -116,7 +125,7 @@ def earl(report, url=None):
             assertions.append({
                 '@type': 'earl:Assertion',
                 'earl:subject': {'@type': 'earl:TestSubject',
-                                 'url': url or report.get('url', '')},
+                                 'url': _subj},
                 'earl:test': {'@type': 'earl:TestCase',
                               'url': _ACT_URL.format(rid=rid),
                               'title': name},

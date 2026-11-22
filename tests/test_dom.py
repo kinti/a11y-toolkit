@@ -245,3 +245,103 @@ assert '#fb' not in _ejemplos, 'aria-label debe seguir nombrando cuando falta la
 assert _ctrl is not None and '#noname' in _ejemplos, \
     'el botón SIN nombre resoluble debe seguir reportado'
 print('LABELLEDBY MULTI-ID OK ✓ (ids separados y unidos en orden; sin nombre → sigue en unnamed)')
+
+# ══ revisión externa, 3ª pasada (2026-11-22): forms · kbd>12 · color(srgb) ══
+
+# FORMS 1: una alerta AJENA preexistente no limpia un formulario que falla
+# en silencio — solo cuentan alertas NUEVAS tras el envío
+FIX_FORMS = '''<!doctype html><html lang="en"><head><meta charset="utf-8">
+<title>forms</title></head><body>
+<div role="alert">Session error required fields notice</div>
+<form action="#" id="q" novalidate onsubmit="return false">
+<input type="email" name="mail" required>
+<button type="submit">go</button></form>
+</body></html>'''
+with open('/tmp/fixture_forms_r3.html', 'w', encoding='utf-8') as f:
+    f.write(FIX_FORMS)
+fr = _af('file:///tmp/fixture_forms_r3.html', lang='en')
+assert any(h['signal'] == 'form_error_missing' for h in fr['findings']), \
+    [h['signal'] for h in fr['findings']]
+print('FORMS: alerta preexistente ajena NO cuenta como identificación ✓')
+
+# FORMS 2: aria-invalid SOLO (sin texto) no identifica el error
+FIX_AI = '''<!doctype html><html lang="en"><head><meta charset="utf-8">
+<title>ai</title></head><body>
+<form action="#" novalidate onsubmit="return false">
+<input type="text" name="t" required aria-invalid="true">
+<button type="submit">go</button></form>
+</body></html>'''
+with open('/tmp/fixture_ai_r3.html', 'w', encoding='utf-8') as f:
+    f.write(FIX_AI)
+ar = _af('file:///tmp/fixture_ai_r3.html', lang='en')
+assert any(h['signal'] == 'form_error_missing' for h in ar['findings']), \
+    [h['signal'] for h in ar['findings']]
+print('FORMS: aria-invalid sin texto NO identifica (3.3.1 exige texto) ✓')
+
+# FORMS 3: formulario sin NINGÚN campo rellenable → alcance declarado, no 100
+FIX_CHK = '''<!doctype html><html lang="en"><head><meta charset="utf-8">
+<title>chk</title></head><body>
+<form action="#" onsubmit="return false"><input type="checkbox" name="acepto" required>
+<button type="submit">go</button></form>
+</body></html>'''
+with open('/tmp/fixture_chk_r3.html', 'w', encoding='utf-8') as f:
+    f.write(FIX_CHK)
+cr = _af('file:///tmp/fixture_chk_r3.html', lang='en')
+assert any(h['signal'] == 'form_untestable' for h in cr['findings']), \
+    [h['signal'] for h in cr['findings']]
+print('FORMS: sin campos testeables → form_untestable declarado (no 100 mudo) ✓')
+
+# KBD: trampa de 13 paradas (el tope fijo de 12 la dejaba pasar) y presupuesto
+# agotado declarado en una página con más enfocables que pasos
+_trampa = ' '.join(f'<button>t{i}</button>' for i in range(13))
+FIX_TRAP = f'''<!doctype html><html lang="en"><head><meta charset="utf-8">
+<title>trap</title></head><body><div id="jaula">{_trampa}</div>
+<script>document.querySelectorAll('#jaula button').forEach((b, i, todos) => {{
+b.addEventListener('keydown', e => {{
+  if (e.key === 'Tab') {{ e.preventDefault();
+    todos[(i + (e.shiftKey ? -1 : 1) + todos.length) % todos.length].focus(); }}
+  if (e.key === 'Escape') {{ /* no suelta: la trampa */ }}
+}});}});
+document.querySelector('#jaula button').focus();</script>
+</body></html>'''
+with open('/tmp/fixture_trap13.html', 'w', encoding='utf-8') as f:
+    f.write(FIX_TRAP)
+from a11y_toolkit.a11ydom import audit_keyboard as _ak
+trap = _ak('file:///tmp/fixture_trap13.html', max_steps=40, lang='en')
+assert trap['cycle']['detected'], trap['cycle']
+assert any(h['signal'] == 'kbd_trap' for h in trap['findings']), \
+    [h['signal'] for h in trap['findings']]
+print('KBD: trampa de 13 paradas detectada (tope derivado de la secuencia) ✓')
+
+_larga = ' '.join(f'<a href="#x{i}">l{i}</a>' for i in range(70))
+FIX_LARGA = f'''<!doctype html><html lang="en"><head><meta charset="utf-8">
+<title>larga</title></head><body><main><p>{_larga}</p></main></body></html>'''
+with open('/tmp/fixture_larga.html', 'w', encoding='utf-8') as f:
+    f.write(FIX_LARGA)
+larga = _ak('file:///tmp/fixture_larga.html', max_steps=40, lang='en')
+assert not larga['cycle']['detected'] and larga['cycle']['budget_exhausted'], \
+    larga['cycle']
+print('KBD: presupuesto agotado sin círculo → budget_exhausted declarado ✓')
+
+# color(srgb .6 .6 .6) ≡ #999: se MIDE (antes se omitía en silencio) y el
+# walk también lo cubre con el umbral sobre el valor EXACTO
+FIX_SRGB = '''<!doctype html><html lang="en"><head><meta charset="utf-8">
+<title>srgb</title><style>.mod{color:color(srgb .6 .6 .6);background:#fff}
+.frontera{color:#557e7d;background:#fff}</style></head><body><main>
+<p class="mod">texto moderno gris</p>
+<p class="frontera">texto frontera 4.4999</p>
+</main></body></html>'''
+with open('/tmp/fixture_srgb.html', 'w', encoding='utf-8') as f:
+    f.write(FIX_SRGB)
+sr = audit_dom_url('file:///tmp/fixture_srgb.html', lang='en')
+cf = [h for h in sr['findings'] if h['signal'] == 'contrast_fail']
+assert cf and any('153,153,153' in str(e) for e in cf[0].get('examples', [])), \
+    [h['signal'] for h in sr['findings']]
+from a11y_toolkit.a11ydom import contrast_walk as _cw
+wk = _cw('file:///tmp/fixture_srgb.html', max_walk=30)
+frontera = [e for e in wk['elements'] if isinstance(e, dict) and e.get('verdict')]
+assert any(e['verdict'] == 'fail' and e.get('ratio') == 4.5
+           and e.get('ratio_exact') == 4.499935 for e in frontera), frontera
+assert wk['summary']['unparsed_colors'] == 0
+print('SRGB: color(srgb) medido ≡ #999; walk reprueba 4,4999 con ratio_exact ✓')
+
