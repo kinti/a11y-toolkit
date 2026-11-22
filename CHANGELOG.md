@@ -1,6 +1,54 @@
 # Changelog
 
 ## main — pendiente
+- **External review, ROUND 6 (2026-11-22, same audited commit): the widget
+  audit could approve keyboard-dead controls and accuse working ones.** Every
+  case reproduced in Chromium with local HTML before the fix.
+- **Disclosures and menus are tested with the KEYBOARD (P1):** the pattern
+  audit only click()ed — a `div[role=button]` disclosure that flipped
+  aria-expanded on mouse clicks passed while Enter did nothing, and a menu
+  button that flipped the attribute without ever SHOWING the menu passed too.
+  Disclosures now activate with Enter/Space on the focused control (new
+  signal `pattern_disclosure_keyboard_dead`, 2.1.1 high, for mouse-only
+  ones) and "open" means the PANEL (aria-controls) becomes visible, not an
+  attribute flip; menu buttons open via Enter/ArrowDown/Space with the same
+  visibility requirement.
+- **Dialog tests walk the whole cycle and pin the dialog (P1):** a modal
+  with two buttons let focus escape on the second Tab and passed (the test
+  pressed Tab once); and after closing one dialog the re-resolving locator
+  pointed at the next one and accused it of not closing. Handles are pinned
+  per dialog and the focus cycle runs forward (2×stops+3, capped) and back
+  (Shift+Tab).
+- **Sliders pick the direction from the value:** a slider sitting at max
+  failed because the test pressed only increment keys; ArrowLeft/Down are
+  tried at the ceiling (and increments at the floor).
+- **Combobox popups are the control's own:** Escape closing the combobox's
+  popup was called a failure because an unrelated listbox stayed visible;
+  visibility binds to aria-controls now (fallback: expanded state).
+- **Tooltip tests stamp node identity:** two id-less buttons made the
+  tag-selector hover the first one twice and miss the second's persistent
+  tooltip; a pre-existing unrelated tooltip was attributed to a button.
+  Candidates are stamped `data-a11yhover=<i>`, only tooltips that APPEAR on
+  activating the control count, pre-existing ones never do, and the stamps
+  are cleaned up.
+- **3.2.2 judges the advisory, records the observation:** a select WITH an
+  aria-describedby advisory fired `input_navigates`, and only the first
+  select was ever tested. Up to three selects are tried; each navigation is
+  recorded per control in `select_observations` (with its prior-advisory
+  state) and the finding fires only for silent navigation.
+- **The ARIA monitor disconnects on close:** observers kept running after
+  the panel closed (updates landing in a removed DOM node) and
+  `aria-live="off"` regions were logged as announcements. Close disconnects
+  every observer; off-politeness regions are skipped.
+- **sr_transcript's published contract matches reality:** the docs promised
+  objects with time/politeneness/role/text; the tool returns a list of
+  strings plus `arbol_raw`. The description (and generated docs) now state
+  the real shape — clients reading strings keep working.
+- **SARIF resolves standard target and location per child report:** a PDF
+  exported alone got EN clause 10.2.4.2, but inside a `reports` batch got
+  9.2.4.2 (the top-level mode decided); the location said `(html)` even when
+  the child carried `file`. Target, clause and artifact URI now come from
+  each child; mixed batches carry distinct rule ids per clause.
 - **External review, ROUND 5 (2026-11-22, same audited commit): a tool that
   acted while declaring itself read-only, and drafts whose seal didn't cover
   what they showed.** Every fix reproduced against Chromium or a local

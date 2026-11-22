@@ -494,6 +494,8 @@
   "pattern_tabs_no_activation_rem": "Make selection follow focus (automatic activation) or activate on Enter/Space (manual) — aria-selected must reflect the visible panel.",
   "pattern_disclosure_state_frozen": "Activating “{name}” never flips aria-expanded: the exposed state contradicts the visual.",
   "pattern_disclosure_state_frozen_rem": "Toggle aria-expanded (true/false) on every activation and point aria-controls at the region it reveals.",
+  "pattern_disclosure_keyboard_dead": "“{name}” does not react to Enter or Space while focused: the disclosure is mouse-only.",
+  "pattern_disclosure_keyboard_dead_rem": "Disclosures must open from the keyboard: handle Enter and Space keydown (and ArrowDown for menu buttons) exactly as the APG Disclosure pattern.",
   "pattern_combobox_no_open": "A combobox never opens its popup with ArrowDown (no aria-expanded, no visible listbox).",
   "pattern_combobox_no_open_rem": "Open the listbox on ArrowDown / Alt+ArrowDown and flip aria-expanded=true; keep focus on the input while filtering.",
   "pattern_combobox_esc_no_close": "A combobox popup stays open after Escape.",

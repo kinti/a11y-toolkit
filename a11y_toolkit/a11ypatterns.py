@@ -57,6 +57,13 @@ _INSIDE = r'''() => {
 }'''
 
 
+def _num_or_none(v):
+    try:
+        return float((v or '').strip())
+    except ValueError:
+        return None
+
+
 def _finding(findings, lang, severity, criterion, key, **fmt):
     cat = _P['es' if lang == 'es' else 'en']
     findings.append({'severity': severity, 'criterion': criterion,
@@ -66,12 +73,24 @@ def _finding(findings, lang, severity, criterion, key, **fmt):
 
 
 def _test_dialogs(page, findings, lang, cap=3):
-    """Visible dialogs: Esc closes; focus stays inside (modal); returns after."""
+    """Visible dialogs: Esc closes; focus stays inside (modal); returns after.
+    (6a pasada) identidad FIJADA por handle -- un Locator se re-resuelve y, al
+    cerrar el primer dialogo, apuntaba al siguiente y lo acusaba de no
+    cerrar. Y el ciclo de foco se recorre ENTERO (ida con Tab y vuelta con
+    Shift+Tab, hasta el doble de paradas + 3): un unico Tab dejaba escapar
+    el foco en el segundo salto."""
     loc = page.locator('[role="dialog"]:visible, [role="alertdialog"]:visible, '
                        'dialog[open]:visible')
     n = min(loc.count(), cap)
+    _inside_js = ('(dlg) => { const a = document.activeElement;'
+                  ' return dlg === a || dlg.contains(a); }')
     for i in range(n):
-        d = loc.nth(i)
+        try:
+            d = loc.nth(i).element_handle()
+        except Exception:  # noqa: BLE001
+            continue
+        if d is None:
+            continue
         try:
             d.evaluate('el => (el.querySelector("a[href],button,input,select,textarea,[tabindex]") '
                        '|| el).focus()')
@@ -79,13 +98,30 @@ def _test_dialogs(page, findings, lang, cap=3):
             continue
         is_modal = (d.get_attribute('aria-modal') or '').lower() == 'true'
         if is_modal:
-            page.keyboard.press('Tab')
-            page.wait_for_timeout(120)
-            try:
-                inside = page.evaluate(_INSIDE)
-            except Exception:  # noqa: BLE001
-                inside = True
-            if not inside:
+            stops = d.evaluate(
+                'el => el.querySelectorAll('
+                '"a[href],button,input,select,textarea,[tabindex]").length')
+            leaked = False
+            for _step in range(min(stops * 2 + 3, 12)):
+                page.keyboard.press('Tab')
+                page.wait_for_timeout(90)
+                try:
+                    inside = page.evaluate(_inside_js, d)
+                except Exception:  # noqa: BLE001
+                    inside = True
+                if not inside:
+                    leaked = True
+            if not leaked:
+                for _step in range(3):
+                    page.keyboard.press('Shift+Tab')
+                    page.wait_for_timeout(90)
+                    try:
+                        inside = page.evaluate(_inside_js, d)
+                    except Exception:  # noqa: BLE001
+                        inside = True
+                    if not inside:
+                        leaked = True
+            if leaked:
                 _finding(findings, lang, 'medium', '2.4.3', 'pattern_modal_focus_escapes')
         page.keyboard.press('Escape')
         page.wait_for_timeout(250)
@@ -141,27 +177,56 @@ def _test_tablists(page, findings, lang, cap=3):
             continue
 
 
+def _panel_visible(page, b):
+    """(6a pasada) activar un disclosure consiste en MOSTRAR contenido, no
+    en voltear un atributo: el panel es el aria-controls y su VISIBILIDAD
+    decide. None cuando no hay panel identificable."""
+    cid = (b.get_attribute('aria-controls') or '').strip()
+    if not cid:
+        return None
+    try:
+        return page.locator('#' + cid).first.is_visible()
+    except Exception:  # noqa: BLE001
+        return None
+
+
 def _test_disclosures(page, findings, lang, cap=8):
-    """Disclosure buttons: activation must FLIP the exposed state.
-    Menu buttons are excluded — they are the menu pattern's subject."""
+    """Disclosure buttons: KEYBOARD activation (Enter, then Space) must open
+    the panel -- un disclosure que solo reacciona al raton es teclado-muerto
+    y la prueba antigua (solo click) lo aprobaba (6a pasada). Menu buttons
+    are excluded -- they are the menu pattern's subject."""
     loc = page.locator('button[aria-expanded]:visible:not([aria-haspopup="menu"]), '
                        '[role="button"][aria-expanded]:visible:not([aria-haspopup="menu"])')
     n = min(loc.count(), cap)
     for i in range(n):
         b = loc.nth(i)
         try:
-            before = (b.get_attribute('aria-expanded') or '').lower()
             name = ((b.get_attribute('aria-label') or '') or b.inner_text()
                     or 'disclosure').strip().replace('\n', ' ')[:40]
-            b.click()
-            page.wait_for_timeout(250)
-            after = (b.get_attribute('aria-expanded') or '').lower()
-            if before == after and before in ('true', 'false'):
+            before = (b.get_attribute('aria-expanded') or '').lower()
+            panel_before = _panel_visible(page, b)
+            b.evaluate('el => el.focus()')
+            worked = None
+            for key in ('Enter', ' '):
+                page.keyboard.press(key)
+                page.wait_for_timeout(220)
+                after = (b.get_attribute('aria-expanded') or '').lower()
+                panel = _panel_visible(page, b)
+                if after != before or (panel is True and panel_before is not True):
+                    worked = (key, after, panel)
+                    break
+            if worked is None:
+                if before in ('true', 'false'):
+                    _finding(findings, lang, 'high', '2.1.1',
+                             'pattern_disclosure_keyboard_dead', name=name)
+                continue
+            _key, after, panel = worked
+            if after in ('true', 'false') and panel is False and panel_before is False:
+                # voltorea el estado pero el panel NUNCA se muestra
                 _finding(findings, lang, 'medium', '4.1.2',
                          'pattern_disclosure_state_frozen', name=name)
-            elif after in ('true', 'false') and after != before:
-                b.click()   # dejar la página como estaba
-                page.wait_for_timeout(150)
+            page.keyboard.press(_key)   # dejar la página como estaba (toggle)
+            page.wait_for_timeout(150)
         except Exception:  # noqa: BLE001
             continue
 
@@ -183,17 +248,22 @@ def _test_comboboxes(page, findings, lang, cap=3):
         try:
             c.evaluate('el => el.focus()')
             before = (c.get_attribute('aria-expanded') or '').lower()
+            # (6a pasada) el popup es el del PROPIO control (aria-controls):
+            # un listbox AJENO visible hacia fracasar el Escape de un
+            # combobox correcto -- y aprobar su apertura
+            cid = (c.get_attribute('aria-controls') or '').strip()
+            popup_sel = ('#' + cid) if cid else '[role="listbox"]:visible'
             page.keyboard.press('ArrowDown')
             page.wait_for_timeout(300)
             after = (c.get_attribute('aria-expanded') or '').lower()
-            opened = after == 'true' or _visible_open(page, '[role="listbox"]:visible')
+            opened = after == 'true' or _visible_open(page, popup_sel)
             if not opened and before != 'true':
                 _finding(findings, lang, 'medium', '2.1.1', 'pattern_combobox_no_open')
                 continue
             page.keyboard.press('Escape')
             page.wait_for_timeout(250)
             closed = (c.get_attribute('aria-expanded') or '').lower() != 'true' \
-                and not _visible_open(page, '[role="listbox"]:visible')
+                and not _visible_open(page, popup_sel)
             if not closed:
                 _finding(findings, lang, 'medium', '2.1.1', 'pattern_combobox_esc_no_close')
         except Exception:  # noqa: BLE001
@@ -208,16 +278,26 @@ def _test_menu_buttons(page, findings, lang, cap=3):
     for i in range(n):
         b = loc.nth(i)
         try:
-            b.click()
-            page.wait_for_timeout(300)
-            opened = _visible_open(page, '[role="menu"]:visible') \
-                or (b.get_attribute('aria-expanded') or '').lower() == 'true'
+            # (6a pasada) apertura por TECLADO (Enter/ArrowDown/Space): un
+            # menu que solo abre con raton es teclado-muerto; y «abierto» es
+            # el MENU VISIBLE (o su panel aria-controls) -- voltorear
+            # aria-expanded sin mostrar nada ya no aprueba
+            cid = (b.get_attribute('aria-controls') or '').strip()
+            menu_sel = ('#' + cid) if cid else '[role="menu"]:visible'
+            b.evaluate('el => el.focus()')
+            opened = False
+            for key in ('Enter', 'ArrowDown', ' '):
+                page.keyboard.press(key)
+                page.wait_for_timeout(250)
+                if _visible_open(page, menu_sel):
+                    opened = True
+                    break
             if not opened:
                 _finding(findings, lang, 'medium', '2.1.1', 'pattern_menu_no_open')
                 continue
             page.keyboard.press('Escape')
             page.wait_for_timeout(250)
-            closed = not _visible_open(page, '[role="menu"]:visible') \
+            closed = not _visible_open(page, menu_sel) \
                 and (b.get_attribute('aria-expanded') or '').lower() != 'true'
             if not closed:
                 _finding(findings, lang, 'medium', '2.1.1', 'pattern_menu_esc_no_close')
@@ -238,17 +318,29 @@ def _test_sliders(page, findings, lang, cap=3):
                 _finding(findings, lang, 'medium', '4.1.2', 'pattern_slider_no_state',
                          name=((s.get_attribute('aria-label') or '') or 'slider')[:40])
             now = (s.get_attribute('aria-valuenow') or '').strip()
+            # (6a pasada) la direccion sale del VALOR y sus LIMITES: en el
+            # maximo las teclas que INCREMENTAN no pueden mover nada y el
+            # slider correcto fallaba -- se prueba una tecla que PUEDA mover
+            _mn = _num_or_none(s.get_attribute('aria-valuemin'))
+            _mx = _num_or_none(s.get_attribute('aria-valuemax'))
+            _nv = _num_or_none(now)
+            if _nv is not None and _mx is not None and _nv >= _mx:
+                _keys = ('ArrowLeft', 'ArrowDown')      # en el tope: decrementar
+            elif _nv is not None and _mn is not None and _nv <= _mn:
+                _keys = ('ArrowRight', 'ArrowUp')       # en el suelo: incrementar
+            else:
+                _keys = ('ArrowRight', 'ArrowUp')
             s.evaluate('el => el.focus()')
-            page.keyboard.press('ArrowRight')
-            page.wait_for_timeout(150)
-            after_r = (s.get_attribute('aria-valuenow') or '').strip()
-            if after_r == now:
-                page.keyboard.press('ArrowUp')
+            value_changed = False
+            for _k in _keys:
+                page.keyboard.press(_k)
                 page.wait_for_timeout(150)
-                after_up = (s.get_attribute('aria-valuenow') or '').strip()
-                if after_up == now:
-                    _finding(findings, lang, 'high', '2.1.1', 'pattern_slider_arrows_dead')
-                    continue
+                if (s.get_attribute('aria-valuenow') or '').strip() != now:
+                    value_changed = True
+                    break
+            if not value_changed:
+                _finding(findings, lang, 'high', '2.1.1', 'pattern_slider_arrows_dead')
+                continue
             # devolver el valor original (dejar la página como estaba)
             if now and (s.get_attribute('aria-valuenow') or '').strip() != now:
                 s.evaluate('(el, v) => el.setAttribute("aria-valuenow", v)', now)

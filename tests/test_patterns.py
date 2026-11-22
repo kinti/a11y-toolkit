@@ -36,7 +36,18 @@ GOOD = '''<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Good
      aria-label="Volume" aria-valuenow="50" aria-valuemin="0" aria-valuemax="100"></div>
 <script>
 const dlg = document.getElementById('dlg');
-dlg.addEventListener('keydown', e => { if (e.key === 'Escape') dlg.remove(); });
+dlg.addEventListener('keydown', e => {
+  // contrato APG real (6a pasada): Escape cierra y el Tab queda ENCIERRA en
+  // el modal — el fixture anterior no tenía trampa y pasaba por la flaqueza
+  // del test (un solo Tab)
+  if (e.key === 'Escape') { dlg.remove(); return; }
+  if (e.key === 'Tab') {
+    const f = [...dlg.querySelectorAll('button')];
+    const i = f.indexOf(document.activeElement);
+    e.preventDefault();
+    f[(i + (e.shiftKey ? -1 : 1) + f.length) % f.length].focus();
+  }
+});
 const tl = [...document.querySelectorAll('#tl [role="tab"]')];
 tl.forEach((t, i) => t.addEventListener('keydown', e => {
   let j = null;
@@ -113,8 +124,10 @@ assert sigs['pattern_dialog_esc_no_close']['criterion'].startswith('2.1.2')
 assert sigs['pattern_dialog_esc_no_close']['severity'] == 'high'
 assert 'pattern_tabs_arrows_dead' in sigs, sigs
 assert sigs['pattern_tabs_arrows_dead']['criterion'].startswith('2.1.1')
-assert 'pattern_disclosure_state_frozen' in sigs, sigs
-assert sigs['pattern_disclosure_state_frozen']['criterion'].startswith('4.1.2')
+# (6a pasada) el disclosure roto es teclado-muerto: Enter/Space no hacen
+# nada — state_frozen queda para el caso de voltear el estado sin mostrar
+assert 'pattern_disclosure_keyboard_dead' in sigs, sigs
+assert sigs['pattern_disclosure_keyboard_dead']['criterion'].startswith('2.1.1')
 assert 'pattern_combobox_no_open' in sigs, sigs
 assert 'pattern_menu_no_open' in sigs, sigs
 assert 'pattern_slider_arrows_dead' in sigs, sigs

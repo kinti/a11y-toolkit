@@ -73,12 +73,16 @@ def from_report(report, driver_version=None, standard=None, target=None):
     rules = {}
     results = []
     skipped = 0   # hallazgos truncados/hostiles: se saltan, jamás un KeyError
-    _tgt = target or _enstd.target_for_mode(report.get('mode', 'static'))
     for pg in pages:
         if not isinstance(pg, dict):
             skipped += 1
             continue
-        url = pg.get('url', '(html)')
+        # (6a pasada) el TARGET se resuelve por INFORME HIJO: en un lote
+        # mixto, el PDF exportado solo recibia clausulas 9.x (web) y en solitario
+        # 10.x — el modo que decide es el de CADA pagina. La ubicacion usa el
+        # file del hijo cuando no hay url (antes: '(html)' pese a existir file)
+        _tgt = target or _enstd.target_for_mode(pg.get('mode', report.get('mode', 'static')))
+        url = pg.get('url') or pg.get('file') or '(html)'
         for h in pg.get('findings', []) or []:
             if not isinstance(h, dict):
                 skipped += 1
@@ -110,6 +114,10 @@ def from_report(report, driver_version=None, standard=None, target=None):
                         'en301549': clause,
                         'tags': [f'en301549:{clause}', 'wcag22:' + code],
                     }
+                    # lotes mixtos: la MISMA senal puede llegar con clausulas
+                    # de targets distintos — ids distintos por clausula
+                    rule['id'] = rule_id + '-' + clause.replace('.', '')
+                    rule_id = rule['id']
                 rules[rule_id] = rule
             message = issue
             if h.get('remediation'):

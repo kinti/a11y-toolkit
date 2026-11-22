@@ -14,6 +14,7 @@
   if (window.__ariaLiveMonitor) { window.__ariaLiveMonitor(); return; }
   var SEL = '[aria-live],[role=alert],[role=status],[role=log],[role=marquee],[role=timer]';
   var log = [];
+  var observadores = [];  // (6a pasada) se desconectan al cerrar el monitor
   var observados = new WeakSet();
 
   var css = document.createElement('style');
@@ -50,6 +51,7 @@
     var cortesia = el.getAttribute('aria-live') ||
       ({ alert: 'assertive', status: 'polite', log: 'polite',
          marquee: 'off', timer: 'off' })[el.getAttribute('role')] || 'polite';
+    if (cortesia === 'off') return;  // aria-live=off (o marquee/timer): la region NO anuncia
     var texto = (el.innerText || el.textContent || '').trim().replace(/\s+/g, ' ').slice(0, 220);
     var hora = new Date().toTimeString().slice(0, 8);
     log.push(hora + ' [' + cortesia + '] ' + rol + ' · ' + desc(el) + ' · ' + texto);
@@ -78,14 +80,14 @@
     if (!el.matches(SEL)) return;
     observados.add(el);
     if (el.getAttribute('role') === 'alert') anota(el, 'insertado');
-    new MutationObserver(function () {
-      anota(el, null);
-    }).observe(el, { childList: true, characterData: true, subtree: true });
+    var o = new MutationObserver(function () { anota(el, null); });
+    observadores.push(o);
+    o.observe(el, { childList: true, characterData: true, subtree: true });
   }
 
   document.querySelectorAll(SEL).forEach(function (el) { vigila(el); });
 
-  new MutationObserver(function (muts) {
+  var cuerpo = new MutationObserver(function (muts) {
     muts.forEach(function (m) {
       m.addedNodes.forEach(function (n) {
         if (n.nodeType !== 1) return;
@@ -93,15 +95,23 @@
         if (n.querySelectorAll) n.querySelectorAll(SEL).forEach(vigila);
       });
     });
-  }).observe(document.body, { childList: true, subtree: true });
+  });
+  observadores.push(cuerpo);
+  cuerpo.observe(document.body, { childList: true, subtree: true });
 
   panel.addEventListener('click', function (ev) {
     var b = ev.target.closest('button');
     if (!b) return;
-    if (b.dataset.alm === 'close') { panel.remove(); css.remove(); delete window.__ariaLiveMonitor; }
+    if (b.dataset.alm === 'close') { cierra(); }
     if (b.dataset.alm === 'copy' && navigator.clipboard)
       navigator.clipboard.writeText(log.join('\n'));
   });
 
-  window.__ariaLiveMonitor = function () { panel.remove(); css.remove(); delete window.__ariaLiveMonitor; };
+  function cierra() {
+    // (6a pasada) los observadores se DESCONECTAN: tras el cierre, una
+    // actualizacion seguia aterrizando en el panel ya retirado del DOM
+    observadores.forEach(function (o) { o.disconnect(); });
+    panel.remove(); css.remove(); delete window.__ariaLiveMonitor;
+  }
+  window.__ariaLiveMonitor = cierra;
 })();

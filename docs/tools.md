@@ -557,7 +557,7 @@ Infinite-scroll accessibility audit — the documented disaster nobody automates
 
 <sub>read-only · network</sub>
 
-Screen reader TRANSCRIPT: what a blind user HEARS on this page. Walks the accessibility tree linearly and returns the announcement text with roles, names and states — the linearized reading experience, as prose an agent can READ to understand the page from a blind user's perspective. — Read-only: for structure use a11y_snapshot, for keyboard traps use a11y_keyboard. Requires Playwright. Returns JSON: {url, total, announcements [{time, politeness, role, text}] — the linearized reading order}.
+Screen reader TRANSCRIPT: what a blind user HEARS on this page. Walks the accessibility tree linearly and returns announcements as a LIST OF STRINGS (the linearized reading order — roles and names embedded in the text, e.g. "button "Search"") plus arbol_raw, the raw accessibility-tree snapshot it was read from (external review round 6: the contract published objects with time/politeneness/role/text — the real shape was strings; the contract now matches reality and existing clients keep working). Prose an agent can READ to understand the page from a blind user's perspective. — Read-only: for structure use a11y_snapshot, for keyboard traps use a11y_keyboard. Requires Playwright. Returns JSON: {url, total, announcements [{time, politeness, role, text}] — the linearized reading order}.
 
 
 **Arguments**

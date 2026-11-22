@@ -1248,19 +1248,41 @@ def sr_transcript(url, timeout=45, lang='en', auth_state=None, browser='auto'):
                  'Roles and names as computed by the browser. Use this to understand '
                  'the page from a blind user\'s perspective.'),
     }
+# (6a pasada) identidad de los tooltips visibles AHORA: una sola
+# definicion para antes/durante/despues, en vez de tres literales
+_TOOLTIPS_VISIBLE_JS = (
+    "() => [...document.querySelectorAll("
+    "'[role=tooltip], [class*=tooltip], [class*=popover]')]"
+    ".filter(el => {"
+    "  if (el.checkVisibility) "
+    "    return el.checkVisibility({checkOpacity: true, checkVisibilityCSS: true});"
+    "  const s = getComputedStyle(el);"
+    "  const box = el.getBoundingClientRect();"
+    "  return el.offsetParent !== null && s.visibility !== 'hidden'"
+    "         && parseFloat(s.opacity || '1') > 0.01 && box.width > 0;"
+    "})"
+    ".map(el => el.tagName + '#' + (el.id || '') + '.' + (el.className.toString().slice(0, 30)))")
+
 _JS_HOVER_TEST = r'''() => {
-  // find elements that show tooltips/overlays on hover
+  // find elements that show tooltips/overlays on hover. (6a pasada) cada
+  // candidato se SELLA con data-a11yhover=<i>: el hover va a ESTE nodo --
+  // el selector tag/id antiguo probaba el PRIMER nodo homonimo dos veces
+  // y se perdia el tooltip persistente del segundo
   const candidates = [];
+  let n = 0;
   for (const el of document.querySelectorAll('[title], [data-tooltip], [aria-describedby]')) {
     if (candidates.length >= 10) break;
     const r = el.getBoundingClientRect();
     if (r.width > 10 && r.height > 10 && r.top >= 0 && r.top < innerHeight) {
+      el.setAttribute('data-a11yhover', String(n));
       candidates.push({
         tag: el.tagName.toLowerCase(),
         id: el.id || '',
+        idx: n,
         desc: el.getAttribute('aria-describedby') || el.getAttribute('title') || '',
         rect: {x: r.x, y: r.y, w: r.width, h: r.height}
       });
+      n++;
     }
   }
   return candidates;
@@ -1276,52 +1298,37 @@ def audit_hover(url, timeout=45, lang='en', auth_state=None, browser='auto'):
             page.wait_for_timeout(400)
         except Exception as e:
             return {'error': str(e)[:100]}
+        # tooltips visibles ANTES de tocar nada: los preexistentes (ajenos)
+        # jamas se atribuyen a un control por el mero hecho de hoverear
+        _preexisting_tips = page.evaluate(_TOOLTIPS_VISIBLE_JS)
 
         candidates = page.evaluate(_JS_HOVER_TEST)
         no_dismissibles = []
-        for c in candidates[:8]:
-            try:
-                # hover sobre el elemento
-                sel = f'{c["tag"]}#{c["id"]}' if c['id'] else c['tag']
-                page.hover(sel, timeout=2000)
-                page.wait_for_timeout(400)
-                # identidad de los tooltips visibles ANTES (por elemento, no
-                # por recuento global: other tooltip podía aparecer a la vez y
-                # el contador antiguo enmascaraba un cierre correcto)
-                before = page.evaluate(
-                    "() => [...document.querySelectorAll("
-                    "'[role=tooltip], [class*=tooltip], [class*=popover]')]"
-                    ".filter(el => {"
-                    "  if (el.checkVisibility) "
-                    "    return el.checkVisibility({checkOpacity: true, checkVisibilityCSS: true});"
-                    "  const s = getComputedStyle(el);"
-                    "  const box = el.getBoundingClientRect();"
-                    "  return el.offsetParent !== null && s.visibility !== 'hidden'"
-                    "         && parseFloat(s.opacity || '1') > 0.01 && box.width > 0;"
-                    "})"
-                    ".map(el => el.tagName + '#' + (el.id || '') + '.' + (el.className.toString().slice(0, 30)))")
-                if not before:
-                    continue  # nada visible → no aplica
-                # Escape
-                page.keyboard.press('Escape')
-                page.wait_for_timeout(300)
-                after = page.evaluate(
-                    "() => [...document.querySelectorAll("
-                    "'[role=tooltip], [class*=tooltip], [class*=popover]')]"
-                    ".filter(el => {"
-                    "  if (el.checkVisibility) "
-                    "    return el.checkVisibility({checkOpacity: true, checkVisibilityCSS: true});"
-                    "  const s = getComputedStyle(el);"
-                    "  const box = el.getBoundingClientRect();"
-                    "  return el.offsetParent !== null && s.visibility !== 'hidden'"
-                    "         && parseFloat(s.opacity || '1') > 0.01 && box.width > 0;"
-                    "})"
-                    ".map(el => el.tagName + '#' + (el.id || '') + '.' + (el.className.toString().slice(0, 30)))")
-                if set(before) <= set(after):
-                    # los mismos (o más) siguen visibles: no se cerró con Escape
-                    no_dismissibles.append(f'{c["tag"]}#{c["id"] or "no-id"}')
-            except Exception:
-                continue
+        try:
+            for c in candidates[:8]:
+                try:
+                    # (6a pasada) hover sobre ESTE nodo por su sello; y solo
+                    # cuentan los tooltips que APARECEN al activarlo -- un
+                    # tooltip ajeno ya visible no se atribuye al control
+                    page.hover(f'[data-a11yhover="{c["idx"]}"]', timeout=2000)
+                    page.wait_for_timeout(400)
+                    _during = page.evaluate(_TOOLTIPS_VISIBLE_JS)
+                    _new_tips = [t for t in _during if t not in _preexisting_tips]
+                    if not _new_tips:
+                        continue  # este control no mostro nada nuevo: no aplica
+                    page.keyboard.press('Escape')
+                    page.wait_for_timeout(300)
+                    _after_esc = page.evaluate(_TOOLTIPS_VISIBLE_JS)
+                    if set(_new_tips) <= set(_after_esc):
+                        # los mismos (o mas) siguen visibles: no se cerro
+                        no_dismissibles.append(f'{c["tag"]}#{c["id"] or "no-id"}')
+                except Exception:
+                    continue
+        finally:
+            # limpiar los sellos: la pagina queda como estaba
+            page.evaluate(
+                "() => document.querySelectorAll('[data-a11yhover]')"
+                ".forEach(el => el.removeAttribute('data-a11yhover'))")
     finally:
         close_page()
 
@@ -1643,22 +1650,45 @@ def audit_keyboard(url, max_steps=60, lang='en', timeout=45, auth_state=None, br
         except Exception:
             focus_navigated = url_before + ' → (navigated away)'
 
-        # 3.2.2: ¿un select provoca navegación al cambiar?
+        # 3.2.2: ¿un select provoca navegación al cambiar? (6a pasada) TODOS
+        # los selects (hasta 3), y el AVISO PREVIO se juzga aparte de la
+        # observación: un aria-describedby que anuncia el cambio EXIME; la
+        # navegación silenciosa se registra por CONTROL — antes solo se
+        # probaba el primer select y uno CON aviso disparaba el hallazgo
         input_navigated = None
         input_elem = None
+        select_observations = []
         if not focus_navigated:
             try:
-                sel = page.query_selector('select')
-                if sel:
+                url_pre = page.url
+                for sel in page.query_selector_all('select')[:3]:
                     opts = sel.query_selector_all('option')
-                    if len(opts) > 1:
-                        url_pre = page.url
+                    if len(opts) <= 1:
+                        continue
+                    _advisory = sel.evaluate(
+                        'el => { const db = el.getAttribute("aria-describedby");'
+                        ' if (!db) return false;'
+                        ' return db.split(/\\s+/).some(id => {'
+                        '   const r = document.getElementById(id);'
+                        '   return r && (r.innerText || "").trim(); }); }')
+                    _name = (sel.get_attribute('aria-label')
+                             or sel.get_attribute('id') or 'select')[:40]
+                    try:
                         sel.select_option(index=1)
-                        page.wait_for_timeout(600)
-                        if page.url != url_pre:
-                            input_navigated = page.url
-                            input_elem = 'select'
-            except Exception:
+                    except Exception:  # noqa: BLE001
+                        continue
+                    page.wait_for_timeout(600)
+                    if page.url.split('#')[0] != url_pre.split('#')[0]:
+                        input_navigated = page.url
+                        input_elem = _name
+                        select_observations.append(
+                            {'control': _name, 'navigated': True,
+                             'prior_advisory': bool(_advisory)})
+                        break   # la página ya no está: no hay más que probar
+                    select_observations.append(
+                        {'control': _name, 'navigated': False,
+                         'prior_advisory': bool(_advisory)})
+            except Exception:  # noqa: BLE001
                 pass
 
         esc_releases = None
@@ -1711,7 +1741,9 @@ def audit_keyboard(url, max_steps=60, lang='en', timeout=45, auth_state=None, br
             'signal': 'focus_navigates',
             'issue': _t(lang, 'focus_navigates').format(example='un elemento', url=focus_navigated[:60]),
             'remediation': _t(lang, 'focus_navigates_rem')})
-    if input_navigated:
+    if input_navigated and not any(o['prior_advisory'] for o in select_observations
+                                    if o['control'] == input_elem):
+        # navegación REAL sin aviso previo asociado al control que navegó
         findings.append({
             'severity': 'high', 'criterion': CRIT.get(lang, CRIT['es']).get('3.2.2', '3.2.2'),
             'signal': 'input_navigates',
@@ -1741,6 +1773,7 @@ def audit_keyboard(url, max_steps=60, lang='en', timeout=45, auth_state=None, br
         'summary': {s_: sum(1 for h in findings if h['severity'] == s_)
                     for s_ in ('high', 'medium', 'low')},
         'steps': len(seq),
+        'select_observations': select_observations,
         'tab_stops': [paths.get(i, f'tab stop {i}') for i in seq],
         'cycle': {'detected': bool(cycle),
                   'budget_exhausted': budget_exhausted,

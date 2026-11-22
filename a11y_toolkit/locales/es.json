@@ -494,6 +494,8 @@
   "pattern_tabs_no_activation_rem": "Haz que la selección siga al foco (activación automática) o activa con Enter/Espacio (manual) — aria-selected debe reflejar el panel visible.",
   "pattern_disclosure_state_frozen": "Activar «{name}» nunca cambia aria-expanded: el estado expuesto contradice lo visual.",
   "pattern_disclosure_state_frozen_rem": "Alterna aria-expanded (true/false) en cada activación y apunta aria-controls a la región que revela.",
+  "pattern_disclosure_keyboard_dead": "«{name}» no reacciona a Enter ni Espacio con el foco en el control: el desplegable solo funciona con ratón.",
+  "pattern_disclosure_keyboard_dead_rem": "Los disclosure deben abrirse con teclado: maneja keydown de Enter y Espacio (y ArrowDown en botones de menú) exactamente como el patrón Disclosure del APG.",
   "pattern_combobox_no_open": "Un combobox nunca abre su popup con ArrowDown (sin aria-expanded, sin listbox visible).",
   "pattern_combobox_no_open_rem": "Abre el listbox con ArrowDown / Alt+ArrowDown y pon aria-expanded=true; mantiene el foco en el input mientras filtra.",
   "pattern_combobox_esc_no_close": "El popup de un combobox sigue abierto tras Escape.",
