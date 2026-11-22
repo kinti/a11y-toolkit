@@ -49,15 +49,20 @@ def main():
     # un falso éxito de release. Ahora: misma versión + tag ya existente =
     # publicada de verdad (nada que hacer); misma versión SIN tag = intento
     # previo fallido → se REANUDA el gate completo y, con --tag, la publicación.
+    # (7ª pasada) «publicada» = tag EN EL REMOTO: un tag local (creado por un
+    # intento que falló DESPUÉS de etiquetar, o sin remoto) NO cuenta — la
+    # publicación real es el push que dispara PyPI
     ya_versionado = (nueva == actual)
     if ya_versionado:
-        hay_tag = subprocess.run(['git', 'tag', '-l', f'v{nueva}'],
-                                 cwd=AQUI, capture_output=True).stdout.strip()
-        if hay_tag:
-            print(f'v{nueva} ya está etiquetada y publicada: nada que hacer')
+        tag_remoto = subprocess.run(
+            ['git', 'ls-remote', '--tags', 'origin', f'refs/tags/v{nueva}'],
+            cwd=AQUI, capture_output=True).stdout.strip()
+        if tag_remoto:
+            print(f'v{nueva} ya está etiquetada EN EL REMOTO y publicada: nada que hacer')
             return 0
-        print(f'los ficheros YA están en {nueva} (intento previo fallido): '
-              'REANUDANDO — gate completo y, con --tag, commit+tag+push')
+        print(f'los ficheros YA están en {nueva} y el tag NO está en el remoto '
+              '(intento previo fallido o push pendiente): REANUDANDO — gate '
+              'completo y, con --tag, commit+tag+push')
     else:
         print(f'versionando {actual} → {nueva}')
     if not ya_versionado:

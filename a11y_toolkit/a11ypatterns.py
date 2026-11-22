@@ -84,11 +84,17 @@ def _test_dialogs(page, findings, lang, cap=3):
     n = min(loc.count(), cap)
     _inside_js = ('(dlg) => { const a = document.activeElement;'
                   ' return dlg === a || dlg.contains(a); }')
+    # (7a pasada) TODOS los handles ANTES de tocar nada: cerrar el primer
+    # dialogo cambiaba los indices de la lista visible y el segundo quedaba
+    # SIN PROBAR
+    handles = []
     for i in range(n):
         try:
-            d = loc.nth(i).element_handle()
+            h = loc.nth(i).element_handle()
         except Exception:  # noqa: BLE001
-            continue
+            h = None
+        handles.append(h)
+    for d in handles:
         if d is None:
             continue
         try:

@@ -660,6 +660,9 @@ _JS = r'''(maxEj) => {
   }
   for (const r of roots) {
     for (const el of r.querySelectorAll('[aria-hidden="true"]')) {
+      // (7a pasada) inert saca el subarbol de la interaccion: un boton
+      // dentro de inert aria-hidden NO es enfocable aunque el atributo siga
+      if (el.closest('[inert]')) continue;
       if (el.matches(INTER)) {
         if (el.getAttribute('tabindex') !== '-1') out.ariaHidden.push(path(el));
       } else if ([...(el.querySelectorAll(INTER) || [])]
@@ -1361,6 +1364,15 @@ _JS_SPACING = r'''() => {
       const modes = [s.overflow, s.overflowY, s.overflowX];
       if (modes.includes('hidden') || modes.includes('clip')) {
         const rb = n.getBoundingClientRect(), re = el.getBoundingClientRect();
+        if (n === el) {
+          // (7a pasada) el elemento recortado por SU PROPIA caja (clip no
+          // crea contenedor de scroll: scrollHeight no sirve): un Range
+          // mide el TEXTO real — comparar la caja consigo misma daba falso
+          const rg = document.createRange();
+          rg.selectNodeContents(el);
+          const rt = rg.getBoundingClientRect();
+          return rt.bottom > rb.bottom + 3 || rt.right > rb.right + 3;
+        }
         if (re.bottom > rb.bottom + 3 || re.right > rb.right + 3) return true;
         return false;   // ancestro recortante y el elemento dentro: no clip
       }
@@ -1668,9 +1680,13 @@ def audit_keyboard(url, max_steps=60, lang='en', timeout=45, auth_state=None, br
                     _advisory = sel.evaluate(
                         'el => { const db = el.getAttribute("aria-describedby");'
                         ' if (!db) return false;'
+                        ' const AVISO = /naviga|ir[áa]s|ir a|go(es)? to|take(s)? you|'
+                        'p[áa]gina|page|redirect|redirig|cambiar[áa]|change|jump|salta|'
+                        'send|llevar|abrir|open|visit|visita/i;'
                         ' return db.split(/\\s+/).some(id => {'
                         '   const r = document.getElementById(id);'
-                        '   return r && (r.innerText || "").trim(); }); }')
+                        '   const t = r ? (r.innerText || "").trim() : "";'
+                        '   return t && AVISO.test(t); }); }')
                     _name = (sel.get_attribute('aria-label')
                              or sel.get_attribute('id') or 'select')[:40]
                     try:
@@ -2143,16 +2159,15 @@ def audit_dom_url(url, timeout=45, lang='en', auth_state=None, browser='auto', c
     finally:
         close_page()
     _merge_iframes(data)
-    report_out = audit_dom(data, url, lang=lang, color_scheme=color_scheme)
-    # verdad de navegación (revisión externa, 4ª pasada): un 404 con HTML
-    # puntuaba 100 como si fuera la página pedida — el informe declara el
-    # estado HTTP y la URL FINAL para que el consumidor distinga
-    final_url = page_url_final or url
+    # (7ª pasada) el informe ES de la página final: url=/signin cuando
+    # /account redirigió — antes conservaba /account y solo añadía la nota
+    final_url = (page_url_final or url).split('#')[0]
+    report_out = audit_dom(data, final_url, lang=lang, color_scheme=color_scheme)
     try:
         _st = _resp.status if _resp is not None else None
     except Exception:  # noqa: BLE001 — respuesta ya consumida
         _st = None
-    if final_url.split('#')[0] != url.split('#')[0]:
+    if final_url != url.split('#')[0]:
         report_out['requested_url'] = url
         report_out['redirect_note'] = (
             'la URL pedida redirigió: el informe es de la página FINAL'
@@ -2161,12 +2176,18 @@ def audit_dom_url(url, timeout=45, lang='en', auth_state=None, browser='auto', c
     if _st:
         report_out['http_status'] = _st
         if _st >= 400:
-            report_out['http_error_note'] = (
-                f'la página respondió HTTP {_st}: esto es una respuesta de '
-                'error, no la página pedida'
-                if lang == 'es' else
-                f'the page answered HTTP {_st}: this is an error response, '
-                'not the requested page')
+            # (7ª pasada) el falso verde HTTP: la nota informaba pero budget,
+            # evidencia y CI seguían aceptando el resultado. Error explícito
+            # machine-readable — las capas de arriba lo rechazan por contrato
+            report_out['error'] = (
+                f'HTTP {_st}: this is an error response, not the requested '
+                'page — the content was still audited and is in this report, '
+                'but no gate should pass on it'
+                if lang == 'en' else
+                f'HTTP {_st}: respuesta de error, no la página pedida — el '
+                'contenido se auditó igualmente y va en este informe, pero '
+                'ningún gate debe pasar con esto')
+            report_out['http_error_note'] = report_out['error']
     return report_out
 
 
@@ -2375,7 +2396,7 @@ def contrast_walk(url, max_walk=400, max_sample=24, dark=False,
         _verdicts(entries)
         return entries, skipped, unparsed
 
-    def _summarize(entries, skipped):
+    def _summarize(entries, skipped, unparsed_n=0):
         fails = [e for e in entries if e['verdict'] == 'fail']
         worst = min((e for e in entries if e['ratio'] is not None),
                     key=lambda e: e['ratio'], default=None)
@@ -2385,7 +2406,7 @@ def contrast_walk(url, max_walk=400, max_sample=24, dark=False,
                 'fails_4_5_normal_text': sum(1 for e in fails if e['threshold'] >= 4.5),
                 'fails_3_0_large_text': sum(1 for e in fails if e['threshold'] < 4.5),
                 'translucent_text_skipped': skipped,
-                'unparsed_colors': unparsed + (locals().get('_unp_d') or 0),
+                'unparsed_colors': unparsed_n,
                 'pixel_sampled': sum(1 for e in entries if e['pixel_sampled']),
                 'worst_ratio': worst['ratio'] if worst else None,
                 'worst_element': worst['path'] if worst else None}
@@ -2409,7 +2430,7 @@ def contrast_walk(url, max_walk=400, max_sample=24, dark=False,
     report = {'mode': 'contrast-walk', 'url': url, 'scheme': 'light',
               'checked': len(entries),
               'elements': entries,
-              'summary': _summarize(entries, skipped)}
+              'summary': _summarize(entries, skipped, unparsed)}
 
     # suggestions for the worst flat-background fails (pixel zones have no
     # single background to suggest against — honest skip)
@@ -2425,7 +2446,7 @@ def contrast_walk(url, max_walk=400, max_sample=24, dark=False,
         entries_d, skipped_d, _unp_d = _run('dark')
         report['dark'] = {'scheme': 'dark', 'checked': len(entries_d),
                           'elements': entries_d,
-                          'summary': _summarize(entries_d, skipped_d)}
+                          'summary': _summarize(entries_d, skipped_d, _unp_d)}
         light_fails = {e['path'] for e in entries if e['verdict'] == 'fail'}
         dark_fails = {e['path'] for e in entries_d if e['verdict'] == 'fail'}
         report['dark_delta'] = {

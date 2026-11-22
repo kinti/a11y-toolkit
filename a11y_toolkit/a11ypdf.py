@@ -45,8 +45,38 @@ _STREAM_CAP = 20_000_000      # 20 MB por stream descomprimido
 _STREAM_BUDGET = 120_000_000  # 120 MB en total entre todos los streams
 
 
+def _decode_filters(chunk, filters_declared):
+    """(7a pasada) interpreta los /Filter DECLARADOS en el diccionario del
+    stream: FlateDecode (zlib), ASCII85Decode (base64.a85decode, adobe) y
+    la CADENA ASCII85->Flate que Poppler produce — antes solo se probaba
+    Flate a ciegas y el contenido sin comprimir o tras ASCII85 se perdía.
+    Sin /Filter: los bytes van tal cual (PDF legítimo)."""
+    import base64
+    for f in filters_declared:
+        f = f.strip().lstrip(b'/')   # el findall captura SIN la barra inicial
+        if f == b'FlateDecode':
+            try:
+                d = zlib.decompressobj()
+                chunk = d.decompress(chunk, _STREAM_CAP)
+            except Exception:  # noqa: BLE001
+                return None
+        elif f == b'ASCII85Decode':
+            try:
+                c = chunk.strip()
+                if c.endswith(b'~>'):
+                    c = c[:-2]
+                chunk = base64.a85decode(c)
+            except Exception:  # noqa: BLE001
+                return None
+        # RunLength, LZW, DCT...: fuera de stdlib — el stream se declara
+        # no convertible y se cuenta como tal, jamás como texto medible
+        else:
+            return None
+    return chunk
+
+
 def _uncompressed_streams(data, limit=60):
-    """Los streams FlateDecode, descomprimidos (zlib es stdlib) — ahí viven
+    """Los streams decodificados SEGUN SUS /Filter declarados — ahí viven
     el XMP, el contenido y buena parte de la estructura."""
     out, total = [], 0
     for m in re.finditer(rb'stream\r?\n', data):
@@ -57,10 +87,16 @@ def _uncompressed_streams(data, limit=60):
         if end == -1:
             continue
         chunk = data[start:end].rstrip(b'\r\n')
-        try:
-            d = zlib.decompressobj()
-            dec = d.decompress(chunk, _STREAM_CAP)  # bomba: techo por stream
-        except Exception:  # noqa: BLE001
+        # diccionario ANTES del stream: manda el /Filter del dict INMEDIATO
+        # (el ÚLTIMO del head — la ventana puede traer dicts de objetos
+        # vecinos y aplicar Flate DOS veces mataba streams perfectos)
+        head = data[max(0, m.start() - 800):m.start()]
+        filters_declared = []
+        mu = re.findall(rb'/Filter\s*(\[[^\]]*\]|/\w+)', head)
+        if mu:
+            filters_declared = re.findall(rb'/\w+', mu[-1])
+        dec = _decode_filters(chunk, filters_declared) if filters_declared else chunk
+        if dec is None:
             continue
         out.append(dec)
         total += len(dec)

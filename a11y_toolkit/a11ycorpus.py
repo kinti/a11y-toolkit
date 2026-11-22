@@ -308,6 +308,11 @@ def evaluate(submission, directory='corpus', submission_name='submission'):
             additional.append({'case_id': cid, 'additional_criteria': extra})
     n_mut = sum(1 for c in entries.values() if c['kind'] == 'mutant')
     n_pla = len(entries) - n_mut
+    # (7a pasada) lo que decide es la ENTREGA, no el corpus: omitir los
+    # placebos del submission dejaba n_pla>0 (vienen del directorio) y la
+    # evaluacion se declaraba completa con un claim de FP infalsable
+    pla_scored = sum(1 for cid, c in entries.items()
+                          if c['kind'] == 'placebo' and cid in by_id)
     out = {
         'format': EVAL_FORMAT,
         'submission_name': submission_name,
@@ -321,7 +326,8 @@ def evaluate(submission, directory='corpus', submission_name='submission'):
         **({'incomplete': True,
             'incomplete_reason': 'no control (placebo) pages in the submission: '
                                  'the false-positive claim cannot be evaluated'}
-           if n_pla == 0 else {'incomplete': False}),
+           if pla_scored == 0 else {'incomplete': False}),
+        'control_pages_scored': pla_scored,
         'additional_findings_on_mutants': {'count': len(additional),
                                            'note': 'reported, not scored: only '
                                                    'placebo flags are false '

@@ -53,7 +53,7 @@ además Playwright:
 [![Socket score](https://socket.dev/api/badge/pypi/package/a11y-toolkit)](https://socket.dev/pypi/package/a11y-toolkit/overview)
 [![OpenSSF Scorecard](https://api.securityscorecards.dev/projects/github.com/kinti/a11y-toolkit/badge)](https://scorecard.dev/viewer/?uri=github.com/kinti/a11y-toolkit)
 [![OpenSSF Best Practices](https://www.bestpractices.dev/projects/16107/badge)](https://www.bestpractices.dev/en/projects/16107)
-[![ACT Rules](https://img.shields.io/badge/ACT%20Rules-20%2F20%20consistent-brightgreen)](https://github.com/kinti/a11y-toolkit/blob/main/docs/act-report-summary.md)
+[![ACT Rules](https://img.shields.io/badge/ACT%20Rules-134%2F134%20fallos%20detectados-brightgreen)](https://github.com/kinti/a11y-toolkit/blob/main/docs/act-report-summary.md)
 [![Releases](https://img.shields.io/badge/releases-OIDC%20provenance%20signed-blue)](.github/workflows/publish.yml)
 [![Dependencies](https://img.shields.io/badge/dependencies-zero-blue)](pyproject.toml)
 [![Python Versions](https://img.shields.io/pypi/pyversions/a11y-toolkit)](https://pypi.org/project/a11y-toolkit/)
@@ -343,11 +343,13 @@ fixture de regresión).
 
 También se ejecuta contra los casos de prueba oficiales ACT del W3C:
 `scripts/act_report.py` regenera el [informe de implementación
-EARL](docs/act-implementation-report.json) — **100% consistente con cada
-regla ACT publicada que implementa** (355 casos oficiales, 20/20 reglas,
-cero inconsistencias, verificado por release contra el repositorio
-w3c/wcag-act-rules; desglose por regla en
-[docs/act-report-summary.md](docs/act-report-summary.md)). El catálogo WCAG
+EARL](docs/act-implementation-report.json) — **los 134 casos con fallo
+esperado se detectan TODOS (cero fallos perdidos) y 273 de 355 outcomes
+(77%) coinciden exactamente con el oráculo** (las 82 restantes son
+divergencias passed↔inapplicable en 16 reglas — casos límite de
+aplicabilidad, jamás un fallo perdido; desglose por regla en
+[docs/act-report-summary.md](docs/act-report-summary.md), verificado contra
+el repositorio w3c/wcag-act-rules). El catálogo WCAG
 2.2 (86 criterios, A/AA/AAA) y el registro de outcomes WCAG 3 se verifican
 igualmente contra sus fuentes canónicas de w3.org
 (`scripts/wcag22_ingest.py`, `scripts/wcag3_ingest.py`). La calibración

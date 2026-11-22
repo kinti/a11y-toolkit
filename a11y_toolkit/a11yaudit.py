@@ -873,12 +873,15 @@ class _Auditor(HTMLParser):
                     self.help_hrefs.add(href.split('#')[0].rstrip('/'))
                 if href and re.search(r'sitemap|site-map|mapa-del-sitio|mapa_web|mapaweb', href, re.I):
                     self.has_sitemap = True
-                # 2.4.5 vía adicional (4ª pasada): un índice/TOC o bloque de
-                # relacionados SON formas de encontrar páginas
-                if href and re.search(
-                        r'(?:^|[/\-_!.])(?:index|indice|indice-de-contenidos|contents|toc|related|relacionados|ver-tambien|see-also)(?:$|[/\-_!.])',
-                        href.split('#')[0].rstrip('/'), re.I):
-                    self.has_index = True
+                # 2.4.5 vía adicional (4ª pasada, afinada 7ª): un índice/TOC
+                # o bloque de relacionados SON formas de encontrar páginas —
+                # por SUBCADENA en el último segmento: los límites de palabra
+                # con puntuación dejaban fuera /blog/index.php, /articulos-relacionados
+                if href:
+                    _seg = href.split('#')[0].rstrip('/').split('/')[-1].lower()
+                    if re.search(r'index|ind[ií]ce|contents|\btoc\b|related|relacionad|ver-tambien|see-also|sobre-este|more-like|similares|etiquetas|tags\b|categorias|categories|archivo|archive',
+                                 _seg):
+                        self.has_index = True
         elif tag == 'input':
             self._field_note()
             kind = (a.get('type') or 'text').lower()
@@ -1287,10 +1290,12 @@ class _Auditor(HTMLParser):
             _hrole = (a.get('role') or '').strip().lower()
             if _hrole in ('none', 'presentation') or self._in_template:
                 pass
-            elif _hrole and _hrole != 'heading':
-                # CUALQUIER otro rol explícito SUSTITUYE al de heading (la
-                # primera regla de ARIA): h2 role=button desaparece de la
-                # navegación por encabezados del AT — se registra (1.3.1)
+            elif _hrole and _hrole != 'heading' and _hrole in _ROLES_ARIA:
+                # un rol VALIDO distinto de heading SUSTITUYE al de heading
+                # (la primera regla de ARIA): h2 role=button desaparece de la
+                # navegación por encabezados del AT — se registra (1.3.1).
+                # (7a pasada) un rol DESCONOCIDO (role="bogus heading") el
+                # navegador lo IGNORA y el h2 SIGUE siendo heading: sin aviso
                 if not _hidden and len(self.heading_role_removed) < 12:
                     _nm = (a.get('aria-label') or '').strip()[:24]
                     self.heading_role_removed.append(
@@ -2675,14 +2680,19 @@ def audit_site(url, max_pages=5, timeout=30, lang='en', from_sitemap=True,
     max_pages = max(1, min(20, int(max_pages)))
     import time
     deadline = (time.monotonic() + budget) if budget else None
+    # (7ª pasada) la PRIMERA página también contra su URL FINAL: /deep2 que
+    # redirige a /deep reportaba bajo /deep2 y sus enlaces relativos se
+    # resolvían contra la ruta PEDIDA — el camino equivocado
+    _m0 = {}
     try:
-        html_text = _fetch(url, timeout=timeout)
+        html_text = _fetch(url, timeout=timeout, _meta=_m0)
     except _FetchError as e:
         return {'error': _t(lang, e.key).format(**e.fmt)}
     except ValueError as e:
         return {'error': str(e)}
     except Exception as e:  # noqa: BLE001
         return {'error': _t(lang, 'fetch_error').format(e=e)}
+    entry_final = ((_m0.get('final_url') or url).split('#')[0]).rstrip('/')
     # el parser jamás tira el crawl entero: una página hostil → informe de
     # error de ESA página y se sigue con la cola
     def _parse_page(html_txt, page_url):
@@ -2693,15 +2703,15 @@ def audit_site(url, max_pages=5, timeout=30, lang='en', from_sitemap=True,
         except Exception as e:  # noqa: BLE001
             return pg, {'url': page_url, 'error': _t(lang, 'err_unparseable').format(e=str(e)[:120])}
         return pg, None
-    p0, p0_err = _parse_page(html_text, url)
+    p0, p0_err = _parse_page(html_text, entry_final)
     if p0_err:
         return p0_err
-    reports = [audit_html(html_text, url, lang=lang)]
+    reports = [audit_html(html_text, entry_final, lang=lang)]
     parsers = [p0]
-    seen = {url.split('#')[0].rstrip('/')}
-    # discovery: sitemap first (WCAG-EM's own enumeration), links as fallback
+    seen = {url.split('#')[0].rstrip('/'), entry_final}
+    # discovery: sitemap first (WCAG-EM's enumeration), links as fallback
     urls_sm = _urls_sitemap(url, timeout=timeout) if from_sitemap else []
-    queue = urls_sm or _internal_links(html_text, url, url)
+    queue = urls_sm or _internal_links(html_text, entry_final, url)
     while queue and len(reports) < max_pages:
         if deadline is not None and time.monotonic() >= deadline:
             break          # budget exhausted: partial, not eternal

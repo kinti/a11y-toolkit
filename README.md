@@ -51,7 +51,7 @@ traps, reflow, forms) additionally need Playwright:
 [![Socket score](https://socket.dev/api/badge/pypi/package/a11y-toolkit)](https://socket.dev/pypi/package/a11y-toolkit/overview)
 [![OpenSSF Scorecard](https://api.securityscorecards.dev/projects/github.com/kinti/a11y-toolkit/badge)](https://scorecard.dev/viewer/?uri=github.com/kinti/a11y-toolkit)
 [![OpenSSF Best Practices](https://www.bestpractices.dev/projects/16107/badge)](https://www.bestpractices.dev/en/projects/16107)
-[![ACT Rules](https://img.shields.io/badge/ACT%20Rules-20%2F20%20consistent-brightgreen)](https://github.com/kinti/a11y-toolkit/blob/main/docs/act-report-summary.md)
+[![ACT Rules](https://img.shields.io/badge/ACT%20Rules-134%2F134%20failures%20detected-brightgreen)](https://github.com/kinti/a11y-toolkit/blob/main/docs/act-report-summary.md)
 [![Releases](https://img.shields.io/badge/releases-OIDC%20provenance%20signed-blue)](.github/workflows/publish.yml)
 [![Dependencies](https://img.shields.io/badge/dependencies-zero-blue)](pyproject.toml)
 [![Python Versions](https://img.shields.io/pypi/pyversions/a11y-toolkit)](https://pypi.org/project/a11y-toolkit/)
@@ -327,10 +327,12 @@ including a stratified sample of Spain's most important pages
 
 Also run against the official W3C ACT test cases: `scripts/act_report.py`
 regenerates the [EARL implementation report](docs/act-implementation-report.json)
-— **100% consistent with every published ACT rule it implements** (355 official
-test cases, 20/20 rules, zero inconsistencies, verified per release against the
-w3c/wcag-act-rules repository; per-rule breakdown in
-[docs/act-report-summary.md](docs/act-report-summary.md)). The WCAG 2.2 catalog
+— **every one of the 134 expected-failure cases is detected (zero missed
+failures), and 273 of 355 outcomes (77%) match the oracle exactly** (the
+remaining 82 are passed↔inapplicable divergences across 16 rules —
+applicability edge cases, never a missed failure; per-rule breakdown in
+[docs/act-report-summary.md](docs/act-report-summary.md), verified against the
+w3c/wcag-act-rules repository). The WCAG 2.2 catalog
 (86 criteria, A/AA/AAA) and the WCAG 3 outcome registry are likewise verified
 against their canonical w3.org sources (`scripts/wcag22_ingest.py`,
 `scripts/wcag3_ingest.py`). Calibration also runs against known-good component

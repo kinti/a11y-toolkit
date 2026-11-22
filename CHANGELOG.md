@@ -1,5 +1,61 @@
 # Changelog
 
+## main — pendiente
+- **External review, ROUND 7 — VERIFICATION PASS (2026-11-22, on v5.30.0):
+  the reviewer re-ran the 44 suites and every original case.** Most fixes
+  confirmed; the partials and stragglers below are now closed, starting with
+  the one the reviewer ranked first: the end-to-end HTTP contract.
+- **The HTTP false-green is dead at every layer (P1):** a rendered 404
+  carried a note but score 100 and exit 0, the pack marked 19 criteria
+  not-flagged and budget said ok — and the rendered report kept the
+  REQUESTED URL after a redirect while the crawler resolved the first
+  page's links against it. Now: a 4xx/5xx response carries a
+  machine-readable `error` (the content is still audited and embedded), so
+  the CLI exits 1, budget refuses the report and the evidence pack counts
+  nothing as covered — by contract, not by prose. The rendered report's
+  `url` is the FINAL page (requested_url kept), and the crawler resolves
+  and reports the first page against its final URL too.
+- **`versionar` no longer mistakes a LOCAL tag for a published release:**
+  the retry check now asks the REMOTE (`git ls-remote --tags origin`) — a
+  tag created by an attempt that failed after tagging, or in a repo without
+  a remote, resumes the full gate instead of printing "published" and
+  exiting 0.
+- **`contrast-dom --walk` dark pass keeps its own unparsed counter:** the
+  dark summary now reports its own `unparsed_colors` (a display-p3 color in
+  dark mode vanished with "zero unmeasured" before).
+- **The ACT claim tells the truth (doctrine "cobertura verdad"):** the
+  badge and both READMEs said 20/20 rules "consistent" while the published
+  report contains 82 outcome divergences in 16 rules. The public claim is
+  now two separate numbers: **134/134 expected failures detected (zero
+  missed failures)** and **273/355 exact outcome match (77%)** — the
+  divergences are passed↔inapplicable applicability edges, never a missed
+  failure; the summary's per-rule ✓ is relabeled to what it means.
+- **PDF streams decode by their DECLARED filters (P1 leftovers):**
+  uncompressed content and the ASCII85→Flate chain now decode (the filter
+  list comes from the stream's OWN dictionary — a window over neighboring
+  dicts applied Flate twice and killed valid streams); RunLength/LZW/DCT
+  are declared unconvertible, never silently skipped. Both variants now
+  measure the low-contrast gray the direct Flate version always caught.
+- **Static-engine stragglers:** a button inside `inert aria-hidden` no
+  longer reports as focusable-hidden (the DOM collector skips the inert
+  subtree); a heading with an UNKNOWN role (`role="bogus heading"`) keeps
+  its heading semantics — only a VALID different role replaces them; the
+  corpus evaluator declares `incomplete` based on the SUBMISSION's placebo
+  pages (the corpus's own placebos made a control-less submission look
+  complete) and reports `control_pages_evaluated`; 2.4.5 index/related
+  detection broadened to word substrings in the last path segment
+  (`/blog/index.php`, `/articulos-relacionados`).
+- **Widget/measurement stragglers:** a text-only element clipped by its OWN
+  overflow:clip box is measured with a Range (children-rect comparison
+  never fired for paragraphs without child elements); all dialog handles
+  are captured BEFORE any closing (closing the first dialog re-indexed the
+  visible list and the second went untested); a 3.2.2 advisory only counts
+  when its text actually talks about navigation/change («Choose a region»
+  no longer exempts a silent redirect).
+- **Still open (carried):** parser path memory O(depth²), network
+  isolation for rendered mode, crawl attempt budget, one-pass annotate,
+  `auth_state` in disprove.
+
 ## 5.30.0 — 2026-11-22 (revisión externa: seis rondas sobre edfcc21)
 - **External review, ROUND 6 (2026-11-22, same audited commit): the widget
   audit could approve keyboard-dead controls and accuse working ones.** Every

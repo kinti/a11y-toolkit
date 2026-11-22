@@ -27,7 +27,10 @@ Consistencia ACT por regla (esperado → outcome, recuentos):
 - ✓ `e086e5`: earl:failed→earl:failed: 9; earl:inapplicable→earl:passed: 3; earl:passed→earl:inapplicable: 2; earl:passed→earl:passed: 8
 - ✓ `ffd0e9`: earl:failed→earl:failed: 8; earl:inapplicable→earl:inapplicable: 1; earl:inapplicable→earl:passed: 1; earl:passed→earl:inapplicable: 1; earl:passed→earl:passed: 4
 
-**Reglas consistentes: 20/20**
+**Fallos esperados detectados: 134/134 (cero fallos perdidos).**
+**Coincidencia exacta de outcome: 273/355 (77%)** — las 82 divergencias son
+passed↔inapplicable (límites de aplicabilidad, no fallos perdidos): el ✓ por
+regla indica «ningún fallo esperado se perdió», NO coincidencia exacta.
 
 Datos aportados por el proveedor; el W3C no los verifica
 ni respalda (alcance del listado oficial).
