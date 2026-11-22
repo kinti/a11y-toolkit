@@ -1,6 +1,6 @@
 # Changelog
 
-## main — pendiente
+## 5.30.0 — 2026-11-22 (revisión externa: seis rondas sobre edfcc21)
 - **External review, ROUND 6 (2026-11-22, same audited commit): the widget
   audit could approve keyboard-dead controls and accuse working ones.** Every
   case reproduced in Chromium with local HTML before the fix.
