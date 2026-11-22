@@ -240,7 +240,7 @@ a11ytoolkit pair "#1f2328" "#fbfaf7"                    # contrast
 a11ytoolkit image hero.jpg --text "#fff" --region 120,40,420,90
 a11ytoolkit forms https://mysite/contact                # form errors
 a11ytoolkit kbd https://mysite                          # keyboard traps + 3.2.1/3.2.2
-a11ytoolkit reflow https://mysite                       # 320px reflow
+a11ytoolkit reflow https://mysite                       # 320px reflow (behind login: --auth-state session.json)
 a11ytoolkit scroll https://medium.com/feed              # infinite scroll
 a11ytoolkit validate --url https://example.com          # W3C Nu
 a11ytoolkit hover https://mysite                        # tooltip dismissibility
@@ -249,7 +249,7 @@ a11ytoolkit fix --file page.html -o fixed.html          # safe autofix
 a11ytoolkit declaration --entity "Acme" --url https://… --status partial --framework eaa
 a11ytoolkit snapshot https://mysite --out before.json   # before deploy
 a11ytoolkit diff before.json after.json                 # after deploy
-a11ytoolkit evidence audit.json -o pack.json            # verifiable evidence pack
+a11ytoolkit evidence audit.json -o pack.json            # verifiable evidence pack (not-run unless a covering mode actually ran)
 a11ytoolkit disprove --url https://mysite               # re-verify findings
 a11ytoolkit budget --budget budget.json --audit audit.json  # only NEW findings block
 a11ytoolkit budget --init-snapshot s.json > structural.json      # structural budget: today's structure is accepted

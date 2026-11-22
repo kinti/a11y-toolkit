@@ -826,6 +826,82 @@ RENDERED_ONLY = frozenset({
     '3.3.1', '3.3.3', '4.1.3',
 })
 
+# Criterio A/AA → modos de informe capaces de emitirle señal. El pack de
+# evidencia deriva not-run/not-flagged de AQUÍ: «not-flagged» solo cuando la
+# muestra incluye un informe ACEPTADO (sin 'error') de un modo que puede
+# emitir la señal del criterio — la revisión externa (2026-11-22) cazó el pack
+# declarando 34 criterios not-flagged con CERO informes, y un informe dom
+# limpiando 2.1.2/3.3.1/3.3.3 que solo prueban a11y_keyboard/a11y_forms.
+# Modos: static = a11y_audit_url/html (audit_dom re-ejecuta ese repertorio
+# sobre el DOM vivo, por eso 'rendered' acompaña donde corresponde); site =
+# audit --pages (crawl: señales a nivel de sitio); rendered = a11y_audit_dom;
+# el resto, la herramienta especializada de cada familia. journey_* cubre lo
+# que el veredicto de trayecto puede testimoniar. vtt/pdf/docx quedan fuera:
+# son otros targets (documentos), no muestras web.
+# El test de invariantes re-deriva esta tabla de los puntos de emisión.
+MODES_BY_CRITERION = {
+    # señales estáticas que audit_dom re-ejecuta sobre el DOM vivo
+    '1.1.1': ('static', 'site', 'rendered'),
+    '1.2.2': ('static', 'site', 'rendered'),
+    '1.3.1': ('static', 'site', 'rendered', 'scroll', 'journey'),
+    '1.4.4': ('static', 'site', 'rendered', 'journey'),
+    '2.2.1': ('static', 'site', 'rendered', 'journey'),
+    '2.4.1': ('static', 'site', 'rendered', 'keyboard', 'journey'),
+    '2.4.2': ('static', 'site', 'rendered'),
+    '2.4.3': ('static', 'site', 'rendered', 'scroll', 'journey'),
+    '3.1.1': ('static', 'site', 'rendered'),
+    '3.3.2': ('static', 'site', 'rendered', 'journey'),
+    '4.1.2': ('static', 'site', 'rendered', 'journey'),
+    # señales SOLO estáticas (audit_dom no las re-emite)
+    '1.2.3': ('static', 'site'),
+    '1.3.3': ('static', 'site'),
+    '1.3.4': ('static', 'site'),
+    '1.3.5': ('static', 'site'),
+    '1.4.2': ('static', 'site'),
+    '1.4.5': ('static', 'site'),
+    '2.1.1': ('static', 'site', 'journey'),
+    '2.1.4': ('static', 'site'),
+    '2.4.4': ('static', 'site', 'journey'),
+    '2.4.6': ('static', 'site', 'journey'),
+    '2.5.1': ('static', 'site'),
+    '2.5.2': ('static', 'site'),
+    '2.5.3': ('static', 'site'),
+    '2.5.4': ('static', 'site'),
+    '2.5.7': ('static', 'site', 'journey'),
+    '3.1.2': ('static', 'site'),
+    '3.3.4': ('static', 'site'),
+    '3.3.8': ('static', 'site'),
+    '4.1.3': ('static', 'site', 'scroll', 'journey'),
+    # 1.4.12: !important inline (static) + clipping real (rendered)
+    '1.4.12': ('static', 'site', 'rendered'),
+    # 2.2.2: marquee/anim estáticas + motion_moving (rendered) + pasadas propias
+    '2.2.2': ('static', 'site', 'rendered', 'reduced-motion', 'scroll'),
+    # señales de modo exclusivo — un informe dom NO las limpia
+    '1.3.2': ('rendered',),
+    '1.4.1': ('rendered',),
+    '1.4.3': ('rendered', 'forced-colors'),
+    '1.4.10': ('reflow', 'journey'),
+    '1.4.13': ('hover', 'journey'),
+    '2.1.2': ('keyboard', 'journey'),
+    '2.4.7': ('rendered', 'journey'),
+    '2.4.11': ('rendered',),
+    '2.5.8': ('rendered',),
+    '3.2.1': ('keyboard',),
+    '3.2.2': ('keyboard',),
+    '3.3.1': ('forms', 'journey'),
+    '3.3.3': ('forms', 'journey'),
+    # señales a nivel de sitio (solo el crawl las ve)
+    '2.4.5': ('site',),
+    '3.2.3': ('site',),
+    '3.2.6': ('site',),
+    # sin señal MAPEADA pero con medición real: 1.4.11 (contraste de foco/UI
+    # en audit_dom), 1.2.5 y 3.2.4 (el material sí se audita — la señal
+    # mapeada es la que falta). Pendiente de calibración humana.
+    '1.4.11': ('rendered',),
+    '1.2.5': ('static', 'site'),
+    '3.2.4': ('static', 'site'),
+}
+
 
 
 # Señal del motor → criterio WCAG que alimenta. Derivado empíricamente de los

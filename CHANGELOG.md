@@ -1,6 +1,55 @@
 # Changelog
 
 ## main — pendiente
+- **External review triage (2026-11-22) — the three P1s and the cheap P2s,
+  all verified in code before touching anything.** What this does NOT do:
+  the ACT-consistency claim republishing, the crawl attempt-budget and the
+  one-pass annotate insertion stay open (the review's "Mejoras" section —
+  each needs its own verified numbers before touching public claims).
+- **Browser pool owns its driver (P1 — "Event loop is closed"):** every
+  rendered tool used to open `with sync_playwright()`, park the browser in
+  the pool and let the with-block kill the session that created it — the
+  orphaned object (stale `is_connected()`) poisoned every later MCP call
+  after an authenticated audit. Now the pool starts, owns and closes
+  Playwright and the browser TOGETHER (`_close_pool` on recycle + atexit),
+  audits only close their own page/context (`_pooled_page`), and the driver
+  dies once per process instead of leaking per call. Pinned by
+  tests/test_pool_lifecycle.py: sr-transcript+auth → dom+auth → dom →
+  reflow+auth → recycle, all in ONE process.
+- **Evidence pack: coverage is derived from what actually ran (P1):** the
+  matrix used to mark 34 criteria `not-flagged` with ZERO reports, an
+  error-only report counted as coverage, and a clean rendered audit cleared
+  2.1.2/3.3.1/3.3.3 — criteria only a11y_keyboard/a11y_forms can test. Now
+  `not-flagged` requires an ACCEPTED report (no `error`) of a mode that can
+  signal that criterion; everything else is `not-run` with a note naming the
+  missing tool. Single source: `MODES_BY_CRITERION` (a11ycrit), re-derived
+  from the emission points by test_solido — the derivation corrected six
+  criteria where the journey friction catalog testifies and the first draft
+  missed. Sample pack re-emitted (30→29 not-flagged, 16→17 not-run);
+  evidence-pack-schema.md sharpened. VPAT/OpenACR mapping unchanged
+  (not-run already mapped to not-evaluated).
+- **npm launcher isolated from the audited project (P1 — hijack via CWD):**
+  the launcher ran `python -m` from the caller's working directory, so a
+  module named like the engine inside the audited project shadowed the
+  bundled one and ran with the user's permissions (VS Code launches the bin
+  from the workspace root). Now Python runs the bundled bootstrap in
+  isolated mode (`-I`: no CWD on sys.path, no env-var paths, no user site)
+  and the engine loads by absolute package path. Pinned end-to-end:
+  test_npm_wrapper runs the real bin from a hostile CWD with a planted
+  `a11y_toolkit.py` — the bundled engine must win and the plant must never
+  execute.
+- **a11y_reflow honors auth_state (P2):** the parameter existed and was
+  ignored — the login screen scored 100 because the cookie never rode along.
+  The session context now carries the viewport; the CLI gained
+  `--auth-state`.
+- **CLI exit codes: execution failure ≠ accessibility finding (P2):** dom,
+  reflow, forms, kbd, hover and `audit --file` could return 0 with an error
+  in the JSON — a false green for anything gating on the exit code. They now
+  return 1 on execution errors (contrast-dom already did); findings still
+  don't block (that's guard/budget's job).
+- **DOCX intake cap (P2):** ZIP members are checked against their declared
+  `file_size` (40 MB) before decompression — hostile-document ingestion no
+  longer unzips without a limit.
 - **Self-audit calibration (the dog ate its own homework):** deploying 5.29.0
   to a11y.es ran the site through its own new engine and /checklist surfaced
   two findings, both calibrations not regressions:

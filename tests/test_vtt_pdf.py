@@ -362,4 +362,22 @@ assert par_docx['score'] == par_pdf['score'] == 80, (par_docx['score'], par_pdf[
 assert par_docx['score'] == compute_score(par_docx['findings'])
 print('27. score docx = compute_score = score pdf (mismo multiset) ✓')
 
+# 28. techo de descompresión por miembro (revisión externa 2026-11-22): la
+# ingesta de un .docx hostil no puede descomprimir sin límite. Techo parcheado
+# a 100 bytes para no fabricar 40 MB en el suite — el guard usa file_size
+# declarado del directorio central ANTES de leer
+import a11y_toolkit.a11ydocx as _mod_docx
+_cuerpo_grande = (f'<w:document {W_NS}><w:body>'
+                  + '<w:p><w:r><w:t>' + 'x' * 500 + '</w:t></w:r></w:p>'
+                  + '</w:body></w:document>')
+_grande = docx_tmp(_cuerpo_grande, name='grande.docx')
+_techo_original = _mod_docx._MAX_MEMBER_BYTES
+_mod_docx._MAX_MEMBER_BYTES = 100
+try:
+    r28 = docx_screen(_grande, lang='en')
+finally:
+    _mod_docx._MAX_MEMBER_BYTES = _techo_original
+assert 'error' in r28 and 'cap' in r28['error'], r28
+print('28. techo de ingesta ZIP: member > límite → error, sin descomprimir ✓')
+
 print('Regresiones PDF/DOCX/VTT OK ✓')

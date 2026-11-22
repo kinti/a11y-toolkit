@@ -46,6 +46,15 @@ MANUAL_AA = [
 _STATES = ('automated-fail', 'automated-review', 'not-flagged', 'manual-only',
             'agent-verified', 'not-run', 'not-applicable')
 
+# modo interno → la herramienta que la persona ejecuta (para la nota not-run)
+_MODE_TOOL = {
+    'static': 'a11y_audit_url', 'site': 'a11ytoolkit audit --pages',
+    'rendered': 'a11y_audit_dom', 'keyboard': 'a11y_keyboard',
+    'forms': 'a11y_forms', 'reflow': 'a11y_reflow', 'hover': 'a11y_hover',
+    'scroll': 'a11y_scroll', 'journey': 'a11y_journey_verdict',
+    'reduced-motion': 'a11y_reduced_motion', 'forced-colors': 'a11y_forced_colors',
+}
+
 
 def _canon(obj):
     return json.dumps(obj, ensure_ascii=False, sort_keys=True, separators=(',', ':'))
@@ -165,6 +174,13 @@ def build_pack(reports, snapshot=None, reviewer=None, notes=None, verified=None,
         else:
             pages.append(inf)
 
+    # SOLO informes ACEPTADOS cuentan como cobertura: un informe con 'error'
+    # no miró nada (la revisión externa 2026-11-22: cero informes, o solo
+    # informes de error, y el pack declaraba 34 criterios not-flagged que
+    # nadie había mirado). Siguen sellados como artefactos — son entradas —
+    # pero no aportan evidencia de chequeo ejecutado.
+    pages = [p for p in pages if not (isinstance(p, dict) and p.get('error'))]
+
     # matriz de criterios: los que tocamos (estado según hallazgos) + manuales
     from .a11ycrit import _C as _CAT, effort
     codes_aa = sorted(k for k, v in _CAT.items() if v[0] in ('A', 'AA'))
@@ -229,10 +245,9 @@ def build_pack(reports, snapshot=None, reviewer=None, notes=None, verified=None,
                 if val:
                     values[code] = val
 
-    # criterios que requieren modo rendered (si solo corrió static, su estado
-    # real es not-run, no not-flagged: la herramienta SÍ tiene señal pero el
-    # modo que la produce no se incluyó)
-    from .a11ycrit import RENDERED_ONLY as _RENDERED_ONLY  # canónico (a11ycrit)
+    # criterios que requieren modos que este pack no incluye → not-run con el
+    # nombre de la herramienta que falta (canónico en a11ycrit, re-derivado)
+    from .a11ycrit import MODES_BY_CRITERION as _MODES_BY
 
     matrix = []
     _manual_codes = {m.split(' ')[0] for m in MANUAL_AA}
@@ -249,11 +264,18 @@ def build_pack(reports, snapshot=None, reviewer=None, notes=None, verified=None,
             continue
         if code in _manual_codes:
             continue  # covered by the manual-only rows appended below
-        state = touched.get(code, 'not-flagged')
+        state = touched.get(code)
 
-        # not-run: el criterio requiere rendered y este pack no lo incluye
-        if state == 'not-flagged' and code in _RENDERED_ONLY and 'rendered' not in modes_included:
-            state = 'not-run'
+        # cobertura derivada de lo EJECUTADO: not-flagged solo si la muestra
+        # incluye un informe aceptado de un modo capaz de emitir la señal del
+        # criterio (MODES_BY_CRITERION, re-derivada por el test de invariantes).
+        # Sin hallazgo y sin modo → not-run: la máquina NO miró este criterio.
+        if state is None:
+            modes = _MODES_BY.get(code, ())
+            if modes and modes_included & set(modes):
+                state = 'not-flagged'
+            else:
+                state = 'not-run'
 
         # verificados: promueve not-flagged/not-run/manual-only → agent-verified
         # (pero automated-fail permanece: un fallo no se borra verificando)
@@ -264,8 +286,9 @@ def build_pack(reports, snapshot=None, reviewer=None, notes=None, verified=None,
         if state == 'not-flagged':
             note = tx['not_flagged']
         elif state == 'not-run':
-            note = ('requires rendered mode (a11y_audit_dom) — this pack only '
-                    'includes the static audit, so no signal was tried')
+            # nombra la HERRAMIENTA que falta, no el modo interno
+            missing = sorted({_MODE_TOOL.get(m, m) for m in _MODES_BY.get(code, ())})
+            note = tx['not_run'].format(modes=', '.join(missing) or '—')
         elif state == 'agent-verified':
             note = tx['verified']
 

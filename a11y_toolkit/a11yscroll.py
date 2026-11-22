@@ -79,19 +79,16 @@ def _add(findings, lang, sev, code, key, **fmt):
 
 
 def audit_scroll(url, max_batches=5, lang='en', timeout=45, auth_state=None, browser='auto'):
-    from playwright.sync_api import sync_playwright
-    from .a11ydom import _get_browser
-    with sync_playwright() as p:
-        nav = _get_browser(p, preferred=browser)
-        ctx = nav.new_context(storage_state=auth_state) if auth_state else nav
-        # BrowserContext.new_page() NO acepta viewport: va en el new_context
-        page = (ctx.new_page() if auth_state
-                else nav.new_page(viewport={'width': 1280, 'height': 800}))
+    from .a11ydom import _get_browser, _pooled_page
+    nav = _get_browser(preferred=browser)
+    # BrowserContext.new_page() NO acepta viewport: _pooled_page lo manda al
+    # new_context cuando hay auth_state
+    page, close_page = _pooled_page(nav, auth_state, viewport={'width': 1280, 'height': 800})
+    try:
         try:
             page.goto(url, wait_until='load', timeout=timeout * 1000)
             page.wait_for_timeout(500)
         except Exception as e:  # noqa: BLE001
-            nav.close()
             return {'error': f'no se pudo cargar: {e}'}
         page.evaluate(_MON)
         page.evaluate("(() => { const c = document.querySelector("
@@ -134,8 +131,8 @@ def audit_scroll(url, max_batches=5, lang='en', timeout=45, auth_state=None, bro
             if not grew:
                 end_reached = True
                 break
-
-        nav.close()
+    finally:
+        close_page()
 
     findings = []
     last = batches[-1] if batches else before

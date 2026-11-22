@@ -40,8 +40,13 @@ embedded in the pack. A verifier holding only the pack recomputes every hash
 in the chain without external files. Previous packs (manifest-only) are
 still valid pack/1 — they just need the reports alongside.
 
-**Not-run state**: when only the static audit runs, rendered-only criteria
-are marked `not-run` instead of `not-flagged`. This distinguishes "the
+**Not-run state (sharpened 2026-11-22)**: a criterion is `not-flagged` only
+when the sample includes an ACCEPTED report (one without `error`) of a mode
+that can carry its signal — `MODES_BY_CRITERION` in `a11ycrit.py` is the
+single source, re-derived from the emission points by the invariant tests.
+Zero reports, error-only reports, or reports of other modes (a rendered audit
+does not clear 2.1.2 — that is `a11y_keyboard`'s test) leave the criterion
+`not-run`, and the note names the missing tool. This distinguishes "the
 machine looked and found nothing" from "the machine was not asked to look."
 
 ## Content privacy (normative)

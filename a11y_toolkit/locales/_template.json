@@ -231,7 +231,8 @@
   "not_flagged": "",
   "notice": "",
   "reviewer_note": "",
-  "verified": ""
+  "verified": "",
+  "not_run": "no check for this criterion ran on this sample — missing: {modes}"
  },
  "fix": {
   "between": "",

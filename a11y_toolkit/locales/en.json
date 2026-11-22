@@ -336,6 +336,7 @@
   "manual_remaining": "human review remaining after the machine, per class (MIN 1-3, MED 5-10, MAX 15-30 min per criterion)",
   "no_signal": "no automated signal exists for this criterion in this toolkit",
   "not_flagged": "not-flagged ≠ pass: no automated signal fired on this sample",
+  "not_run": "no check for this criterion ran on this sample — missing: {modes}",
   "notice": "This pack is evidence, not conformance: it says what machines found and what remains for a human. A conformance claim requires the signature block completed by a qualified person who reviewed the manual list.",
   "reviewer_note": "any countersignature must reference pack.sha256 and state which criteria the human reviewed beyond the automated matrix",
   "verified": "verified against this sample per the manual checklist protocol",

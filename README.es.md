@@ -251,7 +251,7 @@ a11ytoolkit pair "#1f2328" "#fbfaf7"                    # contraste
 a11ytoolkit image hero.jpg --text "#fff" --region 120,40,420,90
 a11ytoolkit forms https://mysite/contact                # errores de formulario
 a11ytoolkit kbd https://mysite                          # trampas de teclado + 3.2.1/3.2.2
-a11ytoolkit reflow https://mysite                       # reflow 320px
+a11ytoolkit reflow https://mysite                       # reflow 320px (detrás de login: --auth-state session.json)
 a11ytoolkit scroll https://medium.com/feed              # scroll infinito
 a11ytoolkit validate --url https://example.com          # W3C Nu
 a11ytoolkit hover https://mysite                        # descartabilidad de tooltips
@@ -260,7 +260,7 @@ a11ytoolkit fix --file page.html -o fixed.html          # autofix seguro
 a11ytoolkit declaration --entity "Acme" --url https://… --status partial --framework eaa
 a11ytoolkit snapshot https://mysite --out before.json   # antes del deploy
 a11ytoolkit diff before.json after.json                 # tras el deploy
-a11ytoolkit evidence audit.json -o pack.json            # pack de evidencia verificable
+a11ytoolkit evidence audit.json -o pack.json            # pack de evidencia verificable (not-run salvo que un modo con señal corriera de verdad)
 a11ytoolkit disprove --url https://mysite               # re-verifica hallazgos
 a11ytoolkit budget --budget budget.json --audit audit.json  # solo lo NUEVO bloquea
 a11ytoolkit budget --init-snapshot s.json > estructural.json    # presupuesto estructural: la estructura de HOY se acepta

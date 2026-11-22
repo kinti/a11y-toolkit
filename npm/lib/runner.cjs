@@ -2,18 +2,27 @@
 /* Launcher: runs the SELF-CONTAINED engine that ships inside this package
  * (a11y_toolkit/, pure-stdlib Python). No downloads at runtime when a
  * python3 (>=3.9) exists; falls back to a version-pinned uvx when it does
- * not. Zero install, zero network, reproducible by construction. */
+ * not. Zero install, zero network, reproducible by construction.
+ *
+ * Hardening (external review 2026-11-22): python used to load the engine
+ * from the CALLER's working directory, so a module named like the engine in
+ * the audited project would shadow the bundled one and execute with the
+ * user's permissions (VS Code launches this from the workspace root). Now
+ * Python runs the bundled bootstrap in ISOLATED mode (-I: no CWD on the
+ * path, no env-var paths, no user site) and the engine loads by absolute
+ * path from this package. */
 const { spawn, spawnSync } = require('child_process');
 const path = require('path');
 
 const ENGINE = path.join(__dirname, '..');          // where a11y_toolkit/ lives
+const BOOTSTRAP = path.join(__dirname, '_bootstrap.py');  // isolated entry point
 const PY = process.platform === 'win32' ? 'python' : 'python3';
 const UVX = process.platform === 'win32' ? 'uvx.exe' : 'uvx';
 const VERSION = require('../package.json').version;  // pinned fallback, same release
 
 function pythonOk() {
   try {
-    const r = spawnSync(PY, ['-c', 'import sys; sys.exit(0 if sys.version_info >= (3, 9) else 1)']);
+    const r = spawnSync(PY, ['-I', '-c', 'import sys; sys.exit(0 if sys.version_info >= (3, 9) else 1)']);
     return r.status === 0;
   } catch { return false; }
 }
@@ -21,8 +30,7 @@ function pythonOk() {
 function run(entry) {
   const args = process.argv.slice(2);
   if (pythonOk()) {
-    const child = spawn(PY, ['-m', entry, ...args],
-                        { stdio: 'inherit', env: { ...process.env, PYTHONPATH: ENGINE } });
+    const child = spawn(PY, ['-I', BOOTSTRAP, entry, ...args], { stdio: 'inherit' });
     child.on('close', (c) => process.exit(c === null ? 1 : c));
     return;
   }

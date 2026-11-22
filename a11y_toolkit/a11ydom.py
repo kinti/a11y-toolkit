@@ -44,7 +44,16 @@ _LIMITS_MOTION = {
 }
 
 from . import a11yi18n
-# browser pool: Chromium reutilizable entre llamadas consecutivas
+import atexit
+
+# browser pool: Chromium reutilizable entre llamadas consecutivas. El pool ES
+# el dueño del driver — browser y Playwright nacen y mueren JUNTOS (la lección
+# del «Event loop is closed»: una función abría `with sync_playwright()`,
+# guardaba el browser en el pool y el with mataba la sesión que lo creó; el
+# objeto huérfano quedaba en el pool con is_connected() rancio y envenenaba
+# TODAS las llamadas siguientes del servidor MCP). Las auditorías nunca cierran
+# el navegador del pool: cierran su página/contexto y lo devuelven caliente;
+# el driver muere una sola vez, al reciclar el pool o al acabar el proceso.
 _POOL = {'playwright': None, 'browser': None, 'type': None}
 
 # cadena de detección: el primer navegador disponible gana.
@@ -89,27 +98,69 @@ def _detect_browser(pw, preferred=None):
         'pip install playwright && playwright install chromium')
 
 
-def _get_browser(pw, headless=True, preferred=None):
-    """Devuelve un browser del pool (o crea uno si no existe)."""
+def _get_browser(headless=True, preferred=None):
+    """Devuelve un browser del pool (o crea uno si no existe). El driver de
+    Playwright lo arranca y posee el PROPIO pool: el browser devuelto vive
+    mientras viva el pool, no la sesión de quien lo pidió."""
     if _POOL['browser'] is not None and _POOL['browser'].is_connected() and \
             (preferred in (None, 'auto') or _POOL['type'] == preferred):
         return _POOL['browser']
     _close_pool()
+    from playwright.sync_api import sync_playwright
+    pw = sync_playwright().start()
     br, kind = _detect_browser(pw, preferred)
+    _POOL['playwright'] = pw
     _POOL['browser'] = br
     _POOL['type'] = kind
     return br
 
 
 def _close_pool():
-    """Cierra el pool (llamar al terminar el proceso o bajo demanda)."""
-    if _POOL['browser']:
-        try:
-            _POOL['browser'].close()
-        except Exception:
-            pass
+    """Cierra el pool: browser y driver JUNTOS, en orden (browser, luego
+    playwright.stop). Llamada al reciclar y al terminar el proceso (atexit)."""
+    br, pw = _POOL['browser'], _POOL['playwright']
     _POOL['browser'] = None
     _POOL['playwright'] = None
+    _POOL['type'] = None
+    if br is not None:
+        try:
+            br.close()
+        except Exception:  # noqa: BLE001
+            pass
+    if pw is not None:
+        try:
+            pw.stop()
+        except Exception:  # noqa: BLE001
+            pass
+
+
+atexit.register(_close_pool)
+
+
+def _pooled_page(nav, auth_state=None, **kw):
+    """(page, close_page) sobre el navegador del pool: con auth_state abre un
+    contexto propio (storage_state) cuyo cierre se lleva también la página;
+    sin él, página directa. close_page traga errores — el navegador del pool
+    queda caliente para la siguiente llamada, JAMÁS se cierra aquí."""
+    if auth_state:
+        ctx = nav.new_context(storage_state=auth_state, **kw)
+        page = ctx.new_page()
+
+        def close_page():
+            try:
+                ctx.close()
+            except Exception:  # noqa: BLE001
+                pass
+        return page, close_page
+
+    page = nav.new_page(**kw)
+
+    def close_page():
+        try:
+            page.close()
+        except Exception:  # noqa: BLE001
+            pass
+    return page, close_page
 
 MAX_EXAMPLES = 6
 
@@ -1022,16 +1073,13 @@ def audit_forms(url, timeout=45, lang='en', auth_state=None, browser='auto'):
     """3.3.1 Error Identification / 3.3.3 Error Suggestion — the guided flow:
     fill every validatable field with INVALID data, really submit, then judge
     how errors are identified and announced in the post-submit DOM."""
-    from playwright.sync_api import sync_playwright
-    with sync_playwright() as p:
-        nav = _get_browser(p, preferred=browser)
-        ctx = nav.new_context(storage_state=auth_state) if auth_state else nav
-        page = ctx.new_page() if auth_state else nav.new_page()
+    nav = _get_browser(preferred=browser)
+    page, close_page = _pooled_page(nav, auth_state)
+    try:
         try:
             page.goto(url, wait_until='load', timeout=timeout * 1000)
             page.wait_for_timeout(400)
         except Exception as e:  # noqa: BLE001
-            nav.close()
             return {'error': _t(lang, 'fetch_error').format(e=e)}
         url_before = page.url
         pre = page.evaluate(_JS_FORM_PRE)
@@ -1043,7 +1091,8 @@ def audit_forms(url, timeout=45, lang='en', auth_state=None, browser='auto'):
         page.wait_for_timeout(900)
         navigated = page.url.split('#')[0] != url_before.split('#')[0]
         state = None if navigated else page.evaluate(_JS_FORM_STATE, pre)
-        nav.close()
+    finally:
+        close_page()
 
     findings = []
 
@@ -1088,64 +1137,52 @@ def sr_transcript(url, timeout=45, lang='en', auth_state=None, browser='auto'):
     structure; this function returns it as prose an agent can READ and
     understand from a blind user's perspective.
     """
-    # J4 (ronda 4): el driver de playwright NUNCA se paraba — una fuga
-    # de proceso por llamada en un servidor MCP de larga vida
-    from playwright.sync_api import sync_playwright
-    pw = sync_playwright().start()
+    # J4 (ronda 4): el driver de playwright NUNCA se paraba — una fuga de
+    # proceso por llamada en un servidor MCP de larga vida. Hoy el POOL posee
+    # el driver (browser y playwright mueren juntos en _close_pool, atexit
+    # incluido): esta función solo pide prestado y devuelve la página.
+    nav = _get_browser(preferred=browser)
+    page, close_page = _pooled_page(nav, auth_state)
     try:
-        nav = _get_browser(pw, preferred=browser)
-        ctx = nav.new_context(storage_state=auth_state) if auth_state else nav
-        page = ctx.new_page() if auth_state else nav.new_page()
         try:
             page.goto(url, wait_until='load', timeout=timeout * 1000)
             page.wait_for_timeout(400)
         except Exception as e:
-            ctx.close()
-            _close_pool()
             return {'error': str(e)[:100]}
 
         try:
             tree = page.locator('body').aria_snapshot()
         except Exception:
             tree = None
-        try:
-            ctx.close()
-        except Exception:
-            pass
-
-        if not tree:
-            return {'url': url, 'mode': 'sr-transcript',
-                    'error': 'accessibility tree not available (Playwright >= 1.49 required)'}
-
-        # parse the YAML-like snapshot into linearized announcements
-        import re
-        announcements = []
-        for line in tree.split('\n'):
-            stripped = line.strip()
-            if not stripped.startswith('- '):
-                continue
-            # quitar el guion inicial; el resto es el anuncio
-            announcement = stripped[2:].rstrip(':')
-            if announcement:
-                announcements.append(announcement)
-
-        return {
-            'url': url,
-            'mode': 'sr-transcript',
-            'announcements': announcements[:200],  # cap
-            'total': len(announcements),
-            'arbol_raw': tree[:5000] if len(tree) > 5000 else tree,
-            'note': ('Linearized announcement order — what a screen reader user hears. '
-                     'Roles and names as computed by the browser. Use this to understand '
-                     'the page from a blind user\'s perspective.'),
-        }
-
-
     finally:
-        try:
-            pw.stop()
-        except Exception:  # noqa: BLE001
-            pass
+        close_page()
+
+    if not tree:
+        return {'url': url, 'mode': 'sr-transcript',
+                'error': 'accessibility tree not available (Playwright >= 1.49 required)'}
+
+    # parse the YAML-like snapshot into linearized announcements
+    import re
+    announcements = []
+    for line in tree.split('\n'):
+        stripped = line.strip()
+        if not stripped.startswith('- '):
+            continue
+        # quitar el guion inicial; el resto es el anuncio
+        announcement = stripped[2:].rstrip(':')
+        if announcement:
+            announcements.append(announcement)
+
+    return {
+        'url': url,
+        'mode': 'sr-transcript',
+        'announcements': announcements[:200],  # cap
+        'total': len(announcements),
+        'arbol_raw': tree[:5000] if len(tree) > 5000 else tree,
+        'note': ('Linearized announcement order — what a screen reader user hears. '
+                 'Roles and names as computed by the browser. Use this to understand '
+                 'the page from a blind user\'s perspective.'),
+    }
 _JS_HOVER_TEST = r'''() => {
   // find elements that show tooltips/overlays on hover
   const candidates = [];
@@ -1166,16 +1203,13 @@ _JS_HOVER_TEST = r'''() => {
 
 def audit_hover(url, timeout=45, lang='en', auth_state=None, browser='auto'):
     """1.4.13 Content on Hover or Focus: do tooltips dismiss on Escape?"""
-    from playwright.sync_api import sync_playwright
-    with sync_playwright() as p:
-        nav = _get_browser(p, preferred=browser)
-        ctx = nav.new_context(storage_state=auth_state) if auth_state else nav
-        page = ctx.new_page() if auth_state else nav.new_page()
+    nav = _get_browser(preferred=browser)
+    page, close_page = _pooled_page(nav, auth_state)
+    try:
         try:
             page.goto(url, wait_until='load', timeout=timeout * 1000)
             page.wait_for_timeout(400)
         except Exception as e:
-            nav.close()
             return {'error': str(e)[:100]}
 
         candidates = page.evaluate(_JS_HOVER_TEST)
@@ -1223,7 +1257,8 @@ def audit_hover(url, timeout=45, lang='en', auth_state=None, browser='auto'):
                     no_dismissibles.append(f'{c["tag"]}#{c["id"] or "no-id"}')
             except Exception:
                 continue
-        nav.close()
+    finally:
+        close_page()
 
     findings = []
     if no_dismissibles:
@@ -1345,21 +1380,23 @@ def audit_reflow(url, timeout=45, lang='en', auth_state=None, browser='auto'):
     un viewport de 320px, no emular zoom con CSS (validado empíricamente:
     el truco de zoom CSS marca en falso páginas sanas porque no re-lleva a cabo
     el layout)."""
-    from playwright.sync_api import sync_playwright
-    with sync_playwright() as p:
-        nav = _get_browser(p, preferred=browser)
-        page = nav.new_page(viewport={'width': 1280, 'height': 800})
+    nav = _get_browser(preferred=browser)
+    # auth_state aplica por fin aquí también (la revisión externa lo cazó:
+    # el parámetro existía y se IGNORABA — con la cookie fuera, la pantalla
+    # de login puntuaba 100); con sesión, el viewport viaja en el contexto
+    page, close_page = _pooled_page(nav, auth_state, viewport={'width': 1280, 'height': 800})
+    try:
         try:
             page.goto(url, wait_until='load', timeout=timeout * 1000)
             page.wait_for_timeout(300)
         except Exception as e:  # noqa: BLE001
-            nav.close()
             return {'error': _LOAD_ERR.get(lang, _LOAD_ERR['en']).format(e=e)}
 
         page.set_viewport_size({'width': 320, 'height': 800})
         page.wait_for_timeout(500)
         r320 = page.evaluate(_JS_OVERFLOW)
-        nav.close()
+    finally:
+        close_page()
 
     findings = []
 
@@ -1467,16 +1504,13 @@ def audit_keyboard(url, max_steps=60, lang='en', timeout=45, auth_state=None, br
     ESCAPE libera el ciclo. Un modal que cicla y suelta con Escape es correcto;
     uno que no suelta es trampa — hallazgo 'high'.
     """
-    from playwright.sync_api import sync_playwright
-    with sync_playwright() as p:
-        nav = _get_browser(p, preferred=browser)
-        ctx = nav.new_context(storage_state=auth_state) if auth_state else nav
-        page = ctx.new_page() if auth_state else nav.new_page()
+    nav = _get_browser(preferred=browser)
+    page, close_page = _pooled_page(nav, auth_state)
+    try:
         try:
             page.goto(url, wait_until='load', timeout=timeout * 1000)
             page.wait_for_timeout(400)
         except Exception as e:  # noqa: BLE001
-            nav.close()
             return {'error': _LOAD_ERR.get(lang, _LOAD_ERR['en']).format(e=e)}
 
         page.evaluate("document.querySelectorAll('[data-a11ystop]').forEach(e => {"
@@ -1573,10 +1607,8 @@ def audit_keyboard(url, max_steps=60, lang='en', timeout=45, auth_state=None, br
                         skip['broken'].append(found['id'])
             except Exception:  # noqa: BLE001 — SPA o contexto destruido: sin dato
                 pass
-        try:
-            nav.close()
-        except Exception:
-            pass
+    finally:
+        close_page()
 
     findings = []
     if focus_navigated:
@@ -1759,7 +1791,6 @@ def audit_forced_colors(url, timeout=45, lang='en', auth_state=None, browser='au
     dependen del color del autor pueden quedar invisible_els sobre el fondo
     del sistema), y bordes usados como único indicador visual. Nadie más
     lo automatiza."""
-    from playwright.sync_api import sync_playwright
     _JS_FC = r'''() => {
       const invisible_els = [];
       let n = 0;
@@ -1790,10 +1821,9 @@ def audit_forced_colors(url, timeout=45, lang='en', auth_state=None, browser='au
     }'''
     from .a11yaudit import _t as _t_audit, CRIT, compute_score
 
-    with sync_playwright() as p:
-        nav = _get_browser(p, preferred=browser)
-        ctx = nav.new_context(storage_state=auth_state) if auth_state else nav
-        page = ctx.new_page() if auth_state else nav.new_page()
+    nav = _get_browser(preferred=browser)
+    page, close_page = _pooled_page(nav, auth_state)
+    try:
         try:
             page.goto(url, wait_until='load', timeout=timeout * 1000)
             page.wait_for_timeout(400)
@@ -1802,9 +1832,9 @@ def audit_forced_colors(url, timeout=45, lang='en', auth_state=None, browser='au
             page.wait_for_timeout(400)
             forced = page.evaluate(_JS_FC)
         except Exception as e:  # noqa: BLE001
-            nav.close()
             return {'error': _t_audit(lang, 'fetch_error').format(e=e)}
-        nav.close()
+    finally:
+        close_page()
 
     findings = []
     if forced['coloredSvgs']:
@@ -1835,7 +1865,6 @@ def audit_reduced_motion(url, timeout=45, lang='en', auth_state=None, browser='a
     vez. Si el número NO baja, el sitio ignora la preferencia del usuario
     (2.2.2: pausa/parada/ocultar; 2.3.3 AAA). Nadie más lo automatiza:
     axe lo deja en revisión manual."""
-    from playwright.sync_api import sync_playwright
     _JS_RM = r'''() => {
       let n = 0, examples = [];
       for (const el of document.querySelectorAll('*')) {
@@ -1856,10 +1885,9 @@ def audit_reduced_motion(url, timeout=45, lang='en', auth_state=None, browser='a
     }'''
     from .a11yaudit import _t as _t_audit, CRIT, compute_score
 
-    with sync_playwright() as p:
-        nav = _get_browser(p, preferred=browser)
-        ctx = nav.new_context(storage_state=auth_state) if auth_state else nav
-        page = ctx.new_page() if auth_state else nav.new_page()
+    nav = _get_browser(preferred=browser)
+    page, close_page = _pooled_page(nav, auth_state)
+    try:
         try:
             page.goto(url, wait_until='load', timeout=timeout * 1000)
             page.wait_for_timeout(600)
@@ -1868,9 +1896,9 @@ def audit_reduced_motion(url, timeout=45, lang='en', auth_state=None, browser='a
             page.wait_for_timeout(600)
             reduced = page.evaluate(_JS_RM)
         except Exception as e:  # noqa: BLE001
-            nav.close()
             return {'error': _t_audit(lang, 'fetch_error').format(e=e)}
-        nav.close()
+    finally:
+        close_page()
 
     respects = reduced['anims'] < normal['anims']
     findings = []
@@ -1903,11 +1931,9 @@ def audit_dom_url(url, timeout=45, lang='en', auth_state=None, browser='auto', c
     :hover reales de los primeros controles marcados. auth_state: ruta a un
     storage_state de Playwright (cookies/localStorage exportados con la sesión
     iniciada) para auditar detrás de login."""
-    from playwright.sync_api import sync_playwright
-    with sync_playwright() as p:
-        nav = _get_browser(p, preferred=browser)
-        ctx = nav.new_context(storage_state=auth_state) if auth_state else nav
-        page = ctx.new_page() if auth_state else nav.new_page()
+    nav = _get_browser(preferred=browser)
+    page, close_page = _pooled_page(nav, auth_state)
+    try:
         if color_scheme in ('dark', 'light'):
             # contraste por esquema: los temas oscuros fallan donde el claro
             # pasa — nadie audita ambos (axe tampoco)
@@ -1917,56 +1943,51 @@ def audit_dom_url(url, timeout=45, lang='en', auth_state=None, browser='auto', c
             page.wait_for_timeout(400)
         except Exception as e:  # noqa: BLE001
             if not page.content() or page.url in ('about:blank', ''):
-                nav.close()
                 return {'error': _LOAD_ERR.get(lang, _LOAD_ERR['en']).format(e=e)}
-        try:
-            data = page.evaluate(_JS, MAX_EXAMPLES)
-            # 1.4.12: inject the WCAG spacing overrides, count clipped texts
-            data['spacingClipped'] = page.evaluate(_JS_SPACING)
-            # 1.4.3 real: captura + muestreo píxel a píxel de las zonas sobre
-            # imagen/degradado que el contraste computado no puede calcular
-            # (main frame; los iframes quedan como conteo de "revisar")
-            measured = []
-            for z in (data.get('contrastZones') or [])[:8]:
-                try:
-                    c = parse_color(z['fg'])
-                    if not c:
-                        continue
-                    m = _samples_background(
-                        page.locator(f'[data-a11ytxt="{z["i"]}"]'),
-                        {'x': z.get('x', 0), 'y': z.get('y', 0),
-                         'width': z.get('w', 1400), 'height': z.get('h', 400)}, c)
-                    if m:
-                        measured.append({'example': z['example'], 'fg': z['fg'],
-                                        'large': bool(z.get('large')),
-                                        'measured': m})
-                except Exception:  # noqa: BLE001
-                    continue
-            data['contrastMeasured'] = measured
-            # iframes same-origin: mismo colector por frame
-            subframes = []
-            for fr in page.frames[1:5]:
-                try:
-                    subframes.append(fr.evaluate(_JS, MAX_EXAMPLES))
-                except Exception:  # noqa: BLE001
-                    continue  # cross-origin o no escaneable
-            data['iframes_data'] = subframes
-            # hover real sobre los controles marcados
-            hover = []
-            for i in range(min(10, int(data.get('marks', 0)))):
-                try:
-                    page.hover(f'[data-a11yidx="{i}"]', timeout=1000)
-                    r = page.evaluate(_JS_HOVER, i)
-                    if r and r['ratio'] < 3:
-                        hover.append(dict(r, example=f'hover #{i}'))
-                except Exception:  # noqa: BLE001
-                    continue
-            data['hover'] = hover
-        finally:
+        data = page.evaluate(_JS, MAX_EXAMPLES)
+        # 1.4.12: inject the WCAG spacing overrides, count clipped texts
+        data['spacingClipped'] = page.evaluate(_JS_SPACING)
+        # 1.4.3 real: captura + muestreo píxel a píxel de las zonas sobre
+        # imagen/degradado que el contraste computado no puede calcular
+        # (main frame; los iframes quedan como conteo de "revisar")
+        measured = []
+        for z in (data.get('contrastZones') or [])[:8]:
             try:
-                ctx.close()
-            except Exception:
-                pass
+                c = parse_color(z['fg'])
+                if not c:
+                    continue
+                m = _samples_background(
+                    page.locator(f'[data-a11ytxt="{z["i"]}"]'),
+                    {'x': z.get('x', 0), 'y': z.get('y', 0),
+                     'width': z.get('w', 1400), 'height': z.get('h', 400)}, c)
+                if m:
+                    measured.append({'example': z['example'], 'fg': z['fg'],
+                                    'large': bool(z.get('large')),
+                                    'measured': m})
+            except Exception:  # noqa: BLE001
+                continue
+        data['contrastMeasured'] = measured
+        # iframes same-origin: mismo colector por frame
+        subframes = []
+        for fr in page.frames[1:5]:
+            try:
+                subframes.append(fr.evaluate(_JS, MAX_EXAMPLES))
+            except Exception:  # noqa: BLE001
+                continue  # cross-origin o no escaneable
+        data['iframes_data'] = subframes
+        # hover real sobre los controles marcados
+        hover = []
+        for i in range(min(10, int(data.get('marks', 0)))):
+            try:
+                page.hover(f'[data-a11yidx="{i}"]', timeout=1000)
+                r = page.evaluate(_JS_HOVER, i)
+                if r and r['ratio'] < 3:
+                    hover.append(dict(r, example=f'hover #{i}'))
+            except Exception:  # noqa: BLE001
+                continue
+        data['hover'] = hover
+    finally:
+        close_page()
     _merge_iframes(data)
     return audit_dom(data, url, lang=lang, color_scheme=color_scheme)
 
@@ -1982,58 +2003,52 @@ def contrast_dom(url, selector, text_color=None, sample=4, lang='en', timeout=45
     Para text_ sobre imágenes, degradados, vídeo o cualquier fondo que el
     cálculo CSS no puede resolver. Requiere Playwright.
     """
-    from playwright.sync_api import sync_playwright
     from .contrast import T as _TC
     t9 = _TC.get(lang, _TC['es'])
-    with sync_playwright() as p:
-        nav = _get_browser(p, preferred=browser)
-        ctx = nav.new_context(storage_state=auth_state) if auth_state else nav
-        page = ctx.new_page() if auth_state else nav.new_page()
+    nav = _get_browser(preferred=browser)
+    page, close_page = _pooled_page(nav, auth_state)
+    try:
+        page.goto(url, wait_until='load', timeout=timeout * 1000)
+        page.wait_for_timeout(300)
+        loc = page.locator(selector).first
         try:
-            page.goto(url, wait_until='load', timeout=timeout * 1000)
-            page.wait_for_timeout(300)
-            loc = page.locator(selector).first
-            try:
-                loc.wait_for(timeout=timeout * 1000)
-            except Exception:  # noqa: BLE001
-                return {'error': t9['selector_missing'].format(s=selector)}
-            if text_color:
-                c = parse_color(text_color)
-                if not c:
-                    return {'error': t9['invalid_color']}
-            else:
-                comp = loc.evaluate('el => getComputedStyle(el).color')
-                c = parse_color(comp)
-                if not c:
-                    return {'error': f"{t9['invalid_color']} (computed: {comp})"}
-            if c.get('a', 1) < 1:
-                return {'error': t9['opaque_text']}
-            try:
-                box = loc.bounding_box()
-                if not box or box['width'] < 3 or box['height'] < 3:
-                    return {'error': t9['no_box'].format(s=selector)}
-                m = _samples_background(loc, box, c)
-            except Exception:  # noqa: BLE001
+            loc.wait_for(timeout=timeout * 1000)
+        except Exception:  # noqa: BLE001
+            return {'error': t9['selector_missing'].format(s=selector)}
+        if text_color:
+            c = parse_color(text_color)
+            if not c:
+                return {'error': t9['invalid_color']}
+        else:
+            comp = loc.evaluate('el => getComputedStyle(el).color')
+            c = parse_color(comp)
+            if not c:
+                return {'error': f"{t9['invalid_color']} (computed: {comp})"}
+        if c.get('a', 1) < 1:
+            return {'error': t9['opaque_text']}
+        try:
+            box = loc.bounding_box()
+            if not box or box['width'] < 3 or box['height'] < 3:
                 return {'error': t9['no_box'].format(s=selector)}
-            if not m:
-                return {'error': t9['no_pixels']}
-            out = {'url': url, 'selector': selector, 'text_color': hexs(c),
-                   'image': f'{selector} ({round(box["width"])}×{round(box["height"])})',
-                   'worst_ratio': m['worst_ratio'],
-                   'median_ratio': m['median_ratio'],
-                   'p95_ratio': m['p95_ratio'],
-                   'area_passes_aa_normal_text_4_5': m['area_passes_aa_normal_text_4_5'],
-                   'area_passes_aa_min_3_0': m['area_passes_aa_min_3_0'],
-                   'sampled_pixels': m['sampled_pixels'],
-                   'interpretation': t9['interp']}
-            if 'worst_zone' in m:
-                out['worst_zone'] = m['worst_zone']
-            return out
-        finally:
-            try:
-                ctx.close()
-            except Exception:  # noqa: BLE001
-                pass
+            m = _samples_background(loc, box, c)
+        except Exception:  # noqa: BLE001
+            return {'error': t9['no_box'].format(s=selector)}
+        if not m:
+            return {'error': t9['no_pixels']}
+        out = {'url': url, 'selector': selector, 'text_color': hexs(c),
+               'image': f'{selector} ({round(box["width"])}×{round(box["height"])})',
+               'worst_ratio': m['worst_ratio'],
+               'median_ratio': m['median_ratio'],
+               'p95_ratio': m['p95_ratio'],
+               'area_passes_aa_normal_text_4_5': m['area_passes_aa_normal_text_4_5'],
+               'area_passes_aa_min_3_0': m['area_passes_aa_min_3_0'],
+               'sampled_pixels': m['sampled_pixels'],
+               'interpretation': t9['interp']}
+        if 'worst_zone' in m:
+            out['worst_zone'] = m['worst_zone']
+        return out
+    finally:
+        close_page()
 
 
 # --- contrast walk: perceptual pass over EVERY rendered text element --------
@@ -2114,7 +2129,6 @@ def contrast_walk(url, max_walk=400, max_sample=24, dark=False,
     Filtro honesto, no veredicto: text_ en shadow DOM, canvas, vídeo y
     pseudo-elementos no se captura; lo no medido se declara, jamás inventado.
     """
-    from playwright.sync_api import sync_playwright
     from .contrast import ratio as _ratio, suggest as _suggest, parse_color
 
     def _verdicts(entries):
@@ -2178,67 +2192,65 @@ def contrast_walk(url, max_walk=400, max_sample=24, dark=False,
                 'worst_ratio': worst['ratio'] if worst else None,
                 'worst_element': worst['path'] if worst else None}
 
-    with sync_playwright() as p:
-        def _run(scheme):
-            nav = _get_browser(p, preferred=browser)
-            ctx = (nav.new_context(storage_state=auth_state, color_scheme=scheme)
-                   if auth_state else nav.new_context(color_scheme=scheme))
-            page = ctx.new_page()
+    def _run(scheme):
+        nav = _get_browser(preferred=browser)
+        ctx = (nav.new_context(storage_state=auth_state, color_scheme=scheme)
+               if auth_state else nav.new_context(color_scheme=scheme))
+        page = ctx.new_page()
+        try:
+            page.goto(url, wait_until='load', timeout=timeout * 1000)
+            page.wait_for_timeout(300)
+            return _pass(page)
+        finally:
             try:
-                page.goto(url, wait_until='load', timeout=timeout * 1000)
-                page.wait_for_timeout(300)
-                return _pass(page)
-            finally:
-                try:
-                    ctx.close()
-                    nav.close()
-                except Exception:  # noqa: BLE001
-                    pass
+                ctx.close()
+            except Exception:  # noqa: BLE001
+                pass
 
-        entries, skipped = _run('light')
-        report = {'mode': 'contrast-walk', 'url': url, 'scheme': 'light',
-                  'checked': len(entries),
-                  'elements': entries,
-                  'summary': _summarize(entries, skipped)}
+    entries, skipped = _run('light')
+    report = {'mode': 'contrast-walk', 'url': url, 'scheme': 'light',
+              'checked': len(entries),
+              'elements': entries,
+              'summary': _summarize(entries, skipped)}
 
-        # suggestions for the worst flat-background fails (pixel zones have no
-        # single background to suggest against — honest skip)
-        fails = sorted((e for e in entries if e['verdict'] == 'fail' and not e['bg_image']),
-                       key=lambda e: e['ratio'])
-        for e in fails[:8]:
-            s = _suggest(parse_color(e['color']), parse_color(e['bg']),
-                         target=e['threshold'], lang=lang)
-            if s:
-                e['suggestion'] = s
+    # suggestions for the worst flat-background fails (pixel zones have no
+    # single background to suggest against — honest skip)
+    fails = sorted((e for e in entries if e['verdict'] == 'fail' and not e['bg_image']),
+                   key=lambda e: e['ratio'])
+    for e in fails[:8]:
+        s = _suggest(parse_color(e['color']), parse_color(e['bg']),
+                     target=e['threshold'], lang=lang)
+        if s:
+            e['suggestion'] = s
 
-        if dark:
-            entries_d, skipped_d = _run('dark')
-            report['dark'] = {'scheme': 'dark', 'checked': len(entries_d),
-                              'elements': entries_d,
-                              'summary': _summarize(entries_d, skipped_d)}
-            light_fails = {e['path'] for e in entries if e['verdict'] == 'fail'}
-            dark_fails = {e['path'] for e in entries_d if e['verdict'] == 'fail'}
-            report['dark_delta'] = {
-                'new_fails': sorted(dark_fails - light_fails)[:20],
-                'resolved': sorted(light_fails - dark_fails)[:20],
-                'note': ('a site that ignores prefers-color-scheme shows a zero '
-                         'delta: same colors in both passes')}
+    if dark:
+        entries_d, skipped_d = _run('dark')
+        report['dark'] = {'scheme': 'dark', 'checked': len(entries_d),
+                          'elements': entries_d,
+                          'summary': _summarize(entries_d, skipped_d)}
+        light_fails = {e['path'] for e in entries if e['verdict'] == 'fail'}
+        dark_fails = {e['path'] for e in entries_d if e['verdict'] == 'fail'}
+        report['dark_delta'] = {
+            'new_fails': sorted(dark_fails - light_fails)[:20],
+            'resolved': sorted(light_fails - dark_fails)[:20],
+            'note': ('a site that ignores prefers-color-scheme shows a zero '
+                     'delta: same colors in both passes')}
 
-        report['limits'] = (
-            'Computed ratios cover effective background-color with alpha '
-            'compositing; text over images/gradients is pixel-sampled '
-            '(worst-case) up to the cap, the rest is declared unmeasured. Text '
-            'in shadow DOM, canvas, video and pseudo-elements is not captured. '
-            'A fail is a filter finding (1.4.3), not a verdict — judge the '
-            'zone with contrast-dom.'
-            if lang == 'en' else
-            'Los ratios computados cubren background-color efectivo con '
-            'composición alfa; el text_ sobre imágenes/gradientes se muestrea '
-            'por píxeles (peor caso) hasta el tope y el resto se declara sin '
-            'medir. El text_ en shadow DOM, canvas, vídeo y pseudo-elementos '
-            'no se captura. Un fallo es un hallazgo de filtro (1.4.3), no un '
-            'veredicto — juzga la zona con contrast-dom.')
-        return report
+    report['limits'] = (
+        'Computed ratios cover effective background-color with alpha '
+        'compositing; text over images/gradients is pixel-sampled '
+        '(worst-case) up to the cap, the rest is declared unmeasured. Text '
+        'in shadow DOM, canvas, video and pseudo-elements is not captured. '
+        'A fail is a filter finding (1.4.3), not a verdict — judge the '
+        'zone with contrast-dom.'
+        if lang == 'en' else
+        'Los ratios computados cubren background-color efectivo con '
+        'composición alfa; el text_ sobre imágenes/gradientes se muestrea '
+        'por píxeles (peor caso) hasta el tope y el resto se declara sin '
+        'medir. El text_ en shadow DOM, canvas, vídeo y pseudo-elementos '
+        'no se captura. Un fallo es un hallazgo de filtro (1.4.3), no un '
+        'veredicto — juzga la zona con contrast-dom.')
+    return report
 
 
 def contrast_dom_main(argv):
@@ -2290,7 +2302,7 @@ def main(argv):
         print(json.dumps({'error': str(e)}))
         return 1
     print(json.dumps(res, ensure_ascii=False, indent=1))
-    return 0
+    return 1 if isinstance(res, dict) and 'error' in res else 0
 
 
 def reflow_main(argv):
@@ -2298,14 +2310,17 @@ def reflow_main(argv):
     ap.add_argument('url')
     ap.add_argument('--lang', default='en', choices=['en', 'es'])
     ap.add_argument('--timeout', type=int, default=45)
+    ap.add_argument('--auth-state', dest='auth_state',
+                    help='Path to a Playwright storage_state JSON to audit behind login')
     a = ap.parse_args(argv)
     try:
-        res = audit_reflow(a.url, timeout=a.timeout, lang=a.lang)
+        res = audit_reflow(a.url, timeout=a.timeout, lang=a.lang,
+                           auth_state=a.auth_state)
     except ImportError:
         print(json.dumps({'error': 'Playwright not installed'}))
         return 1
     print(json.dumps(res, ensure_ascii=False, indent=1))
-    return 0
+    return 1 if isinstance(res, dict) and 'error' in res else 0
 
 
 def forms_main(argv):
@@ -2320,7 +2335,7 @@ def forms_main(argv):
         print(json.dumps({'error': 'Playwright not installed'}))
         return 1
     print(json.dumps(res, ensure_ascii=False, indent=1))
-    return 0
+    return 1 if isinstance(res, dict) and 'error' in res else 0
 
 
 def kbd_main(argv):
@@ -2335,7 +2350,7 @@ def kbd_main(argv):
         print(json.dumps({'error': 'Playwright not installed'}))
         return 1
     print(json.dumps(res, ensure_ascii=False, indent=1))
-    return 0
+    return 1 if isinstance(res, dict) and 'error' in res else 0
 
 
 def hover_main(argv):
@@ -2354,7 +2369,7 @@ def hover_main(argv):
         print(json.dumps({'error': 'Playwright not installed'}))
         return 1
     print(json.dumps(res, ensure_ascii=False, indent=1))
-    return 0
+    return 1 if isinstance(res, dict) and 'error' in res else 0
 
 
 if __name__ == '__main__':

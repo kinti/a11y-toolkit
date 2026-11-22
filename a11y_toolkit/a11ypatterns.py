@@ -258,18 +258,15 @@ def _test_sliders(page, findings, lang, cap=3):
 
 def audit_patterns(url, timeout=45, lang='en', auth_state=None, browser='auto'):
     """One url → widget patterns found + contract findings (filter, not verdict)."""
-    from playwright.sync_api import sync_playwright
-    from .a11ydom import _get_browser
+    from .a11ydom import _get_browser, _pooled_page
     lang = 'es' if lang == 'es' else 'en'
-    with sync_playwright() as p:
-        nav = _get_browser(p, preferred=browser)
-        ctx = nav.new_context(storage_state=auth_state) if auth_state else nav
-        page = ctx.new_page() if auth_state else nav.new_page()
+    nav = _get_browser(preferred=browser)
+    page, close_page = _pooled_page(nav, auth_state)
+    try:
         try:
             page.goto(url, wait_until='load', timeout=timeout * 1000)
             page.wait_for_timeout(400)
         except Exception as e:  # noqa: BLE001
-            nav.close()
             return {'error': f'could not load: {e}'}
 
         counts = page.evaluate(_COUNTS)
@@ -280,7 +277,8 @@ def audit_patterns(url, timeout=45, lang='en', auth_state=None, browser='auto'):
         _test_comboboxes(page, findings, lang)
         _test_menu_buttons(page, findings, lang)
         _test_sliders(page, findings, lang)
-        nav.close()
+    finally:
+        close_page()
 
     limits = ('Only patterns VISIBLE at page load are tested: opening a closed '
               'dialog means guessing a trigger flow — never acceptable on a '

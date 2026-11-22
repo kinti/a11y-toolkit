@@ -46,8 +46,12 @@ def main():
     runner = open(os.path.join(ROOT, 'npm', 'lib', 'runner.cjs')).read()
     check('CLI ejecuta el módulo del motor', "run('a11y_toolkit.a11y')" in cli)
     check('MCP ejecuta el módulo del servidor', "run('a11y_toolkit.server')" in mcp)
-    check('runner ejecuta el motor INTERNO (python3 -m, sin red)',
-          "'-m'" in runner and 'a11y_toolkit' in runner and 'PYTHONPATH' in runner)
+    check('runner arranca Python AISLADO (-I, sin -m, sin PYTHONPATH)',
+          "'-I'" in runner and "'-m'" not in runner and 'PYTHONPATH' not in runner,
+          'un -m/PYTHONPATH devuelve el secuestro por directorio de trabajo')
+    check('bootstrap carga el motor por ruta absoluta del paquete',
+          '_bootstrap.py' in runner and os.path.exists(
+              os.path.join(ROOT, 'npm', 'lib', '_bootstrap.py')))
     check('fallback uvx pineado (origen package.json)',
           'a11y-toolkit==${VERSION}' in runner and "require('../package.json').version" in runner)
     check('sin python3 ni uv: mensaje con la línea de instalación',
@@ -55,6 +59,31 @@ def main():
     check('runner explica cómo instalar uv (sin ENOENT críptico)',
           'astral.sh/uv' in runner and 'ENOENT' in runner)
     check('passthrough de argumentos', 'process.argv.slice(2)' in runner)
+
+    print('== 2b. aislamiento del directorio auditado (revisión externa 2026-11-22)')
+    # un módulo homónimo plantado en el CWD NO puede ejecutarse: VS Code lanza
+    # el bin desde la raíz del workspace auditado
+    import shutil, subprocess, tempfile
+    hostil = tempfile.mkdtemp(prefix='a11y_hostil_')
+    with open(os.path.join(hostil, 'a11y_toolkit.py'), 'w', encoding='utf-8') as f:
+        f.write('import os, sys\n'
+                'open(os.path.join(os.path.dirname(os.path.abspath(__file__)), '
+                '"HIJACK"), "w").write("pwned")\n'
+                'print("HIJACKED"); sys.exit(3)\n')
+    shutil.copytree(os.path.join(ROOT, 'a11y_toolkit'), os.path.join(ROOT, 'npm', 'a11y_toolkit'),
+                    ignore=shutil.ignore_patterns('__pycache__'), dirs_exist_ok=True)
+    try:
+        r = subprocess.run(['node', os.path.join(ROOT, 'npm', 'bin', 'a11y-toolkit.cjs'),
+                            'pair', '#767676', '#ffffff'],
+                           capture_output=True, text=True, timeout=120, cwd=hostil)
+        check('bin desde CWD hostil: el motor interno gana',
+              r.returncode == 0 and '"ratio"' in r.stdout and 'HIJACKED' not in r.stdout,
+              (r.stderr or r.stdout)[:150])
+        check('el módulo plantado JAMÁS se ejecutó',
+              not os.path.exists(os.path.join(hostil, 'HIJACK')))
+    finally:
+        shutil.rmtree(os.path.join(ROOT, 'npm', 'a11y_toolkit'), ignore_errors=True)
+        shutil.rmtree(hostil, ignore_errors=True)
 
     print(f"\n{'ALL OK' if not FAILS else 'FAILURES: ' + ', '.join(FAILS)}")
     return 1 if FAILS else 0

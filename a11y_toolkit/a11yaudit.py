@@ -2793,7 +2793,11 @@ def main(argv):
     # --standard nunca se descarte en silencio en NINGUNA ruta del CLI
     res = _apply_standard(res, a.standard, a.target, a.lang)
     print(json.dumps(res, ensure_ascii=False, indent=1))
-    return 0
+    # fallo de ejecución (error en el informe) ≠ hallazgo de accesibilidad:
+    # la revisión externa cazó audit --url devolviendo 1 pero --file (y los
+    # mains de a11ydom) devolviendo 0 CON error — un verde falso para cualquier
+    # script que encauce por el código de salida
+    return 1 if isinstance(res, dict) and res.get('error') else 0
 
 
 if __name__ == '__main__':

@@ -145,16 +145,13 @@ def trace(url, steps=25, output=None, auth_state=None, timeout=45, script=None, 
     of the keyboard walk. Each action becomes a recorded step; the announcement
     collector and the focus signature stay identical, so trace diff works the
     same over scripted traces."""
-    from playwright.sync_api import sync_playwright
-    from .a11ydom import _get_browser
-    with sync_playwright() as p:
-        nav = _get_browser(p, preferred=browser)
-        ctx = nav.new_context(storage_state=auth_state) if auth_state else nav
-        page = ctx.new_page() if auth_state else nav.new_page()
+    from .a11ydom import _get_browser, _pooled_page
+    nav = _get_browser(preferred=browser)
+    page, close_page = _pooled_page(nav, auth_state)
+    try:
         try:
             page.goto(url, wait_until='load', timeout=timeout * 1000)
         except Exception as e:  # noqa: BLE001
-            nav.close()
             return {'error': f'could not load: {e}'}
         page.wait_for_timeout(400)
         page.evaluate(_COLLECTOR)
@@ -188,7 +185,8 @@ def trace(url, steps=25, output=None, auth_state=None, timeout=45, script=None, 
                 tree = tree[:60_000] + '\n… (truncated)'
         except Exception:  # noqa: BLE001
             tree = None
-        nav.close()
+    finally:
+        close_page()
 
     data = {'mode': 'trace', 'url': url,
             'ts': datetime.now(timezone.utc).isoformat(),

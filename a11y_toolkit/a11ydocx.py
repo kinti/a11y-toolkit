@@ -25,6 +25,10 @@ from . import a11yi18n
 
 T = a11yi18n.pair('docx')  # locales/<lang>.json — community-editable
 
+# techo de ingesta por miembro ZIP: 40 MB descomprimidos — un .docx legítimo
+# no llega ni de lejos; una bomba ZIP sí
+_MAX_MEMBER_BYTES = 40 * 1024 * 1024
+
 _CRIT = {
     'docx_no_alt': ('1.1.1', 'high'), 'docx_fake_headings': ('1.3.1', 'medium'),
     'docx_no_lang': ('3.1.1', 'medium'), 'docx_table_no_header': ('1.3.1', 'low'),
@@ -43,6 +47,18 @@ def docx_screen(path, lang='en'):
         return {'error': f'no es un .docx legible: {e}'}
     if 'word/document.xml' not in z.namelist():
         return {'error': 'ZIP without word/document.xml (is this really a .docx?)'}
+
+    # techo de descompresión por miembro (revisión externa 2026-11-22): la
+    # ingesta de contenido NO confiable no puede descomprimir sin límite —
+    # file_size es el declarado del directorio central, el estándar contra
+    # bombas ZIP de los descompresores serios
+    for member in ('word/document.xml', 'word/styles.xml'):
+        try:
+            if z.getinfo(member).file_size > _MAX_MEMBER_BYTES:
+                return {'error': f'{member} declares {z.getinfo(member).file_size} bytes '
+                                 f'(>{_MAX_MEMBER_BYTES}): over the intake cap'}
+        except KeyError:
+            pass
 
     body = z.read('word/document.xml').decode('utf-8', errors='replace')
 

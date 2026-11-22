@@ -336,6 +336,7 @@
   "manual_remaining": "revisión humana pendiente después de la máquina, por clase (MIN 1-3, MED 5-10, MAX 15-30 min por criterio)",
   "no_signal": "no hay señal automática para este criterio en este motor",
   "not_flagged": "sin señal ≠ pasa: ninguna señal automática saltó en esta muestra",
+  "not_run": "ninguna prueba de este criterio se ejecutó en la muestra — falta: {modes}",
   "notice": "Este pack es evidencia, no conformidad: dice qué encontró la máquina y qué queda para una persona. Una declaración de conformidad requiere el bloque de firma completo, de una persona cualificada que haya revisado la lista manual.",
   "reviewer_note": "cualquier contrafirma debe referenciar pack.sha256 e indicar qué criterios revisó la persona más allá de la matriz automática",
   "verified": "verificado sobre esta muestra según el protocolo del checklist manual",

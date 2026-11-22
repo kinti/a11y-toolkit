@@ -94,6 +94,91 @@ for _senal in ACT_MAP:
         assert _r['url'].startswith('https://www.w3.org/WAI/standards-guidelines/act/rules/') and _r['url'].endswith('/')
         assert _r['status'] in ('published', 'proposed')
 
+# 5.13: MODES_BY_CRITERION re-derivada de los puntos de emisión — la tabla de
+# cobertura por modo que el pack de evidencia usa para not-run/not-flagged
+# (revisión externa 2026-11-22: la atribución de cobertura tiene que nacer del
+# código, no de la fe). Estático por fichero, especializados por FUNCIÓN.
+from a11y_toolkit.a11ycrit import MODES_BY_CRITERION as _MODES
+
+def _emisiones(nombre_fichero):
+    """[(funcion, señal)] de un módulo — add/add_ej multilínea y 'signal': literales."""
+    lineas = open(os.path.join(ROOT, 'a11y_toolkit', nombre_fichero),
+                  encoding='utf-8').read().splitlines()
+    texto = '\n'.join(lineas)
+    pares = []
+    pat_add = _re.compile(
+        r"(?:_add_ej|_add|add_ej|add|_agrega|agrega)\(\s*(?:findings\s*,\s*)?"
+        r"(?:hallazgos\s*,\s*)?(?:lang\s*,\s*)?'(?:high|medium|low)'"
+        r"[^()]*?,\s*'([\d.]+)',\s*'([a-z0-9_]+)'", _re.S)
+    for m in pat_add.finditer(texto):
+        linea = texto[:m.start()].count('\n')
+        pares.append((_funcion_en(lineas, linea, nombre_fichero), m.group(2), m.group(1)))
+    pat_sig = _re.compile(r"'signal':\s*'([a-z0-9_]+)'")
+    for m in pat_sig.finditer(texto):
+        linea = texto[:m.start()].count('\n')
+        ctx = ' '.join(lineas[max(0, linea - 4):linea + 3])
+        codigos = _CODE.findall(ctx)
+        if codigos:
+            pares.append((_funcion_en(lineas, linea, nombre_fichero), m.group(1), codigos[-1]))
+    return pares
+
+_FUNC_CACHE = {}
+def _funcion_en(lineas, n, fichero=''):
+    clave = (fichero, n)
+    if clave not in _FUNC_CACHE:
+        actual = 'top'
+        for i in range(min(n + 1, len(lineas))):
+            m = _re.match(r'^def (\w+)', lineas[i])
+            if m:
+                actual = m.group(1)
+        _FUNC_CACHE[clave] = actual
+    return _FUNC_CACHE[clave]
+
+_esperado = {}
+def _cubre(crit, modo):
+    if crit in {c for c in _C if _C[c][0] in ('A', 'AA')}:
+        _esperado.setdefault(crit, set()).add(modo)
+
+# estático: TODO a11yaudit salvo evaluate_site → static+site (el crawl son
+# páginas estáticas; un 'site' aplanado también las limpia); evaluate_site → site
+for fn, sig, crit in _emisiones('a11yaudit.py'):
+    if sig not in _SIGNAL_CRIT:
+        continue
+    if fn == 'evaluate_site':
+        _cubre(crit, 'site')
+    else:
+        _cubre(crit, 'static')
+        _cubre(crit, 'site')
+# a11ydom por función: el bloque compartido (audit_dom) re-ejecuta el
+# repertorio estático sobre el DOM vivo → 'rendered'; cada especializado, el suyo
+_FUNC_MODO = {'audit_dom': 'rendered', 'audit_keyboard': 'keyboard',
+              'audit_forms': 'forms', 'audit_hover': 'hover',
+              'audit_reflow': 'reflow', 'audit_forced_colors': 'forced-colors',
+              'audit_reduced_motion': 'reduced-motion'}
+for fn, sig, crit in _emisiones('a11ydom.py'):
+    if sig in _SIGNAL_CRIT and fn in _FUNC_MODO:
+        _cubre(crit, _FUNC_MODO[fn])
+_cubre('2.5.8', 'rendered')   # target_small: clave variable, no derivable por regex
+for fn, sig, crit in _emisiones('a11yscroll.py'):
+    if sig in _SIGNAL_CRIT:
+        _cubre(crit, 'scroll')
+# journey: el catálogo de fricción del locale ES su superficie de señal (el
+# veredicto mapea patrón→criterio desde locales/<lang>.json — no hay puntos
+# de emisión add() que escanear)
+_journey_cat = json.load(open(os.path.join(ROOT, 'a11y_toolkit', 'locales', 'en.json'),
+                              encoding='utf-8')).get('journey', {})
+for _jkey, _jval in _journey_cat.items():
+    if isinstance(_jval, list) and isinstance(_jval[0], str):
+        _cubre(_jval[0], 'journey')
+# los 3 documentados sin señal mapeada (comentario en la tabla): fuera de la
+# derivación, dentro de la tabla
+_tabla = {c: set(m) for c, m in _MODES.items()
+          if c not in ('1.2.5', '1.4.11', '3.2.4')}
+assert _tabla == _esperado, (
+    f'MODES_BY_CRITERION diverge de los puntos de emisión: '
+    f'faltan={ {c: sorted(m) for c, m in _esperado.items() if _tabla.get(c) != m} } '
+    f'sobran={ {c: sorted(m) for c, m in _tabla.items() if _esperado.get(c) != m} }')
+
 # lo mismo para el catálogo del modo renderizado
 for lang in ('es', 'en'):
     pass  # _TD comparte claves por diseño; la paridad de T already lo cubre
