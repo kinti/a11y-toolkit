@@ -158,8 +158,11 @@ check('earl site-disproved: muertos fuera', len(_e2['@graph']) == 0)
 _dom = open(os.path.join(os.path.dirname(__file__), '..', 'a11y_toolkit', 'a11ydom.py'),
             encoding='utf-8').read()
 check('forms JS escribe fields (no campos)', 'info.fields++' in _dom and 'info.campos++' not in _dom)
-check('sr_transcript SIEMPRE pw.stop()', _dom.count('sync_playwright().start()') == 1
-      and 'finally:' in _dom.split('def sr_transcript')[1].split('def ')[0])
+# (post-5.31: A11Y_BROWSER_POOL=0) dos start() legítimos — el del pool y el
+# del ciclo por llamada — y cada uno con SU parada (atexit/stop del pool;
+# close_page del NoPoolBrowser). sr_transcript ya no tiene el suyo propio.
+check('ciclos playwright cerrados (pool y no-pool)', _dom.count('sync_playwright().start()') == 2
+      and _dom.count('pw.stop()') + _dom.count('self._pw.stop()') >= 2)
 check('pool reutiliza con auto',
       "(preferred in (None, 'auto') or _POOL['type'] == preferred)" in _dom)
 _pat = open(os.path.join(os.path.dirname(__file__), '..', 'a11y_toolkit', 'a11ypatterns.py'),
