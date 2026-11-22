@@ -1,6 +1,25 @@
 # Changelog
 
 ## main — pendiente
+- **Optional dialog-state regression gate for trace diff (issue #16,
+  @AkiyamaKira2003).** `trace --capture-dialog-state` records, after each
+  step, the minimal non-sensitive modal state (count of open
+  dialog/alertdialog[aria-modal] + dialog[open] elements, and whether focus
+  is inside one — never content, ids or text); `trace diff
+  --gate-dialog-state` opts into comparing it. The exact gap the reporter
+  demonstrated: identical focus sequence (opener → inside → opener) while an
+  Escape leaves the modal open in the candidate build — focus-only diff
+  says ok. With the gate: same actions + same focus + diverging modal state
+  = regression (ok=false, exit 2). Missing evidence (either trace not
+  captured with the flag, a step whose dialog state is absent) or diverging
+  action sequences read INCONCLUSIVE — never a false PASS, and never
+  blocking: ok stays decided by focus unless the gate has solid evidence of
+  divergence. Focus-only comparison remains the untouched default. Verified
+  with the reporter's own two fixtures in Chromium (reference closes on
+  Escape, regression returns focus to the opener but keeps the modal
+  visible): identical focus traces, gate reports the divergence at the
+  Escape step. Visibility filter measures `getClientRects()` — a `hidden`
+  dialog whose CSS pins `position:fixed` still counts as closed.
 - **A11Y_BROWSER_POOL=0: opt-out del pool para hosts multihilo.** Vendorear
   5.31.0 en a11y.es destapó el límite real del pool de la ronda 1: deja un
   event loop asyncio CORRIENDO en el hilo que lo crea — el servidor MCP

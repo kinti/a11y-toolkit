@@ -256,6 +256,7 @@ a11ytoolkit budget --init-snapshot s.json > structural.json      # structural bu
 a11ytoolkit budget --budget structural.json --snapshot s2.json   # only NEW rendered structure blocks (exit 0/2)
 a11ytoolkit engines https://mysite                        # same page in 3 engines: behavioral divergences, pairwise
 a11ytoolkit trace https://mysite --script journey.json -o t.json  # scripted real journey, then: trace diff t_old.json t.json
+a11ytoolkit trace https://mysite --script j.json --capture-dialog-state -o t.json  # + per-step modal state, then: trace diff a.json b.json --gate-dialog-state
 a11ytoolkit patterns https://mysite                       # APG keyboard contracts, live: dialog / tablist / disclosure / combobox / menu / slider
 a11ytoolkit ledger recurrence --ledger a11y-ledger.json   # chronic signals + hot urls: the review queue without ML
 a11ytoolkit contrast-dom https://mysite --walk            # perceptual pass: per-element ratios, thresholds, suggestions

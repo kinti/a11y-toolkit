@@ -82,6 +82,20 @@ _COLLECTOR = r'''() => {
 # aún no existe — el paso se graba, simplemente sin anuncios de ese instante.
 _DRAIN = '() => window.__a11yTraceDrain ? window.__a11yTraceDrain() : []'
 
+# (issue #16) estado de diálogo TRAS cada acción — mínimo y no sensible: el
+# CONTEO de modales abiertos (role=dialog/alertdialog con aria-modal, o
+# dialog[open]) y si el foco está dentro de uno. Nada de contenido, ids ni
+# texto: dos builds con el mismo viaje deben poder comparar este estado sin
+# que nada de la página viaje al JSON
+_DIALOG_STATE_JS = '''() => {
+  const modals = [...document.querySelectorAll(
+    '[role="dialog"][aria-modal="true"], [role="alertdialog"][aria-modal="true"], dialog[open]')]
+    .filter(el => el.getClientRects().length > 0);   // display:none (hidden) no cuenta,
+                                                      // aunque el CSS fije position (getClientRects mide lo real)
+  const a = document.activeElement;
+  return {open: modals.length, focus_inside: modals.some(m => m === a || m.contains(a))};
+}'''
+
 
 def _run_script_action(page, act):
     """One scripted action → (label, ok). Selector-valued actions target CSS."""
@@ -112,7 +126,7 @@ def _run_script_action(page, act):
     return f'unknown:{kind or sel}', False
 
 
-def _run_script(page, script):
+def _run_script(page, script, dialog_state=False):
     """Scripted actions → (walk, navigations). Factored out of trace() so the
     loop is testable against a fake page (no Playwright needed)."""
     walk = []
@@ -132,19 +146,32 @@ def _run_script(page, script):
         if page.url != url_now:
             navigations += 1
             url_now = page.url
-        walk.append({'step': i + 1, 'action': label, 'focus': info,
-                     'announcements': anns, 'url': page.url})
+        step = {'step': i + 1, 'action': label, 'focus': info,
+                'announcements': anns, 'url': page.url}
+        if dialog_state:
+            try:
+                step['dialog'] = page.evaluate(_DIALOG_STATE_JS)
+            except Exception:  # noqa: BLE001 — contexto destruido: sin dato
+                step['dialog'] = None
+        walk.append(step)
     return walk, navigations
 
 
-def trace(url, steps=25, output=None, auth_state=None, timeout=45, script=None, browser='auto'):
+def trace(url, steps=25, output=None, auth_state=None, timeout=45, script=None, browser='auto',
+          capture_dialog_state=False):
     """One url → the behavioral trace (replayable JSON).
 
     script: optional list of scripted actions (click/fill/select/press/wait/
     goto, each with a CSS selector where applicable) — a REAL journey instead
     of the keyboard walk. Each action becomes a recorded step; the announcement
     collector and the focus signature stay identical, so trace diff works the
-    same over scripted traces."""
+    same over scripted traces.
+
+    capture_dialog_state (issue #16): graba tras cada paso el estado mínimo
+    de diálogo (cuántos modales abiertos + foco dentro de uno) — nada de
+    contenido. Para trace diff --gate-dialog-state: un Escape que devuelve
+    el foco al opener pero DEJA el modal abierto es una divergencia de
+    estado que el foco solo no ve."""
     from .a11ydom import _get_browser, _pooled_page
     nav = _get_browser(preferred=browser)
     page, close_page = _pooled_page(nav, auth_state)
@@ -161,7 +188,7 @@ def trace(url, steps=25, output=None, auth_state=None, timeout=45, script=None, 
         url_now = page.url
         if script:
             ended_by = 'script_done'
-            walk, navigations = _run_script(page, script)
+            walk, navigations = _run_script(page, script, dialog_state=capture_dialog_state)
         else:
             ended_by = 'step_cap'
             for i in range(steps):
@@ -175,8 +202,14 @@ def trace(url, steps=25, output=None, auth_state=None, timeout=45, script=None, 
                 if page.url != url_now:
                     navigations += 1
                     url_now = page.url
-                walk.append({'step': i + 1, 'focus': info,
-                             'announcements': anns, 'url': page.url})
+                step = {'step': i + 1, 'focus': info,
+                        'announcements': anns, 'url': page.url}
+                if capture_dialog_state:
+                    try:
+                        step['dialog'] = page.evaluate(_DIALOG_STATE_JS)
+                    except Exception:  # noqa: BLE001
+                        step['dialog'] = None
+                walk.append(step)
 
         tree = None
         try:
@@ -190,6 +223,7 @@ def trace(url, steps=25, output=None, auth_state=None, timeout=45, script=None, 
 
     data = {'mode': 'trace', 'url': url,
             'ts': datetime.now(timezone.utc).isoformat(),
+            **({'dialog_state_captured': True} if capture_dialog_state else {}),
             'steps': walk,
             'summary': {'steps_taken': len(walk),
                         'announcements': sum(len(s.get('announcements') or [])
@@ -204,8 +238,53 @@ def trace(url, steps=25, output=None, auth_state=None, timeout=45, script=None, 
     return data
 
 
-def trace_diff(a, b):
-    """Two traces → verdict. Focus behavior gates; announcements inform."""
+def _dialog_gate(a, b):
+    """(issue #16) comparación OPT-IN del estado de diálogo por paso.
+
+    Devuelve {'status': 'off'|'inconclusive'|'pass'|'regression', ...}:
+    - off: no se pidió el gate
+    - inconclusive: falta estado (alguna traza sin dialog_state_captured,
+      un paso sin 'dialog') o las SECUENCIAS DE ACCIÓN divergen (el estado
+      solo es comparable paso a paso cuando el viaje es el mismo) — JAMÁS
+      un falso PASS
+    - regression: mismas acciones y foco, pero el estado de diálogo difiere
+      en algún paso (p. ej. el Escape dejó el modal abierto en el candidato)
+    - pass: estado idéntico en todos los pasos
+    """
+    sa = a.get('steps', [])
+    sb = b.get('steps', [])
+    if not (a.get('dialog_state_captured') and b.get('dialog_state_captured')):
+        return {'status': 'inconclusive',
+                'reason': 'dialog state not captured in both traces — re-run '
+                          'trace --capture-dialog-state'}
+    acts_a = [s.get('action') for s in sa]
+    acts_b = [s.get('action') for s in sb]
+    if acts_a != acts_b or len(sa) != len(sb):
+        return {'status': 'inconclusive',
+                'reason': 'action sequences diverge — dialog state is only '
+                          'comparable step-by-step on the same journey'}
+    state_divergences = []
+    for i, (x, y) in enumerate(zip(sa, sb)):
+        if x.get('dialog') is None or y.get('dialog') is None:
+            return {'status': 'inconclusive',
+                    'reason': f'step {i + 1} lacks dialog state (destroyed '
+                              'context?) — evidence missing'}
+        if x['dialog'] != y['dialog']:
+            state_divergences.append({'step': i + 1, 'before': x['dialog'],
+                                 'after': y['dialog']})
+    if state_divergences:
+        return {'status': 'regression', 'divergences': state_divergences}
+    return {'status': 'pass', 'steps_compared': len(sa)}
+
+
+def trace_diff(a, b, gate_dialog_state=False):
+    """Two traces → verdict. Focus behavior gates; announcements inform.
+
+    gate_dialog_state (issue #16): OPT-IN — compara también el estado de
+    diálogo capturado (trace --capture-dialog-state). Sin foco perdido ni
+    reordenado pero con el modal ABIERTO donde antes cerraba: regresión.
+    Evidencia faltante o acciones distintas → INCONCLUSIVE, nunca un falso
+    PASS. El foco sigue siendo el único gate por defecto."""
     fa = [s.get('focus') for s in a.get('steps', [])]
     fb = [s.get('focus') for s in b.get('steps', [])]
     set_a, set_b = set(fa), set(fb)
@@ -219,21 +298,30 @@ def trace_diff(a, b):
     ann_a = sum(len(s.get('announcements', [])) for s in a.get('steps', []))
     ann_b = sum(len(s.get('announcements', [])) for s in b.get('steps', []))
     collapsed = ann_a > 0 and ann_b == 0
+    gate = _dialog_gate(a, b) if gate_dialog_state else {'status': 'off'}
     ok = not (lost or reordered)
+    if gate['status'] == 'regression':
+        ok = False     # el estado diverge con las mismas acciones: bloquea
     return {
         'ok': ok,
         'summary': {'steps': {'before': len(fa), 'after': len(fb)},
                     'focus_lost': len(lost), 'focus_gained': len(gained),
                     'reordered': reordered,
+                    'dialog_gate': gate['status'],
                     'announcements': {'before': ann_a, 'after': ann_b,
                                       'collapsed': collapsed}},
         'focus': {'before': fa, 'after': fb, 'lost': lost, 'gained': gained,
                   'first_divergence': first_divergence},
+        **({'dialog_gate': gate} if gate_dialog_state else {}),
         'note': ('focus behavior is the gate: a lost or forked tab sequence '
                  'blocks (exit 2). Announcement counts are reported, not '
                  'gated — content changes legitimately between builds; a '
                  'collapsed layer (had announcements, now zero) is flagged '
-                 'informationally'),
+                 'informationally'
+                 + (' — dialog gate ON (opt-in): same actions + same focus '
+                    'but diverging modal state blocks; missing evidence or '
+                    'diverging actions read INCONCLUSIVE, never a pass'
+                    if gate_dialog_state else '')),
     }
 
 
@@ -250,10 +338,16 @@ def main(argv):
     s1.add_argument('--script', help='JSON file: scripted journey (click/fill/select/press/wait/goto)')
     s1.add_argument('--auth-state', help='Playwright storage_state JSON (session)')
     s1.add_argument('--timeout', type=int, default=45)
+    s1.add_argument('--capture-dialog-state', action='store_true',
+                    help='record minimal dialog state per step (open modal '
+                         'count + focus inside) for diff --gate-dialog-state')
     s1.add_argument('-o', '--out', default='trace.json')
     s2 = sub.add_parser('diff')
     s2.add_argument('a')
     s2.add_argument('b')
+    s2.add_argument('--gate-dialog-state', action='store_true',
+                    help='opt-in: compare captured dialog state (focus stays '
+                         'the only default gate; missing evidence = INCONCLUSIVE)')
     a = p.parse_args(argv)
 
     if a.cmd == 'trace':
@@ -267,7 +361,8 @@ def main(argv):
                 return 1
         try:
             d = trace(a.url, steps=a.steps, output=a.out, auth_state=a.auth_state,
-                      timeout=a.timeout, script=script)
+                      timeout=a.timeout, script=script,
+                      capture_dialog_state=a.capture_dialog_state)
         except ImportError:
             print(json.dumps({'error': 'Playwright not installed: pip install '
                                        'playwright && playwright install chromium'}))
@@ -282,7 +377,7 @@ def main(argv):
         ja = json.load(f)
     with open(a.b, encoding='utf-8') as f:
         jb = json.load(f)
-    verdict = trace_diff(ja, jb)
+    verdict = trace_diff(ja, jb, gate_dialog_state=a.gate_dialog_state)
     print(json.dumps(verdict, ensure_ascii=False, indent=1))
     return 0 if verdict['ok'] else 2
 

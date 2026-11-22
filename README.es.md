@@ -267,6 +267,7 @@ a11ytoolkit budget --init-snapshot s.json > estructural.json    # presupuesto es
 a11ytoolkit budget --budget estructural.json --snapshot s2.json # solo la estructura renderizada NUEVA bloquea (exit 0/2)
 a11ytoolkit engines https://mysite                        # la misma página en 3 motores: divergencias de comportamiento, por pares
 a11ytoolkit trace https://mysite --script journey.json -o t.json  # jornada real scriptada, luego: trace diff t_viejo.json t.json
+a11ytoolkit trace https://mysite --script j.json --capture-dialog-state -o t.json  # + estado modal por paso, luego: trace diff a.json b.json --gate-dialog-state
 a11ytoolkit patterns https://mysite                       # contratos APG de teclado, en vivo: dialog / tablist / disclosure / combobox / menu / slider
 a11ytoolkit ledger recurrence --ledger a11y-ledger.json   # señales crónicas + urls calientes: la cola de revisión sin ML
 a11ytoolkit contrast-dom https://mysite --walk            # pase perceptual: ratios por elemento, umbrales, sugerencias

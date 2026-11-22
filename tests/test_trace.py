@@ -189,4 +189,85 @@ os.remove(sfx)
 d = trace_diff(t, t)
 assert d['ok']   # diff funciona igual sobre trazas scripted
 print('8. trace --script: jornada real, anuncios por acción, fallo grabado, diff ok ✓')
-print('OK test_trace: 9 checks (6 herméticos + 3 vivos)')
+
+
+# ── issue #16: gate opcional de estado de diálogo en trace diff ────────────
+# El caso: mismas acciones, foco idéntico (opener → inside → opener), pero el
+# Escape DEJÓ el modal abierto en el candidato. El foco solo no lo ve.
+
+_before = {'steps': [
+    {'focus': 'inside', 'action': 'press Enter', 'dialog': {'open': 1, 'focus_inside': True}},
+    {'focus': 'opener', 'action': 'press Escape', 'dialog': {'open': 0, 'focus_inside': False}},
+], 'dialog_state_captured': True}
+_after_abierto = {'steps': [
+    {'focus': 'inside', 'action': 'press Enter', 'dialog': {'open': 1, 'focus_inside': True}},
+    {'focus': 'opener', 'action': 'press Escape', 'dialog': {'open': 1, 'focus_inside': False}},
+], 'dialog_state_captured': True}
+
+# 9. sin gate (por defecto): foco igual → ok — el comportamiento EXISTENTE intacto
+assert trace_diff(_before, _after_abierto)['ok'] is True
+assert trace_diff(_before, _after_abierto)['summary']['dialog_gate'] == 'off'
+print('9. issue#16 sin gate: foco igual → ok (por defecto intacto) ✓')
+
+# 10. con gate: el modal abierto tras Escape es REGRESIÓN
+_con = trace_diff(_before, _after_abierto, gate_dialog_state=True)
+assert _con['ok'] is False and _con['summary']['dialog_gate'] == 'regression'
+assert _con['dialog_gate']['divergences'][0]['step'] == 2
+assert _con['dialog_gate']['divergences'][0]['after']['open'] == 1
+print('10. issue#16 con gate: modal abierto → regresión (ok=false) ✓')
+
+# 11. mismo estado → pass; evidencia faltante o acciones distintas → INCONCLUSIVE
+assert trace_diff(_before, _before, gate_dialog_state=True)['summary']['dialog_gate'] == 'pass'
+_sin_estado = {'steps': _after_abierto['steps']}   # sin dialog_state_captured
+assert trace_diff(_before, _sin_estado, gate_dialog_state=True)['summary']['dialog_gate'] == 'inconclusive'
+_otras_acciones = {'steps': [
+    {'focus': 'x', 'action': 'click #y', 'dialog': {'open': 0, 'focus_inside': False}},
+], 'dialog_state_captured': True}
+assert trace_diff(_before, _otras_acciones, gate_dialog_state=True)['summary']['dialog_gate'] == 'inconclusive'
+# INCONCLUSIVE jamás es un falso PASS del gate: ok sigue decidido por el foco
+assert trace_diff(_before, _sin_estado, gate_dialog_state=True)['ok'] is True
+print('11. issue#16: pass / inconclusive (falta evidencia o acciones distintas) ✓')
+
+# 12. el foco perdido SIGUE bloqueando con y sin gate
+_foco = {'steps': [
+    {'focus': 'otro', 'action': 'press Enter', 'dialog': {'open': 1, 'focus_inside': False}},
+    {'focus': 'opener', 'action': 'press Escape', 'dialog': {'open': 0, 'focus_inside': False}},
+], 'dialog_state_captured': True}
+assert trace_diff(_before, _foco)['ok'] is False
+assert trace_diff(_before, _foco, gate_dialog_state=True)['ok'] is False
+print('12. issue#16: foco perdido bloquea con y sin gate ✓')
+
+# 13. VIVO (Chromium, los fixtures del issue): referencia cierra, regresión no
+try:
+    import playwright  # noqa: F401
+    _HEAD = ('<!doctype html><html lang="en"><head><meta charset="utf-8">'
+             '<title>d</title><style>[role=dialog]{position:fixed;inset:0;'
+             'background:#0008;display:grid;place-items:center}'
+             '[role=dialog][hidden]{display:none}</style></head><body>'
+             '<main><h1>d</h1><button id="op">Open</button>'
+             '<div id="dlg" role="dialog" aria-modal="true" aria-label="Confirm" hidden>'
+             '<p>Proceed?</p><button id="yes">Yes</button></div>')
+    _OPEN = ("<script>const op=document.getElementById('op'),"
+             "dlg=document.getElementById('dlg');"
+             "op.addEventListener('click',()=>{dlg.hidden=false;"
+             "document.getElementById('yes').focus();});")
+    _CIERRA = ("dlg.addEventListener('keydown',e=>{if(e.key==='Escape')"
+               "{dlg.hidden=true;op.focus();}});</script></main></body></html>")
+    _NO = ("dlg.addEventListener('keydown',e=>{if(e.key==='Escape')"
+           "{op.focus();}});</script></main></body></html>")
+    open('/tmp/tr-ref.html', 'w').write(_HEAD + _OPEN + _CIERRA)
+    open('/tmp/tr-reg.html', 'w').write(_HEAD + _OPEN + _NO)
+    _SC = [{'kind': 'click', 'selector': '#op'}, {'kind': 'press', 'key': 'Escape'}]
+    _tref = trace('file:///tmp/tr-ref.html', script=_SC, capture_dialog_state=True)
+    _treg = trace('file:///tmp/tr-reg.html', script=_SC, capture_dialog_state=True)
+    assert 'error' not in _tref and 'error' not in _treg
+    assert [s['focus'] for s in _tref['steps']] == [s['focus'] for s in _treg['steps']]
+    assert trace_diff(_tref, _treg)['ok'] is True          # foco idéntico: el default no ve
+    _vivo = trace_diff(_tref, _treg, gate_dialog_state=True)
+    assert _vivo['ok'] is False and _vivo['summary']['dialog_gate'] == 'regression'
+    assert _vivo['dialog_gate']['divergences'][0]['after']['open'] == 1
+    print('13. issue#16 VIVO: foco idéntico en Chromium, gate opcional caza el modal abierto ✓')
+except ImportError:
+    print('13. issue#16 VIVO: SKIP (sin Playwright)')
+
+print('OK test_trace: 9 + 5 checks (issue #16: captura, gate, inconclusive, foco intacto)')
