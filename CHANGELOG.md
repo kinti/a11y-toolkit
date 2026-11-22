@@ -1,6 +1,6 @@
 # Changelog
 
-## main — pendiente
+## 5.31.0 — 2026-11-22 (ronda 7: verificación de v5.30.0)
 - **External review, ROUND 7 — VERIFICATION PASS (2026-11-22, on v5.30.0):
   the reviewer re-ran the 44 suites and every original case.** Most fixes
   confirmed; the partials and stragglers below are now closed, starting with
