@@ -650,7 +650,7 @@ Builds the verifiable evidence pack: the machine→human handoff object for WCAG
 
 <sub>read-only · network</sub>
 
-Disprover pattern (from Cloudflare's security-audit-skill): re-runs the audit against the live page and marks each finding confirmed or rejected — findings that don't reproduce are rejected with the reason. Catches false positives, race conditions, and page changes between audit and report. Returns a fresh score over confirmed findings only. — Run this before acting on any audit report. Returns JSON: {confirmed, rejected, score} — a fresh score over confirmed findings only.
+Disprover pattern (from Cloudflare's security-audit-skill): re-runs the audit against the live page and marks each finding confirmed or rejected — rendered reports are re-verified under their ORIGINAL color scheme (a dark-only contrast fail must not look fixed under light; reports that don't record their scheme come back not-rechecked), and findings that don't reproduce are rejected with the reason. Catches false positives, race conditions, and page changes between audit and report. Returns a fresh score over confirmed findings only. — Run this before acting on any audit report. Returns JSON: {confirmed, rejected, score} — a fresh score over confirmed findings only.
 
 
 **Arguments**

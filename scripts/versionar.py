@@ -42,46 +42,60 @@ def main():
             actual = m.group(1)
             break
     assert actual, 'no encontré la versión actual en pyproject'
-    if nueva == actual:
-        print(f'la versión ya es {nueva}: nada que hacer')
-        return 0
 
-    print(f'versionando {actual} → {nueva}')
-    bump_fichero('pyproject.toml', f'version = "{actual}"', f'version = "{nueva}"', 'versión')
-    bump_fichero('a11y_toolkit/server.py', f"VERSION = '{actual}'", f"VERSION = '{nueva}'", 'VERSION')
-    sj = os.path.join(AQUI, 'server.json')
-    d = json.load(open(sj))
-    assert d['version'] == actual, f'server.json estaba en {d["version"]}, no en {actual} — revisa a mano'
-    d['version'] = nueva
-    for p in d.get('packages', []):
-        p['version'] = nueva
-    json.dump(d, open(sj, 'w'), indent=2, ensure_ascii=False)
-    open(sj, 'a').write('\n')
-    print('  ✓ server.json: versión y TODOS los paquetes')
-    npj = os.path.join(AQUI, 'npm', 'package.json')
-    if os.path.exists(npj):
-        d = json.load(open(npj))
+    # REANUDAR, no fingir éxito (revisión externa 2026-11-22): un intento
+    # fallido dejaba los ficheros versionados y salía 2; al repetir la orden,
+    # «la versión ya es X: nada que hacer» devolvía 0 SIN correr las suites —
+    # un falso éxito de release. Ahora: misma versión + tag ya existente =
+    # publicada de verdad (nada que hacer); misma versión SIN tag = intento
+    # previo fallido → se REANUDA el gate completo y, con --tag, la publicación.
+    ya_versionado = (nueva == actual)
+    if ya_versionado:
+        hay_tag = subprocess.run(['git', 'tag', '-l', f'v{nueva}'],
+                                 cwd=AQUI, capture_output=True).stdout.strip()
+        if hay_tag:
+            print(f'v{nueva} ya está etiquetada y publicada: nada que hacer')
+            return 0
+        print(f'los ficheros YA están en {nueva} (intento previo fallido): '
+              'REANUDANDO — gate completo y, con --tag, commit+tag+push')
+    else:
+        print(f'versionando {actual} → {nueva}')
+    if not ya_versionado:
+        bump_fichero('pyproject.toml', f'version = "{actual}"', f'version = "{nueva}"', 'versión')
+        bump_fichero('a11y_toolkit/server.py', f"VERSION = '{actual}'", f"VERSION = '{nueva}'", 'VERSION')
+        sj = os.path.join(AQUI, 'server.json')
+        d = json.load(open(sj))
+        assert d['version'] == actual, f'server.json estaba en {d["version"]}, no en {actual} — revisa a mano'
         d['version'] = nueva
-        json.dump(d, open(npj, 'w'), indent=2)
-        open(npj, 'a').write('\n')
-        print('  ✓ npm/package.json: versión (lanzador Node)')
-    # plugin.json (estándar Agent Plugins) viaja versionado con el resto
-    pj = os.path.join(AQUI, 'plugin.json')
-    if os.path.exists(pj):
-        d = json.load(open(pj))
-        d['version'] = nueva
-        json.dump(d, open(pj, 'w'), indent=2, ensure_ascii=False)
-        open(pj, 'a').write('\n')
-        print('  ✓ plugin.json: versión (Agent Plugins)')
-    # vscode/package.json viaja con la versión del motor (era 0.1.0 huérfana)
-    pv = os.path.join(AQUI, 'vscode', 'package.json')
-    if os.path.exists(pv):
-        d = json.load(open(pv, encoding='utf-8'))
-        if d.get('version') != nueva:
+        for p in d.get('packages', []):
+            p['version'] = nueva
+        json.dump(d, open(sj, 'w'), indent=2, ensure_ascii=False)
+        open(sj, 'a').write('\n')
+        print('  ✓ server.json: versión y TODOS los paquetes')
+        npj = os.path.join(AQUI, 'npm', 'package.json')
+        if os.path.exists(npj):
+            d = json.load(open(npj))
             d['version'] = nueva
-            json.dump(d, open(pv, 'w', encoding='utf-8'), indent=2, ensure_ascii=False)
-            open(pv, 'a', encoding='utf-8').write('\n')
-            print('  ✓ vscode/package.json: versión')
+            json.dump(d, open(npj, 'w'), indent=2)
+            open(npj, 'a').write('\n')
+            print('  ✓ npm/package.json: versión (lanzador Node)')
+        # plugin.json (estándar Agent Plugins) viaja versionado con el resto
+        pj = os.path.join(AQUI, 'plugin.json')
+        if os.path.exists(pj):
+            d = json.load(open(pj))
+            d['version'] = nueva
+            json.dump(d, open(pj, 'w'), indent=2, ensure_ascii=False)
+            open(pj, 'a').write('\n')
+            print('  ✓ plugin.json: versión (Agent Plugins)')
+        # vscode/package.json viaja con la versión del motor (era 0.1.0 huérfana)
+        pv = os.path.join(AQUI, 'vscode', 'package.json')
+        if os.path.exists(pv):
+            d = json.load(open(pv, encoding='utf-8'))
+            if d.get('version') != nueva:
+                d['version'] = nueva
+                json.dump(d, open(pv, 'w', encoding='utf-8'), indent=2, ensure_ascii=False)
+                open(pv, 'a', encoding='utf-8').write('\n')
+                print('  ✓ vscode/package.json: versión')
     # test_mcp derives its version assertion from server.VERSION: nothing to bump there.
 
     print('— gate de release: TODAS las suites por descubrimiento (la lista')

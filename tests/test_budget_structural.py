@@ -227,4 +227,17 @@ with tempfile.TemporaryDirectory() as cdir:
     assert code == 0 and out['invalid_lines']['count'] == 1, out
 print('16. corpus: README sellado + JSONL hostil declarado, sin crash ✓')
 
-print('OK test_budget_structural: 16 checks')
+
+# 17 (revisión externa 2026-11-22): un informe FALLIDO no puede declarar
+# resuelto el baseline ni dar verde — el gate se cierra con error
+from a11y_toolkit.a11ybudget import compare as _cmp
+_v = _cmp({'signals': ['img_no_alt'], 'url': 'x'}, {'url': 'x', 'error': 'boom'})
+assert _v.get('error') and 'resolved' not in _v, _v
+_crawl = _cmp({'signals': ['img_no_alt'], 'url': 'x'},
+              {'url': 'x', 'reports': [
+                  {'url': 'a', 'findings': [{'signal': 'img_no_alt', 'severity': 'high'}]},
+                  {'url': 'b', 'error': 'timeout'}]})
+assert _crawl['pages_failed'] == ['b'] and _crawl['ok'], _crawl
+print('17. budget: informe con error → error; crawl parcial declara páginas caídas ✓')
+
+print('OK test_budget_structural: 17 checks')

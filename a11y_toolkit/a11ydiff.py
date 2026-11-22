@@ -60,14 +60,20 @@ _LAUNCHERS = {
 
 
 # firma estable del elemento enfocado — la MISMA doctrina de claves que el
-# snapshot (#id o tag:nombre:href); compartida con a11ytrace
+# snapshot (#id o tag:nombre:href); compartida con a11ytrace.
+# PRIVACIDAD (revisión externa 2026-11-22): JAMÁS el value de campos
+# editables — input.value llevaba al JSON exportado (snapshot/trace/engines)
+# lo que la persona hubiera tecleado, contraseñas incluidas. Solo inputs-botón
+# (submit/button/reset), cuyo value es el rótulo estático de la página — la
+# misma regla que ya seguía el COLLECTOR.
 FOCUS_KEY_JS = r'''() => {
   const el = document.activeElement;
   if (!el || el === document.body) return null;
   const link = el.closest('a[href]');
   let name = el.getAttribute('aria-label') || (el.innerText || '')
     .replace(/\s+/g,' ').trim() || el.getAttribute('title') ||
-    (el.tagName==='INPUT' && el.value) || '';
+    (el.tagName==='INPUT' && ['submit','button','reset'].includes(el.type)
+      ? el.value : '') || '';
   return el.id ? '#'+el.id : el.tagName.toLowerCase()+':'+name.slice(0,60).toLowerCase()+
     (link ? ':'+link.getAttribute('href') : '');
 }'''
@@ -76,8 +82,8 @@ FOCUS_KEY_JS = r'''() => {
 # distintos pueden compartir firma (dos botones-icono sin name, un Edit por
 # fila) y la firma repetida truncaba el pase a la segunda aparición. El primer
 # enfocable se marca con un data-attribute (token estático) y la vuelta se
-# detecta cuando el ACTIVO es ese mismo elemento; la firma del primero queda
-# como stop secundario de refuerzo y el cap de iteraciones como tercero.
+# detecta cuando el ACTIVO es ese mismo elemento; el cap de iteraciones es la
+# red de seguridad si el JS del sitio borra el sello.
 _WALK_STAMP_JS = r'''() => {
   const el = document.activeElement;
   if (!el || el === document.body) return false;
@@ -98,8 +104,11 @@ _WALK_CLEAN_JS = r'''() => {
 
 def _walk_focus(page, cap):
     """Tab walk → focus order (list of signatures). Stops on wrap by element
-    identity (the stamped first focusable), secondarily on the first
-    signature repeating, and on the iteration cap."""
+    identity (the stamped first focusable) and on the iteration cap. The old
+    secondary «signature repeats» stop TRUNCATED the walk at the second of
+    two same-named controls (Edit, Edit, Continue → one stop): a repeated
+    signature is a duplicate control, not a wrap — only the stamped node (or
+    the cap, if the site's JS eats the stamp) closes the circle."""
     order = []
     page.keyboard.press('Tab')
     if not page.evaluate(_WALK_STAMP_JS):
@@ -113,7 +122,7 @@ def _walk_focus(page, cap):
         info = page.evaluate(FOCUS_KEY_JS)
         if info is None:
             break
-        if page.evaluate(_WALK_IS_STAMPED_JS) or info == first:
+        if page.evaluate(_WALK_IS_STAMPED_JS):
             break   # focus returned to the FIRST element itself: full circle
         order.append(info)
     try:
@@ -184,10 +193,14 @@ def diff(a, b, lang='en'):
             renamed.append({'key': k, 'before': ea[k]['name'], 'after': eb[k]['name']})
 
     oa, ob = a['focus_order'], b['focus_order']
-    common_a = [x for x in oa if x in set(ob)]
-    common_b = [x for x in ob if x in set(oa)]
-    focus_removed = [x for x in oa if x not in set(ob)]   # perdió el Tab: regresión real
-    focus_added = [x for x in ob if x not in set(oa)]    # nuevo enfocable: cambio, no pérdida
+    # conjuntos UNA vez (revisión externa 2026-11-22): rebuilds por parada
+    # eran O(a·b) — 646 ms con 4.800 stops; ahora O(a+b) y el orden de las
+    # listas resultantes se conserva igual (filtro sobre la lista original)
+    sa, sb = set(oa), set(ob)
+    common_a = [x for x in oa if x in sb]
+    common_b = [x for x in ob if x in sa]
+    focus_removed = [x for x in oa if x not in sb]   # perdió el Tab: regresión real
+    focus_added = [x for x in ob if x not in sa]    # nuevo enfocable: cambio, no pérdida
     focus_changed = common_a != common_b
     first_divergence = next((i for i, (x, y) in enumerate(zip(common_a, common_b)) if x != y), None)
 

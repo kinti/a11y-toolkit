@@ -344,6 +344,20 @@ check('multi-target con software también las trae',
 if failures:
     print(f'SCOPE: {len(failures)} fallos — {failures}')
     sys.exit(1)
+
+# revisión externa 2026-11-22: un crawl (features DENTRO de sus páginas) +
+# una página suelda sin vídeo/formulario proponían EXCLUIR 1.2.x/3.3.x que la
+# muestra SÍ contiene — el crawl se aplana como en a11yevidence
+from a11y_toolkit.a11yscope import build_scope as _bs
+_sc = _bs([{'url': 'https://s', 'mode': 'site', 'reports': [
+              {'url': 'https://s/a', 'mode': 'static', 'findings': [],
+               'features': {'video': 1, 'form': 1, 'input': 3}}]},
+           {'url': 'https://s/b', 'mode': 'static', 'findings': [],
+            'features': {'video': 0, 'form': 0, 'input': 0}}], standard='wcag22')
+_est = {r['criterion'].split(' ')[0]: r['status'] for r in _sc['criteria']}
+assert _est['1.2.2'] == 'in-scope' and _est['3.3.2'] == 'in-scope', (_est['1.2.2'], _est['3.3.2'])
+print('crawl mezclado: 1.2.2/3.3.2 quedan in-scope ✓')
+
 print('SCOPE OK ✓ (EN 301 549 55/55 × 3 cláusulas, la máquina propone y nunca '
       'excluye, solo lo humano confirmado fluye con su razón, RGAA escucha '
       'respuestas, sin 508 público, cláusulas software 11.5-11.7, CLI+MCP reales)')

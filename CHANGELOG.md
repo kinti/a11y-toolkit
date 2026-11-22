@@ -1,6 +1,63 @@
 # Changelog
 
 ## main — pendiente
+- **External review, ROUND 2 (2026-11-22, same audited commit): two more
+  ways CI could go green when it should fail, a privacy leak in exported
+  traces, and five accuracy fixes.** Every finding was reproduced or read in
+  code before the fix; every fix carries its regression pin.
+- **A failed audit no longer passes the budget or rewrites the ledger (P1):**
+  feeding `budget` a report with `error` returned exit 0 and declared the
+  whole baseline resolved; `ledger record` moved every active signal to
+  "resolved". Both now refuse failed reports (error + exit 1), a partially
+  failed crawl compares its good pages and declares `pages_failed`, and the
+  ledger keeps the last valid state untouched.
+- **The GitHub Actions example no longer swallows the gate (P1):** the
+  budget step piped through `tee`, and Actions' default shell returns tee's
+  exit code — a red gate (exit 2) went green. The step now runs with an
+  explicit `shell: bash` + `set -o pipefail`.
+- **Focus signatures no longer export form values (P1, privacy):** the
+  shared focus key fell back to `input.value` with no type filter, so a
+  field without id/name could carry typed data (passwords included) into
+  exported snapshots/traces/engine matrices. The signature now reads values
+  only from button-type inputs (their value is the static label) — the same
+  rule the element collector already followed. String-pinned.
+- **`init` refuses to clobber an unreadable Claude config (P1):** a JSON
+  read error used to continue from `{}` and overwrite `.claude/settings.json`
+  — permission rules included. Now: clean error, original file untouched,
+  and valid installs write atomically (tmp + rename).
+- **Retrying a failed release resumes instead of faking success (P2):** a
+  failed `versionar.py` run left the files bumped; retrying the same version
+  printed "nothing to do" and exited 0 without running any test. Now the
+  same-version-no-tag case resumes the full gate and, with `--tag`, the
+  publish; only an existing tag means genuinely done.
+- **`disprove` re-verifies rendered reports under their ORIGINAL color
+  scheme:** a dark-theme contrast fail re-checked under light came back
+  "rejected" (88→100 with the page untouched). Reports that don't record
+  their `color_scheme` now come back `not-rechecked` instead of rejecting
+  findings nobody re-checked under the right condition.
+- **The focus walk no longer truncates on duplicate names:** the secondary
+  "signature repeats" stop ended the walk at the SECOND of two same-named
+  controls (Edit, Edit, Continue → one stop). Only the stamped first element
+  (node identity) closes the circle; the cap remains the safety net.
+- **New review signal `focus_static_indicator` (2.4.7, low):** a permanent
+  border/shadow used to count as a focus indicator because the heuristic
+  only looked at the focused state. It now compares rest vs focus: an
+  appearance that does not change is flagged as ambiguous (review —
+  programmatic focus can't trigger :focus-visible) instead of silently
+  passing; real :focus outlines and fully bare controls behave as before.
+- **`scope` flattens crawls before collecting evidence:** mixing a site
+  crawl with standalone pages left the crawl's nested features uncounted
+  and scope proposed excluding captions/forms criteria the sample actually
+  contained. Same flattening doctrine as the evidence pack; error reports
+  contribute nothing.
+- **`locate` understands native labels and emits browser-resolvable
+  routes:** a field wrapped in `<label>` now exists by its visible name
+  (implicit and `for=` labels, same resolution as the auditor), and paths
+  crossing `<table>` reflect the implicit `<tbody>` browsers insert —
+  `table>tr` selectors matched zero elements in Chromium before.
+- **`diff` focus comparison builds each set once:** O(a·b) rebuilds per stop
+  took 646 ms at 4,800 stops; precomputed sets do it in under 1 ms with the
+  same resulting order.
 - **External review triage (2026-11-22) — the three P1s and the cheap P2s,
   all verified in code before touching anything.** What this does NOT do:
   the ACT-consistency claim republishing, the crawl attempt-budget and the

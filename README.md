@@ -251,7 +251,7 @@ a11ytoolkit snapshot https://mysite --out before.json   # before deploy
 a11ytoolkit diff before.json after.json                 # after deploy
 a11ytoolkit evidence audit.json -o pack.json            # verifiable evidence pack (not-run unless a covering mode actually ran)
 a11ytoolkit disprove --url https://mysite               # re-verify findings
-a11ytoolkit budget --budget budget.json --audit audit.json  # only NEW findings block
+a11ytoolkit budget --budget budget.json --audit audit.json  # only NEW findings block (exit 1 = the report itself failed)
 a11ytoolkit budget --init-snapshot s.json > structural.json      # structural budget: today's structure is accepted
 a11ytoolkit budget --budget structural.json --snapshot s2.json   # only NEW rendered structure blocks (exit 0/2)
 a11ytoolkit engines https://mysite                        # same page in 3 engines: behavioral divergences, pairwise

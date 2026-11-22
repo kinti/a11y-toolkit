@@ -52,13 +52,19 @@ def _recheck_static(url, findings, timeout=30, lang='en'):
     return verified, None
 
 
-def _recheck_rendered(url, findings, timeout=45, lang='en'):
-    """Re-run the rendered audit and check which findings still fire."""
+def _recheck_rendered(url, findings, timeout=45, lang='en', color_scheme=None):
+    """Re-run the rendered audit and check which findings still fire.
+
+    Repite las CONDICIONES del informe original (revisión externa
+    2026-11-22): un informe auditado en dark mode reverificado en claro
+    «rechazaba» contrast_fail reales — 88→100 con la página intacta. Sin la
+    condición registrada, nada se rechaza: not-rechecked."""
     try:
         from .a11ydom import audit_dom_url
     except ImportError:
         return findings, "Playwright not installed"
-    fresh_report = audit_dom_url(url, timeout=timeout, lang=lang)
+    fresh_report = audit_dom_url(url, timeout=timeout, lang=lang,
+                                 color_scheme=color_scheme or 'light')
     if 'error' in fresh_report:
         return findings, fresh_report['error']
     fresh_signals = {h['signal'] for h in fresh_report.get('findings', [])}
@@ -113,7 +119,24 @@ def disprove(url, report=None, timeout=30, lang='en'):
     if mode_name in ('static', 'site'):
         verified, err = _recheck_static(url, findings, timeout=timeout, lang=lang)
     elif mode_name == 'rendered':
-        verified, err = _recheck_rendered(url, findings, timeout=timeout, lang=lang)
+        # condición necesaria: el esquema de color bajo el que se auditó. Sin
+        # él no se reverifica (rechazar un contrast_fail de dark mode tras
+        # mirar la página en claro es exactamente el falso «arreglado» que
+        # este patrón existe para impedir)
+        scheme = report.get('color_scheme') or report.get('scheme')
+        if scheme not in ('light', 'dark'):
+            res = dict(report)
+            res['findings'] = [dict(h, disprover_status='not-rechecked') for h in findings]
+            res['disprover'] = {
+                'executed': False,
+                'reason': ('the rendered report does not record its color_scheme '
+                           '— re-verifying under a different condition could reject '
+                           'real findings (a dark-only contrast fail looks fixed '
+                           'under light); re-audit with a11y_audit_dom and disprove '
+                           'THAT report')}
+            return res
+        verified, err = _recheck_rendered(url, findings, timeout=timeout, lang=lang,
+                                          color_scheme=scheme)
     else:
         # no re-verifier for this mode: report not-rechecked, never a proxy
         # audit (a keyboard finding must not vanish just because the wrong

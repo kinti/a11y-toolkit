@@ -113,6 +113,36 @@ assert 'aria_hidden_focusable' not in signals, signals.get('aria_hidden_focusabl
 f258 = signals.get('target_small')
 assert f258 is None or not any(re.search(r'\(([0-2])×([0-2])px\)', str(e)) for e in f258.get('examples', []))
 
+# 2.4.7 indicador de foco reposo-vs-foco (revisión externa 2026-11-22): un
+# borde PERMANENTE no es un indicador demostrado — antes puntuaba limpio.
+# Tres botones: borde estático (reseña), outline real en :focus (limpio),
+# nada en absoluto (fallo focus_invisible).
+FIX_FOCUS = '''<!doctype html><html lang="en"><head><meta charset="utf-8">
+<title>focus</title><style>
+.borde{border:2px solid #333;outline:none}
+.real:focus{outline:3px solid #04f}
+.nada{outline:none;border:0;background:#ddd}
+</style></head><body><main>
+<button class="borde">estatico</button>
+<button class="real">real</button>
+<button class="nada">nada</button>
+</main></body></html>'''
+with open(os.path.join('/tmp', 'focus_ind.html'), 'w', encoding='utf-8') as f:
+    f.write(FIX_FOCUS)
+from a11y_toolkit.a11ydom import audit_dom_url as _adu
+df = _adu('file:///tmp/focus_ind.html', lang='en')
+sigs_f = {h['signal']: h for h in df['findings'] if h['criterion'].startswith('2.4.7')}
+# exactamente UNO de cada: el borde estático → reseña (n=1), el desnudo →
+# fallo (n=1), y el de outline real en :focus NO aparece en ninguna (si el
+# outline no contara, focus_invisible tendría n=2)
+assert 'focus_static_indicator' in sigs_f and \
+    len(sigs_f['focus_static_indicator'].get('examples', [])) == 1, \
+    [h for h in df['findings'] if h['criterion'].startswith('2.4.7')]
+assert 'focus_invisible' in sigs_f and \
+    len(sigs_f['focus_invisible'].get('examples', [])) == 1, \
+    sigs_f.get('focus_invisible')
+print('FOCUS REPOSO-VS-FOCO OK ✓ (borde estático reseñado; outline real limpio; desnudo falla)')
+
 # 2.4.11: causa raíz header-fijo-vs-scroll-padding
 from a11y_toolkit.a11ydom import audit_dom_url
 mal = audit_dom_url('file:///tmp/sticky_mal.html', lang='en')

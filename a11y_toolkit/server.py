@@ -542,7 +542,10 @@ TOOLS = [
         'name': 'a11y_disprove',
         'description': ('Disprover pattern (from Cloudflare\'s security-audit-skill): '
                         're-runs the audit against the live page and marks each finding '
-                        'confirmed or rejected — findings that don\'t reproduce are '
+                        'confirmed or rejected — rendered reports are re-verified under '
+                        'their ORIGINAL color scheme (a dark-only contrast fail must not '
+                        'look fixed under light; reports that don\'t record their scheme '
+                        'come back not-rechecked), and findings that don\'t reproduce are '
                         'rejected with the reason. Catches false positives, race '
                         'conditions, and page changes between audit and report. Returns '
                         'a fresh score over confirmed findings only. — Run this before '

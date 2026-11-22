@@ -301,6 +301,8 @@
   "focus_navigates_rem": "Recibir foco nunca debe cambiar el contexto (3.2.1): revisa focus→location.href, focus→form.submit(), focus→window.open().",
   "focus_not_focusable": "{n} controles que no reciben foco con .focus(): {det}.",
   "focus_not_focusable_rem": "Si debe ser interactivo, que sea enfocable (tabindex=\"0\"); si no, quítalo de la ruta de tabulación.",
+  "focus_static_indicator": "Un indicador de foco ambiguo en {n} controles: tienen borde/sombra que NO cambia al recibir el foco ({det}). Decoración permanente no es indicador demostrado.",
+  "focus_static_indicator_rem": "Recorre con Tab y mira si ALGO cambia visualmente en cada parada. Si nada cambia, añade un outline real en :focus (o :focus-visible) — la decoración permanente no guía a nadie por teclado.",
   "focus_obscured": "{n} controles quedan tapados por elementos fijos/sticky al recibir el foco (cabeceras sticky, banners): {det}. Revisar (2.4.11).",
   "focus_obscured_rem": "Un elemento fijo no debe ocultar el elemento enfocado (2.4.11, nuevo en WCAG 2.2 AA): usa scroll-padding-top igual a la altura del header fijo, o hazlo auto-colapsable.",
   "forced_colors_svg": "{n} SVG con fill coloreado hardcoded: en forced-colors (Windows High Contrast) el fill cae al heredado y el icono puede volverse invisible.",

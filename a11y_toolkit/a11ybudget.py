@@ -75,7 +75,20 @@ def init(audit):
 
 def compare(budget, audit, today=None):
     """Presupuesto vs informe actual → veredicto ok/bloqueado con el detalle."""
-    pages = audit.get('reports') if 'reports' in audit else [audit]
+    # un informe FALLIDO no es evidencia de nada (revisión externa 2026-11-22:
+    # con {'error': …} current quedaba vacío, TODO el baseline salía
+    # «resolved» y el gate día verde). Sin páginas usables → error; las
+    # sub-páginas fallidas de un crawl se excluyen y se declaran.
+    if not isinstance(audit, dict) or audit.get('error'):
+        return {'error': 'the audit report failed (error field) — a failed run '
+                         'is not evidence that findings were fixed'}
+    pages = audit.get('reports') if isinstance(audit.get('reports'), list) else [audit]
+    failed = [pg.get('url') for pg in pages
+              if isinstance(pg, dict) and pg.get('error')]
+    pages = [pg for pg in pages if not (isinstance(pg, dict) and pg.get('error'))]
+    if not pages:
+        return {'error': f'all {len(failed)} pages of the report failed — '
+                         'nothing to compare'}
     base = {normalize_signal(s) for s in budget.get('signals', [])}
     blocking = set(budget.get('blocking', ['high', 'medium']))
     current = {}
@@ -98,6 +111,7 @@ def compare(budget, audit, today=None):
         'new': new,
         'new_blocking': new_blocking,
         'resolved': resolved,
+        **({'pages_failed': failed} if failed else {}),
         'summary': {
             'baseline': len(base),
             'current': len(current),
@@ -258,6 +272,12 @@ def main(argv):
         from .a11yaudit import audit_url
         report = audit_url(a.url)
     verdict = compare(budget, report)
+    if 'error' in verdict:
+        # informe fallido/malformado: error de EJECUCIÓN (exit 1), jamás un
+        # verde — el gate presupuestario no puede declarar resuelto lo que no
+        # llegó a mirar
+        print(json.dumps(verdict, ensure_ascii=False, indent=1))
+        return 1
     print(json.dumps(verdict, ensure_ascii=False, indent=1))
     return 0 if verdict['ok'] else 2
 

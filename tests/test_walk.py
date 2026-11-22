@@ -69,6 +69,24 @@ assert _order == ['button:pay', 'button:edit', 'button:edit', 'button:del'], _or
 assert _ring.stamped is None, 'la marca se limpia al terminar'
 print('0b. walk por identidad: firma duplicada no trunca; vuelta detectada ✓')
 
+# 0b-bis (revisión externa 2026-11-22): la duplicada EN PRIMERA POSICIÓN era
+# la que truncaba — Edit, Edit, Continue dejaba UNA sola parada porque el
+# chequeo secundario «firma == primera» confundía duplicado con vuelta
+_ring2 = _FakeFocusRing(['button:edit', 'button:edit', 'button:continue'])
+_order2 = _walk_focus(_ring2, 20)
+assert _order2 == ['button:edit', 'button:edit', 'button:continue'], _order2
+print('0b-bis. duplicado en cabeza: tres paradas, no una ✓')
+
+# 0a-priv (revisión externa 2026-11-22): la firma JAMÁS lleva el value de
+# campos editables — input.value sin filtro exportaba lo tecleado (snapshots,
+# trazas, matriz de motores) al JSON. Solo inputs-botón, como el COLLECTOR.
+assert "['submit','button','reset'].includes(el.type)" in FOCUS_KEY_JS, \
+    'FOCUS_KEY_JS volvió a leer input.value sin filtro de tipo'
+import re as _re_priv
+_bad = _re_priv.search(r"INPUT'\s*&&\s*el\.value\)", FOCUS_KEY_JS)
+assert not _bad, 'FOCUS_KEY_JS exporta el value editable'
+print('0a-priv. firma de foco sin values editables (solo inputs-botón) ✓')
+
 # 0c. nada enfocable → orden vacío sin crash
 assert _walk_focus(_FakeFocusRing(['a:x']), 5) == ['a:x']
 assert _walk_focus(_FakeFocusRing([]), 5) == []

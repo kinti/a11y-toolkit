@@ -223,7 +223,9 @@
   "state_contrast": "",
   "state_contrast_rem": "",
   "target_small": "",
-  "target_small_rem": ""
+  "target_small_rem": "",
+  "focus_static_indicator": "Ambiguous focus indicator on {n} controls: they carry a border/shadow that does NOT change on focus ({det}). Permanent decoration is not a demonstrated indicator.",
+  "focus_static_indicator_rem": "Tab through and watch whether anything visually changes at each stop. If nothing does, add a real outline on :focus (or :focus-visible) — permanent decoration guides nobody by keyboard."
  },
  "evidence": {
   "manual_remaining": "",

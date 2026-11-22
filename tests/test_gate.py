@@ -97,6 +97,26 @@ check('non-user-facing suffix → allow silently', code == 0)
 from a11y_toolkit import a11ygate  # noqa: E402
 check('import paths agree', a11ygate.is_user_facing is is_user_facing)
 
+# revisión externa 2026-11-22: un settings.json ILEGIBLE se machacaba partiendo
+# de {} (permisos de Claude incluidos). Ahora: error y el original intacto.
+import tempfile as _tf, os as _os, json as _json
+from a11y_toolkit import a11yinit as _ini
+_d = _tf.mkdtemp()
+_os.makedirs(_os.path.join(_d, '.claude'))
+_sp = _os.path.join(_d, '.claude', 'settings.json')
+open(_sp, 'w').write('{"permissions": {"allow": ["Bash"]}, ROT')
+_r = _ini.install_gate(_d)
+results.append(('init: config ilegible → error y original intacto',
+                bool(_r.get('error')) and 'ROT' in open(_sp).read()))
+open(_sp, 'w').write('{}')
+_r2 = _ini.install_gate(_d)
+_cfg = _json.load(open(_sp))
+results.append(('init: config válida → gate instalado atómicamente',
+                _r2.get('gate') == 'installed'
+                and any('a11ytoolkit' in h.get('command', '')
+                        for e in _cfg['hooks']['PreToolUse'] for h in e['hooks'])
+                and not _os.path.exists(_sp + '.a11y-tmp')))
+
 fails = [n for n, ok in results if not ok]
 print(f"\n{len(results) - len(fails)}/{len(results)} checks")
 sys.exit(1 if fails else 0)

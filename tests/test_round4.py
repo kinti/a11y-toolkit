@@ -175,4 +175,22 @@ for _sig, _sev in (("'zoom_max'", "'high'"), ("'no_bypass'", "'low'"),
     check(f'rendered {_sig} → {_sev}',
           f"_add(findings, lang, {_sev}, " in _dom and f"'{_sig[1:-1]}'" in _dom)
 
+
+# revisión externa 2026-11-22: reverificar un informe rendered SIN su
+# color_scheme en claro rechazaba contrast_fail que solo existen en oscuro
+# (88→100 con la página intacta). Sin la condición registrada: not-rechecked.
+from a11y_toolkit.a11ydisprove import disprove as _disp
+_rep = {'url': 'https://x', 'mode': 'rendered', 'score': 88,
+        'findings': [{'criterion': '1.4.3', 'severity': 'high',
+                      'signal': 'contrast_fail', 'issue': 'x', 'remediation': 'y'}]}
+_dr = _disp('https://x', report=dict(_rep))
+check('disprove sin color_scheme → not-rechecked (no rejected)',
+      all(f.get('disprover_status') == 'not-rechecked' for f in _dr['findings'])
+      and not _dr['disprover']['executed'])
+_rep_dark = dict(_rep, color_scheme='dark')
+_src = open(os.path.join(os.path.dirname(__file__), '..', 'a11y_toolkit', 'a11ydisprove.py'),
+            encoding='utf-8').read()
+check('disprove re-audita con el color_scheme del informe',
+      'color_scheme=scheme' in _src)
+
 print(f'\nRONDA 4 OK ✓ ({ok} pines: motor, cadena, rendered)')

@@ -262,7 +262,7 @@ a11ytoolkit snapshot https://mysite --out before.json   # antes del deploy
 a11ytoolkit diff before.json after.json                 # tras el deploy
 a11ytoolkit evidence audit.json -o pack.json            # pack de evidencia verificable (not-run salvo que un modo con señal corriera de verdad)
 a11ytoolkit disprove --url https://mysite               # re-verifica hallazgos
-a11ytoolkit budget --budget budget.json --audit audit.json  # solo lo NUEVO bloquea
+a11ytoolkit budget --budget budget.json --audit audit.json  # solo lo NUEVO bloquea (exit 1 = el informe falló)
 a11ytoolkit budget --init-snapshot s.json > estructural.json    # presupuesto estructural: la estructura de HOY se acepta
 a11ytoolkit budget --budget estructural.json --snapshot s2.json # solo la estructura renderizada NUEVA bloquea (exit 0/2)
 a11ytoolkit engines https://mysite                        # la misma página en 3 motores: divergencias de comportamiento, por pares

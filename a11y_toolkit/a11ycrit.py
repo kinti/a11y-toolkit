@@ -948,6 +948,7 @@ _SIGNAL_CRIT = {
     'focus_navigates': '3.2.1',
     'focus_not_focusable': '2.4.7',
     'focus_obscured': '2.4.11',
+    'focus_static_indicator': '2.4.7',
     'forced_colors_svg': '1.4.3',
     'form_error_missing': '3.3.1',
     'form_error_no_suggestion': '3.3.3',

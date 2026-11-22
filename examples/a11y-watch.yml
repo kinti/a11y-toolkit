@@ -34,7 +34,12 @@ jobs:
           SITE_URL: ${{ vars.SITE_URL || 'https://example.com' }}
 
       - name: Budget gate (only NEW findings block)
-        run: a11ytoolkit budget --budget budget.json --audit audit.json | tee budget-verdict.json
+        # shell: bash explícito — el shell por defecto de Actions (sh) devuelve
+        # el código de TEE y un gate en rojo (exit 2) pasaría por verde
+        shell: bash
+        run: |
+          set -o pipefail
+          a11ytoolkit budget --budget budget.json --audit audit.json | tee budget-verdict.json
 
       - name: Upload SARIF to code scanning
         if: always()

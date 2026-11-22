@@ -103,7 +103,13 @@ def merge_block(content):
 def install_gate(path='.'):
     """Install the write-time gate hook in .claude/settings.json (idempotent:
     an existing a11ytoolkit guard-hook entry is left alone, as is every hook
-    the user added). Returns {'gate': 'installed'|'already', 'file': path}."""
+    the user added). Returns {'gate': 'installed'|'already', 'file': path}.
+
+    Un fichero existente ILEGIBLE (o sin forma de objeto) jamás se toca: la
+    revisión externa (2026-11-22) cazó que un error de lectura partía de {}
+    y REEMPLAZABA el fichero — permisos de Claude incluidos. Ahora error
+    limpio con el original intacto. La escritura válida es atómica
+    (tmp + rename): un corte a mitad no deja un settings.json medio."""
     sdir = os.path.join(path, '.claude')
     os.makedirs(sdir, exist_ok=True)
     spath = os.path.join(sdir, 'settings.json')
@@ -111,8 +117,15 @@ def install_gate(path='.'):
     if os.path.exists(spath):
         try:
             data = json.load(open(spath, encoding='utf-8'))
-        except Exception:  # noqa: BLE001 — never clobber an unparseable file
-            data = {}
+        except Exception as e:  # noqa: BLE001 — conservar, jamás machacar
+            return {'error': f'cannot read existing {spath} ({e.__class__.__name__}): '
+                             'fix or remove it by hand — this tool refuses to '
+                             'overwrite an unreadable config',
+                    'gate': 'skipped', 'file': spath}
+        if not isinstance(data, dict):
+            return {'error': f'{spath} is valid JSON but not an object — this '
+                             'tool refuses to overwrite it',
+                    'gate': 'skipped', 'file': spath}
     hooks = data.setdefault('hooks', {}).setdefault('PreToolUse', [])
     for entry in hooks:
         cmds = [h.get('command', '') for h in entry.get('hooks', [])]
@@ -120,9 +133,11 @@ def install_gate(path='.'):
             return {'gate': 'already', 'file': spath}
     hooks.append({'matcher': GATE_MATCHER,
                   'hooks': [{'type': 'command', 'command': GATE_CMD}]})
-    with open(spath, 'w', encoding='utf-8') as f:
+    tmp = spath + '.a11y-tmp'
+    with open(tmp, 'w', encoding='utf-8') as f:
         json.dump(data, f, ensure_ascii=False, indent=2)
         f.write('\n')
+    os.replace(tmp, spath)   # atómico: o el fichero nuevo entero, o el viejo
     return {'gate': 'installed', 'file': spath}
 
 
@@ -159,7 +174,11 @@ def main(argv):
     res = init(a.path, gate=not a.no_gate)
     if res.get('malformed_marker'):
         print('! ' + res['warning'])
-    if res.get('gate'):
+    if res.get('error'):
+        # el gate se negó a tocar un settings.json ilegible: el AGENTS.md ya
+        # se actualizó (eso es seguro), pero el estado del gate es un ERROR
+        print('! ' + res['error'])
+    if res.get('gate') and res['gate'] != 'skipped':
         print(f"✓ write-time gate {res['gate']}: {res['file']}"
               f"  (block: NEW high/medium · disable: A11Y_GATE=off)")
     verb = 'updated' if res['already_present'] else ('created' if res['created'] else 'installed into')

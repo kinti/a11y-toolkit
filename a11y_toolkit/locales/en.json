@@ -301,6 +301,8 @@
   "focus_navigates_rem": "Receiving focus must never change context (3.2.1): check focus→location.href, focus→form.submit(), focus→window.open().",
   "focus_not_focusable": "{n} controls that never receive focus via .focus(): {det}.",
   "focus_not_focusable_rem": "If it must be interactive, make it focusable (tabindex=\"0\"); otherwise remove it from the tab path.",
+  "focus_static_indicator": "Ambiguous focus indicator on {n} controls: they carry a border/shadow that does NOT change on focus ({det}). Permanent decoration is not a demonstrated indicator.",
+  "focus_static_indicator_rem": "Tab through and watch whether anything visually changes at each stop. If nothing does, add a real outline on :focus (or :focus-visible) — permanent decoration guides nobody by keyboard.",
   "focus_obscured": "{n} controls end up hidden behind fixed/sticky elements when focused (sticky headers, banners): {det}. Review (2.4.11).",
   "focus_obscured_rem": "Author-fixed content must not hide the focused element (2.4.11, new in WCAG 2.2 AA): set scroll-padding-top to the fixed header height, or make it auto-collapse.",
   "forced_colors_svg": "{n} SVGs with hardcoded colored fill: under forced-colors (Windows High Contrast) the fill falls back to inherited and the icon can turn invisible.",

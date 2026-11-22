@@ -146,6 +146,18 @@ check('locate es/en key parity', set(en) == set(es) and len(en) == 6)
 check('placeholders identical es/en', all(
     en[k].count('{') == es[k].count('{') for k in en))
 
+# revisión externa 2026-11-22: (a) un campo envuelto en <label> no existía
+# por su nombre visible; (b) las rutas que cruzan <table> sin <tbody> no
+# resolvían en el DOM real (Chromium inserta tbody)
+_r_lab = locate('<html><body><form><label>Correo <input type="email" name="m"></label></form></body></html>',
+                'Correo')
+results.append(('locate: label envolvente nombra el campo',
+                _r_lab['found'] and 'input' in (_r_lab['selector'] or '')))
+_r_tbl = locate('<html><body><table><tr><td><button>Comprar</button></td></tr></table></body></html>',
+                'Comprar')
+results.append(('locate: ruta con tbody implícito resuelve en navegador',
+                _r_tbl['found'] and 'tbody' in (_r_tbl['selector'] or '')))
+
 fails = [n for n, ok in results if not ok]
 print(f"\n{len(results) - len(fails)}/{len(results)} checks")
 sys.exit(1 if fails else 0)

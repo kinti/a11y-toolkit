@@ -483,6 +483,8 @@ class _Auditor(HTMLParser):
         self.controls_raw = []   # (kind, attrs, texto, [nombres imgs internas], hidden)
         self.headings_raw = []   # (nivel, attrs, texto, hidden)
         self.fields_raw = []     # (tag, kind, attrs, dentro_de_label, hidden)
+        self._fields_in_label = []   # campos que el <label> ABIERTO envuelve
+        self._wrap_label_text = {}   # id(attrs del campo) → texto de su label envolvente
         self._heading_attrs = {}
         self.videos = 0
         self.videos_with_captions = 0
@@ -704,6 +706,16 @@ class _Auditor(HTMLParser):
         # ruta determinista del elemento (kernel de anotación): nth-of-type
         # SIEMPRE (los id duplicados no pueden romper la ruta) y los void no
         # abren pila (no tienen handle_endtag)
+        # tbody IMPLÍCITO bajo <table>: el navegador normaliza <table><tr>
+        # insertando <tbody>; sin reflejarlo, las rutas nth-of-type que
+        # cruzan la mesa no resuelven en el DOM real (Chromium: table>tr
+        # casa CERO elementos — revisión externa 2026-11-22). Se abre igual
+        # que un tag normal y </table> lo cierra con el resto de la pila.
+        if tag == 'tr' and self._path_stack and self._path_stack[-1][0] == 'table':
+            _parent_tb = self._path_stack[-1]
+            _parent_tb[2]['tbody'] = _parent_tb[2].get('tbody', 0) + 1
+            self._path_stack.append(
+                ('tbody', _parent_tb[1] + '>' + path_segment('tbody', _parent_tb[2]['tbody']), {}))
         if self._path_stack:
             _parent = self._path_stack[-1]
             _parent[2][tag] = _parent[2].get(tag, 0) + 1
@@ -894,6 +906,8 @@ class _Auditor(HTMLParser):
             if kind == 'search' or re.search(r'search|busqueda|b[uú]squeda', (a.get('name') or '') + (a.get('id') or ''), re.I):
                 self.has_search = True
             if kind in _FIELDS:
+                if self._wrap_labels(a):
+                    self._fields_in_label.append(id(a))
                 self.fields_raw.append((tag, kind, a, self._wrap_labels(a), _hidden))
                 if 'autocomplete' not in a and kind != 'search' and (
                         kind in ('email', 'tel')
@@ -941,10 +955,13 @@ class _Auditor(HTMLParser):
                     f'{_mal} (input name={a.get("name") or "?"})'[:60])
         elif tag in ('select', 'textarea'):
             self._field_note()
+            if self._wrap_labels(a):
+                self._fields_in_label.append(id(a))
             self.fields_raw.append((tag, tag, a, self._wrap_labels(a), _hidden))
         elif tag == 'label':
             self._label_depth += 1
             self._label_text_current = []
+            self._fields_in_label = []   # campos que ESTE label envuelve
             self._labels_stack.append(False)
             self._label_elem_stack.append(a)
             self._label_for_stack.append(a.get('for') or None)
@@ -1415,6 +1432,11 @@ class _Auditor(HTMLParser):
                     _lfor = self._label_for_stack.pop()
                     if _lfor and txt:
                         self._label_text_for[_lfor] = txt
+                # texto del label ENVOLVENTE por campo (a11ylocate indexa el
+                # campo por su nombre visible — la misma resolución del auditor)
+                if txt:
+                    for _fa in getattr(self, '_fields_in_label', []):
+                        self._wrap_label_text[_fa] = txt
             if self._labels_stack:
                 # pila paralela de elems: pop SIEMPRE (un pop por cierre)
                 _le = self._label_elem_stack.pop() if self._label_elem_stack else None

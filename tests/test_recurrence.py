@@ -125,3 +125,17 @@ assert gn['status'] == 'never_audited' and isinstance(gn['criteria_without_signa
 print(f"9. gaps auditada: {len(g['criteria_without_signal'])} criterios sin señal ✓")
 
 print('OK test_recurrence: 9 checks')
+
+# revisión externa 2026-11-22: un informe con error JAMÁS escribe el ledger
+# (antes: findings vacío → todo pasaba a «resolved»)
+import hashlib as _hl
+_led2 = os.path.join(tempfile.mkdtemp(), 'ledger2.json')
+record('https://e.example', {'score': 88, 'mode': 'static',
+       'findings': [{'signal': 'img_no_alt', 'severity': 'high'}]}, path=_led2)
+_r_err = record('https://e.example', {'error': 'could not load'}, path=_led2)
+assert _r_err.get('error'), _r_err
+_ent = json.load(open(_led2))['entries'][
+    _hl.sha256('https://e.example'.encode()).hexdigest()[:16]]
+assert _ent['active_signals'] == ['img_no_alt'] and _ent['resolved_signals'] == [], _ent
+print('10. ledger: informe con error conserva el último estado válido ✓')
+

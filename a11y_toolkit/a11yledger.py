@@ -110,6 +110,13 @@ def _hash_url(url):
 
 
 def _record(url, report, ledger=None, path='a11y-ledger.json'):
+    # un informe FALLIDO jamás escribe (revisión externa 2026-11-22: con
+    # {'error': …} findings quedaba vacío y TODAS las señales activas
+    # pasaban a «resolved» — el libro mentía). Se conserva el último estado
+    # válido y se devuelve el error.
+    if not isinstance(report, dict) or report.get('error'):
+        return {'error': 'the audit report failed (error field) — the last '
+                         'valid ledger state is preserved'}
     if ledger is None:
         ledger = _load(path)
     now = datetime.now(timezone.utc).isoformat(timespec='seconds')
@@ -304,6 +311,8 @@ def main(argv):
             report = json.load(f)
         r = record(a.url, report, path=a.ledger)
         print(json.dumps(r, ensure_ascii=False, indent=1))
+        if isinstance(r, dict) and r.get('error'):
+            return 1   # informe fallido: error de ejecución, no un verde
     elif a.cmd == 'gaps':
         print(json.dumps(gaps(a.url, path=a.ledger, lang=a.lang), ensure_ascii=False, indent=1))
     elif a.cmd == 'summary':

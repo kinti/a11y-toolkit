@@ -114,6 +114,25 @@ def build_scope(reports, standard='wcag22', target='web', answers=None,
     else:
         targets = [target]
     reports = [r for r in reports if isinstance(r, dict)]
+    # aplanar crawls (audit_site anida las páginas bajo 'reports'): sin esto,
+    # los features de las páginas DENTRO del crawl no se contaban y el scope
+    # proponía excluir criterios de subtítulos/formularios que la muestra SÍ
+    # contiene (revisión externa 2026-11-22). Misma doctrina que a11yevidence:
+    # hallazgos top-level = copias re-verificadas, se prefieren; informes con
+    # error jamás aportan evidencia
+    flat = []
+    for rep in reports:
+        if rep.get('error'):
+            continue
+        subs = rep.get('reports')
+        if isinstance(rep.get('findings'), list) and rep['findings']:
+            flat.append(rep)
+        elif isinstance(subs, list) and subs:
+            flat.extend(s for s in subs
+                        if isinstance(s, dict) and not s.get('error'))
+        else:
+            flat.append(rep)
+    reports = flat
     findings_codes = set()
     for rep in reports:
         raw = rep.get('findings')

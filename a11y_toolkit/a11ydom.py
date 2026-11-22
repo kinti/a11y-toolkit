@@ -223,7 +223,7 @@ _JS = r'''(maxEj) => {
                 placeholderContrast: [],
                 imgs: [], canvasNoName: [], chartsNoEquiv: [], iframes: [], headings: [], tabindex: [], ariaHidden: [],
                 blank: 0, videos: 0, videoSubs: 0, tables: 0, tableTh: 0,
-                focus: [], focusFail: [], focusContrast: [], focusObscured: [], marks: 0,
+                focus: [], focusFail: [], focusReview: [], focusContrast: [], focusObscured: [], marks: 0,
                 ids: {}, lang: null, title: '', viewport: null, refresh: null,
                 main: false, skip: false, elements: 0, shadow_roots: 0,
                 colorOnly: [], orderInversions: 0, loopingAnims: 0 };
@@ -689,20 +689,34 @@ _JS = r'''(maxEj) => {
   const activeEl = () => { let a = document.activeElement;
     while (a && a.shadowRoot && a.shadowRoot.activeElement) a = a.shadowRoot.activeElement;
     return a; };
+  // firma de la APARIENCIA relevante para el foco (outline/sombra/bordes):
+  // comparar reposo vs foco distingue un indicador REAL (aparece/cambia al
+  // enfocar) de un borde PERMANENTE que estaba ahí antes y seguirá ahí
+  // después — la revisión externa 2026-11-22 cazó un botón con borde 2px y
+  // outline:none puntuando como foco visible
+  const sigOf = el => { const s = getComputedStyle(el);
+    return [s.outlineStyle + '/' + s.outlineWidth, s.boxShadow || '',
+            ['Top', 'Right', 'Bottom', 'Left'].map(
+              k => s['border' + k + 'Width'] + s['border' + k + 'Style'] + s['border' + k + 'Color']).join(';')].join('|');
+  };
   const prevFocus = document.activeElement;
   for (const el of stops) {
+    const before = sigOf(el);
     try { el.focus(); } catch (e) { /* no enfocable */ }
     if (activeEl() !== el) {
       out.focusFail.push({ example: path(el), why: 'nofocus' });
       continue;
     }
     const s = getComputedStyle(el);
+    const changed = sigOf(el) !== before;
     const outline = s.outlineStyle !== 'none' && parseFloat(s.outlineWidth || '0') > 0;
     const shadow = s.boxShadow && s.boxShadow !== 'none';
     const edgePx = ['Top', 'Right', 'Bottom', 'Left'].some(
       k => parseFloat(s['border' + k + 'Width'] || '0') >= 2
            && s['border' + k + 'Style'] !== 'none');
     if (!outline && !shadow && !edgePx) out.focus.push(path(el));
+    else if (!changed && out.focusReview.length < 20)
+      out.focusReview.push({ example: path(el), why: 'static-appearance' });
     const fgf = parseCol(s.color);
     const bgf = bgOf(el);
     if (fgf && !bgf.image) {
@@ -839,6 +853,13 @@ def audit_dom(data, url='(rendered)', lang='en', color_scheme='light'):
         _add(findings, lang, 'low', '2.4.7', 'focus_not_focusable',
                 examples=[f['example'] for f in data['focusFail']],
                 n=len(data['focusFail']), det=', '.join(f['example'] for f in data['focusFail'][:4]))
+    # 3b. indicador AMBIGUO: hay borde/sombra/outline pero NO cambia al enfocar
+    # — decoración permanente, no indicador demostrado. Reseña (low), no fallo:
+    # el foco programático no dispara :focus-visible y el veredicto se reserva
+    if data.get('focusReview'):
+        _add(findings, lang, 'low', '2.4.7', 'focus_static_indicator',
+                examples=[f['example'] for f in data['focusReview']],
+                n=len(data['focusReview']), det=', '.join(f['example'] for f in data['focusReview'][:4]))
 
     # 4. Resto de señales (renderizadas)
     if data.get('unnamed'):

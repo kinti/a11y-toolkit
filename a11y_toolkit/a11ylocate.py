@@ -156,10 +156,16 @@ def _index(p):
         lb, al, ti = _name_sources(a)
         content_name = direct_text.get(a.get('id') or '', '') \
             if kind.split(':', 1)[-1] in _NAME_FROM_CONTENT else ''
+        # label como nombre (la MISMA resolución que el auditor): el <label
+        # for=id> y el <label> envolvente cuentan — un campo correctamente
+        # etiquetado existe por su nombre visible (revisión externa
+        # 2026-11-22: se caía del índice y locate decía «no encontrado»)
+        label_name = (getattr(p, '_label_text_for', {}).get(a.get('id'), '')
+                      or getattr(p, '_wrap_label_text', {}).get(id(a), '')).strip()
         # el kind de un input es su type ('email'): normalizo al formato
         # 'input:email' que usan los aliases de rol
         role_kind = f'input:{kind}' if tag == 'input' else kind
-        _add(a, role_kind, lb or al or ti or content_name)
+        _add(a, role_kind, lb or al or label_name or content_name or ti)
 
     return items
 
