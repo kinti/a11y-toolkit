@@ -1,6 +1,25 @@
 # Changelog
 
 ## main — pendiente
+- **Static audit patterns.** Added signals for interactive anchors without
+  `href`, nested `main`, bullet-and-break lists, polite alerts, conflicting
+  `lang` / `xml:lang`, and broken `headers` references. Table validation
+  checks every ID against its own data table, keeps nested and consecutive
+  tables separate, and locates the affected cell. These HTML and ARIA
+  patterns support review of rendered behavior.
+- **Trace input validation.** Capture treats an HTTP 4xx/5xx from its first
+  load or a scripted `goto` as an error. The diff CLI exits 1 for unreadable,
+  invalid or failed captures, and 2 for regressions. Empty or malformed
+  dialog evidence is inconclusive. The focus verdict still applies to valid
+  captures with inconclusive dialog evidence.
+- **Compact routes and one-pass annotation.** Store parent links and
+  individual segments, and build CSS paths as findings need them. Audit
+  and annotation now share the same route parser, including implicit
+  `tbody`. Markup insertion joins slices in offset order, preserving all
+  source text outside the marks and assigning IDs in finding order.
+  Routes from older reports that omit an implicit `tbody` remain usable. See the
+  [annotation and trace recipes](docs/cookbook.md#15-locate-a-broken-table-header-in-the-original-html)
+  and the [local measurements](bench/README.md#local-parser-and-annotation-measurements).
 - **Optional dialog-state regression gate for trace diff (issue #16,
   @AkiyamaKira2003).** `trace --capture-dialog-state` records, after each
   step, the minimal non-sensitive modal state (count of open

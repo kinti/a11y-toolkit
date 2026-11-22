@@ -217,3 +217,52 @@ this engine, kill 1.0, zero false positives). A submission that flags
 nothing scores exactly 0.0 — and one that invents criteria on the placebo
 pages is exposed by construction. The contract is criterion codes, not
 tool rule ids: axe, Lighthouse or a human with a checklist can all play.
+
+## 15. Locate a broken table header in the original HTML
+
+```bash
+at audit --file table.html > table-audit.json
+at annotate table.html --report table-audit.json -o marked.html --marks marks.json
+```
+
+For a cell such as `<td headers="quarter total">…</td>`, the static audit
+checks both IDs against header cells in that data table. A broken reference
+emits `headers_attr_bad` with the referring cell's CSS path. Nested tables
+have independent header sets. Both commands read the file as UTF-8 text.
+Annotation preserves that text outside the injected `data-a11y-id`
+attributes, including when the route contains a browser-implied `tbody`.
+`marks.json` links those IDs to the findings.
+
+Annotate the same HTML you audited. If the audit's `source_sha256` differs,
+the CLI reports `source_mismatch: true`, writes the original HTML as the
+output, and counts the findings as unplaced. Re-audit the edited source to
+place fresh marks.
+
+## 16. Gate a keyboard journey in CI
+
+Save the same actions for both runs, for example in `journey.json`.
+
+```json
+[
+  {"kind": "click", "selector": "#open-dialog"},
+  {"kind": "press", "key": "Escape"}
+]
+```
+
+```bash
+at trace "$BASELINE_URL" --script journey.json --capture-dialog-state -o before.json &&
+at trace "$CANDIDATE_URL" --script journey.json --capture-dialog-state -o after.json &&
+at trace diff before.json after.json --gate-dialog-state
+```
+
+| Exit | Meaning |
+|---|---|
+| `0` | The available evidence shows no blocking regression. |
+| `1` | A capture failed or the diff input could not be read or validated. An HTTP 4xx/5xx during the initial load or a scripted `goto` is a capture failure. |
+| `2` | Focus was lost or reordered, or the optional gate found a difference in dialog state on comparable steps. |
+
+When comparing dialogs, read `dialog_gate.status` as well as the exit code.
+Empty steps, missing or invalid dialog state, and different action
+sequences yield `inconclusive`. In that case the focus verdict determines
+the exit code. A passing dialog comparison is explicit as
+`dialog_gate.status: "pass"`.

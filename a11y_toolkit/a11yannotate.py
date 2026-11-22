@@ -6,7 +6,7 @@ the auditor now stamps every finding it can with `paths` (deterministic CSS
 routes computed during the parse: tag:nth-of-type(n) from the root — ids are
 ignored on purpose, duplicate ids cannot break identity), and
 `annotate(html, report)` re-parses the SAME html with the SAME route
-algorithm (shared: VOID_TAGS / path_segment from a11yaudit) to inject
+algorithm (shared with a11yaudit) to inject
 `data-a11y-id="mN"` attributes at byte-exact positions — offset surgery,
 the rest of the document is preserved byte for byte.
 
@@ -29,10 +29,13 @@ CLI:
 
 import argparse
 import json
+import re
 import sys
 from html.parser import HTMLParser
 
-from .a11yaudit import VOID_TAGS, path_segment
+from .a11yaudit import _ElementPaths
+
+_DIRECT_TABLE_ROW = re.compile(r'(?:^|>)table:nth-of-type\(\d+\)>tr:nth-of-type\(')
 
 # nota de mismatch, bilingüe (mismo patrón que _labels en a11yaudit):
 # annotate no tiene idioma propio — 'en' por defecto, idioma explícito opcional
@@ -51,11 +54,13 @@ class _Locator(HTMLParser):
     byte offset where an attribute could be injected (right after the tag
     name). Same route algorithm as the auditor → same routes → exact match."""
 
-    def __init__(self):
+    def __init__(self, html_text, implicit_tbody=True):
         super().__init__(convert_charrefs=True)
-        self.route_offset = {}      # path → insertion offset
+        self.route_offset = {}      # path index → insertion offset
         self._line_starts = None    # built lazily at feed()
-        self._stack = []            # mirrors the auditor's path stack
+        self._paths = _ElementPaths(implicit_tbody)
+        self.feed(html_text)
+        self.close()
 
     def feed(self, data):
         lines = data.split('\n')
@@ -68,30 +73,19 @@ class _Locator(HTMLParser):
 
     def handle_starttag(self, tag, attrs):
         pos = self.getpos()                 # (line, col) — 1-based line
-        if self._stack:
-            parent = self._stack[-1]
-            parent[2][tag] = parent[2].get(tag, 0) + 1
-            path = parent[1] + '>' + path_segment(tag, parent[2][tag])
-        else:
-            path = path_segment(tag, 1)
         # offset absoluto del '<' + largo de "<tag" → punto de inyección
         try:
             abs_off = self._line_starts[pos[0] - 1] + pos[1]
         except IndexError:
             return
-        self.route_offset[path] = abs_off + 1 + len(tag)
-        if tag not in VOID_TAGS:
-            self._stack.append((tag, path, {}))
+        self.route_offset[self._paths.start(tag)] = abs_off + 1 + len(tag)
 
     def handle_endtag(self, tag):
-        if self._stack:
-            if self._stack[-1][0] == tag:
-                self._stack.pop()
-            else:
-                for i in range(len(self._stack) - 1, -1, -1):
-                    if self._stack[i][0] == tag:
-                        del self._stack[i:]
-                        break
+        self._paths.end(tag)
+
+    def insertion_offset(self, path):
+        if isinstance(path, str):
+            return self.route_offset.get(self._paths.lookup(path))
 
 
 def annotate(html_text, report, lang='en'):
@@ -108,15 +102,6 @@ def annotate(html_text, report, lang='en'):
     mismatch = bool(src_hash) and src_hash != hashlib.sha256(
         html_text.encode('utf-8', 'replace')).hexdigest()
 
-    loc = _Locator()
-    try:
-        loc.feed(html_text)
-        loc.close()
-    except Exception:   # noqa: BLE001  — html hostil: sin marcas, sin caída
-        return {'annotated_html': html_text, 'marks': [],
-                'unplaced': [{'criterion': h.get('criterion'), 'signal': h.get('signal')}
-                             for h in report.get('findings', []) if isinstance(h, dict)]}
-
     findings = [h for h in report.get('findings', []) if isinstance(h, dict)]
     if mismatch:
         # la puerta del docstring: un informe de OTRO html jamás se inyecta
@@ -126,21 +111,31 @@ def annotate(html_text, report, lang='en'):
                 'source_mismatch': True,
                 'note': _NOTES.get(lang, _NOTES['en'])}
 
-    marks, unplaced, injections = [], [], []      # injections: (offset, id)
+    try:
+        loc = _Locator(html_text)
+    except Exception:   # noqa: BLE001  — html hostil: sin marcas, sin caída
+        return {'annotated_html': html_text, 'marks': [],
+                'unplaced': [{'criterion': h.get('criterion'), 'signal': h.get('signal')}
+                             for h in findings]}
+
+    marks, unplaced = [], []
+    legacy = None
     by_off = {}    # offset → id ya asignado: dos findings sobre el MISMO
                    # elemento comparten marca (dos data-a11y-id en el mismo
                    # offset serían HTML inválido — el DOM descarta el segundo)
-    n = 0
     for h in findings:
         did_place = False
         for path in (h.get('paths') or []):
-            off = loc.route_offset.get(path)
+            off = loc.insertion_offset(path)
+            # Older reports use a direct table>tr path for implicit tbody.
+            if off is None and isinstance(path, str) and _DIRECT_TABLE_ROW.search(path):
+                if legacy is None:
+                    legacy = _Locator(html_text, implicit_tbody=False)
+                off = legacy.insertion_offset(path)
             if off is None:
                 continue
             if off not in by_off:
-                n += 1
-                by_off[off] = f'm{n}'
-                injections.append((off, by_off[off]))
+                by_off[off] = f'm{len(by_off) + 1}'
             marks.append({'id': by_off[off], 'path': path,
                           'criterion': h.get('criterion'), 'severity': h.get('severity'),
                           'signal': h.get('signal')})
@@ -148,11 +143,13 @@ def annotate(html_text, report, lang='en'):
         if not did_place:
             unplaced.append({'criterion': h.get('criterion'), 'signal': h.get('signal')})
 
-    # cirugía por offsets, en orden DESCENDENTE para no invalidar posiciones
-    out = html_text
-    for off, mid in sorted(injections, key=lambda x: -x[0]):
-        out = out[:off] + f' data-a11y-id="{mid}"' + out[off:]
-    return {'annotated_html': out, 'marks': marks,
+    parts = []
+    start = 0
+    for off, mid in sorted(by_off.items()):
+        parts.extend((html_text[start:off], f' data-a11y-id="{mid}"'))
+        start = off
+    parts.append(html_text[start:])
+    return {'annotated_html': ''.join(parts), 'marks': marks,
                'unplaced': unplaced, 'source_mismatch': mismatch}
 
 

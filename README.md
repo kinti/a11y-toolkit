@@ -236,6 +236,7 @@ Install it with `pip install a11y-toolkit` (or `uv tool install a11y-toolkit`).
 a11ytoolkit audit --changed                     # ONLY what changed since HEAD (CI gate)
 a11ytoolkit audit --changed --base origin/main  # a branch's changes — exit 2 on high/medium
 a11ytoolkit audit --url https://example.com --pages 5   # sitemap-first crawl
+a11ytoolkit audit --file table.html  # checks every headers ID against cells in the same data table
 a11ytoolkit pair "#1f2328" "#fbfaf7"                    # contrast
 a11ytoolkit image hero.jpg --text "#fff" --region 120,40,420,90
 a11ytoolkit forms https://mysite/contact                # form errors
@@ -257,6 +258,7 @@ a11ytoolkit budget --budget structural.json --snapshot s2.json   # only NEW rend
 a11ytoolkit engines https://mysite                        # same page in 3 engines: behavioral divergences, pairwise
 a11ytoolkit trace https://mysite --script journey.json -o t.json  # scripted real journey, then: trace diff t_old.json t.json
 a11ytoolkit trace https://mysite --script j.json --capture-dialog-state -o t.json  # + per-step modal state, then: trace diff a.json b.json --gate-dialog-state
+a11ytoolkit trace diff a.json b.json  # exit 1 for invalid captures, 2 for regressions
 a11ytoolkit patterns https://mysite                       # APG keyboard contracts, live: dialog / tablist / disclosure / combobox / menu / slider
 a11ytoolkit ledger recurrence --ledger a11y-ledger.json   # chronic signals + hot urls: the review queue without ML
 a11ytoolkit contrast-dom https://mysite --walk            # perceptual pass: per-element ratios, thresholds, suggestions
@@ -271,8 +273,8 @@ a11ytoolkit route --goal "gate my PR"                          # which tools for
 a11ytoolkit route --file page.html                             # diagnosis: the page orders the exams
 a11ytoolkit mutants --seed 7 --n 12                            # the engine's sealed self-exam
 a11ytoolkit fingerprints pages/*.html -o templates.json        # twin pages → one audit per template
-a11ytoolkit audit --url page.html --standard en301549          # EN 301 549 clause on every finding
-a11ytoolkit annotate page.html --report r.json -o marked.html  # per-element marks on a byte-exact copy
+a11ytoolkit audit --file page.html --standard en301549         # EN 301 549 clause on every finding
+a11ytoolkit annotate page.html --report r.json -o marked.html  # per-element marks in one pass, source text preserved
 a11ytoolkit locate --file page.html --query "Submit"           # element by accessible name → route selector
 a11ytoolkit patches --file page.html -o patches.json           # sealed fix record (verify with --verify)
 a11ytoolkit journey friction.json -o verdict.json             # blindfold journey: friction log -> scored verdict
@@ -281,6 +283,12 @@ a11ytoolkit criteria --list --level AA --new-in 2.2            # the offline Qui
 a11ytoolkit wizard --url https://client.web --lang es          # guided: 3 questions → standard, audit, scope, annex
 a11ytoolkit corpus verify corpus                  # the frozen corpus, verified
 ```
+
+For table findings, audit and annotate the same HTML to locate the cell with
+a broken `headers` reference. For keyboard regression checks, capture both
+runs with the same script. With the optional dialog gate, inspect
+`dialog_gate.status` alongside the exit code. [Worked examples](docs/cookbook.md#15-locate-a-broken-table-header-in-the-original-html)
+
 ## Standards coverage
 
 Which market's law each command serves: [docs/standards-coverage.md](docs/standards-coverage.md)

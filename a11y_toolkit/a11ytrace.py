@@ -20,7 +20,7 @@ must not mutate the page it measures.
 CLI (infrastructure, not a tool — D17, like corpus/mutants/engines):
   a11ytrace.py https://web [--steps 25] [-o trace.json]      # needs Playwright
   a11ytrace.py https://web --script journey.json -o t.json   # scripted real journey
-  a11ytrace.py diff before.json after.json                   # exit 0 ok / 2 divergences
+  a11ytrace.py diff before.json after.json                   # exit 0 ok / 1 invalid / 2 regression
 
 Script file: a JSON list of actions — {"kind":"click","selector":"#pay"},
 {"kind":"fill","selector":"#email","value":"…"}, {"kind":"select",…},
@@ -97,6 +97,19 @@ _DIALOG_STATE_JS = '''() => {
 }'''
 
 
+class _TraceHttpError(Exception):
+    def __init__(self, status, url):
+        super().__init__(f'HTTP {status}: could not capture the requested page')
+        self.status = status
+        self.url = url
+
+
+def _goto(page, url, timeout):
+    response = page.goto(url, wait_until='load', timeout=timeout)
+    if response is not None and response.status >= 400:
+        raise _TraceHttpError(response.status, page.url)
+
+
 def _run_script_action(page, act):
     """One scripted action → (label, ok). Selector-valued actions target CSS."""
     kind = act.get('kind', '')
@@ -118,7 +131,7 @@ def _run_script_action(page, act):
         page.wait_for_timeout(int(act.get('ms', 300)))
         return f'wait:{act.get("ms", 300)}', True
     if kind == 'goto':
-        page.goto(act.get('url', ''), wait_until='load', timeout=30000)
+        _goto(page, act.get('url', ''), timeout=30000)
         # la navegación destruye el recolector (contexto nuevo): re-inyectarlo
         # o el drain de ESTE paso y de los siguientes tronaría/volvería vacío
         page.evaluate(_COLLECTOR)
@@ -137,6 +150,8 @@ def _run_script(page, script, dialog_state=False):
             continue
         try:
             label, _ok = _run_script_action(page, act)
+        except _TraceHttpError:
+            raise
         except Exception as e:  # noqa: BLE001 — a failed action is a recorded step too
             label = f'{act.get("kind", "?")}:{act.get("selector") or act.get("key") or ""}'
             label += f' (failed: {str(e)[:60]})'
@@ -177,7 +192,9 @@ def trace(url, steps=25, output=None, auth_state=None, timeout=45, script=None, 
     page, close_page = _pooled_page(nav, auth_state)
     try:
         try:
-            page.goto(url, wait_until='load', timeout=timeout * 1000)
+            _goto(page, url, timeout=timeout * 1000)
+        except _TraceHttpError:
+            raise
         except Exception as e:  # noqa: BLE001
             return {'error': f'could not load: {e}'}
         page.wait_for_timeout(400)
@@ -218,6 +235,8 @@ def trace(url, steps=25, output=None, auth_state=None, timeout=45, script=None, 
                 tree = tree[:60_000] + '\n… (truncated)'
         except Exception:  # noqa: BLE001
             tree = None
+    except _TraceHttpError as e:
+        return {'error': str(e), 'url': e.url, 'http_status': e.status}
     finally:
         close_page()
 
@@ -236,6 +255,12 @@ def trace(url, steps=25, output=None, auth_state=None, timeout=45, script=None, 
         with open(output, 'w', encoding='utf-8') as f:
             json.dump(data, f, ensure_ascii=False, indent=1)
     return data
+
+
+def _has_dialog_state(state):
+    return (isinstance(state, dict)
+            and type(state.get('open')) is int and state['open'] >= 0
+            and isinstance(state.get('focus_inside'), bool))
 
 
 def _dialog_gate(a, b):
@@ -263,9 +288,11 @@ def _dialog_gate(a, b):
         return {'status': 'inconclusive',
                 'reason': 'action sequences diverge — dialog state is only '
                           'comparable step-by-step on the same journey'}
+    if not sa:
+        return {'status': 'inconclusive', 'reason': 'no steps with dialog evidence'}
     state_divergences = []
     for i, (x, y) in enumerate(zip(sa, sb)):
-        if x.get('dialog') is None or y.get('dialog') is None:
+        if not (_has_dialog_state(x.get('dialog')) and _has_dialog_state(y.get('dialog'))):
             return {'status': 'inconclusive',
                     'reason': f'step {i + 1} lacks dialog state (destroyed '
                               'context?) — evidence missing'}
@@ -277,6 +304,23 @@ def _dialog_gate(a, b):
     return {'status': 'pass', 'steps_compared': len(sa)}
 
 
+def _trace_error(trace):
+    if not isinstance(trace, dict):
+        return 'expected a trace object'
+    if 'error' in trace or (
+            type(trace.get('http_status')) is int and trace['http_status'] >= 400):
+        return 'capture failed'
+    if not isinstance(trace.get('steps'), list):
+        return 'expected a steps list'
+    for index, step in enumerate(trace['steps'], 1):
+        if (not isinstance(step, dict) or 'focus' not in step
+                or (step['focus'] is not None and not isinstance(step['focus'], str))
+                or (step.get('announcements') is not None
+                    and not isinstance(step['announcements'], list))):
+            return f'invalid step {index}'
+    return None
+
+
 def trace_diff(a, b, gate_dialog_state=False):
     """Two traces → verdict. Focus behavior gates; announcements inform.
 
@@ -285,8 +329,12 @@ def trace_diff(a, b, gate_dialog_state=False):
     reordenado pero con el modal ABIERTO donde antes cerraba: regresión.
     Evidencia faltante o acciones distintas → INCONCLUSIVE, nunca un falso
     PASS. El foco sigue siendo el único gate por defecto."""
-    fa = [s.get('focus') for s in a.get('steps', [])]
-    fb = [s.get('focus') for s in b.get('steps', [])]
+    for label, capture in (('reference', a), ('candidate', b)):
+        error = _trace_error(capture)
+        if error:
+            return {'ok': False, 'error': f'{label} trace: {error}'}
+    fa = [s['focus'] for s in a['steps']]
+    fb = [s['focus'] for s in b['steps']]
     set_a, set_b = set(fa), set(fb)
     common_a = [x for x in fa if x in set_b]
     common_b = [x for x in fb if x in set_a]
@@ -295,8 +343,8 @@ def trace_diff(a, b, gate_dialog_state=False):
     reordered = common_a != common_b
     first_divergence = next((i for i, (x, y) in enumerate(zip(common_a, common_b))
                              if x != y), None)
-    ann_a = sum(len(s.get('announcements', [])) for s in a.get('steps', []))
-    ann_b = sum(len(s.get('announcements', [])) for s in b.get('steps', []))
+    ann_a = sum(len(s.get('announcements') or []) for s in a['steps'])
+    ann_b = sum(len(s.get('announcements') or []) for s in b['steps'])
     collapsed = ann_a > 0 and ann_b == 0
     gate = _dialog_gate(a, b) if gate_dialog_state else {'status': 'off'}
     ok = not (lost or reordered)
@@ -373,12 +421,18 @@ def main(argv):
         print(json.dumps({'url': d['url'], 'summary': d['summary'],
                           'out': a.out}, ensure_ascii=False, indent=1))
         return 0
-    with open(a.a, encoding='utf-8') as f:
-        ja = json.load(f)
-    with open(a.b, encoding='utf-8') as f:
-        jb = json.load(f)
+    try:
+        with open(a.a, encoding='utf-8') as f:
+            ja = json.load(f)
+        with open(a.b, encoding='utf-8') as f:
+            jb = json.load(f)
+    except (OSError, ValueError) as e:
+        print(json.dumps({'ok': False, 'error': f'could not read trace: {e}'}))
+        return 1
     verdict = trace_diff(ja, jb, gate_dialog_state=a.gate_dialog_state)
     print(json.dumps(verdict, ensure_ascii=False, indent=1))
+    if 'error' in verdict:
+        return 1
     return 0 if verdict['ok'] else 2
 
 

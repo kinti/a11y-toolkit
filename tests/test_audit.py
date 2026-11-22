@@ -285,6 +285,68 @@ assert _ts['severity'] == 'medium' and _ts['criterion'].startswith('1.4.12')
 assert len(_ts.get('examples') or []) == 2, _ts        # line + letter; sin !important NO
 
 
+# ── batida día 2: las 6 señales de los museos del horror + ACT ─────────────
+R_D2 = audit_html('<!doctype html><html lang="es"><head><title>t</title></head><body>'
+                  '<nav><a href="/">h</a></nav><main><h1>t</h1>'
+                  '<a tabindex="0" onclick="f()">Login</a>'
+                  '<section><main><p>x</p></main></section>'
+                  '<p>• item one<br>• item two<br>• item three</p>'
+                  '<div role="alert" aria-live="polite">Error</div>'
+                  '<p lang="es" xml:lang="en">x</p>'
+                  '<table><tr><th id="h1b">A</th><td headers="h1b noexiste">x</td></tr></table>'
+                  '</main></body></html>')
+_d2 = {f['signal'] for f in R_D2['findings']}
+for esperada in ('a_no_href', 'nested_main', 'fake_list', 'alert_polite',
+                 'lang_xml_mismatch', 'headers_attr_bad'):
+    assert esperada in _d2, f'{esperada} missing: {sorted(_d2)}'
+# exentos: a con href, ancla tabindex=-1, main legítimo, una viñeta, headers ok
+R_OK = audit_html('<!doctype html><html lang="es"><head><title>t</title></head><body>'
+                  '<nav><a href="/">h</a></nav><main><h1>t</h1>'
+                  '<a href="/l">Link real</a>'
+                  '<a id="destino" tabindex="-1">Destino</a>'
+                  '<table><tr><th id="ok2">A</th></tr><tr><td headers="ok2">x</td></tr></table>'
+                  '<p>Use • para separar y aquí va prosa normal suficiente.</p>'
+                  '</main></body></html>')
+_ok = {f['signal'] for f in R_OK['findings']}
+for prohibida in ('a_no_href', 'nested_main', 'fake_list', 'alert_polite',
+                  'lang_xml_mismatch', 'headers_attr_bad'):
+    assert prohibida not in _ok, f'{prohibida} en página limpia: {sorted(_ok)}'
+
+def table_findings(fragment):
+    report = audit_html('<!doctype html><html lang="en"><head><title>Tables</title></head>'
+                        f'<body><main><h1>Tables</h1>{fragment}</main></body></html>')
+    return {finding['signal']: finding for finding in report['findings']}
+
+
+# El séptimo token también se comprueba y apunta a la celda que lo declara.
+headers = ''.join(f'<th id="h{i}">Column {i}</th>' for i in range(1, 7))
+result = table_findings(f'<table><tr>{headers}'
+                        '<td headers="h1 h2 h3 h4 h5 h6 absent">Data</td></tr></table>')
+assert result['headers_attr_bad']['examples'] == ['headers="absent"']
+assert result['headers_attr_bad']['paths'][0].endswith(
+    'table:nth-of-type(1)>tbody:nth-of-type(1)>tr:nth-of-type(1)>td:nth-of-type(1)')
+assert 'table_no_th' not in result
+
+# Cabeceras adelantadas válidas, y separación entre tablas externas,
+# anidadas, consecutivas, de maquetación y dentro de template.
+result = table_findings(
+    '<table><tr><td headers="outer">Valid</td><th id="outer">Outer</th>'
+    '<td headers="inner"><table><tr><th id="inner">Inner</th>'
+    '<td headers="outer">Invalid</td></tr></table>'
+    '<table role="presentation"><tr><th id="presentation">Layout</th></tr></table>'
+    '<template><table><tr><th id="inert">Inert</th></tr></table></template></td>'
+    '<td headers="presentation">Invalid</td><td headers="inert">Invalid</td></tr></table>'
+    '<table><tr><th id="consecutive">Other</th><td headers="outer">Invalid</td></tr></table>')
+assert result['headers_attr_bad']['examples'] == [
+    'headers="outer"', 'headers="inner"', 'headers="presentation"',
+    'headers="inert"', 'headers="outer"']
+assert 'table_no_th' not in result
+result = table_findings('<table><tr><td><table role="presentation">'
+                        '<tr><th>Layout</th></tr></table></td></tr></table>')
+assert result['table_no_th']['paths'][0].endswith('>table:nth-of-type(1)')
+print('table headers: full token list, exact paths and nested isolation ✓')
+
+
 # ── overlays de terceros: dato del informe, JAMÁS un finding ──────────────────
 # detección por dominio del script (UserWay/accessiBe/…): diligencia de compra
 con_overlay = ('<!doctype html><html lang="es"><head><title>t</title></head><body>'

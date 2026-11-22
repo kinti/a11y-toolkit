@@ -166,6 +166,28 @@ check('y comparten el MISMO id (un attr por offset)', len(ids10) == 1, ids10)
 check('byte preservation sigue intacta',
       re.sub(r' data-a11y-id="m\d+"', '', res10['annotated_html']) == campo)
 
+# La misma ruta lleva un tbody implícito en los dos parsers y el orden de
+# los ids sigue el informe, aunque las inserciones recorran el HTML al revés.
+table = ('<table><tr><th id="col">Column</th>'
+         '<td headers="missing1">A</td><td headers="missing2">B</td></tr></table>')
+table_report = audit_html(table)
+header_finding = next(h for h in table_report['findings'] if h['signal'] == 'headers_attr_bad')
+header_finding['paths'].reverse()
+marked = annotate(table, table_report)
+check('tabla con tbody implícito: las marcas siguen las rutas del informe',
+      marked['annotated_html'] == table.replace('<td headers="missing1"', '<td data-a11y-id="m2" headers="missing1"')
+                                        .replace('<td headers="missing2"', '<td data-a11y-id="m1" headers="missing2"'))
+header_finding['paths'] = [path.replace('>tbody:nth-of-type(1)', '') for path in header_finding['paths']]
+check('las rutas antiguas sin tbody conservan sus marcas',
+      annotate(table, table_report)['annotated_html'] == marked['annotated_html'])
+
+depth = 1500
+deep = '<div>' * depth + '<img src="item.png">' + '</div>' * depth
+deep_report = audit_html(deep)
+expected_path = 'div:nth-of-type(1)>' * depth + 'img:nth-of-type(1)'
+check('ruta profunda emitida y resuelta sin recursión',
+      any(m['path'] == expected_path for m in annotate(deep, deep_report)['marks']))
+
 if failures:
     print(f'ANNOTATE: {len(failures)} fallos — {failures}')
     sys.exit(1)

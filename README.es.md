@@ -247,6 +247,7 @@ Instálalo con `pip install a11y-toolkit` (o `uv tool install a11y-toolkit`).
 a11ytoolkit audit --changed                     # SOLO lo cambiado desde HEAD (gate de CI)
 a11ytoolkit audit --changed --base origin/main  # los cambios de una rama — exit 2 en high/medium
 a11ytoolkit audit --url https://example.com --pages 5   # rastreo, sitemap primero
+a11ytoolkit audit --file tabla.html  # comprueba todos los IDs de headers dentro de la misma tabla de datos
 a11ytoolkit pair "#1f2328" "#fbfaf7"                    # contraste
 a11ytoolkit image hero.jpg --text "#fff" --region 120,40,420,90
 a11ytoolkit forms https://mysite/contact                # errores de formulario
@@ -268,6 +269,7 @@ a11ytoolkit budget --budget estructural.json --snapshot s2.json # solo la estruc
 a11ytoolkit engines https://mysite                        # la misma página en 3 motores: divergencias de comportamiento, por pares
 a11ytoolkit trace https://mysite --script journey.json -o t.json  # jornada real scriptada, luego: trace diff t_viejo.json t.json
 a11ytoolkit trace https://mysite --script j.json --capture-dialog-state -o t.json  # + estado modal por paso, luego: trace diff a.json b.json --gate-dialog-state
+a11ytoolkit trace diff a.json b.json  # código 1 si la captura es inválida, 2 si hay regresión
 a11ytoolkit patterns https://mysite                       # contratos APG de teclado, en vivo: dialog / tablist / disclosure / combobox / menu / slider
 a11ytoolkit ledger recurrence --ledger a11y-ledger.json   # señales crónicas + urls calientes: la cola de revisión sin ML
 a11ytoolkit contrast-dom https://mysite --walk            # pase perceptual: ratios por elemento, umbrales, sugerencias
@@ -282,8 +284,8 @@ a11ytoolkit route --goal "gate my PR"                          # qué herramient
 a11ytoolkit route --file page.html                             # diagnóstico: la página ordena
 a11ytoolkit mutants --seed 7 --n 12                            # el autoexamen sellado del motor
 a11ytoolkit fingerprints pages/*.html -o templates.json        # gemelas → una auditoría por plantilla
-a11ytoolkit audit --url pagina.html --standard en301549        # cláusula EN 301 549 en cada hallazgo
-a11ytoolkit annotate pagina.html --report r.json -o copia.html # marcas por elemento en copia exacta
+a11ytoolkit audit --file pagina.html --standard en301549       # cláusula EN 301 549 en cada hallazgo
+a11ytoolkit annotate pagina.html --report r.json -o copia.html # inserta las marcas en una pasada y conserva el texto de origen
 a11ytoolkit locate --file pagina.html --query "Enviar"         # elemento por nombre accesible → ruta selector
 a11ytoolkit patches --file pagina.html -o patches.json         # registro sellado de arreglos (verificar con --verify)
 a11ytoolkit journey friccion.json -o veredicto.json           # journey a ciegas: registro de friccion -> veredicto puntuable
@@ -292,6 +294,11 @@ a11ytoolkit criteria --list --level AA --new-in 2.2            # el Quick Ref of
 a11ytoolkit wizard --url https://client.web --lang es          # guiado: 3 preguntas → norma, auditoría, alcance
 a11ytoolkit corpus verify corpus                               # el corpus congelado, verificado
 ```
+
+Para localizar una referencia `headers` rota, audita y anota el mismo HTML.
+Para comprobar regresiones de teclado, captura ambas ejecuciones con el mismo
+guion. Si activas la comparación de diálogos, consulta `dialog_gate.status`
+junto al código de salida. [Ejemplos completos](docs/cookbook.md#15-locate-a-broken-table-header-in-the-original-html)
 
 ## Cobertura de estándares
 

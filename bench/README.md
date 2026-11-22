@@ -34,3 +34,18 @@ Reading it honestly:
 
 The sanity gate in CI asserts the toolkit still finds things (≥4 signals)
 — a benchmark that could silently go blind would be worse than none.
+
+## Local parser and annotation measurements
+
+Both runs used CPython 3.12 on the same machine, with commit `d330539`
+as the baseline. Inputs were synthetic HTML and reports.
+
+| Operation | Input and measurement | Baseline | Parent-linked routes and one-pass annotation |
+|---|---|---:|---:|
+| `audit_html` | 3,200 nested `div` elements and one image without alt text, peak Python allocations via `tracemalloc` | 95.2 MiB | 2.6 MiB |
+| `annotate` | 4,000 images with 230-character sources and one path per image, median of five elapsed times | 147 ms | 12 ms |
+
+The first case checks that the emitted selector still includes all 3,200
+ancestors. The second checks that every submitted path produces a mark.
+These inputs isolate deep nesting and large mark counts. Times will vary
+with the input, Python version and hardware.

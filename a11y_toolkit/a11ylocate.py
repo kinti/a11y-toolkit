@@ -98,10 +98,10 @@ def _index(p):
                       for i in (a.get('aria-labelledby') or '').split()).strip()
         return lb, (a.get('aria-label') or '').strip(), (a.get('title') or '').strip()
 
-    def _add(a, role, name, match_extra=None, route=None):
+    def _add(a, role, name, match_extra=None):
         if not name or id(a) in seen:
             return
-        path = route or p._elem_paths.get(id(a))
+        path = p.element_path(a)
         if not path:
             return
         seen.add(id(a))
@@ -130,11 +130,11 @@ def _index(p):
              or ' '.join(x for x in img_names if x).strip()
              or (a.get('alt') or '').strip() or ti)
 
-    for level, a, text, hidden, route in p.headings_raw:
+    for level, a, text, hidden in p.headings_raw:
         if hidden:
             continue
         lb, al, _ti = _name_sources(a)
-        _add(a, f'h{level}', lb or al or text.strip(), route=route)
+        _add(a, f'h{level}', lb or al or text.strip())
 
     for a, hidden in p.imgs_all:
         if hidden:

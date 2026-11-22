@@ -63,6 +63,76 @@ def path_segment(tag, nth):
     pueden romper la identidad)."""
     return f'{tag}:nth-of-type({nth})'
 
+
+class _ElementPaths:
+    """Store one segment and parent index per distinct route."""
+
+    def __init__(self, implicit_tbody=True):
+        self.stack = []
+        self._implicit_tbody = implicit_tbody
+        self._nodes = [None]
+        self._node_ids = {}
+
+    def _child(self, tag):
+        if self.stack:
+            _, parent, siblings = self.stack[-1]
+            nth = siblings[tag] = siblings.get(tag, 0) + 1
+        else:
+            parent, nth = 0, 1
+        key = (parent, path_segment(tag, nth))
+        index = self._node_ids.get(key)
+        if index is None:
+            index = self._node_ids[key] = len(self._nodes)
+            self._nodes.append(key)
+        return index
+
+    def start(self, tag):
+        # Browsers insert a tbody for a row directly inside a table.
+        if self._implicit_tbody and tag == 'tr' and self.stack and self.stack[-1][0] == 'table':
+            self.stack.append(('tbody', self._child('tbody'), {}))
+        index = self._child(tag)
+        if tag not in VOID_TAGS:
+            self.stack.append((tag, index, {}))
+        return index
+
+    def end(self, tag):
+        if tag in VOID_TAGS:
+            return
+        for index in range(len(self.stack) - 1, -1, -1):
+            if self.stack[index][0] == tag:
+                del self.stack[index:]
+                break
+
+    def format(self, index):
+        segments = []
+        while index:
+            index, segment = self._nodes[index]
+            segments.append(segment)
+        return '>'.join(reversed(segments))
+
+    def lookup(self, path):
+        index = 0
+        for segment in path.split('>'):
+            index = self._node_ids.get((index, segment))
+            if index is None:
+                break
+        return index
+
+
+class _Table:
+    def __init__(self, attrs, counted):
+        self.attrs = attrs
+        self.counted = counted
+        border = (attrs.get('border') or '0').strip()
+        bordered = counted and border.isdecimal() and any(int(digit) for digit in border)
+        self.suspect_layout = not bordered and bool(
+            {'cellpadding', 'cellspacing', 'width', 'border'} & attrs.keys())
+        self.data = bordered or 'summary' in attrs
+        self.has_th = False
+        self.header_ids = set()
+        self.references = []
+
+
 # roles que convierten cualquier elemento en campo etiquetable (e086e5).
 # OJO: 'search' NO está — es un LANDMARK (WAI-ARIA 1.2), no un widget: un
 # <form role="search"> sin aria-label es un landmark sin etiqueta, no un
@@ -385,8 +455,8 @@ class _Auditor(HTMLParser):
         # CSS (tag:nth-of-type(n) desde la raíz). id(attrs) es estable dentro
         # del parseo (cada attrs es un dict nuevo) → los recolectores pueden
         # resolver la ruta de LO QUE COGIERON sin cambiar sus tuplas.
-        self._path_stack = []      # [(tag, path, {tag: nth})] del elemento abierto
-        self._elem_paths = {}      # id(attrs) → ruta del elemento
+        self._paths = _ElementPaths()
+        self._elem_paths = {}      # id(attrs) → índice de ruta
         super().__init__(convert_charrefs=True)
         self.imgs_no_alt = []
         self.alt_quality_bad = []   # (razón, alt, attrs) — emitida en findings
@@ -495,9 +565,7 @@ class _Auditor(HTMLParser):
         self.media_autoplay_elems = []
         self.tables = 0
         self.tables_with_th = 0
-        self._in_table = False
-        self._th_in_table = False
-        self._table_stack = []          # (th_había, attrs) por <table> abierta
+        self._table_stack = []
         self.tables_no_th_elems = []
         self.blank_no_warning = 0
         self.blank_total = 0
@@ -521,6 +589,14 @@ class _Auditor(HTMLParser):
         self.autocomplete_mismatch = []
         self.heading_role_removed = []   # h1-h6 con rol que sustituye al de heading
         self.text_spacing_important = []  # 1.4.12: spacing !important inline (ACT 24afc2/78fd32/9e45ec)
+        self.a_no_href = []              # 2.1.1: <a> sin href usado como control (batida B1-a)
+        self.nested_main = []            # 1.3.1: main anidado en seccionante (B1-b)
+        self.fake_lists = []             # 1.3.1: lista falsa con viñetas y <br> (B1-c)
+        self.alert_polite = []           # 4.1.2: role=alert gritando en aria-live=polite (B1-d)
+        self.headers_bad = []            # 1.3.1: headers= apuntando fuera de tabla o a no-th (ACT d0f69e/a25f45)
+        self.lang_xml_mismatch = []      # 3.1.2: lang y xml:lang discrepando (ACT 5b7ae0)
+        self._p_bullets = None           # contador de viñetas del <p> abierto
+        self._p_brs = 0
         self.links = {}         # nombre normalizado → set de hrefs
         self.links_elems = {}   # entry_key → primeros elems (marcas 2.4.4)
         self.generics = 0
@@ -680,29 +756,7 @@ class _Auditor(HTMLParser):
                     or (_ti_mark.isdecimal() and int(_ti_mark) >= 0):
                 for _sp in self._stray_pend:
                     _sp[3] = True
-        # ruta determinista del elemento (kernel de anotación): nth-of-type
-        # SIEMPRE (los id duplicados no pueden romper la ruta) y los void no
-        # abren pila (no tienen handle_endtag)
-        # tbody IMPLÍCITO bajo <table>: el navegador normaliza <table><tr>
-        # insertando <tbody>; sin reflejarlo, las rutas nth-of-type que
-        # cruzan la mesa no resuelven en el DOM real (Chromium: table>tr
-        # casa CERO elementos — revisión externa 2026-11-22). Se abre igual
-        # que un tag normal y </table> lo cierra con el resto de la pila.
-        if tag == 'tr' and self._path_stack and self._path_stack[-1][0] == 'table':
-            _parent_tb = self._path_stack[-1]
-            _parent_tb[2]['tbody'] = _parent_tb[2].get('tbody', 0) + 1
-            self._path_stack.append(
-                ('tbody', _parent_tb[1] + '>' + path_segment('tbody', _parent_tb[2]['tbody']), {}))
-        if self._path_stack:
-            _parent = self._path_stack[-1]
-            _parent[2][tag] = _parent[2].get(tag, 0) + 1
-            _seg = path_segment(tag, _parent[2][tag])
-            _path = _parent[1] + '>' + _seg
-        else:
-            _path = path_segment(tag, 1)
-        self._elem_paths[id(a)] = _path
-        if tag not in VOID_TAGS:
-            self._path_stack.append((tag, _path, {}))
+        self._elem_paths[id(a)] = self._paths.start(tag)
         # rasgos estructurales para el scope de aplicabilidad (a11yscope):
         # evidencia POSITIVA — cero <video> habilita proponer 1.2.x como no
         # aplicable; la ausencia de señal jamás cuenta como ausencia de
@@ -1002,37 +1056,31 @@ class _Auditor(HTMLParser):
             self._list_depth += 1
         elif tag == 'li':
             self._li_depth += 1
-        elif tag == 'table':
-            # role=presentation/none la declara de MAQUETACIÓN: no se exige th
-            # (el mail HTML y las grids legacy viven aquí) — y el contenido de
-            # <template> es inerte
-            if (a.get('role') or '').strip().lower() in ('presentation', 'none') \
-                    or self._in_template:
-                pass
-            else:
-                self.tables += 1
-                self._in_table = True
-                # sospecha de maquetación (attrs presentacionales de la era
-                # <table width=… cellpadding=0 border=0>): sin th NI marcadores
-                # de datos no se exige th (FP clásico años-90). OJO border:
-                # el spec dice que border≠0 declara tabla de DATOS — solo el
-                # «0» (o sin valor, que es 0) es maquetación
-                _bv = (a.get('border') or '0').strip()
-                _border_data = _bv.isdecimal() and int(_bv) > 0
-                _suspect = (bool({'cellpadding', 'cellspacing', 'width'} & set(a))
-                            or ('border' in a and not _border_data)) and not _border_data
-                _data = 'summary' in a or _border_data
-                # pila por tabla anidada, CON IDENTIDAD: una </table> de una
-                # tabla presentation/none (no apilada) jamás popea la entrada
-                # de la tabla externa que la envuelve
-                self._table_stack.append([self._th_in_table, a, _suspect, _data])
-                self._th_in_table = False
-        elif tag == 'th':
-            self._th_in_table = True
-        elif tag == 'caption' and self._table_stack:
-            self._table_stack[-1][3] = True   # marcador de tabla de DATOS
-        elif tag == 'td' and self._table_stack and ('scope' in a or 'headers' in a):
-            self._table_stack[-1][3] = True   # asociaciones explícitas = datos
+        if tag == 'br' and self._p_bullets is not None and not self._in_template:
+            self._p_brs += 1
+        if tag == 'p' and not self._in_template:
+            self._p_bullets = 0
+            self._p_brs = 0
+        if tag == 'table':
+            counted = not self._in_template and (
+                (a.get('role') or '').strip().lower() not in ('presentation', 'none'))
+            self._table_stack.append(_Table(a, counted))
+            self.tables += int(counted)
+        elif tag in ('th', 'td', 'caption') and self._table_stack and not self._in_template:
+            table = self._table_stack[-1]
+            if table.counted:
+                if tag == 'caption':
+                    table.data = True
+                else:
+                    table.has_th |= tag == 'th'
+                    if tag == 'td' and ('scope' in a or 'headers' in a):
+                        table.data = True
+                    cell_id = a.get('id')
+                    role = (a.get('role') or '').strip().lower()
+                    if cell_id and (tag == 'th' or role in ('columnheader', 'rowheader')):
+                        table.header_ids.add(cell_id)
+                    if (a.get('headers') or '').strip(' \t\n\f\r'):
+                        table.references.append(a)
         elif tag == 'main' or (a.get('role') or '').lower() == 'main':
             self.hay_main = True
             if a.get('id'):
@@ -1284,6 +1332,21 @@ class _Auditor(HTMLParser):
             # <area> es void: sin pila de control — se registra directo (el
             # nombre le llega del alt)
             self.controls_raw.append(('area', a, '', [], _hidden))
+        if tag == 'main' and not self._in_template:
+            # B1-b (batida 18-nov): main es top-level por definición — anidado
+            # en section/aside/nav/article/main/header/footer no es ni landmark
+            # válido ni estructura honesta (1.3.1)
+            # [-1] es el PROPIO main (ya apilado cuando corre este chequeo):
+            # el ancestro a mirar empieza uno antes
+            for index in range(len(self._paths.stack) - 2, -1, -1):
+                _utag = self._paths.stack[index][0]
+                if _utag in ('section', 'aside', 'nav', 'article', 'main',
+                             'header', 'footer'):
+                    if len(self.nested_main) < 8:
+                        self.nested_main.append(f'<{_utag}> … <main>')
+                    break
+                if _utag == 'body':
+                    break
         if tag in ('h1', 'h2', 'h3', 'h4', 'h5', 'h6'):
             # role=none/presentation APAGA la semántica del encabezado; un
             # aria-level válido la SOBRESCRIBE (accname: h3[aria-level=4] ES 4)
@@ -1307,7 +1370,6 @@ class _Auditor(HTMLParser):
                     self._heading_level = int(_alv.group())
                 self._heading_text = []
                 self._heading_attrs = a
-                self._heading_route = self._elem_paths.get(id(a))
                 self._heading_hidden = _hidden
                 self._heading_tag = tag
         elif (a.get('role') or '').lower() == 'heading' and not self._in_template:
@@ -1318,27 +1380,44 @@ class _Auditor(HTMLParser):
             self._heading_level = int(_alv.group()) if _alv else 2
             self._heading_text = []
             self._heading_attrs = a
-            self._heading_route = self._elem_paths.get(id(a))
             self._heading_hidden = _hidden
             self._heading_tag = tag
+        # ── batida 18-nov, día 2 ──
+        if not self._in_template:
+            # B1-a: <a> SIN href con vida de control (2.1.1): tabindex>=0,
+            # onclick o rol interactivo. Sin href NO es enlace: el AT no lo
+            # anuncia como tal aunque sea enfocable y le echen un click.
+            # Exento: tabindex=-1 (ancla objetivo legítima) y <a> puro con id
+            # (ancla con nombre de toda la vida).
+            if tag == 'a' and not (a.get('href') or '').strip():
+                _anchor_role = (a.get('role') or '').strip().lower()
+                _viva = ((a.get('onclick') or '')
+                         or _anchor_role in ('button', 'link', 'tab', 'menuitem')
+                         or (a.get('tabindex') or '').strip() not in ('', '-1'))
+                if _viva and len(self.a_no_href) < 12:
+                    _tx = ' '.join(self._ctrl[-1]['text']).strip()[:20] if self._ctrl else ''
+                    self.a_no_href.append('<a>' + (f' "{_tx}"' if _tx else ''))
+            # B1-d: role=alert ES assertive en sí mismo (ARIA): un aria-live
+            # polite encima lo contradice (4.1.2, estado que no es el que dice)
+            _role_low = (a.get('role') or '').strip().lower()
+            _live = (a.get('aria-live') or '').strip().lower()
+            if _role_low == 'alert' and _live == 'polite' and len(self.alert_polite) < 8:
+                self.alert_polite.append('role="alert" + aria-live="polite"')
+            if _lang_v := (a.get('lang') or '').strip():
+                _xml = (a.get('{http://www.w3.org/XML/1998/namespace}lang')
+                        or a.get('xml:lang') or '').strip()
+                if _xml and _lang_v.lower() != _xml.lower() and len(self.lang_xml_mismatch) < 8:
+                    self.lang_xml_mismatch.append(f'{tag} lang="{_lang_v}" xml:lang="{_xml}"')
+
         ti = a.get('tabindex')
         if ti and ti.isdecimal() and int(ti) > 0 and not self._in_template:
             self.positive_tabindices.append((tag, int(ti)))
             self.positive_tabindex_elems.append(a)
 
     def handle_endtag(self, tag):
-        # pila de rutas del kernel: pop normal si casa; si hay anidamiento
-        # malformado, se descarta hasta el que casa; suelto, se ignora
-        if self._path_stack:
-            if self._path_stack[-1][0] == tag:
-                self._path_stack.pop()
-            else:
-                for _i in range(len(self._path_stack) - 1, -1, -1):
-                    if self._path_stack[_i][0] == tag:
-                        del self._path_stack[_i:]
-                        break
+        self._paths.end(tag)
         if tag not in _VOID:
-            # LAS PILAS SE SINCRONIZAN como _path_stack: buscar el frame que
+            # LAS PILAS SE SINCRONIZAN con las rutas: buscar el frame que
             # casa y descartar hasta él (un </span> suelto ya no arrastra el
             # elemento abierto de verdad — el texto no se malatribuye)
             _idx = None
@@ -1354,12 +1433,12 @@ class _Auditor(HTMLParser):
                     self._close_control(tag)
                 return
             _nframes = len(self._el_stack) - _idx
-            _closed_attrs = None   # attrs del frame que CASA (el último popeado)
             for _ in range(_nframes):
                 if not self._el_stack:
                     break
                 _etag, _eattrs, _ebuf = self._el_stack.pop()
-                _closed_attrs = _eattrs
+                if _etag == 'table':
+                    self._finish_table(self._table_stack.pop())
                 if _etag == 'canvas':
                     self.canvases.append((_eattrs, ' '.join(_ebuf).strip(),
                                           self.canvas_hidden.pop(id(_eattrs), False)))
@@ -1462,6 +1541,16 @@ class _Auditor(HTMLParser):
             self._form_auth = False
         elif tag == 'nav':
             self._in_nav = max(0, self._in_nav - 1)
+        elif tag == 'p':
+            # B1-c: lista falsa = ≥2 viñetas tipográficas + separadores <br>
+            # en un párrafo fuera de listas reales (batida 18-nov, htmhell 30)
+            if self._p_bullets is not None and self._p_bullets >= 2 \
+                    and self._p_brs >= 1 and self._list_depth == 0 \
+                    and len(self.fake_lists) < 8:
+                self.fake_lists.append(f'<p> • × {self._p_bullets}, '
+                                       f'<br> × {self._p_brs}')
+            self._p_bullets = None
+            self._p_brs = 0
         elif tag == 'li':
             self._li_depth = max(0, self._li_depth - 1)
         elif tag in ('ul', 'ol'):
@@ -1476,33 +1565,47 @@ class _Auditor(HTMLParser):
                     self.videos_no_caps_elems.append(_vattrs)
                 if not _vdesc:
                     self.videos_no_desc_elems.append(_vattrs)
-        elif tag == 'table':
-            if self._table_stack and _closed_attrs is not None:
-                _th_saved, _tattrs, _suspect, _data = self._table_stack[-1]
-                # IDENTIDAD: solo decide la entrada cuya tabla se CIERRA (el
-                # </table> de una presentation/template NUNCA apilada resbala
-                # sin tocar la pila — antes popeaba la entrada de la externa)
-                if _closed_attrs is _tattrs:
-                    self._table_stack.pop()
-                    if self._th_in_table:
-                        self.tables_with_th += 1
-                    elif _data or not _suspect:
-                        self.tables_no_th_elems.append(_tattrs)
-                    else:
-                        # maquetación por heurística: fuera del cómputo
-                        self.tables -= 1
-                    self._th_in_table = _th_saved
-            self._in_table = bool(self._table_stack)
-        elif tag == 'th':
-            pass
         elif self._heading_level and tag == getattr(self, '_heading_tag', None):
             # el veredicto de nombre vacío es POST-parse (labelledby resuelto,
             # aria-label tras strip, nombres de imgs internas)
-            self.headings_raw.append((self._heading_level, dict(self._heading_attrs or {}),
+            self.headings_raw.append((self._heading_level, self._heading_attrs,
                                       ' '.join(self._heading_text).strip(),
-                                      getattr(self, '_heading_hidden', False),
-                                      getattr(self, '_heading_route', None)))
+                                      getattr(self, '_heading_hidden', False)))
             self._heading_level = None
+
+    def _finish_table(self, table):
+        if not table.counted:
+            return
+        if table.has_th:
+            self.tables_with_th += 1
+        elif table.data or not table.suspect_layout:
+            self.tables_no_th_elems.append(table.attrs)
+        else:
+            self.tables -= 1
+        for cell in table.references:
+            for token in re.split(r'[ \t\n\f\r]+', cell['headers'].strip(' \t\n\f\r')):
+                if token not in table.header_ids or token == cell.get('id'):
+                    self.headers_bad.append((token, cell))
+                    break
+
+    def close(self):
+        super().close()
+        while self._table_stack:
+            self._finish_table(self._table_stack.pop())
+
+    def _finding_paths(self, elements):
+        paths = []
+        for attrs in elements:
+            path = self.element_path(attrs)
+            if path:
+                paths.append(path)
+                if len(paths) == 5:
+                    break
+        return paths
+
+    def element_path(self, attrs):
+        index = self._elem_paths.get(id(attrs))
+        return self._paths.format(index) if index is not None else None
 
     _RE_CHAR_KEY = re.compile(r'key(?:Code)?\s*===?\s*["\']([a-zA-Z0-9])["\']', re.S)
 
@@ -1638,6 +1741,11 @@ class _Auditor(HTMLParser):
             m = _SENSORIAL.search(re.sub(r'«[^»]*»|“[^”]*”|"[^"]*"', ' ', data))
             if m and len(self.sensory) < 6:
                 self.sensory.append(m.group(0).strip()[:60])
+            # B1-c: viñetas tipográficas en prosa = lista falsa (umbral ≥2;
+            # un solo guion de cita o de lista de definición NO es lista)
+            if self._p_bullets is not None:
+                self._p_bullets += len(re.findall(
+                    r'(?:^|\s)[•‣▪●◦∙]\s*\S', data))
 
 
 
@@ -1897,7 +2005,7 @@ def audit_html(html_text, url='(html)', lang='en', standard=None, target=None):
                 or ' '.join(x for x in _img_names if x).strip()
                 or (a.get('alt') or '').strip()):
             p.controls_by_kind.setdefault(kind, []).append(a)
-    for level, a, text, hidden, _hroute in p.headings_raw:
+    for level, a, text, hidden in p.headings_raw:
         if hidden:
             continue
         lb, al, _ti = _name_sources(a)
@@ -1980,52 +2088,43 @@ def audit_html(html_text, url='(html)', lang='en', standard=None, target=None):
         findings[-1]['examples'] = examples[:5]
 
     if p.alt_quality_bad:
-        _p_q = [p._elem_paths[id(_a)] for _r, _alt, _a in p.alt_quality_bad
-                if id(_a) in p._elem_paths][:5]
+        _p_q = p._finding_paths(a for _, _, a in p.alt_quality_bad)
         add_ej('medium', '1.1.1', 'alt_quality',
                [_alt[:40] for _r, _alt, _a in p.alt_quality_bad],
                n=len(p.alt_quality_bad), paths=_p_q)
     if p.imgs_no_alt:
-        _p_img = [p._elem_paths[id(_a)] for _a in p.imgs_no_alt_elems
-                  if id(_a) in p._elem_paths][:5]
+        _p_img = p._finding_paths(p.imgs_no_alt_elems)
         add_ej('high', '1.1.1', 'img_no_alt', p.imgs_no_alt,
                n=len(p.imgs_no_alt), paths=_p_img)
     if p.input_img_no_alt:
         add('high', '1.1.1', 'input_img_alt', n=p.input_img_no_alt)
     if p.canvas_no_layer:
-        _p_canvas = [p._elem_paths[id(_a)] for _a in p.canvas_no_layer_elems
-                     if id(_a) in p._elem_paths][:5]
+        _p_canvas = p._finding_paths(p.canvas_no_layer_elems)
         add_ej('medium', '1.1.1', 'canvas_no_accessible_layer', p.canvas_no_layer,
                n=len(p.canvas_no_layer), paths=_p_canvas)
     for tag, controls in p.controls_by_kind.items():
         add('high', '4.1.2', 'ctrl_name', n=len(controls), tag=tag,
-            paths=[p._elem_paths[id(_a)] for _a in controls
-                   if id(_a) in p._elem_paths][:5])
+            paths=p._finding_paths(controls))
     if p.aria_hidden_focusable:
         add('high', '4.1.2', 'aria_hidden_focusable',
             n=len(p.aria_hidden_focusable), tag=p.aria_hidden_focusable[0],
-            paths=[p._elem_paths[id(_a)] for _a in p.aria_hidden_focusable_elems
-                   if id(_a) in p._elem_paths][:5])
+            paths=p._finding_paths(p.aria_hidden_focusable_elems))
     if p.fields_no_label:
         add_ej('high', '3.3.2', 'field_label',
                [f'{t} name={n or "(no name)"}' for t, n, _i in p.fields_no_label],
                n=len(p.fields_no_label),
-               paths=[p._elem_paths[id(_a)] for _a in p.fields_no_label_elems
-                      if id(_a) in p._elem_paths][:5])
+               paths=p._finding_paths(p.fields_no_label_elems))
     if p.stray_clicks:
         add('high', '2.1.1', 'click_nonfocusable',
             n=len(p.stray_clicks), tag=p.stray_clicks[0],
-            paths=[p._elem_paths[id(_a)] for _a in p.stray_click_elems
-                   if id(_a) in p._elem_paths][:5])
+            paths=p._finding_paths(p.stray_click_elems))
     if p.role_no_tabindex:
         add_ej('low', '2.1.1', 'role_no_tabindex', p.role_no_tabindex,
                n=len(p.role_no_tabindex), example=', '.join(p.role_no_tabindex[:3]),
-               paths=[p._elem_paths[id(_a)] for _a in p.role_no_tabindex_elems
-                      if id(_a) in p._elem_paths][:5])
+               paths=p._finding_paths(p.role_no_tabindex_elems))
     if p.orphan_labels:
         add('low', '3.3.2', 'label_orphan', n=p.orphan_labels,
-            paths=[p._elem_paths[id(_a)] for _a in p.orphan_label_elems
-                   if id(_a) in p._elem_paths][:5])
+            paths=p._finding_paths(p.orphan_label_elems))
     if p._bad_list:
         add('medium', '1.3.1', 'list_structure', n=p._bad_list)
     if p.root_tag in ('svg', 'math'):
@@ -2051,12 +2150,10 @@ def audit_html(html_text, url='(html)', lang='en', standard=None, target=None):
     if p.iframes_no_title:
         add_ej('medium', '4.1.2', 'iframe_title', p.iframes_no_title,
                n=len(p.iframes_no_title),
-               paths=[p._elem_paths[id(_a)] for _a in p.iframes_no_title_elems
-                      if id(_a) in p._elem_paths][:5])
+               paths=p._finding_paths(p.iframes_no_title_elems))
     if p.videos and p.videos_no_caps_elems:
         add('medium', '1.2.2', 'video_captions', n=len(p.videos_no_caps_elems),
-            paths=[p._elem_paths[id(_a)] for _a in p.videos_no_caps_elems
-                   if id(_a) in p._elem_paths][:5])
+            paths=p._finding_paths(p.videos_no_caps_elems))
     if p.viewport:
         # valores inválidos también blocksn (ACT b4f0c3): user-scalable ha de
         # ser yes/true o numérico ≥ 1; maximum-scale numérico — si no parsea,
@@ -2070,8 +2167,7 @@ def audit_html(html_text, url='(html)', lang='en', standard=None, target=None):
                 allows = v in ('yes', 'true')
             if not allows:
                 add('high', '1.4.4', 'zoom_no',
-                    paths=([p._elem_paths[id(p._viewport_elem)]]
-                           if p._viewport_elem and id(p._viewport_elem) in p._elem_paths else None))
+                    paths=p._finding_paths([p._viewport_elem]))
         m_ms = re.search(r'maximum-scale\s*=\s*([\w.-]+)', p.viewport, re.I)
         if m_ms:
             _v_ms = m_ms.group(1)
@@ -2085,8 +2181,7 @@ def audit_html(html_text, url='(html)', lang='en', standard=None, target=None):
                 # mismo daño que user-scalable=no (bloquea el zoom del usuario):
                 # misma severidad — ACT b4f0c3 no las distingue
                 add('high', '1.4.4', 'zoom_max', v=_v_ms,
-                    paths=([p._elem_paths[id(p._viewport_elem)]]
-                           if p._viewport_elem and id(p._viewport_elem) in p._elem_paths else None))
+                    paths=p._finding_paths([p._viewport_elem]))
     # meta refresh (2.2.1/ACT bc659a): gana el PRIMER meta que parsea según
     # los pasos del HTML (dígitos + ; o , o fin — un «0: url» con dos puntos
     # NO parsea y se salta); 0 segundos = redirección inmediata y > 72000
@@ -2102,14 +2197,12 @@ def audit_html(html_text, url='(html)', lang='en', standard=None, target=None):
             break
     if _mr is not None and 0 < _mr <= 72000:
         add('medium', '2.2.1', 'meta_refresh', v=_mr,
-            paths=([p._elem_paths[id(_mr_elem)]]
-                   if _mr_elem and id(_mr_elem) in p._elem_paths else None))
+            paths=p._finding_paths([_mr_elem]))
     if p.positive_tabindices:
         add_ej('medium', '2.4.3', 'tabindex_pos',
                [f'{t}[tabindex={i}]' for t, i in p.positive_tabindices],
                n=len(p.positive_tabindices),
-               paths=[p._elem_paths[id(_a)] for _a in p.positive_tabindex_elems
-                      if id(_a) in p._elem_paths][:5])
+               paths=p._finding_paths(p.positive_tabindex_elems))
     # un toggle cuenta como mecanismo de abatido SOLO si la función que
     # invoca colapsa de verdad (su cuerpo, en el script de la página, toca
     # `display`): mover off-screen o aria-hidden no colapsa el bloque (3e12e1)
@@ -2161,17 +2254,36 @@ def audit_html(html_text, url='(html)', lang='en', standard=None, target=None):
     if p.heading_role_removed:
         add_ej('medium', '1.3.1', 'heading_role_removed', p.heading_role_removed,
                n=len(p.heading_role_removed), example=', '.join(p.heading_role_removed[:4]))
+    if p.nested_main:
+        add_ej('medium', '1.3.1', 'nested_main', p.nested_main,
+               n=len(p.nested_main), example=', '.join(p.nested_main[:4]))
+    if p.fake_lists:
+        add_ej('low', '1.3.1', 'fake_list', p.fake_lists,
+               n=len(p.fake_lists), example=', '.join(p.fake_lists[:3]))
+    if p.a_no_href:
+        add_ej('medium', '2.1.1', 'a_no_href', p.a_no_href,
+               n=len(p.a_no_href), example=', '.join(p.a_no_href[:4]))
+    if p.alert_polite:
+        add_ej('low', '4.1.2', 'alert_polite', p.alert_polite,
+               n=len(p.alert_polite), example=', '.join(p.alert_polite[:3]))
+    if p.lang_xml_mismatch:
+        add_ej('low', '3.1.2', 'lang_xml_mismatch', p.lang_xml_mismatch,
+               n=len(p.lang_xml_mismatch), example=', '.join(p.lang_xml_mismatch[:4]))
+    if p.headers_bad:
+        examples = [f'headers="{token[:20]}"' for token, _ in p.headers_bad[:5]]
+        add_ej('medium', '1.3.1', 'headers_attr_bad', examples,
+               n=len(p.headers_bad), example=', '.join(examples[:4]),
+               paths=p._finding_paths(cell for _, cell in p.headers_bad))
+
     if p.text_spacing_important:
         add_ej('medium', '1.4.12', 'text_spacing_important', p.text_spacing_important,
                n=len(p.text_spacing_important), example=', '.join(p.text_spacing_important[:4]))
     if p.tables and p.tables_with_th < p.tables:
         add('medium', '1.3.1', 'table_no_th', n=p.tables - p.tables_with_th,
-            paths=[p._elem_paths[id(_a)] for _a in p.tables_no_th_elems
-                   if id(_a) in p._elem_paths][:5])
+            paths=p._finding_paths(p.tables_no_th_elems))
     if p.blank_no_warning:
         add('low', '3.2.5', 'blank_no_warning', n=p.blank_no_warning,
-            paths=[p._elem_paths[id(_a)] for _a in p.blank_no_warning_elems
-                   if id(_a) in p._elem_paths][:5])
+            paths=p._finding_paths(p.blank_no_warning_elems))
     dups = sum(1 for _c, k in p.ids.items() if k > 1)
     if dups:
         add_ej('low', '4.1.2', 'dup_ids',
@@ -2200,8 +2312,7 @@ def audit_html(html_text, url='(html)', lang='en', standard=None, target=None):
     if p.missing_autocomplete:
         add_ej('medium', '1.3.5', 'autocomplete', p.missing_autocomplete,
                n=len(p.missing_autocomplete), example=', '.join(p.missing_autocomplete[:4]),
-               paths=[p._elem_paths[id(_a)] for _a in p.autocomplete_elems
-                      if id(_a) in p._elem_paths][:5])
+               paths=p._finding_paths(p.autocomplete_elems))
     if p.autocomplete_invalid:
         add_ej('medium', '1.3.5', 'autocomplete_invalid', p.autocomplete_invalid,
                n=len(p.autocomplete_invalid), example=', '.join(p.autocomplete_invalid[:4]))
@@ -2210,8 +2321,7 @@ def audit_html(html_text, url='(html)', lang='en', standard=None, target=None):
                n=len(p.autocomplete_mismatch), example=', '.join(p.autocomplete_mismatch[:4]))
     if p.media_autoplay:
         add('medium', '1.4.2', 'video_autoplay', n=p.media_autoplay,
-            paths=[p._elem_paths[id(_a)] for _a in p.media_autoplay_elems
-                   if id(_a) in p._elem_paths][:5])
+            paths=p._finding_paths(p.media_autoplay_elems))
     # 2.5.3, veredicto POST-parse (4ª pasada): el nombre EFECTIVO por
     # precedencia accname — labelledby (ids resueltos, unidos en orden) GANA
     # a aria-label. El nombre del propio contenido cumple trivialmente.
@@ -2247,8 +2357,7 @@ def audit_html(html_text, url='(html)', lang='en', standard=None, target=None):
         add_ej('medium', '2.5.3', 'label_in_name',
                [f'«{t}» vs name «{al}»' for t, al in p.label_no_name],
                n=len(p.label_no_name), example=f'{_ln[0]} ≠ {_ln[1]}',
-               paths=[p._elem_paths[id(_a)] for _a in p.label_no_name_elems
-                      if id(_a) in p._elem_paths][:5])
+               paths=p._finding_paths(p.label_no_name_elems))
     if p.lang_parts_invalid:
         add_ej('medium', '3.1.2', 'element_lang_invalid', p.lang_parts_invalid,
                n=len(p.lang_parts_invalid), example=', '.join(p.lang_parts_invalid[:4]))
@@ -2259,8 +2368,7 @@ def audit_html(html_text, url='(html)', lang='en', standard=None, target=None):
     if p.placeholder_only:
         add_ej('high', '3.3.2', 'placeholder_only', p.placeholder_only,
                n=len(p.placeholder_only), example=', '.join(p.placeholder_only[:3]),
-               paths=[p._elem_paths[id(_a)] for _a in p.placeholder_only_elems
-                      if id(_a) in p._elem_paths][:5])
+               paths=p._finding_paths(p.placeholder_only_elems))
     if p.required_no_indication:
         add_ej('low', '3.3.2', 'required_no_indication', p.required_no_indication,
                n=len(p.required_no_indication), example=', '.join(p.required_no_indication[:3]))
@@ -2303,8 +2411,7 @@ def audit_html(html_text, url='(html)', lang='en', standard=None, target=None):
     if p.focus_blur:
         add_ej('high', '2.1.1', 'onfocus_blur', p.focus_blur,
                n=len(p.focus_blur),
-               paths=[p._elem_paths[id(_a)] for _a in p.focus_blur_elems
-                      if id(_a) in p._elem_paths][:5])
+               paths=p._finding_paths(p.focus_blur_elems))
     if p.motions:
         add_ej('low', '2.5.4', 'motion_actuation', p.motions,
                n=len(p.motions), example=', '.join(p.motions[:3]))
@@ -2313,8 +2420,7 @@ def audit_html(html_text, url='(html)', lang='en', standard=None, target=None):
                n=len(p.orientation_locks), example=', '.join(p.orientation_locks[:2]))
     if p.videos and p.videos_no_desc_elems:
         add('low', '1.2.3', 'audio_desc_missing', n=len(p.videos_no_desc_elems),
-            paths=[p._elem_paths[id(_a)] for _a in p.videos_no_desc_elems
-                   if id(_a) in p._elem_paths][:5])
+            paths=p._finding_paths(p.videos_no_desc_elems))
     if p.sensory:
         add('low', '1.3.3', 'sensory_text', example='; '.join(p.sensory[:2])[:70])
     lm_dups = [f'{lm} ×{t[1]}' for lm, t in p.landmarks.items()
@@ -2324,15 +2430,13 @@ def audit_html(html_text, url='(html)', lang='en', standard=None, target=None):
     if p.generics >= 2:   # un enlace genérico único suele desambiguarse por contexto
         gen = [f'«{k}»' for k in p.links if k in _GENERIC_TEXT][:4]
         add('low', '2.4.4', 'generic_link', n=p.generics, example=', '.join(gen),
-            paths=[p._elem_paths[id(_a)] for _a in p.generic_link_elems
-                   if id(_a) in p._elem_paths][:5])
+            paths=p._finding_paths(p.generic_link_elems))
     same = sum(1 for _k, hrefs in p.links.items() if len(hrefs) > 1)
     if same:
         _same_elems = [p.links_elems.get(_k, [None])[0]
                        for _k, _hs in p.links.items() if len(_hs) > 1]
         add('low', '2.4.4', 'same_name_links', n=same,
-            paths=[p._elem_paths[id(_a)] for _a in _same_elems
-                   if _a is not None and id(_a) in p._elem_paths][:5])
+            paths=p._finding_paths(_same_elems))
     ak_dups = [f'"{k}" ×{v}' for k, v in p.accesskeys.items() if v > 1]
     if ak_dups:
         add('low', '2.1.1', 'accesskey_dup', n=len(ak_dups), example=', '.join(ak_dups[:4]))

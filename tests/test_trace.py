@@ -5,6 +5,12 @@ Playwright."""
 import json
 import os
 import sys
+from contextlib import redirect_stdout
+from io import StringIO
+from pathlib import Path
+from tempfile import TemporaryDirectory
+from types import SimpleNamespace
+from unittest.mock import patch
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(HERE)
@@ -131,6 +137,47 @@ assert _page.collector is True, 'goto debe re-inyectar el recolector'
 assert _walk[2]['announcements'], 'el drain vuelve a vivir tras el goto'
 assert all(isinstance(s['announcements'], list) for s in _walk)
 print('5b. goto: recolector re-inyectado, drain guardado, pasos vivos ✓')
+
+# --- 5c. Invalid evidence, empty dialog evidence and HTTP status ---
+for invalid in ({}, {'error': 'failed'}, {'steps': None}, {'steps': [{}]},
+                {'steps': [{'focus': []}]}, {'steps': [], 'http_status': 404}):
+    assert trace_diff(A, invalid)['ok'] is False
+    assert 'error' in trace_diff(invalid, A)
+empty = {'steps': [], 'dialog_state_captured': True}
+assert trace_diff(empty, empty, gate_dialog_state=True)['dialog_gate']['status'] == 'inconclusive'
+invalid_dialog = {'steps': [{'focus': None, 'dialog': {}}], 'dialog_state_captured': True}
+assert trace_diff(invalid_dialog, invalid_dialog, gate_dialog_state=True
+                  )['dialog_gate']['status'] == 'inconclusive'
+
+
+class _HttpTracePage(_FakeTracePage):
+    def goto(self, url, **kw):
+        super().goto(url, **kw)
+        return SimpleNamespace(status=404 if url.endswith('/missing') else 200)
+
+
+with patch('a11y_toolkit.a11ydom._get_browser'), patch(
+        'a11y_toolkit.a11ydom._pooled_page') as pooled:
+    for url, script in (('https://test/missing', None), ('https://test/good', [
+            {'kind': 'goto', 'url': 'https://test/missing'}])):
+        closed = []
+        pooled.return_value = (_HttpTracePage(), lambda: closed.append(True))
+        with TemporaryDirectory() as directory:
+            out = Path(directory) / 'trace.json'
+            failed = trace(url, script=script, output=out)
+            assert failed['http_status'] == 404 and 'error' in failed and closed
+            assert not out.exists()
+
+with TemporaryDirectory() as directory:
+    before, after = (Path(directory) / name for name in ('before.json', 'after.json'))
+    before.write_text(json.dumps(A), encoding='utf-8')
+    for contents in ('{}', '{', '{"error": "capture failed"}'):
+        after.write_text(contents, encoding='utf-8')
+        output = StringIO()
+        with redirect_stdout(output):
+            assert a11ytrace.main(['diff', str(before), str(after)]) == 1
+        assert json.loads(output.getvalue())['ok'] is False
+print('5c. invalid evidence exits 1; empty modal evidence is inconclusive; HTTP errors abort ✓')
 
 # --- live capture (auto-skip) ---
 try:

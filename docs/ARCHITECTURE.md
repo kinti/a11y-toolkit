@@ -18,7 +18,7 @@ import guards. Output es/en; wire keys English (`a11y-evidence-pack/2`).
 |---|---|
 | `server.py` | MCP stdio server: 37 tools, 5 prompts, routing/annotations dicts. VERSION lives here. |
 | `a11y.py` | CLI dispatcher (`SUBCOMANDOS` dict → module mains). |
-| `a11yaudit.py` | Static auditor: 50+ signals, `CRIT` name maps, weighted 0-100 score, sitemap crawl (`audit_site` / `evaluate_site`). |
+| `a11yaudit.py` | Static auditor: 50+ signals, `CRIT` name maps, weighted 0-100 score, per-table header validation, sitemap crawl (`audit_site` / `evaluate_site`). |
 | `a11ydom.py` | Rendered auditor (Playwright): shadow DOM, state contrast, target size, reflow, keyboard walk, forms, hover, sr_transcript; browser pool + auto-detection; `_TD` catalog. |
 | `a11yscroll.py` | Infinite-scroll audit (focus survival, announcements, feed end). |
 | `a11yevidence.py` | Evidence pack builder (`a11y-evidence-pack/2`): 55-criterion matrix, effort per row, SHA-256 chain, embedded bodies. |
@@ -35,7 +35,7 @@ import guards. Output es/en; wire keys English (`a11y-evidence-pack/2`).
 | `a11yen301549.py` | EN 301 549 V4.1.1 (2026) standard data: SC→clause numbering identity (9.x web / 10.x documents / 11.x software, verified 55/55 A/AA against the standard's official applicability wizard), EN-only families (5, 6, 7, 8, 12, 13) as honest rows, mode→target derivation — pure data, no evaluation. |
 | `a11ywiz.py` | Guided CLI wizard (3 questions → standard, audit, scope). |
 | `a11yrgaa.py` | RGAA 4.1 (France) as data — the official government open-data JSON (DISIC, criteres.json) ingested by scripts/rgaa_ingest.py into rgaa.json (106 criteria / 13 topics, tests included, markdown flattened) with the complete mechanical bridge to WCAG (references → SC per criterion); loader + `rgaa_for_sc(sc)` reverse map + `standard_block`. The standard with NO levels (conformant/not) and French titles — the standard's own language. Data travels in-package (locales pattern). |
-| `a11yannotate.py` | Per-element annotation kernel: deterministic element routes (`tag:nth-of-type(n)` from the root, ids ignored by design) stamped on findings as `paths` during the parse, and `annotate(html, report)` re-parses the same html with the SHARED route algorithm (VOID_TAGS/path_segment from a11yaudit — locator and auditor cannot drift) to inject `data-a11y-id` attrs by byte-exact offset surgery; findings that cannot be placed land in `unplaced` (never a wrong mark), reports seal their source (`source_sha256`) and annotation flags `source_mismatch` when the html is not the one audited — CLI `annotate`, not a tool. |
+| `a11yannotate.py` | Per-element annotation kernel: deterministic element routes (`tag:nth-of-type(n)` from the root, ids ignored by design) stamped on findings as `paths` during the parse, and `annotate(html, report)` re-parses the same html with the same parent-linked route builder from a11yaudit, including implicit `tbody`, to resolve offsets and inject `data-a11y-id` attrs in one pass over the source slices; findings that cannot be placed land in `unplaced` (never a wrong mark), reports seal their source (`source_sha256`) and annotation flags `source_mismatch` when the html is not the one audited — CLI `annotate`, not a tool. |
 | `a11ylocate.py` | Locate by accessible name: parses with the SAME `_Auditor` (shared deterministic routes and naming — locator and auditor cannot drift), indexes named surfaces (controls, headings h1-h6, images with alt, iframes with title, fields with an explicit name) and returns the route selector with confidence; several elements sharing a name refuse to be disambiguated (`ambiguous` + the full candidate list, `multiple` to list anyway) — a match is never invented. Headings carry their route in `headings_raw` since the auditor stamps it at start-tag. Tool `a11y_locate`, CLI `locate`. |
 | `a11ypatches.py` | Sealed patch-sets of the deterministic fixes (format `a11y-patches/1`): `build` runs autofix once and records what changed on which page (SHA-256-keyed, engine version stamped, declined fixes travel too); `apply_patches` re-checks a set against a page — same page must reproduce the same fixes, a different page is `stale` (a set never blind-applies), divergence is `mismatch`. The artifact an agent or CI applies upstream: fixing the original web is the client's job. Tool `a11y_patches`, CLI `patches`. |
 | `a11ygate.py` | The write-time guard: `a11ytoolkit init` installs a client hook (Claude Code PreToolUse) so saves of user-facing files are audited against git HEAD — NEW high/medium findings refuse the write with the fix right there (the AI holding the pen applies it instantly); low severity and known findings warn. Fails open on unreadable input; `A11Y_GATE=off` disables; the refusal carries the honesty line (filter, not verdict). The anchoring of verdicts in git keeps no state file — the project's own history is the baseline. CLI `guard`, hook protocol `--hook`. |
@@ -47,7 +47,7 @@ import guards. Output es/en; wire keys English (`a11y-evidence-pack/2`).
 | `a11ypdf.py` | PDF structural screening: tagged tree, title, /Lang, outline, /Alt, text layer (scans), encryption, AcroForm fields without /TU labels (3.3.2/4.1.2) — zero-dep, the space nobody automated. |
 | `a11yjourney.py` | Blindfold journey verdict: friction log → deterministic scored task verdict; `_J` friction catalogue (journey_* patterns → criterion + bilingual remediation). |
 | `a11yengines.py` | Cross-engine behavioral matrix: ONE url snapshotted in several browser engines (chromium/firefox/webkit/chrome/msedge via `a11ydiff.snapshot(engine=)`), pairwise divergence per pair — DOM-level facts (elements, focus order) block, the engine-computed accessibility tree is informational — honest `engines_failed`, `insufficient_engines` never fakes a pass. CLI + suite, not a tool (D17, like corpus/mutants). |
-| `a11ytrace.py` | Behavioral trace: one keyboard walk of a page recording PER TAB STEP the focused element's stable signature (shared `FOCUS_KEY_JS` with the snapshot), the aria-live announcements the step triggered (silent own collector — no panel, the trace must not mutate the page) and the url, plus the a11y tree at the end; `--script` replaces the walk with a REAL journey (click/fill/select/press/wait/goto — failed actions are recorded steps); `trace diff` is the journey gate — lost/forked focus sequence blocks, announcement counts are informational (a collapsed layer is flagged, not gated). Honesty: the tree/live-region layer, not synthesized NVDA speech (the agent-side complement is the journey verdict). CLI + suite, not a tool (D17). |
+| `a11ytrace.py` | Behavioral trace: one keyboard walk of a page recording PER TAB STEP the focused element's stable signature (shared `FOCUS_KEY_JS` with the snapshot), the aria-live announcements the step triggered (silent own collector — no panel, the trace must not mutate the page) and the url, plus the a11y tree at the end; `--script` replaces the walk with a REAL journey (click/fill/select/press/wait/goto — failed actions are recorded steps); `trace diff` is the journey gate — lost/forked focus sequence blocks (exit 2), invalid or failed captures return errors (exit 1), dialog evidence must be present for the optional gate, and announcement counts are informational (a collapsed layer is flagged, not gated). Honesty: the tree/live-region layer, not synthesized NVDA speech (the agent-side complement is the journey verdict). CLI + suite, not a tool (D17). |
 | `a11ypatterns.py` | APG keyboard contracts for high-risk ARIA widgets, tested live: visible dialogs (Esc closes, modal focus containment), tablists (ArrowRight/Left move focus — roving tabindex; selection follows focus or Enter/Space), disclosures (activation flips aria-expanded; menu buttons excluded — that pattern tests them), comboboxes (ArrowDown opens + flips aria-expanded; Esc closes), menu buttons (activation opens a visible menu; Esc closes + refocuses), sliders (arrows change aria-valuenow; the value trio exposed, its absence is its own 4.1.2 finding). Findings family `pattern_*` with bilingual remediation from the `patterns` locale section. Only patterns VISIBLE at load (opening closed dialogs means guessing a trigger flow — never on a live site). CLI + suite, not a tool (D17). |
 | `a11ydiff.py` | Snapshot + regression diff (interactives, focus order, tree); `snapshot(engine=)` feeds the engines matrix. |
 | `a11ybudget.py` | Error budget: only NEW blocking findings fail (exit 2); structural variant `--init-snapshot`/`--snapshot` applies the same doctrine to the rendered structure (accepted baseline of interactives + focus chain, focus = relative order of surviving keys, `removed_block`, review_date expiry). |
@@ -68,14 +68,24 @@ PyPI `a11y-toolkit` · GitHub releases · official MCP registry
 (`io.github.kinti/a11y-toolkit`) · `server.json` · console scripts
 (`a11ytoolkit`, `a11y-toolkit-mcp`) · README counts · docs/gen-visuals.py.
 
-## Release ritual (never manual)
+## Release workflow
 
-`make release V=X.Y.Z` → `scripts/versionar.py`: atomic bump of pyproject +
-`server.VERSION` + server.json (asserted anchors), fast suites gate, commit,
-tag, push. Tag triggers PyPI publish. Then `mcp-publisher publish` **from the
-repo root** (login token lives ~1 hour — publish immediately after
-authenticating). Docs-only changes still get a version when canonical docs
-change (see 4.0.1); internal dev docs don't.
+1. Review the working tree against the pending changelog, both READMEs and
+   the affected reference docs. `make release V=X.Y.Z` includes the entire
+   working tree in the release commit.
+2. Run `make test` with Chromium available. To rehearse a version, use a
+   disposable checkout and run `python3 scripts/versionar.py X.Y.Z`. It
+   updates the versioned surfaces, runs every `tests/test_*.py` suite, and
+   regenerates `llms.txt`. Build the wheel and source distribution there
+   and test the installed CLI.
+3. `make release V=X.Y.Z` runs the release gate, creates a single
+   `vX.Y.Z` commit and tag, and pushes them to `origin`. The tag triggers
+   the PyPI and npm workflows. The MCP registry job waits for both package
+   versions before submitting `server.json` with GitHub OIDC.
+4. Verify that PyPI, npm and the MCP registry all serve the tagged version.
+   Record the tagged commit when handing the release to a consumer. Hosts
+   that run synchronous Playwright on worker threads can use
+   `A11Y_BROWSER_POOL=0` to give each call its own browser lifecycle.
 
 ## Decision log (the why, ADR-lite)
 
