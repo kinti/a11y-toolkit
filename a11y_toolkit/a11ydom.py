@@ -101,7 +101,17 @@ def _detect_browser(pw, preferred=None):
 def _get_browser(headless=True, preferred=None):
     """Devuelve un browser del pool (o crea uno si no existe). El driver de
     Playwright lo arranca y posee el PROPIO pool: el browser devuelto vive
-    mientras viva el pool, no la sesión de quien lo pidió."""
+    mientras viva el pool, no la sesión de quien lo pidió.
+
+    A11Y_BROWSER_POOL=0 desactiva el pool (ciclo por llamada, el modelo
+    pre-pool): el pool deja un event loop CORRIENDO en el hilo que lo crea —
+    incompatible con hosts que mezclan su propio Playwright síncrono o varios
+    hilos en el mismo proceso (FastAPI threadpool, suites de test con
+    fixtures de navegador propias). El proceso MCP es single-thread y
+    exclusivo: ahí el pool amortiza de verdad."""
+    import os as _os
+    if _os.environ.get('A11Y_BROWSER_POOL', '1') == '0':
+        return _NoPoolBrowser(headless, preferred)
     if _POOL['browser'] is not None and _POOL['browser'].is_connected() and \
             (preferred in (None, 'auto') or _POOL['type'] == preferred):
         return _POOL['browser']
@@ -137,11 +147,42 @@ def _close_pool():
 atexit.register(_close_pool)
 
 
+class _NoPoolBrowser:
+    """Ciclo por llamada (A11Y_BROWSER_POOL=0): crea SU playwright+browser y
+    los cierra cuando la última página prestada se cierra — la forma pre-pool
+    de vivir, para hosts multihilo que no pueden compartir loop."""
+
+    def __init__(self, headless, preferred):
+        from playwright.sync_api import sync_playwright
+        self._pw = sync_playwright().start()
+        self._nav, kind = _detect_browser(self._pw, preferred)
+        self._live_pages = 0
+
+    def new_context(self, **kw):
+        return self._nav.new_context(**kw)
+
+    def new_page(self, **kw):
+        self._live_pages += 1
+        return self._nav.new_page(**kw)
+
+    def is_connected(self):
+        return self._nav.is_connected()
+
+    def close(self):
+        try:
+            self._nav.close()
+        finally:
+            self._pw.stop()
+
+
 def _pooled_page(nav, auth_state=None, **kw):
     """(page, close_page) sobre el navegador del pool: con auth_state abre un
     contexto propio (storage_state) cuyo cierre se lleva también la página;
     sin él, página directa. close_page traga errores — el navegador del pool
-    queda caliente para la siguiente llamada, JAMÁS se cierra aquí."""
+    queda caliente para la siguiente llamada, JAMÁS se cierra aquí.
+    Con A11Y_BROWSER_POOL=0 (nav._NoPoolBrowser), el cierre de la página
+    se lleva TAMBIÉN su navegador: el ciclo vive exactamente una llamada."""
+    _no_pool = isinstance(nav, _NoPoolBrowser)
     if auth_state:
         ctx = nav.new_context(storage_state=auth_state, **kw)
         page = ctx.new_page()
@@ -151,6 +192,8 @@ def _pooled_page(nav, auth_state=None, **kw):
                 ctx.close()
             except Exception:  # noqa: BLE001
                 pass
+            if _no_pool:
+                nav.close()
         return page, close_page
 
     page = nav.new_page(**kw)
@@ -160,6 +203,8 @@ def _pooled_page(nav, auth_state=None, **kw):
             page.close()
         except Exception:  # noqa: BLE001
             pass
+        if _no_pool:
+            nav.close()
     return page, close_page
 
 MAX_EXAMPLES = 6

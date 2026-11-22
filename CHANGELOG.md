@@ -1,5 +1,14 @@
 # Changelog
 
+## main — pendiente
+- **A11Y_BROWSER_POOL=0: opt-out del pool para hosts multihilo.** Vendorear
+  5.31.0 en a11y.es destapó el límite real del pool de la ronda 1: deja un
+  event loop asyncio CORRIENDO en el hilo que lo crea — el servidor MCP
+  (single-thread, proceso exclusivo) convive bien, pero un host que mezcla
+  su propio Playwright síncrono o atiende en threadpool (FastAPI) no puede.
+  Con la variable a 0 el motor vuelve al ciclo por llamada (el modelo
+  pre-pool): cada auditoría crea y cierra SU navegador.
+
 ## 5.31.0 — 2026-11-22 (ronda 7: verificación de v5.30.0)
 - **External review, ROUND 7 — VERIFICATION PASS (2026-11-22, on v5.30.0):
   the reviewer re-ran the 44 suites and every original case.** Most fixes
