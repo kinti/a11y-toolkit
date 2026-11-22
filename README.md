@@ -244,7 +244,7 @@ a11ytoolkit reflow https://mysite                       # 320px reflow (behind l
 a11ytoolkit scroll https://medium.com/feed              # infinite scroll
 a11ytoolkit validate --url https://example.com          # W3C Nu
 a11ytoolkit hover https://mysite                        # tooltip dismissibility
-a11ytoolkit dom https://mysite                          # rendered audit (contrast, 2.5.8, focus)
+a11ytoolkit dom https://mysite                          # rendered audit (contrast, 2.5.8, focus; exit 1 + error on HTTP 4xx/5xx)
 a11ytoolkit fix --file page.html -o fixed.html          # safe autofix
 a11ytoolkit declaration --entity "Acme" --url https://… --status partial --framework eaa
 a11ytoolkit snapshot https://mysite --out before.json   # before deploy

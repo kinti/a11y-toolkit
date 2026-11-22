@@ -209,6 +209,10 @@ TOOLS = [
                         'focus indicator heuristic (2.4.7), plus rendered versions of the '
                         'static checks (alt, accessible names, labels, headings, lang/title, '
                         'tabindex, aria-hidden, captions, tables). Findings include remediation. '
+                        'HTTP contract: the report carries http_status, its url is the FINAL '
+                        'page after redirects (requested_url keeps the original), and a 4xx/5xx '
+                        'response is returned as an error — the audited content still rides '
+                        'along, but no CI gate can pass on an error response. '
                         'Requires playwright: pip install playwright && playwright install '
                         'chromium.'),
         'inputSchema': {'type': 'object', 'properties': {
