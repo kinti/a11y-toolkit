@@ -114,6 +114,27 @@ print('6. PDF bueno: 100 sin señales ✓')
 m = pdf_screen(mini_pdf(tagged=False, title=False, lang=False, text=False, img=True), lang='es')
 assert {'pdf_untagged', 'pdf_no_title', 'pdf_no_lang', 'pdf_scanned'} <= {h['signal'] for h in m['findings']}
 assert not pdf_screen(b'no-pdf').get('tagged', False) and 'error' in pdf_screen(b'no-pdf')
+
+# 28. modo de render del texto: Tr 3 puro = capa OCR (dato + nota), mezcla = no
+import zlib as _z
+def _pdf_tr(content):
+    comp = _z.compress(content)
+    head = (b'%PDF-1.7\n1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n'
+            b'2 0 obj\n<< /Type /Pages /Kids [3 0 R] /Count 1 >>\nendobj\n'
+            b'3 0 obj\n<< /Type /Page /Parent 2 0 R /Contents 4 0 R >>\nendobj\n')
+    stream = (b'4 0 obj\n<< /Length ' + str(len(comp)).encode()
+              + b' /Filter /FlateDecode >>\nstream\n' + comp + b'\nendstream\nendobj\n')
+    xref_at = len(head) + len(stream)
+    xref = b'xref\n0 5\n0000000000 65535 f \n'
+    for tag in (b'1 0 obj', b'2 0 obj', b'3 0 obj', b'4 0 obj'):
+        xref += ('%010d 00000 n \n' % head.find(tag)).encode()
+    tail = b'trailer\n<< /Size 5 /Root 1 0 R >>\nstartxref\n' + str(xref_at).encode() + b'\n%%EOF'
+    return head + stream + xref + tail
+_r_ocr = pdf_screen(_pdf_tr(b'BT 3 Tr (capa invisible) Tj ET'), lang='es')
+assert _r_ocr['ocr_layer_only'] is True and _r_ocr['ocr_layer_note'], _r_ocr.get('text_render')
+_r_mix = pdf_screen(_pdf_tr(b'BT 3 Tr (inv) Tj 0 Tr (vis) Tj ET'), lang='es')
+assert _r_mix['ocr_layer_only'] is False and 'ocr_layer_note' not in _r_mix
+print('28. PDF Tr3 (capa OCR): puro dispara dato+nota, mixto no ✓')
 print('7. PDF malo: 4 señales raíz ✓  8. no-PDF rechazado ✓')
 
 # 9. CLI real de ambos

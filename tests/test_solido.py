@@ -33,7 +33,7 @@ _hallazgo = {k for k in es
              ('limits', 'interp', 'criteria', 'score_note', 'lightening', 'darkening',
               'no_post_copy', 'invalid_color', 'invalid_region', 'region_outside',
               'no_pixels', 'load_error', 'opaque_text', 'fetch_error',
-              'rendered_reason', 'overlay_widgets_note',
+              'rendered_reason', 'overlay_widgets_note', 'statement_note',
               'err_unparseable', 'err_too_big', 'err_not_html',
               'err_redirect_blocked')}   # dato del namespace audit, no un finding
 sin_rem = sorted(k for k in _hallazgo if f'{k}_rem' not in es)

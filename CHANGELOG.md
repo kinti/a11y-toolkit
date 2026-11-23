@@ -1,6 +1,21 @@
 # Changelog
 
 ## main — pendiente
+- **`accessibility_statement` report data (a11y_audit_url/html):** detects and
+  lists visible links to the site's accessibility statement — vocabulary in
+  es/en/gl/pt/de/nl/sv/fi (both word orders plus the Dutch/Swedish/Finnish
+  compounds), max 3 links with text+href. Directive (EU) 2016/2102 art. 7 and
+  its national transpositions (e.g. RD 1112/2018) require the statement
+  linked, so audits of conformance need this verifiable — but no WCAG
+  criterion dictates it: reported as data with an absence note, never a
+  finding. Pinned 6 languages + clean-negative-with-note.
+- **`text_render` / `ocr_layer_only` report data (PDF screening):** the
+  content-stream scanner now tracks the `Tr` text render mode per text-showing
+  op; when EVERY op draws in mode 3 (invisible), the visible content is
+  imagery — an OCR layer or an invisible-font text layer — and the report
+  carries the counts plus a review note (tagging/alternatives of the scan,
+  invisible layer announcing text nobody sees). Data, not a finding. Pinned
+  pure-invisible vs mixed synthetic PDFs.
 - **Static audit patterns.** Added signals for interactive anchors without
   `href`, nested `main`, bullet-and-break lists, polite alerts, conflicting
   `lang` / `xml:lang`, and broken `headers` references. Table validation

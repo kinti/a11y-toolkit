@@ -116,6 +116,7 @@
   },
   "images_of_text_rem": "Salvo logotipos, presenta el texto como texto real (1.4.5): se re escala, se re-fluye y se traduce; una imagen no.",
   "overlay_widgets_note": "Se ha detectado un widget de accesibilidad de terceros (overlay; véase overlay_widgets). Un overlay no hace accesible un sitio — véase el Overlay Fact Sheet comunitario (overlayfactsheet.com). Se informa como dato para la diligencia de compra, no como hallazgo WCAG.",
+  "statement_note": "Sin enlace visible a la declaración de accesibilidad. La Directiva (UE) 2016/2102 (art. 7) y el RD 1112/2018 la exigen enlazada; se reporta como dato para la revisión legal, no como fallo WCAG.",
   "img_no_alt": {
    "one": "1 <img> sin atributo alt (ni siquiera alt=\"\").",
    "other": "{n} <img> sin atributo alt (ni siquiera alt=\"\")."
@@ -544,7 +545,8 @@
   "pdf_scanned": "sin capa de texto (0 caracteres en el contenido): parece un escaneo — invisible por completo (1.1.1).",
   "pdf_scanned_rem": "Aplica OCR con texto real y etiqueta el resultado.",
   "pdf_untagged": "sin árbol de estructura (/StructTreeRoot): el orden de lectura y los roles semánticos no existen para el lector. Es EL fallo raíz de los PDF inaccesibles (1.3.1).",
-  "pdf_untagged_rem": "Etiqueta el documento (exporta con «PDF etiquetado» desde authoring, o remedia con Acrobat): sin árbol, todo lo demás es cosmético."
+  "pdf_untagged_rem": "Etiqueta el documento (exporta con «PDF etiquetado» desde authoring, o remedia con Acrobat): sin árbol, todo lo demás es cosmético.",
+  "pdf_ocr_layer_note": "Todo el texto del PDF se dibuja en modo invisible (Tr 3): lo visible es imagen. Revisa si el escaneo lleva etiquetado y alternativos; la capa invisible puede anunciar texto que nadie ve. Dato de revisión, no fallo directo."
  },
  "scroll": {
   "limits": "Auditor de scroll infinito: heurística con foco real y observador de regiones vivas en {n} tandas. No sustituye la prueba con lector de screen reader en el feed real.",

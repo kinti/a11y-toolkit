@@ -254,10 +254,30 @@ def pdf_screen(path_or_bytes, lang='en'):
     # contar solo Flate acusaba en falso de 'escaneo' a PDFs reales)
     n_text = sum(len(re.findall(rb'\)\s*Tj|\]\s*TJ|\(\s*[A-Za-z0-9]', f)) for f in streams)
     n_text += len(re.findall(rb'\)\s*Tj|\]\s*TJ', data))
+    # modo de render del texto: el operador `N Tr` fija el modo; 3 = invisible
+    # (capa OCR de un escaneo o fuentes invisibles). Si TODO el texto va en
+    # modo 3, lo visible es imagen y la capa 'de texto' no se pinta: dato de
+    # informe para la revisión (¿el escaneo tiene etiquetado/alt?), no fallo.
+    _mode, _t_vis, _t_inv = 0, 0, 0
+    _RE_TROPS = re.compile(rb'(?P<tr>[\d.]+)\s+Tr\b|(?P<show>Tj|TJ)\b')
+    for _blob in list(streams) + [data]:
+        for _m in _RE_TROPS.finditer(_blob):
+            if _m.group('tr') is not None:
+                try:
+                    _mode = int(float(_m.group('tr')))
+                except ValueError:
+                    pass
+            elif _m.group('show'):
+                if _mode == 3:
+                    _t_inv += 1
+                else:
+                    _t_vis += 1
 
     findings = []
 
-    # ── 1.4.3 en PDF: contraste del texto contra el fondo efectivo ──
+    # capa OCR pura (todo el texto en modo 3): el dato viaja en el informe; la
+    # nota solo al final si procede (tras el conteo real de streams)
+
     low_hits = []
     for stream in streams:
         for ej in _stream_low_contrast(stream.decode('latin-1', 'replace')):
@@ -353,7 +373,7 @@ def pdf_screen(path_or_bytes, lang='en'):
     from .a11yaudit import compute_score
     order = {'high': 0, 'medium': 1, 'low': 2}
     findings.sort(key=lambda h: order[h['severity']])
-    return {
+    _report = {
         'mode': 'pdf', 'file': name,
         'pages': n_pages or None,
         'tagged': bool(tagged and marked),
@@ -363,6 +383,8 @@ def pdf_screen(path_or_bytes, lang='en'):
                   if title_meta else None),
         'images': n_imgs, 'alt_entries': n_alt, 'actual_text': n_actual,
         'text_operators': n_text,
+        'text_render': {'visible_ops': _t_vis, 'invisible_ops': _t_inv},
+        'ocr_layer_only': bool(_t_inv and not _t_vis),
         'form_fields': n_fields, 'form_labels': n_tu,
         'truncated': truncated,
         'score': compute_score(findings),
@@ -371,6 +393,9 @@ def pdf_screen(path_or_bytes, lang='en'):
                     for s in ('high', 'medium', 'low')},
         'limits': _t(lang, 'limits'),
     }
+    if _report['ocr_layer_only']:
+        _report['ocr_layer_note'] = _t(lang, 'pdf_ocr_layer_note')
+    return _report
 
 
 def main(argv):

@@ -2498,6 +2498,39 @@ def audit_html(html_text, url='(html)', lang='en', standard=None, target=None):
     if overlays:
         res['overlay_widgets'] = overlays
         res['overlay_widgets_note'] = _t(lang, 'overlay_widgets_note')
+
+    # enlace a la declaración de accesibilidad: requisito LEGAL europeo
+    # (Directiva 2016/2102 art. 7 y RD 1112/2018) que nuestras auditorías de
+    # conformidad deben poder verificar, pero NINGÚN criterio WCAG lo dicta —
+    # sale como dato de informe (presente con su href / ausente), jamás
+    # hallazgo. Vocabulario es/en/pt/fr/de/nl/sv/fi/da en ambos órdenes.
+    _stmt = re.compile(
+        r'toegankelijkheidsverklaring|tillg[aä]nglighetsredog[oö]relse|'
+        r'saavutettavuusseloste|'
+        r'(declaraci[oó]n|statement|erkl[aä]rung|declara[cç][aã]o|verklaring|'
+        r'redog[oö]relse|seloste|erkl[eæ]ring)[^a-z0-9]{0,4}'
+        r'(?:(?:de|da|do|di|della|du|of|zur|zum)\s+)?[^a-z0-9]{0,4}'
+        r'(accesibilidad|accessibility|barrierefreiheit|acessibilidade|'
+        r'accesibilidade|toegankelijkheid|tillg[aä]nglighet|saavutettavuus|'
+        r'dostupnost)|'
+        r'(accesibilidad|accessibility|barrierefreiheit|acessibilidade|'
+        r'accesibilidade|toegankelijkheid|tillg[aä]nglighet|saavutettavuus)'
+        r'[^a-z0-9]{0,4}(?:(?:de|da|do|di|della|du|of|zur|zum)\s+)?[^a-z0-9]{0,4}'
+        r'(declaraci[oó]n|statement|erkl[aä]rung|declara[cç][aã]o|verklaring|'
+        r'redog[oö]relse|seloste|erkl[eæ]ring)', re.I)
+    _stmt_links = []
+    for _tag, _a, _txt, _imgs, _hidden in p.controls_raw:
+        if len(_stmt_links) >= 3:
+            break
+        _href = (_a.get('href') or '').strip()
+        _img_alts = ' '.join((ia.get('alt') or '') for ia in (_imgs or []))
+        _full = ' '.join(x for x in (_txt, _img_alts) if x).strip()
+        if _href and not _hidden and _stmt.search(_full or ''):
+            _stmt_links.append({'text': _full[:60], 'href': _href[:120]})
+    res['accessibility_statement'] = {'found': bool(_stmt_links),
+                                      'links': _stmt_links}
+    if not _stmt_links:
+        res['accessibility_statement_note'] = _t(lang, 'statement_note')
     return res
 
 

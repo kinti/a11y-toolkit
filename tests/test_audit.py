@@ -347,6 +347,26 @@ assert result['table_no_th']['paths'][0].endswith('>table:nth-of-type(1)')
 print('table headers: full token list, exact paths and nested isolation ✓')
 
 
+# ── enlace a la declaración de accesibilidad: DATO legal (WAD art.7/RD 1112) ──
+def _mk_stmt(txt, lang='es'):
+    return audit_html(f'<!doctype html><html lang="{lang}"><head><title>t</title></head>'
+                      f'<body><main><h1>x</h1></main><footer><a href="/d">{txt}</a></footer></body></html>')
+for _txt, _lang in (('Declaración de accesibilidad', 'es'),
+                    ('Accessibility statement', 'en'),
+                    ('Declaración de accesibilidade', 'gl'),
+                    ('Erklärung zur Barrierefreiheit', 'de'),
+                    ('Declaração de acessibilidade', 'pt'),
+                    ('Toegankelijkheidsverklaring', 'nl')):
+    _r = _mk_stmt(_txt, _lang)
+    assert _r['accessibility_statement']['found'], _txt
+    assert _r['accessibility_statement']['links'][0]['href'] == '/d'
+_r_sin = audit_html('<!doctype html><html lang="es"><head><title>t</title></head>'
+                    '<body><main><h1>x</h1></main><footer><a href="/">Inicio</a></footer></body></html>')
+assert _r_sin['accessibility_statement'] == {'found': False, 'links': []}
+assert _r_sin.get('accessibility_statement_note'), 'falta la nota de ausencia'
+assert not any('statement' in f['signal'] for f in _r_sin['findings']), 'JAMÁS hallazgo'
+
+
 # ── overlays de terceros: dato del informe, JAMÁS un finding ──────────────────
 # detección por dominio del script (UserWay/accessiBe/…): diligencia de compra
 con_overlay = ('<!doctype html><html lang="es"><head><title>t</title></head><body>'

@@ -116,6 +116,7 @@
   },
   "images_of_text_rem": "Except for logotypes, present text as real text (1.4.5): it rescales, reflows and translates; an image does not.",
   "overlay_widgets_note": "A third-party accessibility overlay widget was detected (see overlay_widgets). Overlays do not make a site accessible — see the community Overlay Fact Sheet (overlayfactsheet.com). Reported as information for procurement diligence, not as a WCAG finding.",
+  "statement_note": "No visible link to an accessibility statement. Directive (EU) 2016/2102 (art. 7) and its national transpositions require it linked; reported as data for legal review, not a WCAG failure.",
   "img_no_alt": {
    "one": "1 <img> without an alt attribute (not even alt=\"\").",
    "other": "{n} <img> without an alt attribute (not even alt=\"\")."
@@ -544,7 +545,8 @@
   "pdf_scanned": "no text layer (0 characters in content): looks like a scan — fully invisible (1.1.1).",
   "pdf_scanned_rem": "Apply OCR with real text and tag the result.",
   "pdf_untagged": "no structure tree (/StructTreeRoot): reading order and semantic roles do not exist for the reader. THE root failure of inaccessible PDFs (1.3.1).",
-  "pdf_untagged_rem": "Tag the document (export as tagged PDF from authoring, or remediate in Acrobat): without a tree, everything else is cosmetic."
+  "pdf_untagged_rem": "Tag the document (export as tagged PDF from authoring, or remediate in Acrobat): without a tree, everything else is cosmetic.",
+  "pdf_ocr_layer_note": "All text in this PDF is drawn in invisible render mode (Tr 3): what is visible is imagery. Check whether the scan carries tagging and alternatives; the invisible layer may announce text nobody sees. Review data, not a direct failure."
  },
  "scroll": {
   "limits": "Infinite-scroll auditor: heuristics with real focus and a live-region observer over {n} batches. Not a substitute for screen-reader testing on the real feed.",
