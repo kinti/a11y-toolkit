@@ -32,8 +32,50 @@ Reading it honestly:
   pass intentionally does not score (it flags, not fails, partial
   landmark coverage) — the gap list is in the raw JSON, not hidden.
 
-The sanity gate in CI asserts the toolkit still finds things (≥4 signals)
-— a benchmark that could silently go blind would be worse than none.
+The gate in CI is `python3 bench/compara.py --check bench/results.json
+--expect 4`. A row only counts as evidence with results from the three
+engines (toolkit static, toolkit rendered, axe): the check rejects a failed
+row, a row missing an engine and a row where axe executed no rules, and it
+still requires the toolkit to find things across the pages (4 criteria or
+more). The previous gate looked at the toolkit alone, so a run could go
+green with axe not running.
+
+The scripts never open a Playwright session of their own. The rendered audit
+keeps the engine's browser pool alive for the rest of the process, and a
+second sync session in the same thread fails with "Sync API inside the
+asyncio loop". `bench/browser.py` lends them a page from that same pool,
+which is why the benchmark runs with the default configuration and with
+`A11Y_BROWSER_POOL=0` alike.
+
+## Regression flow (`pr-flow.py`)
+
+Give it two snapshots of one page and it reports, per tool, which findings
+appeared and which disappeared:
+
+    python3 bench/pr-flow.py before.html after.html [--rendered] [--axe]
+
+- Toolkit static always runs. `--rendered` adds the Playwright pass when
+  Playwright is installed. `--axe` adds axe-core when a local copy exists
+  (`bench/axe.min.js` or the user cache the monthly benchmark fills). An
+  opt-in that cannot run is reported as `skipped` with the reason.
+- Findings are compared instance by instance: by element route in the static
+  pass, by example text in the rendered one, and in axe by failing node
+  (rule plus target). A failure that moves from element A to element B is
+  one new and one fixed.
+- A finding aggregates many elements and carries only the first ones (5 in
+  the static pass). At or past that number the report cannot back an
+  element-level verdict, so the signal is listed under
+  `insufficient_evidence` with the count delta read from the message: a page
+  going from 6 to 7 images without alt reports 1 new finding that cannot be
+  located. `summary.inconclusive` names the affected tools and signals.
+- Routes are positional: inserting an element shifts the routes of its later
+  siblings, which then read as moved instances.
+- Exit code 0 means every requested pass measured, new findings or not (the
+  budget gate decides elsewhere). Exit code 1 means a pass failed to run.
+  A failed measurement is never reported as zero findings.
+
+`tests/test_bench_flow.py` pins all of the above against a local page, under
+the default pool configuration.
 
 ## Local parser and annotation measurements
 

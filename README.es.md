@@ -13,7 +13,7 @@
 auditar, corregir, documentar, vigilar y entregar — y ahora también pruebas de
 usabilidad «a ciegas», donde el agente intenta tareas reales percibiendo solo lo
 que expone un lector de pantalla. 48 de los 55 criterios A/AA llevan al menos una señal
-automatizadas (87%), cada hallazgo viaja con una remediación concreta que tu
+automatizada (87%), cada hallazgo viaja con una remediación concreta que tu
 agente puede aplicar, y las herramientas renderizadas corren en el navegador
 que tengas — Chromium, Firefox, WebKit, Chrome o Edge.
 
@@ -397,9 +397,9 @@ auditor lo encuentre. Si no, abre un issue y dime qué falta.
 
 ## Honestidad, de fábrica
 
-Cada auditoría dice: **la automatización cubre el 87% de los 55 criterios
-A/AA** (aproximadamente un tercio de todo WCAG contando AAA y las comprobaciones
-genuinamente humanas) **— el resto necesita una persona**.
+Cada auditoría dice: **48 de los 55 criterios A/AA (87%) llevan al menos una señal
+automatizada, y el resto necesita una persona** (aproximadamente un tercio de todo
+WCAG contando AAA y las comprobaciones genuinamente humanas).
 El prompt `audit-page` y la skill hacen que el agente compruebe lo que puede
 (teclado, foco, zoom, errores anunciados) usando [la checklist
 manual](skills/a11y-toolkit/references/wcag22-manual-checklist.md). Un filtro,

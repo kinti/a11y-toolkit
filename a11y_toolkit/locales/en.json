@@ -253,8 +253,8 @@
   "role_orphan_rem": "Wrap them in their role's container (list, menu, listbox, tablist, tree) or the equivalent implicit element (ul/ol for list).",
   "skip_broken": "{n} skip links pointing at nonexistent targets: {example}. The bypass mechanism aims at an id that does not exist and the user stays trapped in the repeated navigation (2.4.1, F89).",
   "skip_broken_rem": "Point the link at the real id of the main content (or create the id): a broken bypass is worse than no bypass.",
-  "select_auto_focus": "{n} selects with autofocus: in the screen reader's forms mode, arrow keys CHANGE the selected option without the user intending it (3.2.1).",
-  "select_auto_focus_rem": "Remove the autofocus from the select (or move it to the form's initial text field if automatic focus is essential)."
+  "select_auto_focus": "{n} selects with autofocus carry a script that changes the context ({example}). The page loads with focus already on the control, so the navigation, new window, submit or focus move it triggers is one key away for someone who never chose to enter it (3.2.1).",
+  "select_auto_focus_rem": "Remove the autofocus from the select, or keep it and run the script on activation (a Go button) instead of on focus or on selection change."
  },
  "badge": {
   "name": "a11y-toolkit",
@@ -715,7 +715,9 @@
   "model_tags": "Core requirement tags in the draft: physical harm, risk, barrier and friction (per the W3C introduction; they qualify requirements, not findings).",
   "model_tiers": "Reporting tiers 1-6, where tier 3 corresponds to conformance. Counts and thresholds are still to be determined by the W3C.",
   "no_score": "No score, tier or conformance level is produced on purpose: the draft's tier thresholds are still to be determined by the W3C.",
-  "no_equivalent_note": "no_equivalent lists WCAG 2.2 criteria whose findings the September 2026 draft has no equivalent provision for, as read by a11y-toolkit (target size, multiple ways, change of context on input). They are listed apart instead of being grouped under an unrelated outcome, and re-checked on every re-baseline of the draft."
+  "no_equivalent_note": "no_equivalent lists WCAG 2.2 criteria whose findings the September 2026 draft has no equivalent provision for, as read by a11y-toolkit (target size, multiple ways, change of context on input). They are listed apart instead of being grouped under an unrelated outcome, and re-checked on every re-baseline of the draft.",
+  "source_error_note": "The source audit failed: its error travels with this preview. The mapping is kept so the findings can still be read, but nothing here may pass a gate, a budget or a conformance claim.",
+  "source_http_error": "HTTP {status}: the source audit got an error response, not the requested page."
  },
  "scope": {
   "notice": "Machine proposals are not exclusions: 'proposed-excluded' rows need a human answer before anything downstream (evidence pack, VPAT, OpenACR) may treat the criterion as not applicable.",

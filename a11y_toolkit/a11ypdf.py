@@ -248,7 +248,11 @@ def pdf_screen(path_or_bytes, lang='en'):
     n_tag_td = len(re.findall(rb'/S\s*/TD\b', todo))
     n_tag_th = len(re.findall(rb'/S\s*/TH\b', todo))
     n_tag_h = len(re.findall(rb'/S\s*/H[1-6]\b', todo))
-    _m_ua = re.search(rb'pdfuaid:part\s*=\s*["\x27]?\s*(\d+)', todo)
+    # la declaración PDF/UA del XMP viaja de dos formas: como atributo
+    # (pdfuaid:part="2", la única que se leía) y como elemento RDF
+    # (<pdfuaid:part>2</pdfuaid:part>, que es como XMP serializa una propiedad)
+    _m_ua = re.search(rb'pdfuaid:part\s*=\s*["\x27]?\s*(\d+)', todo) \
+        or re.search(rb'<pdfuaid:part(?:\s[^>]*)?>\s*(\d+)\s*</pdfuaid:part>', todo)
     pdfua_part = int(_m_ua.group(1)) if _m_ua else None
     # /Alt acepta literal (/Alt (…)) y hex (/Alt <FEFF…>, la forma natural
     # UTF-16BE para alt no latino) — misma paridad que /TU

@@ -374,9 +374,9 @@ find it. If it doesn't, open an issue and tell me what is missing.
 
 ## Honesty, built in
 
-Every audit says: **automation covers 87% of the 55 A/AA criteria** (roughly a
-third of all WCAG once AAA and the genuinely-human checks are counted) **— the
-rest needs a human**.
+Every audit says: **48 of the 55 A/AA criteria (87%) carry at least one automated
+signal, and the rest needs a human** (roughly a third of all WCAG once AAA and the
+genuinely-human checks are counted).
 The `audit-page` prompt and the skill have the agent check what it can (keyboard,
 focus, zoom, announced errors) using [the manual
 checklist](skills/a11y-toolkit/references/wcag22-manual-checklist.md). A filter, not

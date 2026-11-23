@@ -164,6 +164,28 @@ _r_uo = pdf_screen(_pdf_struct(struct=_TD + _TH + _H1, xmp=_XMP_UA), lang='es')
 assert 'pdfua_contradiction' not in {h['signal'] for h in _r_uo['findings']}
 print('29. trío estructura PDF: TD/TH, jerarquía y sello PDF/UA ✓')
 
+# 29b. la declaración PDF/UA viaja de dos formas en el XMP: como atributo (la
+# única que se leía) y como elemento RDF. Mismo PDF de prueba, misma lectura:
+# con el elemento, pdfua_claimed quedaba en None y el sello que miente sobre
+# su documento pasaba sin aviso
+def _xmp_elem(body):
+    return (b'11 0 obj\n<< /Type /Metadata /Subtype /XML >>\nstream\n'
+            b'<?xpacket?><rdf:RDF xmlns:pdfuaid="u">' + body
+            + b'</rdf:RDF></xpacket>\nendstream\nendobj\n')
+
+
+for _xmp in (_xmp_elem(b'<rdf:Description><pdfuaid:part>2</pdfuaid:part></rdf:Description>'),
+             _xmp_elem(b'<rdf:Description>\n  <pdfuaid:part>\n    2\n  </pdfuaid:part>\n'
+                       b'</rdf:Description>')):
+    _r_el = pdf_screen(_pdf_struct(struct=_TD, xmp=_xmp, lang=False, title=False), lang='es')
+    assert _r_el['pdfua_claimed'] == 2, _r_el['pdfua_claimed']
+    assert 'pdfua_contradiction' in {h['signal'] for h in _r_el['findings']}, _r_el
+    _r_el_ok = pdf_screen(_pdf_struct(struct=_TD + _TH + _H1, xmp=_xmp), lang='es')
+    assert _r_el_ok['pdfua_claimed'] == 2
+    assert 'pdfua_contradiction' not in {h['signal'] for h in _r_el_ok['findings']}, _r_el_ok
+assert pdf_screen(_pdf_struct(struct=_TD), lang='es')['pdfua_claimed'] is None
+print('29b. PDF/UA: la declaración se lee como atributo y como elemento XMP ✓')
+
 from a11y_toolkit.a11ydocx import docx_screen as _dx_screen  # noqa: E402
 
 # 30. trío DOCX: lista falsa, salto de título, enlace genérico (fixtures ZIP)
@@ -519,5 +541,39 @@ finally:
     _mod_docx._MAX_MEMBER_BYTES = _techo_original
 assert 'error' in r28 and 'cap' in r28['error'], r28
 print('28. techo de ingesta ZIP: member > límite → error, sin descomprimir ✓')
+
+# 28b. TODAS las lecturas del cribado pasan por el techo. La de
+# word/_rels/document.xml.rels lo eludía: con el mismo tamaño que styles.xml,
+# styles se rechazaba y las relaciones entraban. document.xml y styles.xml
+# pequeños, relaciones por encima del techo
+import zipfile as _zf_cap
+import tempfile as _tf_cap
+import os as _os_cap
+
+
+def _docx_cap(rels_txt):
+    p = _os_cap.path.join(_tf_cap.mkdtemp(), 'cap.docx')
+    with _zf_cap.ZipFile(p, 'w') as z:
+        z.writestr('word/document.xml',
+                   '<w:document xmlns:w="x"><w:body><w:p/></w:body></w:document>')
+        z.writestr('word/styles.xml', '<w:styles/>')
+        z.writestr('word/_rels/document.xml.rels', rels_txt)
+    return p
+
+
+_mod_docx._MAX_MEMBER_BYTES = 100
+try:
+    r_rels = docx_screen(_docx_cap('<Relationships>' + ' ' * 500 + '</Relationships>'), lang='en')
+    r_small = docx_screen(_docx_cap('<Relationships/>'), lang='en')
+finally:
+    _mod_docx._MAX_MEMBER_BYTES = _techo_original
+assert 'error' in r_rels and 'document.xml.rels' in r_rels['error'] and 'cap' in r_rels['error'], r_rels
+assert 'error' not in r_small, r_small
+# pin estructural: una sola puerta de lectura del ZIP en todo el cribado
+import inspect as _insp_cap
+_src_cap = _insp_cap.getsource(_mod_docx)
+assert len(_mod_docx.re.findall(r'\bz\.read\(', _src_cap)) == 1, 'lectura del ZIP fuera del techo'
+assert 'def _capped_read' in _src_cap
+print('28b. techo de ingesta ZIP: relaciones y cualquier otro miembro, por la misma puerta ✓')
 
 print('Regresiones PDF/DOCX/VTT OK ✓')

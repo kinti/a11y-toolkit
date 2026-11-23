@@ -202,3 +202,47 @@ assert _out['no_equivalent'] == [] and _out['counts']['findings_no_equivalent'] 
 print('WCAG3 PREVIEW OK ✓ (mapa con destino para el 100% de señales, 11 filas '
       'pineadas contra el WD publicado, 3 criterios sin provisión listados '
       'aparte, 46 outcomes exactos, sin score por construcción, hostil cubierto)')
+
+# ── el informe de ORIGEN falló: su error viaja con la vista previa ──────────
+# Una respuesta HTTP 4xx/5xx conserva los hallazgos y declara el error (el
+# contrato del motor renderizado). Antes la vista previa perdía ese estado:
+# un 404 con un hallazgo mapeado salía como preview limpia y el CLI devolvía 0.
+_rep_404 = dict(_rep, mode='rendered', url='https://t/missing', http_status=404,
+                error='HTTP 404: this is an error response, not the requested page')
+for _lang in ('en', 'es'):
+    _p404 = preview(_rep_404, _lang)
+    assert _p404['error'] == _rep_404['error'] and _p404['http_status'] == 404, _p404.keys()
+    assert _p404['source_error_note'], _lang
+    assert _p404['counts']['findings_mapped'] == 1 and _p404['outcomes'], 'el mapa se conserva'
+    assert _p404['source_report']['http_status'] == 404
+assert preview(_rep_404, 'en')['source_error_note'] != preview(_rep_404, 'es')['source_error_note']
+# HTTP de error sin la clave error (informe producido por otra herramienta):
+# el mensaje se compone en los dos idiomas
+for _lang in ('en', 'es'):
+    _p_st = preview(dict(_rep, http_status=503), _lang)
+    assert _p_st['error'].startswith('HTTP 503') and _p_st['http_status'] == 503, _p_st
+# un 200, un informe sin http_status y un http_status que no es un número
+# entero NO llevan error
+for _ok_rep in (dict(_rep, http_status=200), _rep, dict(_rep, http_status='404'),
+                dict(_rep, http_status=True), dict(_rep, http_status=None)):
+    assert 'error' not in preview(_ok_rep, 'en') and 'http_status' not in preview(_ok_rep, 'en'), _ok_rep
+# MCP: el mismo contrato que el resto de herramientas → isError
+_mcp_bad = server.invoke('a11y_wcag3_preview', {'report': _rep_404, 'lang': 'en'})
+assert _mcp_bad.get('isError') is True, _mcp_bad
+assert json.loads(_mcp_bad['content'][0]['text'])['http_status'] == 404
+assert not server.invoke('a11y_wcag3_preview', {'report': _rep, 'lang': 'en'}).get('isError')
+# CLI: --from-audit de un informe fallido sale 1; de uno sano sale 0
+import contextlib as _cb_w3
+import io as _io_w3
+import tempfile as _tf_w3
+from a11y_toolkit import a11ywcag3 as _w3
+_d_w3 = _tf_w3.mkdtemp()
+_p_w3_bad, _p_w3_ok = (os.path.join(_d_w3, n) for n in ('bad.json', 'ok.json'))
+for _p_w3, _r_w3 in ((_p_w3_bad, _rep_404), (_p_w3_ok, _rep)):
+    with open(_p_w3, 'w', encoding='utf-8') as _f_w3:
+        json.dump(_r_w3, _f_w3)
+with _cb_w3.redirect_stdout(_io_w3.StringIO()):
+    _rc_bad = _w3.main(['--from-audit', _p_w3_bad])
+    _rc_ok = _w3.main(['--from-audit', _p_w3_ok])
+assert _rc_bad == 1 and _rc_ok == 0, (_rc_bad, _rc_ok)
+print('vista previa WCAG 3: el error del informe de origen viaja (función, MCP, CLI) ✓')

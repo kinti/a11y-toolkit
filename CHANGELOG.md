@@ -1,6 +1,99 @@
 # Changelog
 
 ## main — pendiente
+- **`bench/compara.py`: the monthly benchmark runs with the default
+  configuration, and its gate requires the three engines.** The benchmark
+  opened its own Playwright session for axe right after the rendered audit.
+  That audit keeps the engine's browser pool alive, and a second sync session
+  in the same thread fails with "Sync API inside the asyncio loop": every
+  monthly run failed before reaching axe unless `A11Y_BROWSER_POOL=0` was
+  set, and the workflow set nothing. Both bench scripts now borrow a page
+  from the engine's pool (`bench/browser.py`), so they run with the pool on
+  and off alike. The gate is a command now,
+  `python3 bench/compara.py --check results.json --expect N`: a row only
+  counts with results from toolkit static, toolkit rendered and axe (an
+  `engines` map in each row; `axe.rules_inapplicable` proves axe executed
+  its rules). The old inline gate only checked that the toolkit found
+  something, so a run could go green with axe not running. What it does NOT
+  do: it does not change how pages are fetched or compared; live pages drift
+  and that is still expected. Pinned in `tests/test_bench_flow.py` (new
+  suite, auto-skipped without Playwright; the axe half also needs a local
+  axe-core copy).
+- **`bench/pr-flow.py`: regressions are compared instance by instance, and a
+  failed pass is never a clean zero.** Three ways it used to under-report.
+  A page going from 6 to 7 images without alt reported zero new findings,
+  because the engine aggregates per signal and carries only the first 5
+  element routes. With `--axe`, a failure moving from image A to image B
+  reported zero new and zero fixed, because it compared rule plus count. And
+  a static pass that returned an error ended as zero findings with exit 0.
+  Now toolkit findings are compared per element (route in the static pass,
+  example text in the rendered one) and axe per failing node (rule plus
+  target). A finding at or past the carried cap is always listed under
+  `insufficient_evidence` with the count delta read from the message (6 to 7
+  images: 1 new, unlocatable), and `summary.inconclusive` names the tools
+  and signals affected. A pass that fails still prints JSON with its
+  `error` and exits 1; an opt-in that cannot run is `skipped` with the
+  reason. `--rendered --axe` no longer dies with a traceback (same pool
+  cause as the benchmark). What it does NOT do: routes are positional, so
+  inserting an element shifts the routes of its later siblings and they read
+  as moved instances; a move between two elements the report does not carry
+  cannot be seen, only declared. Documented in `bench/README.md`.
+- **Three static signals recalibrated: valid pages no longer get a blocking
+  finding.** The gate refuses a save on any new high or medium finding, so
+  each of these could block a change that fails nothing. Score-moving on
+  purpose; pinned in `tests/test_audit.py`.
+  - `select_auto_focus` (3.2.1): a `select` with `autofocus` and nothing else
+    is no longer a finding. Measured in Chromium 147 headless: the control
+    receives focus on load, the initial option stays, nothing changes. The
+    signal fires only when the select also carries an inline script that
+    changes the context (navigation, new window, submit, focus move) on
+    focus, on selection change or on a key event, and the message names that
+    script instead of asserting a screen reader behavior.
+  - `role_orphan` (1.3.1): resolves `aria-owns`, as ARIA 1.2 asks (the
+    element must be contained in, or owned by, its required context). An
+    `option` owned by its `listbox`, directly or through a `group` the
+    listbox owns, is no longer an orphan. In the other direction a
+    `treeitem` inside a `group` that lives outside every `tree` is now
+    flagged: a `group` only counts as a step and needs its own context (`tree`
+    or another `treeitem`). The context table follows ARIA 1.2 (`menuitem`
+    and `option` accept `group`; `menu` is no longer accepted as a parent of
+    `listitem`). The example is language-neutral, `role="option":
+    group/listbox`, where English reports used to carry Spanish text.
+  - `skip_broken` (2.4.1): the fragment is percent-decoded before looking
+    for the id (`#secci%C3%B3n` reaches `id="sección"`) and the classic
+    `<a name="...">` target counts (both measured in Chromium 147). The
+    example limit now cuts between skip links instead of in front of them: a
+    broken skip link that comes after 12 ordinary internal links is
+    examined.
+  The three findings now carry element paths. What it does NOT do: handlers
+  attached from external scripts are invisible to the static pass (the
+  rendered pass measures those with `focus_navigates` and `input_navigates`),
+  and implicit roles (`<li>` outside a list) stay out of `role_orphan` on
+  purpose.
+- **`a11y_wcag3_preview`: a failed source audit stays failed.** A rendered
+  report of an HTTP 404 keeps its findings and declares the error. The
+  preview used to drop that state: one mapped finding came out as a clean
+  preview and the CLI exited 0. The preview now carries the source `error`,
+  `http_status` and a `source_error_note` in both languages; the mapping is
+  kept so the findings can still be read; MCP marks the result `isError`
+  and the CLI exits 1 for `--from-audit`, as it already did for `--url`.
+  What it does NOT do: no score and no claim, as always.
+- **Document screening: two gaps closed.** DOCX: every member the screening
+  reads goes through one capped reader. `word/document.xml` and
+  `word/styles.xml` passed a check up front, but `word/_rels/document.xml.rels`
+  was read without it, so a relationships member above the intake cap got in.
+  PDF: the PDF/UA declaration is read in both of its XMP serializations, the
+  attribute (`pdfuaid:part="2"`, the only one read before) and the element
+  (`<pdfuaid:part>2</pdfuaid:part>`). With the element form `pdfua_claimed`
+  was null and a declaration contradicting its own document went unflagged.
+  Pinned per variant, plus a structural pin that keeps a single ZIP read in
+  the DOCX module.
+- **README (both languages): one coverage sentence aligned.** The "Honesty,
+  built in" section said "automation covers 87% of the 55 A/AA criteria". It
+  now says what the introduction and the coverage table say: 48 of the 55
+  A/AA criteria (87%) carry at least one automated signal, and the rest
+  needs a human. A gender agreement typo in the Spanish introduction is
+  fixed. No number changed.
 - **`a11y_wcag3_preview`: the criterion-to-outcome map, placed row by row
   against the published draft.** Seven rows sent findings to a guideline the
   draft does not put them in: 1.4.13 hover/focus content sat under Expected
@@ -95,15 +188,21 @@
   list). Explicit roles only — implicit `<li>` outside lists is a different,
   noisier family left out on purpose. This is the gap the external
   comparison caught (a role=listitem outside a list that axe flagged and
-  both toolkit modes missed).
+  both toolkit modes missed). Narrowed before release
+  (aria-owns resolved, group context validated, table per ARIA 1.2): see the
+  calibration entry above.
 - **`skip_broken` (2.4.1, medium)** — skip links whose fragment target does
   not exist (failure F89): the bypass mechanism aims at nothing and the user
   stays trapped in the repeated navigation. Skip-vocabulary links only
   (the 3e12e1 pattern); a broken footnote anchor is a different, lesser
-  issue and stays out.
+  issue and stays out. Narrowed before release (fragment
+  decoded, `<a name>` targets, limit applied to skip links only): see the
+  calibration entry above.
 - **`select_auto_focus` (3.2.1, medium)** — a select carrying autofocus: in
   the screen reader forms mode, arrow keys change the committed option
-  without the user intending it.
+  without the user intending it. Narrowed before release (the
+  attribute alone is not a finding; it needs a context-changing script): see
+  the calibration entry above.
 - **`autocomplete` (1.3.5) now covers password fields** — current-password/
   new-password tokens were missing from the applicability set; the auth
   bundle is complete.

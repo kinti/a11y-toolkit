@@ -253,8 +253,8 @@
   "role_orphan_rem": "Envuélvelos en el contenedor de su rol (list, menu, listbox, tablist, tree) o en la etiqueta implícita equivalente (ul/ol para list).",
   "skip_broken": "{n} enlaces de salto con destino inexistente: {example}. El mecanismo de bypass apunta a un id que no existe y quien navega queda atrapado en la navegación repetida (2.4.1, F89).",
   "skip_broken_rem": "Apunta el enlace al id real del contenido principal (o crea el id): un bypass roto es peor que no tener bypass.",
-  "select_auto_focus": "{n} select con autofocus: en modo formulario del lector, las flechas CAMBIAN la opción seleccionada sin intención del usuario (3.2.1).",
-  "select_auto_focus_rem": "Quita el autofocus del select (o muévelo al campo de texto inicial del formulario si el foco automático es imprescindible)."
+  "select_auto_focus": "{n} select con autofocus llevan un script que cambia el contexto ({example}). La página carga con el foco ya en el control, así que la navegación, la ventana nueva, el envío o el cambio de foco que dispara está a una tecla de quien nunca decidió entrar en él (3.2.1).",
+  "select_auto_focus_rem": "Quita el autofocus del select, o consérvalo y ejecuta el script al activar (un botón Ir) en vez de al recibir el foco o al cambiar la opción."
  },
  "badge": {
   "name": "a11y-toolkit",
@@ -715,7 +715,9 @@
   "model_tags": "Etiquetas de los requisitos core del borrador: physical harm, risk, barrier y friction (según la introducción del W3C; califican requisitos, no hallazgos).",
   "model_tiers": "Tiers de reporte 1-6, donde el tier 3 corresponde a la conformidad. Recuentos y umbrales están aún por determinar por el W3C.",
   "no_score": "No se produce puntuación, tier ni nivel de conformidad a propósito: los umbrales de los tiers del borrador están aún por determinar por el W3C.",
-  "no_equivalent_note": "no_equivalent lista los criterios WCAG 2.2 cuyos hallazgos no tienen provisión equivalente en el borrador del 10 de septiembre de 2026, según la lectura de a11y-toolkit (tamaño de objetivo, múltiples vías, cambio de contexto al recibir entrada). Se listan aparte en vez de agruparse bajo un outcome ajeno, y se revisan en cada re-baseline del borrador."
+  "no_equivalent_note": "no_equivalent lista los criterios WCAG 2.2 cuyos hallazgos no tienen provisión equivalente en el borrador del 10 de septiembre de 2026, según la lectura de a11y-toolkit (tamaño de objetivo, múltiples vías, cambio de contexto al recibir entrada). Se listan aparte en vez de agruparse bajo un outcome ajeno, y se revisan en cada re-baseline del borrador.",
+  "source_error_note": "La auditoría de origen falló: su error viaja con esta vista previa. El mapeo se conserva para poder leer los hallazgos, pero nada de aquí puede pasar un gate, un presupuesto ni una declaración de conformidad.",
+  "source_http_error": "HTTP {status}: la auditoría de origen recibió una respuesta de error, no la página pedida."
  },
  "scope": {
   "notice": "Las propuestas de la máquina no son exclusiones: las filas 'proposed-excluded' necesitan respuesta humana antes de que algo aguas abajo (pack de evidencia, VPAT, OpenACR) pueda tratar el criterio como no aplicable.",

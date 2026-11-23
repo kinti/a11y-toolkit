@@ -52,6 +52,27 @@ def _t(lang, key):
     return T.get(lang, T['en'])[key]
 
 
+class _OverCap(Exception):
+    """Un miembro del ZIP declara más bytes de los que la ingesta admite."""
+
+
+def _capped_read(z, member):
+    """Texto de un miembro del ZIP (None si no existe). El techo de
+    descompresión por miembro vive AQUÍ, en la única puerta de lectura del
+    cribado: file_size es el declarado del directorio central, el estándar
+    contra bombas ZIP de los descompresores serios. Toda lectura pasa por
+    esta función (document.xml y styles.xml lo hacían por una comprobación
+    previa; la de document.xml.rels la eludía)."""
+    try:
+        info = z.getinfo(member)
+    except KeyError:
+        return None
+    if info.file_size > _MAX_MEMBER_BYTES:
+        raise _OverCap(f'{member} declares {info.file_size} bytes '
+                       f'(>{_MAX_MEMBER_BYTES}): over the intake cap')
+    return z.read(member).decode('utf-8', errors='replace')
+
+
 def docx_screen(path, lang='en'):
     """Cribado de accesibilidad de un .docx (solo stdlib: zipfile + regex XML)."""
     try:
@@ -60,20 +81,15 @@ def docx_screen(path, lang='en'):
         return {'error': f'no es un .docx legible: {e}'}
     if 'word/document.xml' not in z.namelist():
         return {'error': 'ZIP without word/document.xml (is this really a .docx?)'}
+    try:
+        return _screen_zip(z, lang, path)
+    except _OverCap as e:
+        # contenido NO confiable: la ingesta no descomprime sin límite
+        return {'error': str(e)}
 
-    # techo de descompresión por miembro (revisión externa 2026-11-22): la
-    # ingesta de contenido NO confiable no puede descomprimir sin límite —
-    # file_size es el declarado del directorio central, el estándar contra
-    # bombas ZIP de los descompresores serios
-    for member in ('word/document.xml', 'word/styles.xml'):
-        try:
-            if z.getinfo(member).file_size > _MAX_MEMBER_BYTES:
-                return {'error': f'{member} declares {z.getinfo(member).file_size} bytes '
-                                 f'(>{_MAX_MEMBER_BYTES}): over the intake cap'}
-        except KeyError:
-            pass
 
-    body = z.read('word/document.xml').decode('utf-8', errors='replace')
+def _screen_zip(z, lang, path):
+    body = _capped_read(z, 'word/document.xml')
 
     findings = []
 
@@ -96,12 +112,10 @@ def docx_screen(path, lang='en'):
 
     # idioma: w:lang en styles.xml (default del documento)
     language = None
-    try:
-        styles = z.read('word/styles.xml').decode('utf-8', errors='replace')
+    styles = _capped_read(z, 'word/styles.xml')
+    if styles is not None:
         m = re.search(r'<w:lang[^>]*w:val="([^"]+)"', styles)
         language = m.group(1) if m else None
-    except KeyError:
-        pass
     if not language:
         add('docx_no_lang')
 
@@ -183,18 +197,14 @@ def docx_screen(path, lang='en'):
     # (los Word localizados escriben styleIds numéricos cuyo NOMBRE es
     # «heading N» / «Encabezado N» / «Título N»)
     _style_heads = {}
-    if language is not None or True:
-        try:
-            sx = z.read('word/styles.xml').decode('utf-8', errors='replace')
-            for m in re.finditer(
-                    r'<w:style [^>]*w:styleId="([^"]+)"[^>]*>.*?'
-                    r'<w:name w:val="([^"]*)"', sx, re.S):
-                mn = re.match(r'(?i)^(?:heading|encabezado|t[ií]tulo|'
-                              r'berschrift|titre)\s*([1-9])$', m.group(2).strip())
-                if mn:
-                    _style_heads[m.group(1)] = int(mn.group(1))
-        except KeyError:
-            pass
+    sx = _capped_read(z, 'word/styles.xml') or ''
+    for m in re.finditer(
+            r'<w:style [^>]*w:styleId="([^"]+)"[^>]*>.*?'
+            r'<w:name w:val="([^"]*)"', sx, re.S):
+        mn = re.match(r'(?i)^(?:heading|encabezado|t[ií]tulo|'
+                      r'berschrift|titre)\s*([1-9])$', m.group(2).strip())
+        if mn:
+            _style_heads[m.group(1)] = int(mn.group(1))
     levels = []
     for p in _doc_paragraphs:
         ms = re.search(r'<w:pStyle w:val="([^"]+)"', p)
@@ -220,12 +230,9 @@ def docx_screen(path, lang='en'):
     # texto, o el mismo genérico apuntando a destinos distintos. Relaciones
     # desde word/_rels/document.xml.rels
     rels = {}
-    try:
-        rx = z.read('word/_rels/document.xml.rels').decode('utf-8', errors='replace')
-        for m in re.finditer(r'<Relationship [^>]*Id="([^"]+)"[^>]*Target="([^"]+)"', rx):
-            rels[m.group(1)] = m.group(2)
-    except KeyError:
-        pass
+    rx = _capped_read(z, 'word/_rels/document.xml.rels') or ''
+    for m in re.finditer(r'<Relationship [^>]*Id="([^"]+)"[^>]*Target="([^"]+)"', rx):
+        rels[m.group(1)] = m.group(2)
     gen_counts, gen_multi, raw_url, img_links_noalt = {}, 0, 0, 0
     for hl in re.findall(r'<w:hyperlink\b.*?</w:hyperlink>', body, re.S):
         txt = ''.join(re.findall(r'<w:t[^>]*>([^<]*)</w:t>', hl)).strip()

@@ -359,16 +359,23 @@ for _frag, _debe in (
 
 
 # ── bloque DAFO: password 1.3.5, select autofocus, roles huérfanos, skip roto ──
+# el select[autofocus] SOLO es hallazgo con un script de cambio de contexto: el
+# atributo solo no cambia nada (Chromium 147: foco en el control, opción
+# inicial intacta) y antes bloqueaba CI sin incumplir 3.2.1
 _r = audit_html('<!doctype html><html lang="es"><head><title>t</title></head><body>'
                 '<nav><a href="/">h</a></nav><main><h1>x</h1>'
                 '<form><input type="password" name="pw">'
-                '<select autofocus><option>a</option></select></form>'
+                '<select autofocus onchange="location=this.value"><option>a</option></select></form>'
                 '<div role="listitem">cosa</div>'
                 '<a href="#no-existe">Saltar al contenido</a>'
                 '</main></body></html>')
 _s = {f['signal'] for f in _r['findings']}
 for _esp in ('autocomplete', 'select_auto_focus', 'role_orphan', 'skip_broken'):
     assert _esp in _s, f'{_esp} falta: {sorted(_s)}'
+_af = next(f for f in _r['findings'] if f['signal'] == 'select_auto_focus')
+assert _af['severity'] == 'medium' and _af['criterion'].startswith('3.2.1')
+assert 'onchange="location=this.value"' in _af['examples'][0], _af
+assert 'script' in _af['issue'] and _af['paths'], _af
 _r_ok = audit_html('<!doctype html><html lang="es"><head><title>t</title></head><body>'
                    '<nav><a href="/">h</a></nav><main><h1>x</h1>'
                    '<form><input type="password" name="pw" autocomplete="current-password">'
@@ -382,6 +389,75 @@ _ok = {f['signal'] for f in _r_ok['findings']}
 for _pro in ('select_auto_focus', 'role_orphan', 'skip_broken'):
     assert _pro not in _ok, f'{_pro} en página limpia: {sorted(_ok)}'
 assert 'autocomplete' not in _ok, 'password con token correcto no debe acusar'
+
+
+# ── casos VÁLIDOS que antes bloqueaban CI: el select
+# con autofocus sin script de contexto, la opción asociada a su listbox por
+# aria-owns, el treeitem cuyo group vive dentro de un árbol, el fragmento
+# codificado y el destino clásico <a name>. Medido en Chromium 147 sin
+# interfaz: #secci%C3%B3n y #<a name> SÍ navegan a su objetivo.
+def _mk_ctx(frag, lang='es'):
+    return audit_html('<!doctype html><html lang="es"><head><title>t</title></head>'
+                      f'<body><main id="principal"><h1>x</h1>{frag}</main></body></html>',
+                      lang=lang)
+
+
+def _tres(frag, lang='es'):
+    return {f['signal'] for f in _mk_ctx(frag, lang)['findings']} & {
+        'select_auto_focus', 'role_orphan', 'skip_broken'}
+
+
+_SEL = '<form><label for="s">Elige</label><select id="s" %s><option>a</option></select></form>'
+for _frag in (
+        _SEL % 'autofocus',                                   # el atributo solo: no cambia nada
+        _SEL % 'autofocus onchange="guardar(this.value)"',   # script sin cambio de contexto
+        _SEL % 'autofocus onfocus="if (location.hash) logger(1)"',   # lee, no navega
+        _SEL % 'onchange="location=this.value"',             # sin autofocus no es 3.2.1
+        '<div role="listbox" aria-label="Opciones" aria-owns="op1"></div>'
+        '<div role="option" id="op1">Uno</div>',             # dueño declarado por aria-owns
+        '<div role="listbox" aria-owns="g1"></div>'
+        '<div role="group" id="g1" aria-owns="op1"></div>'
+        '<div role="option" id="op1">Uno</div>',             # propiedad en cadena
+        '<div role="tree"><div role="group"><div role="treeitem">a</div></div></div>',
+        '<div role="tree"><div role="treeitem"><div role="group">'
+        '<div role="treeitem">a</div></div></div></div>',
+        '<div role="listbox"><div role="group"><div role="option">a</div></div></div>',
+        '<ul><li role="listitem">a</li></ul>',
+        '<div role="list"><div role="presentation"><div role="listitem">a</div></div></div>',
+        '<a href="#secci%C3%B3n">Saltar al contenido</a><p id="sección">x</p>',
+        '<a href="#inicio-contenido">Saltar al contenido</a><a name="inicio-contenido"></a>'):
+    assert not _tres(_frag), f'caso válido acusado: {_frag[:70]} → {_tres(_frag)}'
+for _frag, _sig in (
+        (_SEL % 'autofocus onchange="location=this.value"', 'select_auto_focus'),
+        (_SEL % 'autofocus onfocus="window.open(\'/ayuda\')"', 'select_auto_focus'),
+        (_SEL % 'autofocus onchange="this.form.submit()"', 'select_auto_focus'),
+        ('<div role="group"><div role="treeitem">a</div></div>', 'role_orphan'),   # group fuera de árbol
+        ('<div role="menu"><div role="listitem">cosa</div></div>', 'role_orphan'),  # menu no es list
+        ('<div role="region" aria-owns="op1"></div><div role="option" id="op1">Uno</div>',
+         'role_orphan'),                                       # el dueño no es el rol de contexto
+        ('<a href="#secci%C3%B3nn">Saltar al contenido</a><p id="sección">x</p>', 'skip_broken'),
+        # el salto roto va DETRÁS de doce enlaces internos ordinarios: antes
+        # el límite de 12 cortaba antes de examinarlo
+        ('<nav>' + ''.join(f'<a href="#nota{i}">nota {i}</a>' for i in range(12)) + '</nav>'
+         '<a href="#no-existe">Saltar al contenido principal</a>', 'skip_broken')):
+    assert _sig in _tres(_frag), f'fallo real sin acusar: {_frag[:70]} → {_tres(_frag)}'
+# el ejemplo del rol huérfano es técnico y neutral: el mismo texto en los dos
+# idiomas (antes decía «sin su» también en el informe en inglés)
+for _lang in ('es', 'en'):
+    _ro = next(f for f in _mk_ctx('<div role="listbox" aria-label="x"></div>'
+                                  '<div role="option" id="op1">Uno</div>', _lang)['findings']
+               if f['signal'] == 'role_orphan')
+    assert _ro['examples'] == ['role="option": group/listbox'] and _ro['paths'], (_lang, _ro)
+assert 'sin su' not in str(_ro), _ro      # _ro es ya el informe en inglés
+# el mensaje en inglés nombra la evidencia (el script), no un comportamiento
+# del lector que no está demostrado
+_en = next(f for f in _mk_ctx(_SEL % 'autofocus onchange="location=this.value"',
+                              'en')['findings'] if f['signal'] == 'select_auto_focus')
+assert 'carry a script that changes the context' in _en['issue'], _en
+# un ciclo de aria-owns (A posee B posee A) corta sin colgar y no salva nada
+assert 'role_orphan' in _tres('<div role="group" id="a" aria-owns="b"></div>'
+                              '<div role="group" id="b" aria-owns="a op1"></div>'
+                              '<div role="option" id="op1">Uno</div>')
 
 
 # ── anidado + invokers + aria-level: la tanda de las listas recientes ────────

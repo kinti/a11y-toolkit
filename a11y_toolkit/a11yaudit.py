@@ -22,6 +22,7 @@ import os
 import re
 import sys
 import urllib.request
+from urllib.parse import unquote
 from html.parser import HTMLParser
 from . import a11yi18n
 
@@ -426,6 +427,38 @@ _OVERLAY_WIDGETS = (
 _SKIP_TEXT = re.compile(
     r'skip|jump to|saltar|ir al contenido|ir para o conte[uú]do|passer au contenu', re.I)
 
+# 3.2.1: un select[autofocus] solo cambia el contexto si lleva un script que
+# lo haga. Eventos que dispara quien aterrizó en el control sin elegirlo (el
+# foco llega solo al cargar; después, la primera tecla o el cambio de opción) y
+# llamadas que cambian el contexto: navegación, ventana nueva, envío, foco.
+_FOCUS_EVENTS = ('onfocus', 'onchange', 'oninput', 'onkeydown', 'onkeyup', 'onkeypress')
+_CTX_CHANGE = re.compile(
+    r'\blocation\s*=(?!=)|\blocation\.href\b|\blocation\.(?:replace|assign|reload)\s*\('
+    r'|\bwindow\.open\s*\(|\.submit\s*\(|\.focus\s*\(', re.I)
+
+# contexto requerido por rol (ARIA 1.2; la misma tabla que la regla
+# aria-required-parent del motor de referencia). El ancestro vale por rol
+# explícito o por la etiqueta implícita de ese rol. `group` nunca es destino:
+# vale como paso intermedio y entonces hace falta el contexto DEL grupo (un
+# treeitem en un group solo está bien si el group vive en un tree o en otro
+# treeitem del mismo tipo).
+_ROLE_PARENTS = {
+    'listitem': ('list',),
+    'menuitem': ('group', 'menu', 'menubar'),
+    'menuitemcheckbox': ('group', 'menu', 'menubar'),
+    'menuitemradio': ('group', 'menu', 'menubar'),
+    'option': ('group', 'listbox'),
+    'tab': ('tablist',),
+    'treeitem': ('group', 'tree'),
+}
+_IMPLICIT_PARENT = {'list': ('ul', 'ol'), 'menu': ('menu',)}
+# roles para los que, dentro de un group, un ancestro del MISMO rol cierra el
+# contexto (un treeitem carpeta agrupa sus hijos en un group)
+_OWN_GROUP_ROLE = {'treeitem'}
+# saltos de aria-owns que se siguen en cadena antes de cortar (un dueño que a
+# su vez es owned por otro): corta también los ciclos A owns B owns A
+_OWN_DEPTH = 8
+
 # encabezados cortos legítimos (acrónimos y términos técnicos): «FAQ», «API»…
 _SHORT_HEADINGS = {'FAQ', 'API', 'CSS', 'SVG', 'APP', 'MAP', 'EN', 'DE', 'ES', 'PT', 'FR',
                    'IT', 'UI', 'UX', 'ID', 'TV', 'HR', 'PR', 'AI', 'PC', 'OK', '3D',
@@ -596,10 +629,17 @@ class _Auditor(HTMLParser):
         self.headers_bad = []            # 1.3.1: headers= apuntando fuera de tabla o a no-th (ACT d0f69e/a25f45)
         self.lang_xml_mismatch = []      # 3.1.2: lang y xml:lang discrepando (ACT 5b7ae0)
         self.nested_interactive = []    # 4.1.2: interactivo DENTRO de interactivo
-        self.select_auto_focus = []      # 3.2.1: select[autofocus] (flechas = cambio)
+        self.select_auto_focus = []      # 3.2.1: select[autofocus] + script de cambio de contexto
+        self.select_auto_focus_elems = []
         self.skip_broken = []           # 2.4.1: skip/fragmento a id inexistente (F89)
-        self.role_orphans = []          # 1.3.1: rol sin su padre requerido (ACT bc4a75 familia)
-        self._skip_hrefs = []           # (href, texto) de enlaces internos skip
+        self.skip_broken_elems = []
+        self.role_orphans = []          # 1.3.1: rol sin su padre requerido (ACT ff89c9)
+        self.role_orphan_elems = []
+        self._skip_hrefs = []           # (fragmento, attrs) de enlaces de salto (vocabulario ya filtrado)
+        self._name_anchors = set()      # <a name="…">: destino de fragmento legítimo
+        self._role_ctx_pending = []     # (attrs, rol, ancestros DOM) a resolver post-parse
+        self._owned_by = {}             # id → attrs del elemento que lo declara en aria-owns
+        self._owner_ancestors = {}      # id(attrs) → ancestros DOM del dueño (aria-owns)
         self.invoker_bad = []           # 4.1.2: commandfor sin destino o tipo erróneo
         self.aria_level_gt6 = []        # 1.3.1: aria-level>6 (los lectores lo degradan)
         self._invokers = []             # (idref, command) pendientes de validar
@@ -694,6 +734,15 @@ class _Auditor(HTMLParser):
         _lb_ids = (a.get('aria-labelledby') or '').split()
         if _vis and (_al or _lb_ids) and len(self.label_in_name_raw) < 30:
             self.label_in_name_raw.append((_vis[:80], _al[:120], _lb_ids[:6], a))
+        # enlaces de salto: el vocabulario se decide AQUÍ, con el texto ya
+        # completo: el límite solo corta entre saltos, nunca delante de ellos
+        # (antes se recogían los 12 primeros enlaces internos y un salto que
+        # venía detrás de 12 notas al pie quedaba fuera sin ser examinado)
+        if tag == 'a' and text:
+            _skip_href = (a.get('href') or '').strip()
+            if _skip_href.startswith('#') and len(_skip_href) > 1 \
+                    and _SKIP_TEXT.search(text) and len(self._skip_hrefs) < 12:
+                self._skip_hrefs.append((_skip_href[1:], a))
         if tag == 'a' and not c.get('hidden'):
             if (a.get('target') or '').lower() == '_blank':
                 self.blank_total += 1
@@ -1400,50 +1449,38 @@ class _Auditor(HTMLParser):
             self._heading_attrs = a
             self._heading_hidden = _hidden
             self._heading_tag = tag
-        # select[autofocus] (3.2.1): en forms-mode las flechas del lector
-        # CAMBIAN la opción committed sin intención del usuario
-        if tag == 'select' and 'autofocus' in a \
-                and not self._in_template and len(self.select_auto_focus) < 5:
-            self.select_auto_focus.append('select[autofocus]')
-        # roles con padre requerido (familia ACT bc4a75, hueco cazado por la
-        # comparativa externa): listitem sin lista, menuitem sin menu, option
-        # sin listbox, tab sin tablist, treeitem sin árbol. SOLO roles
-        # EXPLÍCITOS (el li implícito fuera de lista es otra familia, muy FP):
-        # el padre vale por rol explícito O etiqueta implícita (ul/ol = list).
-        _ROLE_PARENTS = {
-            'listitem': ('list', 'menu'),
-            'menuitem': ('menu', 'menubar'),
-            'menuitemcheckbox': ('menu', 'menubar', 'group'),
-            'menuitemradio': ('menu', 'menubar', 'group'),
-            'option': ('listbox',),
-            'tab': ('tablist',),
-            'treeitem': ('tree', 'group'),
-        }
-        _IMPLICIT_PARENT = {'list': ('ul', 'ol'), 'menu': ('menu',), 'menubar': (),
-                            'listbox': (), 'tablist': (), 'tree': (), 'group': ()}
+        # select[autofocus] (3.2.1): el control recibe el foco al cargar, pero
+        # el atributo SOLO no cambia nada (medido en Chromium 147 sin interfaz:
+        # foco en el control, opción inicial intacta). Es hallazgo cuando
+        # además lleva un script de cambio de contexto en un evento que dispara
+        # quien aterrizó allí sin elegirlo (el foco, un cambio de opción, una tecla)
+        if tag == 'select' and 'autofocus' in a and not self._in_template \
+                and not _hidden:
+            for _ev in _FOCUS_EVENTS:
+                _code = a.get(_ev) or ''
+                if _code and _CTX_CHANGE.search(_code) \
+                        and len(self.select_auto_focus) < 5:
+                    self.select_auto_focus.append(f'select[autofocus][{_ev}="{_code[:40]}"]')
+                    self.select_auto_focus_elems.append(a)
+                    break
+        # roles con contexto requerido (ARIA 1.2 §5.2.7: el elemento debe
+        # estar contenido en, o ser owned por, un elemento del rol de contexto;
+        # ACT ff89c9). SOLO roles EXPLÍCITOS (el li implícito fuera de lista es
+        # otra familia, muy FP). Aquí solo se REGISTRA: el veredicto es
+        # post-parse porque el dueño por aria-owns puede venir después.
         _rv = (a.get('role') or '').strip().lower()
         if _rv in _ROLE_PARENTS and not self._in_template and not _hidden \
-                and len(self.role_orphans) < 8:
-            _required_set = _ROLE_PARENTS[_rv]
-            _has_parent = False
-            for _anc_tag, _anc_a, _ in reversed(self._el_stack):
-                if _anc_a is a:
-                    continue
-                _anc_role = (_anc_a.get('role') or '').strip().lower()
-                for _nec in _required_set:
-                    if _anc_role == _nec or _anc_tag in _IMPLICIT_PARENT.get(_nec, ()):
-                        _has_parent = True
-                        break
-                if _has_parent:
-                    break
-            if not _has_parent:
-                self.role_orphans.append(f'role="{_rv}" sin su {"/".join(_required_set)}')
-        # enlaces internos: candidatos a skip; el VOCABULARIO y el destino se
-        # deciden post-parse (el texto llega al cerrar el control)
-        if tag == 'a' and not self._in_template:
-            _href = (a.get('href') or '').strip()
-            if _href.startswith('#') and _href != '#' and len(self._skip_hrefs) < 12:
-                self._skip_hrefs.append((_href[1:], a))
+                and len(self._role_ctx_pending) < 400:
+            self._role_ctx_pending.append(
+                (a, _rv, [(_t, _fa) for _t, _fa, _ in self._el_stack if _fa is not a]))
+        if a.get('aria-owns') and len(self._owner_ancestors) < 400:
+            self._owner_ancestors[id(a)] = \
+                [(tag, a)] + [(_t, _fa) for _t, _fa, _ in self._el_stack if _fa is not a]
+            for _owned_id in str(a['aria-owns']).split():
+                self._owned_by.setdefault(_owned_id, a)
+        # destino clásico de fragmento: <a name="…"> también resuelve #…
+        if tag == 'a' and a.get('name'):
+            self._name_anchors.add(a['name'])
         # interactivo dentro de interactivo (4.1.2): el modelo de contenido lo
         # prohíbe; el AT anuncia mal el interno y el externo pierde su límite.
         # Ancestros por el ÁRBOL REAL (_el_stack), no por _ctrl (malformados).
@@ -1696,6 +1733,47 @@ class _Auditor(HTMLParser):
     def element_path(self, attrs):
         index = self._elem_paths.get(id(attrs))
         return self._paths.format(index) if index is not None else None
+
+    def _context_satisfied(self, role, chain, need=None, _depth=0):
+        """¿La cadena de ancestros (del más cercano al más lejano) da a `role`
+        su contexto requerido? El ancestro vale por rol explícito o por etiqueta
+        implícita (ul/ol = list). Un `group` aceptado como paso obliga a
+        seguir: el grupo necesita su propio contexto. Y cualquier elemento de
+        la cadena puede estar owned por aria-owns: su dueño hace entonces de
+        ancestro (ARIA 1.2: «contained inside (or owned by)»), también en
+        cadena (un listbox que posee un group que posee la option)."""
+        if need is None:
+            need = _ROLE_PARENTS[role]
+        for anc_tag, anc_a in chain:
+            anc_role = (anc_a.get('role') or '').strip().lower()
+            if anc_role in ('presentation', 'none'):
+                continue      # transparente en el árbol de accesibilidad
+
+            def _is(required):
+                return anc_role == required or (
+                    not anc_role and anc_tag in _IMPLICIT_PARENT.get(required, ()))
+            if 'group' in need and _is('group'):
+                need = tuple(r for r in need if r != 'group') + (
+                    (role,) if role in _OWN_GROUP_ROLE else ())
+            elif any(_is(r) for r in need):
+                return True
+            # este elemento está owned: se reintenta con su dueño de ancestro
+            # (la cadena del dueño empieza por él) y lo que falte hasta aquí
+            if _depth < _OWN_DEPTH:
+                owner = self._owned_by.get(anc_a.get('id') or '')
+                if owner is not None and self._context_satisfied(
+                        role, self._owner_ancestors[id(owner)], need, _depth + 1):
+                    return True
+        return False
+
+    def _role_context_satisfied(self, attrs, role, chain):
+        """Contexto por DOM o, si el DOM no basta, por aria-owns: el elemento
+        está declarado en el aria-owns de otro, y su dueño hace de ancestro."""
+        owner = self._owned_by.get(attrs.get('id') or '')
+        if owner is not None and \
+                self._context_satisfied(role, self._owner_ancestors[id(owner)]):
+            return True
+        return self._context_satisfied(role, chain)
 
     _RE_CHAR_KEY = re.compile(r'key(?:Code)?\s*===?\s*["\']([a-zA-Z0-9])["\']', re.S)
 
@@ -2384,23 +2462,38 @@ def audit_html(html_text, url='(html)', lang='en', standard=None, target=None):
     if p.invoker_bad:
         add_ej('medium', '4.1.2', 'invoker_command_bad', p.invoker_bad,
                n=len(p.invoker_bad), example=', '.join(p.invoker_bad[:4]))
+    # select[autofocus] (3.2.1): solo los que llevan script de cambio de
+    # contexto; el atributo solo no cambia nada y no es hallazgo
     if p.select_auto_focus:
-        add('medium', '3.2.1', 'select_auto_focus', n=len(p.select_auto_focus))
+        add_ej('medium', '3.2.1', 'select_auto_focus', p.select_auto_focus,
+               n=len(p.select_auto_focus), example=', '.join(p.select_auto_focus[:4]),
+               paths=p._finding_paths(p.select_auto_focus_elems))
+    # contexto requerido por rol: se resuelve aquí porque el dueño por
+    # aria-owns puede declararse después que el elemento que salva
+    for _a, _rv, _chain in p._role_ctx_pending:
+        if not p._role_context_satisfied(_a, _rv, _chain) and len(p.role_orphans) < 8:
+            p.role_orphans.append(f'role="{_rv}": {"/".join(_ROLE_PARENTS[_rv])}')
+            p.role_orphan_elems.append(_a)
     if p.role_orphans:
         add_ej('medium', '1.3.1', 'role_orphan', p.role_orphans,
-               n=len(p.role_orphans), example=', '.join(p.role_orphans[:4]))
+               n=len(p.role_orphans), example=', '.join(p.role_orphans[:4]),
+               paths=p._finding_paths(p.role_orphan_elems))
     # skips (F89): SOLO enlaces con vocabulario de salto (patrón 3e12e1) cuyo
     # destino no existe. Una nota al pie rota es otro aviso (y menor): el
     # mecanismo de bypass ROTO es lo que deja a quien navega atrapado en la
-    # repetitive nav (2.4.1 medium).
-    _ctrl_txt = {id(_a): _txt for _t, _a, _txt, _i, _h in p.controls_raw}
+    # repetitive nav (2.4.1 medium). El navegador decodifica el fragmento
+    # antes de buscar el id (#secci%C3%B3n llega a id="sección") y también
+    # resuelve el destino clásico <a name="…"> (medido en Chromium 147).
     for _ref, _a in p._skip_hrefs:
-        if _ref and _ref not in p.ids and len(p.skip_broken) < 8:
-            if _SKIP_TEXT.search(_ctrl_txt.get(id(_a), '') or ''):
-                p.skip_broken.append(f'#{_ref[:24]}')
+        _target = unquote(_ref)
+        if _target and _target not in p.ids and _target not in p._name_anchors \
+                and len(p.skip_broken) < 8:
+            p.skip_broken.append(f'#{_ref[:24]}')
+            p.skip_broken_elems.append(_a)
     if p.skip_broken:
         add_ej('medium', '2.4.1', 'skip_broken', p.skip_broken,
-               n=len(p.skip_broken), example=', '.join(p.skip_broken[:4]))
+               n=len(p.skip_broken), example=', '.join(p.skip_broken[:4]),
+               paths=p._finding_paths(p.skip_broken_elems))
     if p.headers_bad:
         examples = [f'headers="{token[:20]}"' for token, _ in p.headers_bad[:5]]
         add_ej('medium', '1.3.1', 'headers_attr_bad', examples,

@@ -246,7 +246,7 @@ def preview(report, lang='en'):
             'signals': sorted(e['signals']),
         })
 
-    return {
+    res = {
         'mode': 'wcag3-preview',
         'lang': lang,
         'draft': dict(DRAFT),
@@ -271,8 +271,23 @@ def preview(report, lang='en'):
             'outcomes_in_draft': len(_OUTCOMES),
         },
         'unmapped': unmapped,
-        'source_report': {'url': report.get('url'), 'mode': report.get('mode')},
+        'source_report': {'url': report.get('url'), 'mode': report.get('mode'),
+                          'http_status': report.get('http_status')},
     }
+    # el informe de ORIGEN falló (una respuesta HTTP 4xx/5xx conserva los
+    # hallazgos y declara el error; también un error del motor): su estado
+    # viaja con la vista previa. El mapa se conserva para leerlo, pero ninguna
+    # capa puede darlo por bueno: MCP lo marca isError y el CLI sale 1
+    _st = report.get('http_status')
+    if not isinstance(_st, int) or isinstance(_st, bool):
+        _st = None
+    if report.get('error') or (_st is not None and _st >= 400):
+        res['error'] = str(report.get('error') or
+                           t['source_http_error'].format(status=_st))
+        res['source_error_note'] = t['source_error_note']
+        if _st is not None:
+            res['http_status'] = _st
+    return res
 
 
 def main(argv):
