@@ -448,12 +448,12 @@
     same principle as the template spellchecker's `_sin_citas`. Real
     instructions still fire (pinned both ways).
 
-## 5.29.0 — 2026-11-18 (batida día 1)
-- **First day of the hunting drive (batida, 2026-11-18) — two new static
-  signals, three verified overlay vendors, one rendered data block:**
+## 5.29.0 — 2026-11-18
+- **Two new static signals, three verified overlay vendors, one rendered
+  data block:**
 - **`heading_role_removed` (1.3.1, medium)** — any explicit role OTHER than
-  `heading` on an h1-h6 REPLACES its heading semantics (first rule of ARIA,
-  the siren-song article's own example): the heading silently vanishes from
+  `heading` on an h1-h6 REPLACES its heading semantics (first rule of ARIA):
+  the heading silently vanishes from
   screen-reader heading navigation, which is how 71.6% of SR users find
   information first (WebAIM SR Survey 10). The engine previously still
   COUNTED such headings; now it stops counting them and flags each one
@@ -488,8 +488,7 @@
 - What this does NOT do: no rendered checks for the new signals (both are
   pure-source deterministic), no severity promotion for label_focus, and the
   remaining ACT gaps (scrollable keyboard access, table headers-attr,
-  orientation, subtag consistency, ARIA owned-context) stay in the drive's
-  backlog (drafts/batida-toolkit-candidatos-2026-11-18.md).
+  orientation, subtag consistency, ARIA owned-context) stay in the backlog.
 - **publish.yml: the registry job waits for PyPI and npm** (the 5.28.0 release
   race, hit twice live: the MCP registry validates BOTH packages declared in
   server.json against their public indexes while this workflow's own PyPI and
@@ -504,10 +503,9 @@
   retry the publish step itself.
 
 ## 5.28.0 — 2026-11-17 — "the write-time gate, the known-good bench"
-- **`placeholder_contrast` — rendered 1.4.3 for `::placeholder`** (from Léonie
-  Watson's state-of-accessibility account: placeholder-as-label fails cognitive
-  users AND low-vision users get gray-on-white guidance text they must read; the
-  criterion does not distinguish pseudo-elements): `a11y_audit_dom` now reads
+- **`placeholder_contrast` — rendered 1.4.3 for `::placeholder`** (placeholder
+  text is guidance real users must read and the criterion does not distinguish
+  pseudo-elements): `a11y_audit_dom` now reads
   the computed `::placeholder` color of every visible, enabled input/textarea
   with an empty value and audits it against the field's effective background
   with the same thresholds as text (4.5:1, 3:1 large). No author color means the
@@ -519,8 +517,9 @@
   text-input placeholder is styled compliant). What it does NOT do: it does not
   flag placeholder PRESENCE (placeholder_only, 3.3.2, already exists) nor empty
   hidden fields.
-- **`autocomplete_mismatch` — static 1.3.5 purpose contradiction** (the Formstack
-  doctrine: for machines, don't make me guess): `a11y_audit_html` now flags
+- **`autocomplete_mismatch` — static 1.3.5 purpose contradiction**: when the
+  declared field type and the autofill token disagree, the browser cannot
+  decide the input purpose. `a11y_audit_html` now flags
   inputs whose `type` and `autocomplete` token belong to incompatible data
   families — `type=email` with `postal-code`, `type=tel` with `email`,
   `type=url` with `organization`, and the whole family tables (tel/address/name/
@@ -531,20 +530,19 @@
   signal). Severity medium. Test pins the 3-of-4 case (the exempt one included).
   What it does NOT do: it does not judge rare-but-legal text combos (type=text
   accepts any token by definition) and does not touch missing_autocomplete.
-- **`overlay_widgets`: the public-sector ancestors join the list** (from the
-  Bruce Lawson deep-read: Birmingham's 2010 post-mortem recommended Browsealoud,
-  the read-aloud plugin that is the direct ancestor of today's accessibility
-  bars): `_OVERLAY_WIDGETS` gains Texthelp (Browsealoud/ReachDeck, domains
+- **`overlay_widgets`: four more long-standing vendors join the list**
+  (each domain verified against the vendor's own site):
+  `_OVERLAY_WIDGETS` gains Texthelp (Browsealoud/ReachDeck, domains
   texthelp.com/browsealoud.com/reachdeck.com), Recite Me (recite.me), User1st
-  (user1st.com) and UsableNet (usablenet.com) — same domain-of-script detection,
+  (user1st.com) and UsableNet (usablenet.com), same domain-of-script detection,
   same report-only treatment: still data for buying diligence, still zero
   findings, zero score, dedup per vendor. Test pins each new vendor. What it
   does NOT do: it does not judge (no criterion says "don't use overlays"; the
   public position stays the community overlayfactsheet.com) and it does not
   change any existing report beyond recognizing four more script domains.
-- **`docs/severity-data.md` — the user-pain axis gets its source** (from the
-  Bruce Lawson deep-read: his landmark posts cite the 2015-era survey 6
-  figures that no longer hold): a short doc pinning WHERE the "how much does
+- **`docs/severity-data.md` — the user-pain axis gets its source** (the
+  2015-era survey-6 landmarks figure still circulates and no longer holds): a
+  short doc pinning WHERE the "how much does
   it hurt" ordering comes from — WebAIM Screen Reader Survey #10 (Dec
   2023 to Jan 2024, 1,539 responses) with its exact most-problematic list,
   the quotable numbers (71.6% navigate by headings first; landmarks 3.7%
@@ -553,10 +551,8 @@
   representativeness). What it does NOT do: it moves no score — severity
   stays calibrated against the expert benches; this informs docs, roadmap
   and panel ordering only. Linked from docs/sr-crosscheck.md.
-- **`skip_target_hidden` — rendered bypass landing check (2.4.1)** (from the Bruce
-  Lawson deep-read: his 2024 "drive-by accessibility tweaks" post shows the
-  tabindex-on-skip-target bug alive 18 years after IE, and TetraLogical's own
-  Gherkin vocabulary activates fragments the same way): after the real Tab walk,
+- **`skip_target_hidden` — rendered bypass landing check (2.4.1)**: after the
+  real Tab walk,
   `a11y_keyboard` activates the FIRST real skip link (skip-vocabulary text +
   existing `#id` target, same vocabulary as the static 3e12e1 pattern) and
   reports a `medium` finding when the target is still not exposed after
