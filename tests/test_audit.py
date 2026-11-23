@@ -347,6 +347,17 @@ assert result['table_no_th']['paths'][0].endswith('>table:nth-of-type(1)')
 print('table headers: full token list, exact paths and nested isolation ✓')
 
 
+# ── title deja de salvar el aviso de ventana nueva (hover-only) ──────────────
+for _frag, _debe in (
+        ('<a href="/a" target="_blank" title="se abre en ventana nueva">doc</a>', True),
+        ('<a href="/a" target="_blank">doc (ventana nueva)</a>', False),
+        ('<a href="/a" target="_blank" aria-label="doc, se abre en nueva ventana">doc</a>', False)):
+    _r = audit_html('<!doctype html><html lang="es"><head><title>t</title></head>'
+                    f'<body><main><h1>x</h1></main><footer>{_frag}</footer></body></html>')
+    _tiene = any(f['signal'] == 'blank_no_warning' for f in _r['findings'])
+    assert _tiene == _debe, _frag
+
+
 # ── bloque DAFO: password 1.3.5, select autofocus, roles huérfanos, skip roto ──
 _r = audit_html('<!doctype html><html lang="es"><head><title>t</title></head><body>'
                 '<nav><a href="/">h</a></nav><main><h1>x</h1>'

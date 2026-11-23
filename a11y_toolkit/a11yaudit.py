@@ -699,8 +699,10 @@ class _Auditor(HTMLParser):
                 self.blank_total += 1
                 _img_alts = ' '.join((ia.get('alt') or '')
                                      for ia in c.get('img_attrs', []))
+                # title NO cuenta como aviso: quien navega solo con teclado
+                # jamás lo ve (hover-only). Salvan: texto visible, aria-label
+                # (el lector lo anuncia) y el alt de una imagen interna
                 if not _BLANK_HINT.search(text) and not _BLANK_HINT.search(a.get('aria-label') or '') \
-                        and not _BLANK_HINT.search(a.get('title') or '') \
                         and not _BLANK_HINT.search(_img_alts):
                     self.blank_no_warning += 1
                     self.blank_no_warning_elems.append(a)

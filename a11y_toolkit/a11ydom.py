@@ -717,7 +717,8 @@ _JS = r'''(maxEj) => {
     }
   }
   for (const el of deepQ('a[target="_blank"]')) {
-    const t = (el.innerText || '') + ' ' + (el.getAttribute('aria-label') || '') + ' ' + (el.getAttribute('title') || '');
+    // title NO cuenta: hover-only, invisible para quien navega con teclado
+    const t = (el.innerText || '') + ' ' + (el.getAttribute('aria-label') || '');
     if (!/(nueva|nuevo|ventana|pesta|tab\b|window|external|externo|exterior)/i.test(t)) out.blank++;
   }
   for (const el of deepQ('video')) {

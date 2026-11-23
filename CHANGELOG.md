@@ -1,6 +1,19 @@
 # Changelog
 
 ## main — pendiente
+- **`blank_no_warning`: title no longer counts as the new-window warning**
+  (in both the static and rendered passes). A tooltip only appears on
+  hover: keyboard-only users never see it, and the requirement exists for
+  exactly them. What still saves a `target=_blank` link: visible text,
+  aria-label (the screen reader announces it) and the alt of an inner
+  image. Score-moving on purpose; pinned all three ways.
+- **`bench/pr-flow.py` — the regression-flow measuring harness** (the
+  piece the external review asked for): give it before/after snapshots of
+  a page and it reports, per tool, which findings are NEW (the regression
+  gate signal) and which disappeared, with toolkit static always on,
+  rendered and axe as opt-ins that degrade with a notice. Verified live:
+  an introduced missing-alt regression shows up as new with the score
+  delta (98 → 86) and exit 0 (this measures; the budget gate decides).
 - **Document screening, the six-signal batch (DOCX 3 + PDF 3):**
 - **`docx_fake_list` (1.3.1, medium)** — bullets or numbers typed as text
   instead of a real Word list (no `w:numPr`): screen readers announce
