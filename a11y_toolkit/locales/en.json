@@ -714,7 +714,8 @@
   "mapping_note": "The criterion-to-outcome mapping is curated by a11y-toolkit: the W3C has not published an official WCAG 2 to WCAG 3 mapping (transition materials are planned). Treat every grouping as an approximation.",
   "model_tags": "Core requirement tags in the draft: physical harm, risk, barrier and friction (per the W3C introduction; they qualify requirements, not findings).",
   "model_tiers": "Reporting tiers 1-6, where tier 3 corresponds to conformance. Counts and thresholds are still to be determined by the W3C.",
-  "no_score": "No score, tier or conformance level is produced on purpose: the draft's tier thresholds are still to be determined by the W3C."
+  "no_score": "No score, tier or conformance level is produced on purpose: the draft's tier thresholds are still to be determined by the W3C.",
+  "no_equivalent_note": "no_equivalent lists WCAG 2.2 criteria whose findings the September 2026 draft has no equivalent provision for, as read by a11y-toolkit (target size, multiple ways, change of context on input). They are listed apart instead of being grouped under an unrelated outcome, and re-checked on every re-baseline of the draft."
  },
  "scope": {
   "notice": "Machine proposals are not exclusions: 'proposed-excluded' rows need a human answer before anything downstream (evidence pack, VPAT, OpenACR) may treat the criterion as not applicable.",

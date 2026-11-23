@@ -2,9 +2,12 @@
 """WCAG 3 preview — invariantes de honestidad y cobertura.
 
 Lo que este test clava (nació con la tool en 5.14.0):
-  1. COBERTURA: todo criterio alcanzable por señales del toolkit tiene su
-     mapeo a outcomes del borrador (un hallazgo mapeable nunca cae a
-     unmapped por descuido del mapa).
+  1. COBERTURA: todo criterio alcanzable por señales del toolkit tiene
+     destino (un outcome del mapa O la lista aparte de "sin provisión
+     equivalente"); nada cae a unmapped por descuido del mapa.
+  1b. COLOCACIÓN: las filas del mapa corregidas contra el Working Draft
+     publicado no pueden derivar (tabla pineada) y los criterios sin
+     provisión equivalente se listan aparte, nunca bajo un outcome ajeno.
   2. INTEGRIDAD DEL REGISTRO: cada outcome referido existe en _OUTCOMES con
      el nombre exacto del borrador; el draft metadata cita el TR real.
   3. HONESTIDAD ESTRUCTURAL: la salida NUNCA lleva score/tier/claim — ni
@@ -21,17 +24,20 @@ AQUI = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(AQUI)
 sys.path.insert(0, ROOT)
 
-from a11y_toolkit.a11ywcag3 import preview, _OUTCOMES, _CRIT_OUTCOME, DRAFT  # noqa: E402
+from a11y_toolkit.a11ywcag3 import (  # noqa: E402
+    preview, _OUTCOMES, _CRIT_OUTCOME, _NO_EQUIVALENT, DRAFT)
 from a11y_toolkit.a11ycrit import _SIGNAL_CRIT  # noqa: E402
 from a11y_toolkit.a11yaudit import audit_html  # noqa: E402
 
-# 1. cobertura: 100% de los criterios alcanzables por señales
+# 1. cobertura: 100% de los criterios alcanzables por señales tiene destino
 _alcanzables = set(_SIGNAL_CRIT.values())
-_sin_cubrir = sorted(_alcanzables - set(_CRIT_OUTCOME))
-assert not _sin_cubrir, f'criterios alcanzables sin outcome WCAG 3: {_sin_cubrir}'
-# y todo criterio mapeado es un criterio real del catálogo (no typos)
+_sin_destino = sorted(_alcanzables - set(_CRIT_OUTCOME) - set(_NO_EQUIVALENT))
+assert not _sin_destino, f'criterios alcanzables sin destino WCAG 3: {_sin_destino}'
+# un criterio no puede estar mapeado Y "sin provisión" a la vez
+assert not (set(_CRIT_OUTCOME) & set(_NO_EQUIVALENT)), 'criterio mapeado y sin provisión a la vez'
+# y todo criterio de ambos es un criterio real del catálogo (no typos)
 from a11y_toolkit.a11ycrit import _C  # noqa: E402
-_mal_codigo = sorted(set(_CRIT_OUTCOME) - set(_C))
+_mal_codigo = sorted((set(_CRIT_OUTCOME) | set(_NO_EQUIVALENT)) - set(_C))
 assert not _mal_codigo, f'mapeo con criterios inexistentes: {_mal_codigo}'
 
 # 2. integridad del registro de outcomes
@@ -40,6 +46,28 @@ assert not _rotas, f'outcomes referidos que no existen: {_rotas}'
 assert all(_OUTCOMES[o].strip() for o in _OUTCOMES), 'outcome sin nombre'
 assert len(_OUTCOMES) == 46, f'registro divergente del draft: {len(_OUTCOMES)} outcomes (re-baseline pendiente)'
 assert DRAFT['url'] == 'https://www.w3.org/TR/wcag-3.0/' and DRAFT['draft_date'] == '10 September 2026'
+
+# 2c. colocación del mapa: cada fila corregida contra el WD publicado (la
+# guía donde vive la provisión equivalente, no la que se le parece). Cambiar
+# una fila de aquí es un cambio de comportamiento público: exige re-leer el
+# borrador, no "arreglarlo" a ojo.
+_COLOCACION = {
+    '1.3.3': ['2.11.1'],                 # Sensory characteristics not relied on → Help available
+    '1.3.5': ['2.3.5', '2.9.1'],         # + Automated entry allowed
+    '1.4.1': ['2.1.8'],                  # Hue not relied on → Single sense
+    '1.4.5': ['2.2.1', '2.2.2'],         # + Text detectable
+    '1.4.13': ['2.4.5'],                 # hover/focus content → Input operation
+    '2.1.4': ['2.4.1'],                  # No keyboard conflicts → Keyboard interface input
+    '2.2.2': ['2.6.1'],                  # No visual motion → Avoid physical harm
+    '2.4.1': ['2.7.3', '2.3.3'],         # bloques identificables (Structure) + foco sin repetidos
+    '2.5.1': ['2.4.5', '2.4.3'],         # Path-based gesture not relied on + entrada simple
+    '2.5.3': ['2.3.5'],                  # Label included in programmatic name
+    '3.3.7': ['2.9.4'],                  # No redundant entry → Retain information
+}
+for _c, _outs in _COLOCACION.items():
+    assert _CRIT_OUTCOME.get(_c) == _outs, f'{_c} mal colocado: {_CRIT_OUTCOME.get(_c)} != {_outs}'
+# sin provisión equivalente en el borrador de sept-2026: exactamente estos
+assert set(_NO_EQUIVALENT) == {'2.4.5', '2.5.8', '3.2.2'}
 
 # 2b. ingesta: el registro debe coincidir con la FUENTE canónica grabada
 # (snapshot generado por scripts/wcag3_ingest.py desde el clon w3c/wcag3 —
@@ -80,9 +108,11 @@ for lang in ('en', 'es'):
     p = preview(rep, lang=lang)
     assert p['mode'] == 'wcag3-preview' and p['lang'] == lang
     assert p['counts']['findings_total'] == len(rep['findings'])
-    assert p['counts']['findings_mapped'] + p['counts']['findings_unmapped'] == p['counts']['findings_total']
+    assert (p['counts']['findings_mapped'] + p['counts']['findings_unmapped']
+            + p['counts']['findings_no_equivalent'] == p['counts']['findings_total'])
     assert p['counts']['outcomes_touched'] == len(p['outcomes'])
-    assert p['disclaimer'] and p['mapping_note'] and p['no_score']
+    assert p['disclaimer'] and p['mapping_note'] and p['no_score'] and p['no_equivalent_note']
+    assert p['no_equivalent'] == [] and p['counts']['findings_no_equivalent'] == 0
     assert p['draft']['url'].startswith('https://www.w3.org/TR/')
     _sin_score(p)
     # cada outcome: nombre del registro exacto, señales y criterios 2.2
@@ -128,10 +158,37 @@ p3 = preview({'findings': [{'signal': 'img_no_alt', 'severity': 'high'}]}, lang=
 assert p3['counts']['findings_mapped'] == 1
 assert p3['outcomes'][0]['criteria_22'] == ['1.1.1']
 
+# 4b. sin provisión equivalente en el borrador: se listan aparte, nunca bajo
+# un outcome ajeno y nunca en unmapped; nada se pierde (la suma da el total)
+_pn = preview({'findings': [
+    {'signal': 'target_small', 'severity': 'medium', 'criterion': '2.5.8 Target Size (Minimum)'},
+    {'signal': 'no_multiple_ways', 'severity': 'low'},   # fallback señal→criterio
+    {'signal': 'input_navigates', 'severity': 'weird'},  # severidad inválida: no rompe
+    {'signal': 'hover_not_dismissible', 'severity': 'medium', 'criterion': '1.4.13 x'},
+    {'signal': 'img_no_alt', 'severity': 'high', 'criterion': '1.1.1 Non-text Content'},
+]}, lang='en')
+assert [n['criterion_22'] for n in _pn['no_equivalent']] == ['2.4.5', '2.5.8', '3.2.2']
+assert _pn['no_equivalent'][1]['criterion_name'].startswith('Target Size')
+assert _pn['no_equivalent'][1]['signals'] == ['target_small'] and _pn['no_equivalent'][1]['findings'] == 1
+assert _pn['no_equivalent'][0]['signals'] == ['no_multiple_ways']
+assert _pn['no_equivalent'][0]['severity'] == {'high': 0, 'medium': 0, 'low': 1}
+assert _pn['no_equivalent'][2]['severity'] == {'high': 0, 'medium': 0, 'low': 0}  # 'weird' no cuenta
+_c = _pn['counts']
+assert _c['findings_no_equivalent'] == 3 and _c['findings_mapped'] == 2 and _c['findings_unmapped'] == 0
+assert _c['findings_mapped'] + _c['findings_unmapped'] + _c['findings_no_equivalent'] == _c['findings_total']
+# los otros dos hallazgos SÍ aterrizan: 1.4.13 en Input operation, 1.1.1 en sus dos outcomes
+assert {o['outcome'].split(' ', 1)[0] for o in _pn['outcomes']} == {'2.4.5', '2.1.1', '2.1.3'}
+assert not any('2.5.8' in o['criteria_22'] or '2.4.5' in o['criteria_22'] or '3.2.2' in o['criteria_22']
+               for o in _pn['outcomes'])
+_sin_score(_pn)
+assert preview({'findings': [{'signal': 'target_small'}]}, lang='es')['no_equivalent'][0]['criterion_name'].startswith('Tamaño del objetivo')
+
 # locales: disclaimer presente y distinto por idioma (paridad la pinnea test_locales)
 pe, ps = preview({'findings': []}, 'en'), preview({'findings': []}, 'es')
 assert pe['disclaimer'] != ps['disclaimer']
 assert '10 September 2026' in pe['disclaimer'] and '10 de septiembre de 2026' in ps['disclaimer']
+assert pe['no_equivalent_note'] != ps['no_equivalent_note']
+assert 'target size' in pe['no_equivalent_note'] and 'tamaño de objetivo' in ps['no_equivalent_note']
 
 # invoke MCP: el contrato del server entrega el mismo modo
 from a11y_toolkit import server  # noqa: E402
@@ -140,6 +197,8 @@ _rep = {'mode': 'static', 'url': 'https://t', 'findings': [
      'issue': 'x', 'remediation': 'y'}]}
 _out = json.loads(server.invoke('a11y_wcag3_preview', {'report': _rep, 'lang': 'en'})['content'][0]['text'])
 assert _out['mode'] == 'wcag3-preview' and _out['counts']['findings_mapped'] == 1
+assert _out['no_equivalent'] == [] and _out['counts']['findings_no_equivalent'] == 0
 
-print('WCAG3 PREVIEW OK ✓ (mapa 100% de señales, 46 outcomes exactos, sin score '
-      'por construcción, hostil cubierto)')
+print('WCAG3 PREVIEW OK ✓ (mapa con destino para el 100% de señales, 11 filas '
+      'pineadas contra el WD publicado, 3 criterios sin provisión listados '
+      'aparte, 46 outcomes exactos, sin score por construcción, hostil cubierto)')

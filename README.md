@@ -79,7 +79,7 @@ this repository (the method and the raw results live in `bench/`).
 | Legal statements for the EAA / RD 1112/2018, in Spanish and English | No | Yes |
 | An evidence pack a human can sign — hashes, matrix, empty signature block | No | Yes |
 | ACT Rules interop: EARL export + per-rule consistency report against official W3C test cases | No | Yes |
-| WCAG 3 draft preview — regroup 2.2 findings under the draft's outcomes, no fake score | No | Yes |
+| WCAG 3 draft preview — regroup 2.2 findings under the draft's outcomes, no fake score; criteria the draft has no provision for are listed apart | No | Yes |
 | The engine examines itself: seeded WCAG mutant bank — regenerable exam, kill rate + false positives via placebos | No | Yes |
 | Sequential diagnosis: pass a URL and the page's own evidence orders the exams (severity only breaks ties) | No | Yes |
 | Runs with zero dependencies at core, speaks es/en, any browser you have | Heavy runtimes | Zero dependencies |
@@ -276,7 +276,7 @@ a11ytoolkit contrast-dom https://mysite --selector ".hero h1"  # auto-region pix
 a11ytoolkit vpat pack.json --product "Acme" -o vpat.html      # VPAT 2.5 (WCAG) draft
 a11ytoolkit openacr pack.json --product "Acme" -o openacr.yaml # OpenACR YAML (GSA) draft
 a11ytoolkit earl --from-audit audit.json -o earl.json          # ACT Rules / EARL export
-a11ytoolkit wcag3 --from-audit audit.json                      # WCAG 3 draft preview (no score)
+a11ytoolkit wcag3 --from-audit audit.json                      # WCAG 3 draft preview (no score; criteria the draft lacks go to no_equivalent)
 a11ytoolkit route --goal "gate my PR"                          # which tools for the task
 a11ytoolkit route --file page.html                             # diagnosis: the page orders the exams
 a11ytoolkit mutants --seed 7 --n 12                            # the engine's sealed self-exam

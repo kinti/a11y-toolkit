@@ -14,6 +14,9 @@ Honest boundaries, by design:
   - The criterion→outcome mapping is OURS. The W3C has published no
     official WCAG 2 → WCAG 3 mapping (transition materials are planned);
     every grouping is a documented approximation.
+  - NO forced landing: WCAG 2.2 criteria the draft has no provision for
+    (`_NO_EQUIVALENT`) are listed apart in `no_equivalent`, never grouped
+    under an unrelated outcome.
 
 CLI:
   a11ywcag3.py --from-audit informe.json [--lang es] [-o salida.json]
@@ -26,7 +29,7 @@ import re
 import sys
 
 from .a11yi18n import pair
-from .a11ycrit import _SIGNAL_CRIT
+from .a11ycrit import _C, _SIGNAL_CRIT
 
 TXT = pair('wcag3')  # locales/<lang>.json — community-editable
 
@@ -80,7 +83,10 @@ _OUTCOMES = {
 # criterio WCAG 2.2 → outcomes del borrador. CURADO por a11y-toolkit:
 # el W3C no ha publicado mapeo oficial (los materiales de transición están
 # planificados). Cubre el 100% de los criterios alcanzables por señales del
-# toolkit (pinned por tests/test_wcag3.py) más los evidentes sin señal.
+# toolkit (pinned por tests/test_wcag3.py) más los evidentes sin señal; los
+# que el borrador no cubre van a _NO_EQUIVALENT. Cada fila se colocó contra
+# el Working Draft publicado: la guía donde vive la provisión equivalente,
+# no la que se le parece.
 _CRIT_OUTCOME = {
     '1.1.1': ['2.1.1', '2.1.3'],        # alt texto / alternativas no textuales
     '1.2.2': ['2.1.5'],
@@ -89,41 +95,38 @@ _CRIT_OUTCOME = {
     '1.2.5': ['2.1.6'],
     '1.3.1': ['2.7.3'],
     '1.3.2': ['2.7.3'],
-    '1.3.3': ['2.2.3'],                 # instrucciones sin rasgos sensoriales
+    '1.3.3': ['2.11.1'],                 # instrucciones sin rasgos sensoriales
     '1.3.4': ['2.12.3'],
-    '1.3.5': ['2.3.5'],
-    '1.4.1': ['2.2.1'],                 # "Hue not relied on" es core req del draft
+    '1.3.5': ['2.3.5', '2.9.1'],        # + "Automated entry allowed": el relleno automático depende del propósito
+    '1.4.1': ['2.1.8'],                 # "Hue not relied on" es core req del draft
     '1.4.2': ['2.12.4'],
     '1.4.3': ['2.2.1'],
     '1.4.4': ['2.2.1', '2.12.3'],
-    '1.4.5': ['2.2.1'],
+    '1.4.5': ['2.2.1', '2.2.2'],        # + "Text detectable": el texto en imagen no tiene equivalente
     '1.4.10': ['2.12.3'],
     '1.4.12': ['2.2.1'],
-    '1.4.13': ['2.3.4'],
+    '1.4.13': ['2.4.5'],                # el contenido en hover/foco vive en Input operation
     '2.1.1': ['2.4.1'],
     '2.1.2': ['2.4.1'],
-    '2.1.4': ['2.4.5'],
+    '2.1.4': ['2.4.1'],                 # "No keyboard conflicts" + "Custom keys documented"
     '2.2.1': ['2.9.2'],
-    '2.2.2': ['2.12.5'],
+    '2.2.2': ['2.6.1'],                 # pausar/parar/ocultar = "No visual motion" (daño físico)
     '2.3.1': ['2.6.1'],                 # sin señal hoy; la vía del daño físico
-    '2.4.1': ['2.3.3'],
+    '2.4.1': ['2.7.3', '2.3.3'],        # bloques identificables (Structure) + foco sin bloques repetidos
     '2.4.2': ['2.7.2'],
     '2.4.3': ['2.3.3'],
     '2.4.4': ['2.3.5'],
-    '2.4.5': ['2.3.3'],
     '2.4.6': ['2.7.3', '2.2.3'],
     '2.4.7': ['2.3.1'],
     '2.4.11': ['2.7.4'],
-    '2.5.1': ['2.4.3'],
+    '2.5.1': ['2.4.5', '2.4.3'],        # "Path-based gesture not relied on" + entrada simple de puntero
     '2.5.2': ['2.4.3'],
-    '2.5.3': ['2.4.4', '2.3.5'],
+    '2.5.3': ['2.3.5'],                 # "Label included in programmatic name"
     '2.5.4': ['2.4.5'],
     '2.5.7': ['2.4.3'],
-    '2.5.8': ['2.4.3'],
     '3.1.1': ['2.2.2'],
     '3.1.2': ['2.2.2'],
     '3.2.1': ['2.3.4'],
-    '3.2.2': ['2.3.4'],
     '3.2.3': ['2.8.1'],
     '3.2.4': ['2.8.1'],
     '3.2.5': ['2.3.4'],
@@ -132,13 +135,29 @@ _CRIT_OUTCOME = {
     '3.3.2': ['2.3.5', '2.5.2'],
     '3.3.3': ['2.5.1'],
     '3.3.4': ['2.5.2'],
-    '3.3.7': ['2.9.6'],                 # el draft lo llama "Unnecessary steps"
+    '3.3.7': ['2.9.4'],                 # "No redundant entry" vive en Retain information
     '3.3.8': ['2.4.6'],
     '4.1.2': ['2.3.5'],
     '4.1.3': ['2.12.5'],
 }
 
+# criterios 2.2 para los que el borrador de sept-2026 NO tiene provisión
+# equivalente (leído provisión a provisión; el del tamaño de objetivo lo
+# confirma la issue #808 del propio grupo). No se fuerzan bajo un outcome
+# ajeno: sus hallazgos se listan aparte en `no_equivalent`. Re-visitar en cada
+# re-baseline: en cuanto el borrador los cubra, vuelven a _CRIT_OUTCOME.
+_NO_EQUIVALENT = ('2.4.5', '2.5.8', '3.2.2')
+
 _CODE = re.compile(r'^(\d+\.\d+\.\d+)')
+
+
+def _name_22(code, lang):
+    """Nombre del criterio en el catálogo 2.2 (misma extracción que `criterion()`)."""
+    try:
+        _, languages = _C[code]
+        return (languages.get(lang) or languages['en'])[0]
+    except (KeyError, TypeError, IndexError):
+        return code
 
 
 def preview(report, lang='en'):
@@ -154,8 +173,10 @@ def preview(report, lang='en'):
                 'hint': 'audit first, then preview the same report'}
 
     per_outcome = {}
+    no_equivalent = {}
     unmapped = []
     mapped_count = 0
+    no_equiv_count = 0
     for i, f in enumerate(report['findings']):
         if not isinstance(f, dict):
             # nada desaparece en silencio: un finding deforme también se reporta
@@ -169,6 +190,18 @@ def preview(report, lang='en'):
         else:
             sig = str(f.get('signal') or '')
             code = _SIGNAL_CRIT.get(sig)
+        if code in _NO_EQUIVALENT:
+            # el borrador no tiene provisión equivalente: se lista aparte,
+            # nunca bajo un outcome ajeno ni en el cajón de "sin mapear"
+            no_equiv_count += 1
+            e = no_equivalent.setdefault(code, {'findings': 0, 'high': 0, 'medium': 0,
+                                                'low': 0, 'signals': set()})
+            e['findings'] += 1
+            sev = str(f.get('severity') or '').lower()
+            if sev in ('high', 'medium', 'low'):
+                e[sev] += 1
+            e['signals'].add(str(f.get('signal') or code))
+            continue
         if not code or code not in _CRIT_OUTCOME:
             unmapped.append({'finding': i, 'signal': f.get('signal'),
                              'criterion': f.get('criterion')})
@@ -202,12 +235,24 @@ def preview(report, lang='en'):
             'criteria_22': sorted(e['criteria_22']),
         })
 
+    no_equiv = []
+    for code in sorted(no_equivalent, key=_vers):
+        e = no_equivalent[code]
+        no_equiv.append({
+            'criterion_22': code,
+            'criterion_name': _name_22(code, lang),
+            'findings': e['findings'],
+            'severity': {'high': e['high'], 'medium': e['medium'], 'low': e['low']},
+            'signals': sorted(e['signals']),
+        })
+
     return {
         'mode': 'wcag3-preview',
         'lang': lang,
         'draft': dict(DRAFT),
         'disclaimer': t['disclaimer'],
         'mapping_note': t['mapping_note'],
+        'no_equivalent_note': t['no_equivalent_note'],
         'no_score': t['no_score'],
         'conformance_model': {
             'levels': 'single conformance level (no A/AA/AAA in the draft)',
@@ -216,10 +261,12 @@ def preview(report, lang='en'):
             'source': DRAFT['intro'],
         },
         'outcomes': outcomes,
+        'no_equivalent': no_equiv,
         'counts': {
             'findings_total': len(report['findings']),
             'findings_mapped': mapped_count,
             'findings_unmapped': len(unmapped),
+            'findings_no_equivalent': no_equiv_count,
             'outcomes_touched': len(outcomes),
             'outcomes_in_draft': len(_OUTCOMES),
         },

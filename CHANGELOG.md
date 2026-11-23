@@ -1,6 +1,27 @@
 # Changelog
 
 ## main — pendiente
+- **`a11y_wcag3_preview`: the criterion-to-outcome map, placed row by row
+  against the published draft.** Seven rows sent findings to a guideline the
+  draft does not put them in: 1.4.13 hover/focus content sat under Expected
+  behavior (the draft places it under Input operation), 1.4.1 use of color
+  under Text appearance (its home is Single sense), and the same for 1.3.3,
+  2.1.4, 2.2.2, 2.5.3 and 3.3.7. All seven re-homed. Two rows gained their
+  direct home next to the existing one (2.4.1 bypass blocks also under
+  Structure, 2.5.1 pointer gestures also under Input operation) and two more
+  gained the provision that actually matches (1.3.5 also under Avoid
+  exclusionary cognitive tasks, 1.4.5 also under Text-to-speech). Three
+  criteria the September 2026 draft has no provision for (2.5.8 target size,
+  2.4.5 multiple ways, 3.2.2 change of context on input) used to be grouped
+  under unrelated outcomes: they now go to a new `no_equivalent` list
+  (`counts.findings_no_equivalent`, `no_equivalent_note`), so nothing is
+  dropped and nothing pretends the draft covers it. Same pattern as the
+  ingest checks: verified against the source and pinned by the test (a
+  placement table in `tests/test_wcag3.py`). What it does NOT do: no score,
+  tier or claim, as always; no provision-level type (core/supplemental) yet;
+  "no equivalent" is this toolkit's reading of the draft (the target size
+  case matches the Working Group's own issue #808) and is re-checked on every
+  re-baseline. Score-neutral: the preview never scores.
 - **README (both languages): the honest-axe framing.** A short paragraph now
   opens the capability table: axe-core is the reference engine for automated
   rule detection and this toolkit does not try to out-rule it; it competes on

@@ -714,7 +714,8 @@
   "mapping_note": "El mapeo de criterio a outcome está curado por a11y-toolkit: el W3C no ha publicado un mapeo oficial de WCAG 2 a WCAG 3 (los materiales de transición están planificados). Trata cada agrupación como una aproximación.",
   "model_tags": "Etiquetas de los requisitos core del borrador: physical harm, risk, barrier y friction (según la introducción del W3C; califican requisitos, no hallazgos).",
   "model_tiers": "Tiers de reporte 1-6, donde el tier 3 corresponde a la conformidad. Recuentos y umbrales están aún por determinar por el W3C.",
-  "no_score": "No se produce puntuación, tier ni nivel de conformidad a propósito: los umbrales de los tiers del borrador están aún por determinar por el W3C."
+  "no_score": "No se produce puntuación, tier ni nivel de conformidad a propósito: los umbrales de los tiers del borrador están aún por determinar por el W3C.",
+  "no_equivalent_note": "no_equivalent lista los criterios WCAG 2.2 cuyos hallazgos no tienen provisión equivalente en el borrador del 10 de septiembre de 2026, según la lectura de a11y-toolkit (tamaño de objetivo, múltiples vías, cambio de contexto al recibir entrada). Se listan aparte en vez de agruparse bajo un outcome ajeno, y se revisan en cada re-baseline del borrador."
  },
  "scope": {
   "notice": "Las propuestas de la máquina no son exclusiones: las filas 'proposed-excluded' necesitan respuesta humana antes de que algo aguas abajo (pack de evidencia, VPAT, OpenACR) pueda tratar el criterio como no aplicable.",

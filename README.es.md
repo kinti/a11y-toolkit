@@ -82,7 +82,7 @@ viven en `bench/`).
 | Declaraciones legales EAA / RD 1112/2018, en español y en inglés | No | Sí |
 | Un pack de evidencia que una persona puede firmar — hashes, matriz, bloque de firma vacío | No | Sí |
 | Interop ACT Rules: export EARL + informe de consistencia por regla contra los casos oficiales del W3C | No | Sí |
-| Vista previa del borrador WCAG 3 — reagrupa hallazgos 2.2 según sus outcomes, sin score inventado | No | Sí |
+| Vista previa del borrador WCAG 3 — reagrupa hallazgos 2.2 según sus outcomes, sin score inventado; los criterios sin provisión equivalente en el borrador se listan aparte | No | Sí |
 | El motor se examina a sí mismo: banco de mutantes WCAG con semilla — examen regenerable, kill rate + falsos positivos vía placebos | No | Sí |
 | Diagnóstico secuencial: pasa una URL y la evidencia de la página ordena los exámenes (la severidad solo desempata) | No | Sí |
 | Cero dependencias en el núcleo, habla es/en, cualquier navegador que tengas | Runtimes pesados | Cero dependencias |
@@ -288,7 +288,7 @@ a11ytoolkit contrast-dom https://mysite --selector ".hero h1"  # muestreo por p�
 a11ytoolkit vpat pack.json --product "Acme" -o vpat.html      # borrador VPAT 2.5 (WCAG)
 a11ytoolkit openacr pack.json --product "Acme" -o openacr.yaml # OpenACR YAML (GSA)
 a11ytoolkit earl --from-audit audit.json -o earl.json          # ACT Rules / EARL
-a11ytoolkit wcag3 --from-audit audit.json                      # vista previa WCAG 3 (sin score)
+a11ytoolkit wcag3 --from-audit audit.json                      # vista previa WCAG 3 (sin score; criterios sin provisión en el borrador van a no_equivalent)
 a11ytoolkit route --goal "gate my PR"                          # qué herramientas para la tarea
 a11ytoolkit route --file page.html                             # diagnóstico: la página ordena
 a11ytoolkit mutants --seed 7 --n 12                            # el autoexamen sellado del motor

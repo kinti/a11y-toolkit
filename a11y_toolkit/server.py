@@ -804,7 +804,10 @@ TOOLS = [
                         'mapping (this one is curated and labeled as such), and NO score, tier '
                         'or conformance claim is produced — the draft\'s tier thresholds are '
                         'still TBD. Use it to show teams where today\'s 2.2 findings will land '
-                        'tomorrow; keep auditing against WCAG 2.2.'),
+                        'tomorrow; keep auditing against WCAG 2.2. Criteria the draft has no '
+                        'provision for (target size, multiple ways, change of context on input) '
+                        'are listed apart in `no_equivalent`, never grouped under an unrelated '
+                        'outcome.'),
         'inputSchema': {'type': 'object', 'properties': {
             'report': {'type': 'object', 'description': 'audit report object with a findings list (from a11y_audit_url, a11y_audit_dom, a11y_disprove, …)'},
             'lang': {'type': 'string', 'enum': ['es', 'en'], 'description': 'Output language (en default)'},
@@ -1235,7 +1238,7 @@ _RETURNS = {
     'a11y_generate_vpat': 'Returns {html, summary {level: count}, levels {code: level}, pack_sha256, draft} — the VPAT draft; writes a file only when output_path is given.',
     'a11y_generate_openacr': 'Returns {yaml, summary {level: count}, levels {code: level}, pack_sha256, format, draft} — the OpenACR YAML draft; writes a file only when output_path is given.',
     'a11y_contrast_dom': 'Returns JSON: {url, selector, text_color, worst_ratio, median_ratio, p95_ratio, area_passes_aa_normal_text_4_5, worst_zone?, sampled_pixels, interpretation}.',
-    'a11y_wcag3_preview': 'Returns JSON: {mode, draft, disclaimer, mapping_note, no_score, conformance_model, outcomes [{outcome, draft_url, findings, severity, signals, criteria_22}], counts, unmapped} — never a score.',
+    'a11y_wcag3_preview': 'Returns JSON: {mode, draft, disclaimer, mapping_note, no_equivalent_note, no_score, conformance_model, outcomes [{outcome, draft_url, findings, severity, signals, criteria_22}], no_equivalent [{criterion_22, criterion_name, findings, severity, signals}], counts, unmapped} — never a score.',
     'a11y_route': 'Returns JSON: {route, steps [{step, tool, why}], alternates, prompts, cli, note} — the ordered tool sequence for the goal. Diagnosis mode (url/html passed): {mode: diagnose, vitals {score, summary, signals}, symptoms [{symptom, evidence}], steps [...], guarantee} — evidence orders the exams, severity breaks ties.',
     'a11y_scope': 'Returns JSON: {format: a11y-scope/1, standard, target, criteria [{criterion, level, status, clause?, evidence?, reason?}], counters, en301549_families?, sha256} — statuses in-scope|proposed-excluded|excluded; only human-confirmed exclusions count downstream.',
 }
