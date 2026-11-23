@@ -347,6 +347,42 @@ assert result['table_no_th']['paths'][0].endswith('>table:nth-of-type(1)')
 print('table headers: full token list, exact paths and nested isolation ✓')
 
 
+# ── anidado + invokers + aria-level: la tanda de las listas recientes ────────
+def _mk_d3(frag):
+    return audit_html('<!doctype html><html lang="es"><head><title>t</title></head>'
+                      f'<body><main><h1>x</h1>{frag}</main></body></html>')
+_r = _mk_d3('<a href="/c">Tarjeta <button>Favorito</button></a>')
+assert any(f['signal'] == 'nested_interactive' and f['severity'] == 'medium'
+           for f in _r['findings']), sorted({f['signal'] for f in _r['findings']})
+assert '<button> dentro de <a>' in str(next(f for f in _r['findings']
+                                            if f['signal'] == 'nested_interactive')['examples'])
+assert any(f['signal'] == 'nested_interactive' for f in
+           _mk_d3('<button><a href="/x">dentro</a></button>')['findings'])
+assert any(f['signal'] == 'nested_interactive' for f in
+           _mk_d3('<button><input type="text"></button>')['findings'])
+# exentos: hermanos, a>a puro (reparado a hermanos por los navegadores), ancla destino
+for _frag in ('<a href="/a">uno</a><a href="/b">dos</a>',
+              '<a href="/a">uno <a href="/b">dos</a></a>',
+              '<a id="dest">Destino</a><button>ok</button>'):
+    assert not any(f['signal'] == 'nested_interactive'
+                   for f in _mk_d3(_frag)['findings']), _frag
+# invokers: roto/tipo-mal disparan; correctos limpios
+assert any(f['signal'] == 'invoker_command_bad' for f in
+           _mk_d3('<button commandfor="no-existe" command="show-modal">A</button><dialog id="d"></dialog>')['findings'])
+assert any(f['signal'] == 'invoker_command_bad' for f in
+           _mk_d3('<button commandfor="p" command="show-modal">A</button><p id="p">x</p>')['findings'])
+assert any(f['signal'] == 'invoker_command_bad' for f in
+           _mk_d3('<button commandfor="pp" command="toggle-popover">A</button><div id="pp">x</div>')['findings'])
+for _frag in ('<button commandfor="d" command="show-modal">A</button><dialog id="d"></dialog>',
+              '<button commandfor="pp" command="toggle-popover">A</button><div id="pp" popover>x</div>'):
+    assert not any(f['signal'] == 'invoker_command_bad'
+                   for f in _mk_d3(_frag)['findings']), _frag
+# aria-level > 6: dispara y el 4 limpio (ambas ramas: h-tag y role=heading)
+assert any(f['signal'] == 'aria_level_gt6' for f in _mk_d3('<h2 aria-level="9">S</h2>')['findings'])
+assert any(f['signal'] == 'aria_level_gt6' for f in _mk_d3('<div role="heading" aria-level="8">S</div>')['findings'])
+assert not any(f['signal'] == 'aria_level_gt6' for f in _mk_d3('<h2 aria-level="4">S</h2>')['findings'])
+
+
 # ── enlace a la declaración de accesibilidad: DATO legal (WAD art.7/RD 1112) ──
 def _mk_stmt(txt, lang='es'):
     return audit_html(f'<!doctype html><html lang="{lang}"><head><title>t</title></head>'

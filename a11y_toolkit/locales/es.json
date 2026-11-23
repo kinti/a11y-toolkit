@@ -242,7 +242,13 @@
   "alt_quality": "{n} imágenes con texto alt de baja calidad (nombres de fichero, palabras genéricas o marcadores).",
   "alt_quality_rem": "Un alt como «imagen», «foto», «img_123.jpg» o una raya no dice nada a quien usa lector de pantalla. Sustitúyelo por lo que la imagen transmite en su contexto; si es decorativa, usa alt=\"\" para que la tecnología asistiva la salte.",
   "onfocus_blur": "{n} elemento(s) cuyo manejador onfocus quita el foco (onfocus=\"blur()\"): con teclado no se puede llegar a ellos.",
-  "onfocus_blur_rem": "Quita el manejador onfocus=\"blur()\": robar el foco deja el elemento inalcanzable por teclado (2.1.1). Si el elemento no debe ser enfocable, usa tabindex=\"-1\" en vez de robar el foco."
+  "onfocus_blur_rem": "Quita el manejador onfocus=\"blur()\": robar el foco deja el elemento inalcanzable por teclado (2.1.1). Si el elemento no debe ser enfocable, usa tabindex=\"-1\" en vez de robar el foco.",
+  "nested_interactive": "{n} elementos interactivos dentro de otros interactivos: {example}. El modelo de contenido de HTML lo prohíbe: el lector anuncia mal el interno y el externo pierde su límite (4.1.2).",
+  "nested_interactive_rem": "Sepáralos en hermanos y finge el anidamiento visual con un área de impacto expandida (::before estirado sobre el enlace principal) o envolviendo el texto en un encabezado; nombra la acción secundaria con contexto («Favorito: menú del día»).",
+  "invoker_command_bad": "{n} botones con comandos invoker rotos: {example}. El commandfor no resuelve o el comando no casa con el tipo de destino (show-modal/close exigen <dialog>; los comandos popover exigen el atributo popover) (4.1.2).",
+  "invoker_command_bad_rem": "Apunta commandfor a un id existente del tipo correcto: <dialog> para show-modal/close, [popover] para show/hide/toggle-popover. Sin destino no hay comportamiento ni estados gestionados.",
+  "aria_level_gt6": "{n} encabezados con aria-level mayor que 6: {example}. Los niveles de encabezado terminan en 6: los lectores de pantalla degradan el valor y la jerarquía anunciada deja de ser la escrita (1.3.1).",
+  "aria_level_gt6_rem": "Reorganiza la jerarquía para vivir en h1-h6 (revisa los niveles intermedios que empujaron a pasarse); aria-level por encima de 6 no existe en HTML."
  },
  "badge": {
   "name": "a11y-toolkit",

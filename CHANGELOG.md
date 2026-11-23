@@ -1,6 +1,22 @@
 # Changelog
 
 ## main — pendiente
+- **Three static signals (4.1.2 / 1.3.1):**
+- **`nested_interactive` (medium)** — an interactive element inside another
+  interactive (button in a[href], link in button, input in button…): the HTML
+  content model forbids it, the inner control is misannounced and the outer
+  loses its boundary. Ancestry is read from the real element stack; plain
+  a-in-a stays exempt (every browser repairs it to siblings), as are
+  href-less anchors. Pinned 3 positive pairs + 3 exempt patterns.
+- **`invoker_command_bad` (medium)** — `commandfor`/`command` invoker buttons
+  with broken contracts: unresolved target id, show-modal/close aimed at a
+  non-`<dialog>`, popover commands aimed at an element without the `popover`
+  attribute. Validated post-parse (the target may come after the button),
+  same IDREF rigor as the aria-ref checks. Pinned 3 broken + 2 clean.
+- **`aria_level_gt6` (low)** — headings (h1-h6 or role=heading) carrying
+  aria-level above 6: heading levels end at 6, screen readers downgrade the
+  value and the announced hierarchy stops matching the written one. Pinned
+  both branches.
 - **`accessibility_statement` report data (a11y_audit_url/html):** detects and
   lists visible links to the site's accessibility statement — vocabulary in
   es/en/gl/pt/de/nl/sv/fi (both word orders plus the Dutch/Swedish/Finnish

@@ -242,7 +242,13 @@
   "alt_quality": "{n} images with low-quality alt text (filenames, generic words or placeholders).",
   "alt_quality_rem": "Alt like \"image\", \"foto\", \"img_123.jpg\" or a dash says nothing to a screen-reader user. Replace it with what the image conveys in its context; if the image is decorative, use alt=\"\" so assistive tech skips it.",
   "onfocus_blur": "{n} element(s) whose onfocus handler removes focus (onfocus=\"blur()\"): keyboard users cannot reach them at all.",
-  "onfocus_blur_rem": "Remove the onfocus=\"blur()\" handler: stealing focus makes the element unreachable by keyboard (2.1.1). If the element must not be focusable, use tabindex=\"-1\" instead of taking focus away."
+  "onfocus_blur_rem": "Remove the onfocus=\"blur()\" handler: stealing focus makes the element unreachable by keyboard (2.1.1). If the element must not be focusable, use tabindex=\"-1\" instead of taking focus away.",
+  "nested_interactive": "{n} interactive elements nested inside other interactives: {example}. The HTML content model forbids it: the inner control is misannounced and the outer loses its boundary (4.1.2).",
+  "nested_interactive_rem": "Make them siblings and fake the visual nesting with an expanded hit area (a stretched ::before over the primary link) or by wrapping the text in a heading; give the secondary action a contextual name (\"Favorite: set menu\").",
+  "invoker_command_bad": "{n} buttons with broken invoker commands: {example}. commandfor does not resolve or the command does not match the target type (show-modal/close require <dialog>; the popover commands require the popover attribute) (4.1.2).",
+  "invoker_command_bad_rem": "Point commandfor at an existing id of the right type: <dialog> for show-modal/close, [popover] for show/hide/toggle-popover. Without a target there is no behavior and no managed states.",
+  "aria_level_gt6": "{n} headings with aria-level greater than 6: {example}. Heading levels end at 6: screen readers downgrade the value and the announced hierarchy stops matching the written one (1.3.1).",
+  "aria_level_gt6_rem": "Reorganize the hierarchy to live within h1-h6 (check the intermediate levels that pushed it past 6); aria-level above 6 does not exist in HTML."
  },
  "badge": {
   "name": "a11y-toolkit",

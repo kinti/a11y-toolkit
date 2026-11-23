@@ -595,6 +595,11 @@ class _Auditor(HTMLParser):
         self.alert_polite = []           # 4.1.2: role=alert gritando en aria-live=polite (B1-d)
         self.headers_bad = []            # 1.3.1: headers= apuntando fuera de tabla o a no-th (ACT d0f69e/a25f45)
         self.lang_xml_mismatch = []      # 3.1.2: lang y xml:lang discrepando (ACT 5b7ae0)
+        self.nested_interactive = []    # 4.1.2: interactivo DENTRO de interactivo
+        self.invoker_bad = []           # 4.1.2: commandfor sin destino o tipo erróneo
+        self.aria_level_gt6 = []        # 1.3.1: aria-level>6 (los lectores lo degradan)
+        self._invokers = []             # (idref, command) pendientes de validar
+        self._id_tag = {}               # id → (tag, popover?) para validar invokers
         self._p_bullets = None           # contador de viñetas del <p> abierto
         self._p_brs = 0
         self.links = {}         # nombre normalizado → set de hrefs
@@ -769,6 +774,7 @@ class _Auditor(HTMLParser):
         if a.get('id') and not self._in_template:
             # ids dentro de <template> no existen: ni dup_ids ni refs rotas
             self.ids[a['id']] = self.ids.get(a['id'], 0) + 1
+            self._id_tag[a['id']] = (tag, 'popover' in a)
         if self.root_tag is None:
             self.root_tag = tag
         # visibilidad heredada para accname y enfocabilidad: aria-hidden se
@@ -1368,6 +1374,9 @@ class _Auditor(HTMLParser):
                 _alv = re.match(r'\d+', str(a.get('aria-level') or ''))
                 if _alv:
                     self._heading_level = int(_alv.group())
+                    if int(_alv.group()) > 6 and len(self.aria_level_gt6) < 6:
+                        self.aria_level_gt6.append(
+                            f'{tag} aria-level="{_alv.group()}"')
                 self._heading_text = []
                 self._heading_attrs = a
                 self._heading_hidden = _hidden
@@ -1378,10 +1387,41 @@ class _Auditor(HTMLParser):
             # basura JAMÁS tira el parse (int guardado)
             _alv = re.match(r'\d+', str(a.get('aria-level') or ''))
             self._heading_level = int(_alv.group()) if _alv else 2
+            if _alv and int(_alv.group()) > 6 and len(self.aria_level_gt6) < 6:
+                self.aria_level_gt6.append(
+                    f'[role=heading] aria-level="{_alv.group()}"')
             self._heading_text = []
             self._heading_attrs = a
             self._heading_hidden = _hidden
             self._heading_tag = tag
+        # interactivo dentro de interactivo (4.1.2): el modelo de contenido lo
+        # prohíbe; el AT anuncia mal el interno y el externo pierde su límite.
+        # Ancestros por el ÁRBOL REAL (_el_stack), no por _ctrl (malformados).
+        # Exento a>a puro: todos los navegadores lo reparan a hermanos.
+        _INTER_HOST = ('a', 'button', 'summary', 'select', 'textarea')
+        if tag in _INTER_HOST or (tag == 'input' and (a.get('type') or 'text')
+                                  not in ('hidden', 'submit', 'button', 'reset', 'image')) \
+                or (a.get('role') or '').strip().lower() in ('button', 'link'):
+            if len(self.nested_interactive) < 6:
+                for _anc_tag, _anc_a, _ in reversed(self._el_stack):
+                    if _anc_a is a:
+                        continue        # el propio elemento ya viaja en la pila
+                    _anc_inter = _anc_tag in _INTER_HOST
+                    if _anc_tag == 'a':
+                        if not (_anc_a.get('href') or '').strip():
+                            _anc_inter = False        # ancla sin href: no interactiva
+                        elif tag == 'a' and not (_anc_a.get('role') or a.get('role')):
+                            _anc_inter = False        # a>a puro: reparado a hermanos
+                    if _anc_inter:
+                        self.nested_interactive.append(f'<{tag}> dentro de <{_anc_tag}>')
+                        break
+        # invoker commands (4.1.2): commandfor ha de resolver Y el comando casar
+        # con el tipo de destino (show-modal/close → dialog; show/hide/toggle →
+        # popover). Se valida POST-parse (el destino puede venir después)
+        if tag == 'button' and a.get('commandfor'):
+            if len(self._invokers) < 8:
+                self._invokers.append(((a.get('commandfor') or '').strip(),
+                                        (a.get('command') or '').strip().lower()))
         # ── batida 18-nov, día 2 ──
         if not self._in_template:
             # B1-a: <a> SIN href con vida de control (2.1.1): tabindex>=0,
@@ -2269,6 +2309,31 @@ def audit_html(html_text, url='(html)', lang='en', standard=None, target=None):
     if p.lang_xml_mismatch:
         add_ej('low', '3.1.2', 'lang_xml_mismatch', p.lang_xml_mismatch,
                n=len(p.lang_xml_mismatch), example=', '.join(p.lang_xml_mismatch[:4]))
+    if p.nested_interactive:
+        add_ej('medium', '4.1.2', 'nested_interactive', p.nested_interactive,
+               n=len(p.nested_interactive), example=', '.join(p.nested_interactive[:4]))
+    if p.aria_level_gt6:
+        add_ej('low', '1.3.1', 'aria_level_gt6', p.aria_level_gt6,
+               n=len(p.aria_level_gt6), example=', '.join(p.aria_level_gt6[:4]))
+    # invokers: validación POST-parse contra el registro de ids (el destino
+    # puede declararse después del botón)
+    for _ref, _cmd in p._invokers:
+        _dst = p._id_tag.get(_ref)
+        if _dst is None:
+            if len(p.invoker_bad) < 8:
+                p.invoker_bad.append(f'commandfor="{_ref[:20]}" sin destino')
+        elif _cmd in ('show-modal', 'close') and _dst[0] != 'dialog':
+            if len(p.invoker_bad) < 8:
+                p.invoker_bad.append(
+                    f'command="{_cmd}" sobre <{_dst[0]}> (exige <dialog>)')
+        elif _cmd in ('show-popover', 'hide-popover', 'toggle-popover') \
+                and not _dst[1]:
+            if len(p.invoker_bad) < 8:
+                p.invoker_bad.append(
+                    f'command="{_cmd}" sobre <{_dst[0]}> sin atributo popover')
+    if p.invoker_bad:
+        add_ej('medium', '4.1.2', 'invoker_command_bad', p.invoker_bad,
+               n=len(p.invoker_bad), example=', '.join(p.invoker_bad[:4]))
     if p.headers_bad:
         examples = [f'headers="{token[:20]}"' for token, _ in p.headers_bad[:5]]
         add_ej('medium', '1.3.1', 'headers_attr_bad', examples,
