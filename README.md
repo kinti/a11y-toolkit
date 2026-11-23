@@ -10,7 +10,7 @@
 
 37 MCP tools, 5 prompts and a skill covering the whole WCAG 2.2 loop: audit, fix,
 document, watch, hand off — and now blindfold usability testing, where the agent
-attempts real tasks perceiving only what a screen reader exposes. 48 of 55 A/AA criteria carry automated signals (87%), every
+attempts real tasks perceiving only what a screen reader exposes. 48 of 55 A/AA criteria carry at least one automated signal (87%), every
 finding ships with a concrete remediation your agent can apply, and the rendered tools
 run on whichever browser you have — Chromium, Firefox, WebKit, Chrome or Edge.
 
@@ -58,6 +58,13 @@ traps, reflow, forms) additionally need Playwright:
 [![GitHub Release](https://img.shields.io/github/v/release/kinti/a11y-toolkit)](https://github.com/kinti/a11y-toolkit/releases)
 
 ## Features
+
+axe-core is the reference engine for automated rule detection, and this
+toolkit does not try to out-rule it. It competes on the loop the reference
+set leaves open: audit locally, get the exact element, reproduce the
+regression, and hand over evidence a human can sign. The table below lists
+capabilities the reference set lacks, and every row is reproducible from
+this repository (the method and the raw results live in `bench/`).
 
 | Capability | axe-core / Lighthouse / pa11y | a11y-toolkit |
 |---|---|---|
@@ -253,6 +260,7 @@ a11ytoolkit diff before.json after.json                 # after deploy
 a11ytoolkit evidence audit.json -o pack.json            # verifiable evidence pack (not-run unless a covering mode actually ran)
 a11ytoolkit disprove --url https://mysite               # re-verify findings
 a11ytoolkit budget --budget budget.json --audit audit.json  # only NEW findings block (exit 1 = the report itself failed)
+# legacy debt does not block: adopt CI today, don't let accessibility get worse while you pay it down
 a11ytoolkit budget --init-snapshot s.json > structural.json      # structural budget: today's structure is accepted
 a11ytoolkit budget --budget structural.json --snapshot s2.json   # only NEW rendered structure blocks (exit 0/2)
 a11ytoolkit engines https://mysite                        # same page in 3 engines: behavioral divergences, pairwise

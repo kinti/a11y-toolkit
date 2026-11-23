@@ -264,7 +264,7 @@ _dist = Counter(c for c, _ in _EFFORT.values())
 assert _dist == Counter({'MIN': 23, 'MED': 19, 'MAX': 13}), f'distribución de esfuerzo derivó: {dict(_dist)}'
 # (4ª pasada): el claim nace de las señales EMITIDAS, no de la esperanza —
 # 48 reales; los tres sin señal mapeada (1.2.5/1.4.11/3.2.4) viven en manual
-assert '48 of 55 A/AA criteria carry automated signals (87%)' in readme, 'claim de cobertura en README'
+assert '48 of 55 A/AA criteria carry at least one automated signal (87%)' in readme, 'claim de cobertura en README'
 assert '1.2.5, 1.3.1' not in readme and '3.2.1–3.2.4' not in readme, 'la tabla vuelve a reclamar lo sin señal'
 _tools_doc = open(os.path.join(ROOT, 'docs', 'tools.md'), encoding='utf-8').read()
 _faltan_tabla = [t['name'] for t in server.TOOLS if f'[`{t["name"]}`](docs/tools.md' not in readme]

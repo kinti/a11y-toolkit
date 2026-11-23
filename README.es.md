@@ -12,7 +12,7 @@
 37 herramientas MCP, 5 prompts y una skill que cubren todo el ciclo WCAG 2.2:
 auditar, corregir, documentar, vigilar y entregar — y ahora también pruebas de
 usabilidad «a ciegas», donde el agente intenta tareas reales percibiendo solo lo
-que expone un lector de pantalla. 48 de los 55 criterios A/AA llevan señales
+que expone un lector de pantalla. 48 de los 55 criterios A/AA llevan al menos una señal
 automatizadas (87%), cada hallazgo viaja con una remediación concreta que tu
 agente puede aplicar, y las herramientas renderizadas corren en el navegador
 que tengas — Chromium, Firefox, WebKit, Chrome o Edge.
@@ -60,6 +60,14 @@ además Playwright:
 [![GitHub Release](https://img.shields.io/github/v/release/kinti/a11y-toolkit)](https://github.com/kinti/a11y-toolkit/releases)
 
 ## Capacidades
+
+axe-core es el motor de referencia para la detección automática de reglas, y
+este toolkit no intenta ganarle en reglas. Compite en el ciclo que el conjunto
+de referencia deja abierto: auditar en local, recibir el elemento exacto,
+reproducir la regresión y entregar evidencia que una persona puede firmar. La
+tabla lista capacidades que al conjunto de referencia le faltan, y cada fila
+es reproducible desde este repositorio (el método y los resultados crudos
+viven en `bench/`).
 
 | Capacidad | axe-core / Lighthouse / pa11y | a11y-toolkit |
 |---|---|---|
@@ -264,6 +272,7 @@ a11ytoolkit diff before.json after.json                 # tras el deploy
 a11ytoolkit evidence audit.json -o pack.json            # pack de evidencia verificable (not-run salvo que un modo con señal corriera de verdad)
 a11ytoolkit disprove --url https://mysite               # re-verifica hallazgos
 a11ytoolkit budget --budget budget.json --audit audit.json  # solo lo NUEVO bloquea (exit 1 = el informe falló)
+# la deuda legacy no bloquea: adopta CI hoy, que la accesibilidad no empeore mientras la pagas
 a11ytoolkit budget --init-snapshot s.json > estructural.json    # presupuesto estructural: la estructura de HOY se acepta
 a11ytoolkit budget --budget estructural.json --snapshot s2.json # solo la estructura renderizada NUEVA bloquea (exit 0/2)
 a11ytoolkit engines https://mysite                        # la misma página en 3 motores: divergencias de comportamiento, por pares

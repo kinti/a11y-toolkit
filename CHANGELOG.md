@@ -1,6 +1,16 @@
 # Changelog
 
 ## main — pendiente
+- **README (both languages): the honest-axe framing.** A short paragraph now
+  opens the capability table: axe-core is the reference engine for automated
+  rule detection and this toolkit does not try to out-rule it; it competes on
+  the loop the reference set leaves open (local audit, exact element,
+  reproduced regression, evidence a human signs), and every table row is
+  reproducible from the repository (`bench/`). The coverage claim gained the
+  defensible precision "at least one automated signal" (pinned), and the
+  budget CLI line carries the adoption message: legacy debt does not block,
+  adopt CI today and don't let accessibility get worse while you pay it
+  down. Spanish README is a full sibling, as always.
 - **`blank_no_warning`: title no longer counts as the new-window warning**
   (in both the static and rendered passes). A tooltip only appears on
   hover: keyboard-only users never see it, and the requirement exists for
