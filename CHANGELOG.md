@@ -1,6 +1,23 @@
 # Changelog
 
 ## main — pendiente
+- **The monthly benchmark can no longer false-green** (external review,
+  2026-11-23): a Playwright/engine failure inside `bench/compara.py` used to
+  land as an `{'error': ...}` row with exit code 0, and a failed rendered
+  pass looked like "zero findings". Now an engine error raises inside the
+  comparison, failed rows carry `failed: true`, the JSON still prints for
+  the workflow's post-check, and the process exits 1 with a stderr summary.
+- **Two message calibrations from the same review** (the wording claimed
+  broader failure than the evidence shows): `aria_level_gt6` now states the
+  value is valid ARIA, Chromium exposes it as-is, and the documented JAWS
+  downgrade is the reason to verify; `alert_polite` now states the explicit
+  polite silences the role's implicit assertive (Chromium behavior) and the
+  risk is reader divergence, not undefined behavior. Same signals, same
+  severity, honest claims.
+- **README coverage numbers reconciled**: the round-4 boundary (48/55, 87%,
+  7 manual-only with the derivation note) had left a stale "4 manual-only"
+  paragraph in the EN file and a 51/93% intro line in the ES file; both now
+  match the pinned claim in both languages.
 - **Three static signals (4.1.2 / 1.3.1):**
 - **`nested_interactive` (medium)** — an interactive element inside another
   interactive (button in a[href], link in button, input in button…): the HTML

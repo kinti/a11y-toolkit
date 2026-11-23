@@ -37,8 +37,8 @@
   "nested_main_rem": "Saca el main a la raíz del body (uno solo por página); dentro de secciones usan encabezados, no otro main.",
   "fake_list": "{n} listas falsas con viñetas tipográficas y saltos <br>: {example}. El lector no las anuncia como lista ni cuenta sus elementos (1.3.1).",
   "fake_list_rem": "Conviértelas en <ul><li> reales: la estructura navegable y el conteo de elementos llegan gratis.",
-  "alert_polite": "{n} role=alert con aria-live=polite: {example}. El rol alert YA es asertivo; polite lo contradice y el anuncio queda indefinido (4.1.2).",
-  "alert_polite_rem": "Deja el rol solo (role=alert es asertivo) o usa role=status si querías un aviso amable; nunca mezcles las dos escalas.",
+  "alert_polite": "{n} role=alert con aria-live=polite: {example}. El polite explícito SILENCIA la asertividad implícita del rol (así lo expone Chromium); algunos lectores históricamente honraron la implícita y anuncian distinto. Revisa la intención (1.4.2/4.1.2).",
+  "alert_polite_rem": "Si quieres una alerta que interrumpa, deja el rol solo; si la quieres amable, role=status lo expresa sin contradicción. Lo que no conviene es depender de cuál de las dos gane en cada lector.",
   "lang_xml_mismatch": "{n} elementos con lang y xml:lang discrepando: {example}. El lector no sabe qué lengua aplicar (3.1.2, ACT 5b7ae0).",
   "lang_xml_mismatch_rem": "Iguala lang y xml:lang en el mismo elemento (mismo subtag, da igual la caja).",
   "headers_attr_bad": "{n} atributos headers= apuntando fuera de tabla o a celdas que no son cabecera: {example}. La relación celda-cabecera se rompe (1.3.1, ACT d0f69e/a25f45).",
@@ -247,8 +247,8 @@
   "nested_interactive_rem": "Sepáralos en hermanos y finge el anidamiento visual con un área de impacto expandida (::before estirado sobre el enlace principal) o envolviendo el texto en un encabezado; nombra la acción secundaria con contexto («Favorito: menú del día»).",
   "invoker_command_bad": "{n} botones con comandos invoker rotos: {example}. El commandfor no resuelve o el comando no casa con el tipo de destino (show-modal/close exigen <dialog>; los comandos popover exigen el atributo popover) (4.1.2).",
   "invoker_command_bad_rem": "Apunta commandfor a un id existente del tipo correcto: <dialog> para show-modal/close, [popover] para show/hide/toggle-popover. Sin destino no hay comportamiento ni estados gestionados.",
-  "aria_level_gt6": "{n} encabezados con aria-level mayor que 6: {example}. Los niveles de encabezado terminan en 6: los lectores de pantalla degradan el valor y la jerarquía anunciada deja de ser la escrita (1.3.1).",
-  "aria_level_gt6_rem": "Reorganiza la jerarquía para vivir en h1-h6 (revisa los niveles intermedios que empujaron a pasarse); aria-level por encima de 6 no existe en HTML."
+  "aria_level_gt6": "{n} encabezados con aria-level mayor que 6: {example}. El valor es ARIA válido y Chromium lo expone tal cual; el comportamiento documentado de JAWS es degradarlo a otro nivel (matriz TetraLogical 2026): comprueba la intención y tu lector objetivo (1.3.1).",
+  "aria_level_gt6_rem": "Si la jerarquía real cabe en h1-h6, quita el aria-level extra; si necesitas niveles más profundos, verifica con el lector que usan tus personas usuarias antes de fiarte del número escrito."
  },
  "badge": {
   "name": "a11y-toolkit",

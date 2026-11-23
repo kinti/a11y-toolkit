@@ -37,8 +37,8 @@
   "nested_main_rem": "Move main to the root of body (one per page); inside sections use headings, not another main.",
   "fake_list": "{n} fake lists built with typographic bullets and <br> breaks: {example}. Screen readers do not announce them as lists nor count their items (1.3.1).",
   "fake_list_rem": "Turn them into real <ul><li> lists: navigable structure and item counts come for free.",
-  "alert_polite": "{n} role=alert with aria-live=polite: {example}. The alert role is ALREADY assertive; polite contradicts it and the announcement is left undefined (4.1.2).",
-  "alert_polite_rem": "Leave the role alone (role=alert is assertive) or use role=status for a gentler notice; never mix the two scales.",
+  "alert_polite": "{n} role=alert with aria-live=polite: {example}. The explicit polite SILENCES the role's implicit assertiveness (that is how Chromium exposes it); some screen readers historically honored the implicit value and announce differently. Review the intent (1.4.2/4.1.2).",
+  "alert_polite_rem": "For an interrupting alert leave the role alone; for a gentler one role=status expresses it without contradiction. Depending on which of the two wins per reader is the part to avoid.",
   "lang_xml_mismatch": "{n} elements whose lang and xml:lang disagree: {example}. The screen reader cannot tell which language to apply (3.1.2, ACT 5b7ae0).",
   "lang_xml_mismatch_rem": "Make lang and xml:lang identical on the element (same subtag, any casing).",
   "headers_attr_bad": "{n} headers= attributes pointing outside their table or to non-header cells: {example}. The cell-header relationship breaks (1.3.1, ACT d0f69e/a25f45).",
@@ -247,8 +247,8 @@
   "nested_interactive_rem": "Make them siblings and fake the visual nesting with an expanded hit area (a stretched ::before over the primary link) or by wrapping the text in a heading; give the secondary action a contextual name (\"Favorite: set menu\").",
   "invoker_command_bad": "{n} buttons with broken invoker commands: {example}. commandfor does not resolve or the command does not match the target type (show-modal/close require <dialog>; the popover commands require the popover attribute) (4.1.2).",
   "invoker_command_bad_rem": "Point commandfor at an existing id of the right type: <dialog> for show-modal/close, [popover] for show/hide/toggle-popover. Without a target there is no behavior and no managed states.",
-  "aria_level_gt6": "{n} headings with aria-level greater than 6: {example}. Heading levels end at 6: screen readers downgrade the value and the announced hierarchy stops matching the written one (1.3.1).",
-  "aria_level_gt6_rem": "Reorganize the hierarchy to live within h1-h6 (check the intermediate levels that pushed it past 6); aria-level above 6 does not exist in HTML."
+  "aria_level_gt6": "{n} headings with aria-level greater than 6: {example}. The value is valid ARIA and Chromium exposes it as-is; the documented JAWS behavior is to downgrade it to another level (TetraLogical 2026 matrix): verify intent and your target screen reader (1.3.1).",
+  "aria_level_gt6_rem": "If the real hierarchy fits within h1-h6, drop the extra aria-level; if you genuinely need deeper levels, verify with the screen reader your users run before trusting the written number."
  },
  "badge": {
   "name": "a11y-toolkit",

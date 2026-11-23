@@ -91,7 +91,14 @@ def axe_a_criterios(bruto):
 
 def compara(url, lang='en'):
     informe_estatico = audit_url(url, lang=lang)
+    if 'error' in informe_estatico:
+        raise RuntimeError(f"estático falló: {informe_estatico['error']}")
     informe_dom = audit_dom_url(url, lang=lang)
+    if 'error' in informe_dom:
+        # un error del motor NO es "cero hallazgos": una run fallida que
+        # parece limpia es el peor falso verde que existe (hallado en la
+        # revisión externa de nov-2026)
+        raise RuntimeError(f"renderizado falló: {informe_dom['error']}")
     from playwright.sync_api import sync_playwright
     with sync_playwright() as pw:
         nav = pw.chromium.launch()
@@ -130,15 +137,22 @@ def compara(url, lang='en'):
 def main(argv):
     urls = argv or ['https://www.gov.uk', 'https://en.wikipedia.org/wiki/Main_Page',
                     'https://example.com']
-    resultados = []
+    resultados, fallos = [], []
     for u in urls:
         print(f'— {u} …', file=sys.stderr)
         try:
             resultados.append(compara(u))
         except Exception as e:  # noqa: BLE001
-            resultados.append({'url': u, 'error': str(e)})
+            # la fila viaja en el JSON (el workflow la rechaza en el
+            # post-check) y el código de salida dice la verdad: run fallida
+            resultados.append({'url': u, 'failed': True, 'error': str(e)})
+            fallos.append(u)
     print(json.dumps(resultados, ensure_ascii=False, indent=1))
+    if fallos:
+        print(f'BENCH FALLIDO en {len(fallos)}/{len(urls)}: {fallos}', file=sys.stderr)
+        return 1
+    return 0
 
 
 if __name__ == '__main__':
-    main(sys.argv[1:])
+    sys.exit(main(sys.argv[1:]))
