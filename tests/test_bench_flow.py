@@ -157,9 +157,13 @@ print('3. gate del benchmark: sin resultados de un motor no hay verde ✓')
 
 
 # ── 4. pr-flow ────────────────────────────────────────────────────────────────
+_ALT = ' alt="pic"'      # fuera de la f-string: una barra dentro de sus llaves
+                        # no compila antes de Python 3.12 (el repo promete 3.9+)
+
+
 def _page(imgs, broken):
     return ('<!doctype html><html lang="en"><head><title>t</title></head><body><main><h1>x</h1>'
-            + ''.join(f'<img src="p{i}.png"{"" if i in broken else " alt=\"pic\""}>'
+            + ''.join(f'<img src="p{i}.png"{"" if i in broken else _ALT}>'
                       for i in range(imgs)) + '</main></body></html>')
 
 

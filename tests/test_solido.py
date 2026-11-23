@@ -338,8 +338,10 @@ if sys.version_info >= (3, 12):
         hallazgos = []
         try:
             toks = list(tokenize.generate_tokens(io.StringIO(src).readline))
-        except tokenize.TokenError:
-            return hallazgos          # el fuzz hostil ya cubre sintaxis rota
+        except (tokenize.TokenError, SyntaxError) as _e:
+            # un fichero del repo que ni siquiera tokeniza está roto de por sí:
+            # se denuncia, no se da por limpio
+            return [f'no tokeniza: {type(_e).__name__}: {_e}']
         for tok in toks:
             if tok.type == tokenize.FSTRING_START:
                 prof += 1
@@ -353,15 +355,27 @@ if sys.version_info >= (3, 12):
     assert _backslash_en_llaves_fstring(
         'x = f"{len(re.findall(r"<input\\b", h))} texto"'), \
         'el detector de barras en f-strings dejó de detectar'
-    _paquete = os.path.join(ROOT, 'a11y_toolkit')
-    for _f in sorted(os.listdir(_paquete)):
-        if not _f.endswith('.py'):
-            continue
-        with open(os.path.join(_paquete, _f), encoding='utf-8') as _fh:
-            _malas = _backslash_en_llaves_fstring(_fh.read())
-        assert not _malas, \
-            f'{_f}: barra invertida dentro de llaves de f-string (SyntaxError <3.12): {_malas[:2]}'
-    print('  gramática 3.9: sin barras en llaves de f-string ✓')
+    # se revisa TODO el Python del repo, no solo el paquete: la misma barra en
+    # una suite de test compila en el portátil (3.12+), pasa `make test` y
+    # tira el CI en 3.9-3.11 antes de ejecutar una sola suite
+    for _d in ('a11y_toolkit', 'tests', 'bench', 'scripts', 'docs'):
+        _dir = os.path.join(ROOT, _d)
+        assert os.path.isdir(_dir), f'{_d}/ ya no existe: actualizar la lista del guardián'
+        for _f in sorted(os.listdir(_dir)):
+            if not _f.endswith('.py'):
+                continue
+            with open(os.path.join(_dir, _f), encoding='utf-8') as _fh:
+                _malas = _backslash_en_llaves_fstring(_fh.read())
+            assert not _malas, \
+                (f'{_d}/{_f}: {_malas[:2]} '
+                 '(barra invertida dentro de llaves de f-string, SyntaxError <3.12, '
+                 'o fichero que no tokeniza)')
+    # y el guardián mira de verdad las carpetas nuevas: la línea que rompió el
+    # CI en 3.10 (un test nuevo) tiene que dar positivo aquí
+    assert _backslash_en_llaves_fstring(
+        "f'<img src=\"p{i}.png\"{\"\" if i in broken else \" alt=\\\"pic\\\"\"}>'"), \
+        'el guardián dejó de ver la barra dentro de un f-string de test'
+    print('  gramática 3.9: sin barras en llaves de f-string (paquete, tests, bench, scripts, docs) ✓')
 
 # ---------- 5. higiene: lo interno no entra en el repo público ----------
 # 2026-10: .zcodeignore (fichero que el editor escribe en el workspace y que

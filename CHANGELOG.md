@@ -1,6 +1,18 @@
 # Changelog
 
 ## main — pendiente
+- **CI: the 3.9 grammar guard now covers every Python directory.** The
+  previous commit shipped a test with a backslash inside an f-string
+  expression. That compiles on Python 3.12 and later, so the local suite was
+  green, and it is a SyntaxError on 3.9 to 3.11: the CI matrix went red on
+  the Python 3.10 job. The line is fixed. `tests/test_solido.py` already had
+  the detector (the v5.18.0 lesson) but only scanned `a11y_toolkit/`; it now
+  scans `tests/`, `bench/`, `scripts/` and `docs/` as well, it fails on a
+  tracked file that does not even tokenize instead of passing it silently,
+  and it carries a self-check built from the offending line (both failure
+  paths verified by reintroducing them). What it does NOT do: the guard
+  reads f-string tokens, so it only runs on 3.12 and later; on an older
+  interpreter it is skipped and the CI matrix stays the real check.
 - **`bench/compara.py`: the monthly benchmark runs with the default
   configuration, and its gate requires the three engines.** The benchmark
   opened its own Playwright session for axe right after the rendered audit.
