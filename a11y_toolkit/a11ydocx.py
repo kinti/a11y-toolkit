@@ -32,7 +32,20 @@ _MAX_MEMBER_BYTES = 40 * 1024 * 1024
 _CRIT = {
     'docx_no_alt': ('1.1.1', 'high'), 'docx_fake_headings': ('1.3.1', 'medium'),
     'docx_no_lang': ('3.1.1', 'medium'), 'docx_table_no_header': ('1.3.1', 'low'),
+    'docx_fake_list': ('1.3.1', 'medium'), 'docx_heading_skips': ('1.3.1', 'low'),
+    'docx_generic_link': ('2.4.4', 'medium'),
 }
+
+# texto genérico de enlace (2.4.4): la misma familia del HTML, en la voz de
+# los documentos (es/en); cuenta como genérico SOLO repetido (2+), un
+# «descargar» solitario puede ser específico en contexto
+_GENERIC_LINK = {
+    'aquí', 'aquí.', 'pincha aquí', 'pulsa aquí', 'haz clic aquí', 'click here',
+    'here', 'read more', 'leer más', 'más', 'ver más', 'more', 'download',
+    'descargar', 'este enlace', 'this link', 'enlace', 'link', 'detalles',
+    'details', 'más información', 'more information',
+}
+_BULLET = '•●▪◦‣·'
 
 
 def _t(lang, key):
@@ -126,6 +139,120 @@ def docx_screen(path, lang='en'):
                           'issue': _t(lang, 'docx_fake_headings').format(n=fake),
                           'remediation': _t(lang, 'docx_fake_headings_rem')})
 
+    # ── listas falsas: párrafos con viñetas/números TIPOGRAFIADOS en vez de
+    # lista de Word (sin w:numPr). Umbral anti-FP: 2+ párrafos CONSECUTIVOS
+    # con glifo de viñeta, o 3+ consecutivos numerados con incremento +1
+    # (los «1. Enero» de las fechas no incrementan y quedan fuera).
+    _doc_paragraphs = re.findall(r'<w:p\b.*?</w:p>|<w:p\b[^>]*/>', body, re.S)
+    def _ptext(p):
+        return ''.join(re.findall(r'<w:t[^>]*>([^<]*)</w:t>', p)).strip()
+    fake_list_groups, _run = 0, []
+    def _flush():
+        nonlocal _run, fake_list_groups
+        n_bul = sum(1 for t in _run if t[0] == 'b')
+        if n_bul >= 2:
+            fake_list_groups += 1
+        elif len(_run) >= 3:
+            nums = [t[1] for t in _run if t[0] == 'n']
+            if len(nums) == len(_run):
+                ok = all(nums[i+1] == nums[i] + 1 for i in range(len(nums)-1))
+                if ok and nums[0] in (0, 1):
+                    fake_list_groups += 1
+        _run = []
+    for p in _doc_paragraphs:
+        if '<w:numPr' in p:
+            _flush(); continue
+        t = _ptext(p)
+        if not t:
+            _flush(); continue
+        if t[0] in _BULLET:
+            _run.append(('b', None)); continue
+        m = re.match(r'^(\d{1,3})[.)]\s+\S', t)
+        if m:
+            _run.append(('n', int(m.group(1)))); continue
+        _flush()
+    _flush()
+    if fake_list_groups:
+        findings.append({'severity': 'medium', 'criterion': '1.3.1 (DOCX)',
+                          'signal': 'docx_fake_list',
+                          'issue': _t(lang, 'docx_fake_list').format(n=fake_list_groups),
+                          'remediation': _t(lang, 'docx_fake_list_rem')})
+
+    # ── saltos de nivel de encabezado: Heading1 → Heading3 aplana la
+    # navegación. Niveles por pStyle directo (HeadingN) O por styles.xml
+    # (los Word localizados escriben styleIds numéricos cuyo NOMBRE es
+    # «heading N» / «Encabezado N» / «Título N»)
+    _style_heads = {}
+    if language is not None or True:
+        try:
+            sx = z.read('word/styles.xml').decode('utf-8', errors='replace')
+            for m in re.finditer(
+                    r'<w:style [^>]*w:styleId="([^"]+)"[^>]*>.*?'
+                    r'<w:name w:val="([^"]*)"', sx, re.S):
+                mn = re.match(r'(?i)^(?:heading|encabezado|t[ií]tulo|'
+                              r'berschrift|titre)\s*([1-9])$', m.group(2).strip())
+                if mn:
+                    _style_heads[m.group(1)] = int(mn.group(1))
+        except KeyError:
+            pass
+    levels = []
+    for p in _doc_paragraphs:
+        ms = re.search(r'<w:pStyle w:val="([^"]+)"', p)
+        if not ms:
+            continue
+        sid = ms.group(1)
+        if re.match(r'(?i)^TOC\d|Sumario|TDC', sid):
+            continue
+        md = re.match(r'(?i)^Heading([1-9])$', sid)
+        if md:
+            levels.append(int(md.group(1)))
+        elif sid in _style_heads:
+            levels.append(_style_heads[sid])
+    skips = sum(1 for i in range(1, len(levels))
+                if levels[i] > levels[i-1] + 1)
+    if levels and skips:
+        findings.append({'severity': 'low', 'criterion': '1.3.1 (DOCX)',
+                          'signal': 'docx_heading_skips',
+                          'issue': _t(lang, 'docx_heading_skips').format(n=skips),
+                          'remediation': _t(lang, 'docx_heading_skips_rem')})
+
+    # ── enlaces genéricos: «pincha aquí» (repetido), la URL cruda como
+    # texto, o el mismo genérico apuntando a destinos distintos. Relaciones
+    # desde word/_rels/document.xml.rels
+    rels = {}
+    try:
+        rx = z.read('word/_rels/document.xml.rels').decode('utf-8', errors='replace')
+        for m in re.finditer(r'<Relationship [^>]*Id="([^"]+)"[^>]*Target="([^"]+)"', rx):
+            rels[m.group(1)] = m.group(2)
+    except KeyError:
+        pass
+    gen_counts, gen_multi, raw_url, img_links_noalt = {}, 0, 0, 0
+    for hl in re.findall(r'<w:hyperlink\b.*?</w:hyperlink>', body, re.S):
+        txt = ''.join(re.findall(r'<w:t[^>]*>([^<]*)</w:t>', hl)).strip()
+        target = ''
+        mr = re.search(r'r:id="([^"]+)"', hl)
+        if mr:
+            target = rels.get(mr.group(1), '')
+        low = txt.lower().rstrip('.…: ')
+        if txt and target and txt.replace(' ', '') in target:
+            raw_url += 1
+        elif low in _GENERIC_LINK:
+            if gen_counts.get(low, (0, set()))[0] >= 1:
+                gen_multi += 1
+            n0, t0 = gen_counts.get(low, (0, set()))
+            gen_counts[low] = (n0 + 1, t0 | {target})
+        # enlace solo-imagen sin alt (el docPr dentro del hyperlink sin descr)
+        if '<w:drawing' in hl or '<a:blip' in hl:
+            for dp in re.findall(r'<wp:docPr\b[^>]*>', hl):
+                if 'descr=' not in dp or re.search(r'descr="\s*"', dp):
+                    img_links_noalt += 1
+    generic_n = gen_multi + raw_url + img_links_noalt
+    if generic_n:
+        findings.append({'severity': 'medium', 'criterion': '2.4.4 (DOCX)',
+                          'signal': 'docx_generic_link',
+                          'issue': _t(lang, 'docx_generic_link').format(n=generic_n),
+                          'remediation': _t(lang, 'docx_generic_link_rem')})
+
     order = {'high': 0, 'medium': 1, 'low': 2}
     findings.sort(key=lambda h: order[h['severity']])
 
@@ -137,6 +264,7 @@ def docx_screen(path, lang='en'):
         'mode': 'docx', 'file': str(path).rsplit('/', 1)[-1],
         'language': language, 'images': len(docprs),
         'tables': n_tables, 'tables_without_header': tables_missing,
+        'heading_levels': levels,
         'score': compute_score(findings),
         'findings': findings,
         'summary': {s2: sum(1 for h in findings if h['severity'] == s2)

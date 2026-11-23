@@ -1,6 +1,37 @@
 # Changelog
 
 ## main — pendiente
+- **Document screening, the six-signal batch (DOCX 3 + PDF 3):**
+- **`docx_fake_list` (1.3.1, medium)** — bullets or numbers typed as text
+  instead of a real Word list (no `w:numPr`): screen readers announce
+  neither list nor item count. Threshold: 2+ consecutive bullet-glyph
+  paragraphs, or 3+ consecutive numbered ones incrementing by one (dates
+  like "1. Januar" fail the increment rule and stay out; real Word lists
+  are exempt by construction).
+- **`docx_heading_skips` (1.3.1, low)** — heading level jumps (Heading 1 →
+  Heading 3) flatten the navigation pane. Levels come from direct
+  `HeadingN` pStyles or from styles.xml name resolution (localized Word
+  writes numeric styleIds whose name is "heading N"/"Encabezado N"); TOC
+  styles are skipped. The report now exposes `heading_levels`.
+- **`docx_generic_link` (2.4.4, medium)** — hyperlink text without purpose:
+  a generic label appearing 2+ times ("click here"/"pincha aquí"), the raw
+  target URL as display text, or an image-only hyperlink whose docPr has no
+  description. Targets resolve through word/_rels/document.xml.rels.
+- **`pdf_table_no_header` (1.3.1, medium)** — tagged tables with `/S /TD`
+  cells and zero `/S /TH`: the table sits in the tag tree with no header
+  row for the reader to announce columns.
+- **`pdf_no_heading_tags` (1.3.1, low)** — tagged, 3+ pages, zero H1-H6 and
+  no role-map to them: heading navigation does not exist. Low and
+  review-worded on purpose: a letter or brochure without headings is
+  legitimate, the message says so. Exempts form documents.
+- **`pdfua_contradiction` (1.3.1, high)** — the XMP declares
+  `pdfuaid:part` while language, title or tagging are missing: the seal
+  contradicts its own document. The report exposes `pdfua_claimed`
+  (None or the part number) and `tag_counts` for every PDF.
+- All pinned with synthetic DOCX/PDF fixtures built by the suite itself
+  (the repo had no document fixtures): 7 DOCX cases and 6 PDF cases,
+  positive and exempt, plus the clean-document baselines updated to carry
+  real structure.
 - **MCP protocol negotiation + structuredContent:** the server now supports
   2024-11-05, 2025-06-18 and 2025-11-25 and negotiates per the spec — a
   supported requested version is answered as-is, an unknown one gets our

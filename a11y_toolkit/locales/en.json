@@ -311,7 +311,13 @@
   "docx_no_lang_rem": "Review → Language → set the whole-document language.",
   "docx_table_no_header": "{n} tables with no marked header row: cells lose their column context (1.3.1).",
   "docx_table_no_header_rem": "Table → mark the header row (\"Repeat header rows\" for multi-page tables).",
-  "limits": "Structural XML screening: not a substitute for human review (reading order of complex tables, meaning of under-described images, embedded charts)."
+  "limits": "Structural XML screening: not a substitute for human review (reading order of complex tables, meaning of under-described images, embedded charts).",
+  "docx_fake_list": "{n} fake list groups: bullets or numbers typed as text instead of a real Word list. Screen readers do not announce them as lists nor count their items.",
+  "docx_fake_list_rem": "Apply a real Word list (Home → Bullets/Numbering): the navigable structure comes for free and the number recalculates itself.",
+  "docx_heading_skips": "{n} heading level jumps (e.g. Heading 1 → Heading 3): the navigation pane hierarchy comes out flat.",
+  "docx_heading_skips_rem": "Fix the intermediate levels: each heading should step down by one (1→2→3); check which level belonged between the two.",
+  "docx_generic_link": "{n} links without purpose in their text: repeated \"click here\", the raw URL as text, or an image-only link with no description.",
+  "docx_generic_link_rem": "Write the destination in the link text (\"Download the annual report (PDF, 2 MB)\"); screen readers pull the link list out of context."
  },
  "dom": {
   "contrast_fail": "{n} text areas with insufficient contrast: {det}. (computed fg/background, with alpha compositing).",
@@ -558,7 +564,13 @@
   "pdf_scanned_rem": "Apply OCR with real text and tag the result.",
   "pdf_untagged": "no structure tree (/StructTreeRoot): reading order and semantic roles do not exist for the reader. THE root failure of inaccessible PDFs (1.3.1).",
   "pdf_untagged_rem": "Tag the document (export as tagged PDF from authoring, or remediate in Acrobat): without a tree, everything else is cosmetic.",
-  "pdf_ocr_layer_note": "All text in this PDF is drawn in invisible render mode (Tr 3): what is visible is imagery. Check whether the scan carries tagging and alternatives; the invisible layer may announce text nobody sees. Review data, not a direct failure."
+  "pdf_ocr_layer_note": "All text in this PDF is drawn in invisible render mode (Tr 3): what is visible is imagery. Check whether the scan carries tagging and alternatives; the invisible layer may announce text nobody sees. Review data, not a direct failure.",
+  "pdf_table_no_header": "{n} tagged TD cells and zero TH: tables sit in the tag tree with no header row.",
+  "pdf_table_no_header_rem": "Re-tag the header row as TH (or /TH with scope) in the source authoring tool; without it, the reader announces no columns.",
+  "pdf_no_heading_tags": "Tagged document with no H1-H6 at all: heading navigation does not exist. A letter or brochure without headings can be legitimate: review.",
+  "pdf_no_heading_tags_rem": "Apply heading styles in the source document and export tagged; H1-H6 are the map of the document.",
+  "pdfua_contradiction": "The XMP claims PDF/UA part {part} but is missing: {missing}. The seal contradicts its own document.",
+  "pdfua_contradiction_rem": "Either complete it (language, title, tagging) or remove the pdfuaid declaration from the XMP: a lying seal is worse than no seal."
  },
  "scroll": {
   "limits": "Infinite-scroll auditor: heuristics with real focus and a live-region observer over {n} batches. Not a substitute for screen-reader testing on the real feed.",

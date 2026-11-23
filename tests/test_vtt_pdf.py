@@ -93,6 +93,7 @@ def mini_pdf(tagged=True, title=True, lang=True, text=True, pages=3, img=False):
                 b'/Producer (t) >>\nendobj\n')
     if tagged:
         objs.append(b'5 0 obj\n<< /Type /StructTreeRoot /MarkInfo << /Marked true >> >>\nendobj\n')
+        objs.append(b'9 0 obj\n<< /S /H1 >>\nendobj\n')   # doc limpio = con jerarquía
     if img:
         im = zlib.compress(b'\x00' * 81)
         objs.append(b'11 0 obj\n<< /Type /XObject /Subtype /Image /Width 9 /Height 9 '
@@ -114,6 +115,93 @@ print('6. PDF bueno: 100 sin señales ✓')
 m = pdf_screen(mini_pdf(tagged=False, title=False, lang=False, text=False, img=True), lang='es')
 assert {'pdf_untagged', 'pdf_no_title', 'pdf_no_lang', 'pdf_scanned'} <= {h['signal'] for h in m['findings']}
 assert not pdf_screen(b'no-pdf').get('tagged', False) and 'error' in pdf_screen(b'no-pdf')
+
+# 29. trío de estructura PDF: TD-sin-TH, sin H1-H6, contradicción PDF/UA
+def _pdf_struct(struct=b'', xmp=b'', pages=3, lang=True, title=True):
+    import zlib as _z2
+    objs = [b'1 0 obj\n<< /Type /Catalog /Pages 2 0 R /StructTreeRoot 5 0 R'
+            + (b' /Lang (es-ES)' if lang else b'') + b' >>\nendobj\n',
+            b'2 0 obj\n<< /Type /Pages /Kids ['
+            + b' '.join(b'%d 0 R' % (10 + i) for i in range(pages))
+            + b'] /Count ' + str(pages).encode() + b' >>\nendobj\n',
+            b'3 0 obj\n<< ' + (b'/Title (Informe) ' if title else b'')
+            + b'/Producer (t) >>\nendobj\n',
+            b'5 0 obj\n<< /Type /StructTreeRoot /MarkInfo << /Marked true >> >>\nendobj\n']
+    if struct:
+        objs.append(struct)
+    if xmp:
+        objs.append(xmp)
+    comp = _z2.compress(b'BT (Hola) Tj ET' * 4)
+    out = b'%PDF-1.7\n' + b''.join(objs)
+    offs = [out.find(t) for t in (b'1 0 obj', b'2 0 obj', b'3 0 obj', b'5 0 obj')]
+    out += (b'6 0 obj\n<< /Length ' + str(len(comp)).encode()
+            + b' /Filter /FlateDecode >>\nstream\n' + comp + b'\nendstream\nendobj\n')
+    for i in range(pages):
+        out += b'%d 0 obj\n<< /Type /Page /Contents 6 0 R >>\nendobj\n' % (10 + i)
+    xref_at = len(out)
+    out += (b'xref\n0 16\n0000000000 65535 f \n'
+            + b''.join(('%010d 00000 n \n' % o).encode() for o in offs))
+    out += b'trailer\n<< /Size 16 /Root 1 0 R >>\nstartxref\n' \
+           + str(xref_at).encode() + b'\n%%EOF'
+    import tempfile as _tf2, os as _os2
+    d = _tf2.mkdtemp()
+    p = _os2.path.join(d, 't.pdf')
+    open(p, 'wb').write(out)
+    return p
+_TD = b'7 0 obj\n<< /S /TD >>\nendobj\n'
+_TH = b'8 0 obj\n<< /S /TH >>\nendobj\n'
+_H1 = b'9 0 obj\n<< /S /H1 >>\nendobj\n'
+_XMP_UA = (b'11 0 obj\n<< /Type /Metadata /Subtype /XML >>\nstream\n'
+           b'<?xpacket?><rdf:RDF xmlns:pdfuaid="u">'
+           b'<rdf:Description pdfuaid:part="2"/></rdf:RDF></xpacket>\nendstream\nendobj\n')
+assert 'pdf_table_no_header' in {h['signal'] for h in pdf_screen(_pdf_struct(struct=_TD), lang='es')['findings']}
+assert 'pdf_table_no_header' not in {h['signal'] for h in pdf_screen(_pdf_struct(struct=_TD + _TH + _H1), lang='es')['findings']}
+assert 'pdf_no_heading_tags' in {h['signal'] for h in pdf_screen(_pdf_struct(struct=b'7 0 obj\n<< /S /P >>\nendobj\n'), lang='es')['findings']}
+assert 'pdf_no_heading_tags' not in {h['signal'] for h in pdf_screen(_pdf_struct(struct=_H1), lang='es')['findings']}
+_r_ua = pdf_screen(_pdf_struct(struct=_TD, xmp=_XMP_UA, lang=False, title=False), lang='es')
+assert 'pdfua_contradiction' in {h['signal'] for h in _r_ua['findings']} and _r_ua['pdfua_claimed'] == 2
+_r_uo = pdf_screen(_pdf_struct(struct=_TD + _TH + _H1, xmp=_XMP_UA), lang='es')
+assert 'pdfua_contradiction' not in {h['signal'] for h in _r_uo['findings']}
+print('29. trío estructura PDF: TD/TH, jerarquía y sello PDF/UA ✓')
+
+from a11y_toolkit.a11ydocx import docx_screen as _dx_screen  # noqa: E402
+
+# 30. trío DOCX: lista falsa, salto de título, enlace genérico (fixtures ZIP)
+def _docx(paras, rels=None):
+    import zipfile as _zf, tempfile as _tf3, os as _os3
+    d = _tf3.mkdtemp()
+    p = _os3.path.join(d, 't.docx')
+    with _zf.ZipFile(p, 'w') as z:
+        z.writestr('word/document.xml',
+                   '<?xml version="1.0"?><w:document xmlns:w="x" xmlns:r="y"><w:body>'
+                   + paras + '</w:body></w:document>')
+        z.writestr('word/styles.xml',
+                   '<w:styles><w:style w:styleId="T1" w:type="paragraph">'
+                   '<w:name w:val="heading 1"/></w:style>'
+                   '<w:style w:styleId="T3" w:type="paragraph">'
+                   '<w:name w:val="heading 3"/></w:style></w:styles>')
+        if rels:
+            z.writestr('word/_rels/document.xml.rels', rels)
+    return p
+def _P(text, style=None, num=False):
+    st = f'<w:pStyle w:val="{style}"/>' if style else ''
+    np_ = '<w:numPr><w:ilvl w:val="0"/></w:numPr>' if num else ''
+    return f'<w:p><w:pPr>{np_}{st}</w:pPr><w:r><w:t>{text}</w:t></w:r></w:p>'
+def _HL(text):
+    return f'<w:hyperlink r:id="rId7"><w:r><w:t>{text}</w:t></w:r></w:hyperlink>'
+_RELS = ('<?xml version="1.0"?><Relationships>'
+         '<Relationship Id="rId7" Target="https://e.com/informe.pdf"/></Relationships>')
+_r1 = _dx_screen(_docx(_P('• una') + _P('• dos') + _P('• tres')), lang='es')
+assert 'docx_fake_list' in {h['signal'] for h in _r1['findings']}
+assert 'docx_fake_list' not in {h['signal'] for h in _dx_screen(_docx(_P('una', num=True) + _P('dos', num=True)), lang='es')['findings']}
+_r2 = _dx_screen(_docx(_P('T', 'T1') + _P('S', 'T3')), lang='es')
+assert 'docx_heading_skips' in {h['signal'] for h in _r2['findings']}
+assert 'docx_heading_skips' not in {h['signal'] for h in _dx_screen(_docx(_P('T', 'T1') + _P('S', 'Heading2')), lang='es')['findings']}
+_r3 = _dx_screen(_docx(_HL('pincha aquí') + _HL('pincha aquí') + _P('x')
+                        + _HL('https://e.com/informe.pdf'), rels=_RELS), lang='es')
+assert 'docx_generic_link' in {h['signal'] for h in _r3['findings']}
+print('30. trío DOCX: lista falsa, salto de títulos, enlaces genéricos ✓')
+
 
 # 28. modo de render del texto: Tr 3 puro = capa OCR (dato + nota), mezcla = no
 import zlib as _z

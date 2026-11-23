@@ -311,7 +311,13 @@
   "docx_no_lang_rem": "Revisar → Idioma → establece el idioma del documento completo.",
   "docx_table_no_header": "{n} tablas sin fila de encabezado marcada: las celdas pierden su contexto de columna (1.3.1).",
   "docx_table_no_header_rem": "Tabla → fila de encabezado marcada («Repetir filas de encabezado» en tablas multi-página).",
-  "limits": "Cribado estructural del XML: no sustituye la revisión humana (orden de lectura de tablas complejas, significado de imágenes con alt insuficiente, gráficos incrustados)."
+  "limits": "Cribado estructural del XML: no sustituye la revisión humana (orden de lectura de tablas complejas, significado de imágenes con alt insuficiente, gráficos incrustados).",
+  "docx_fake_list": "{n} grupos de listas falsas: viñetas o números escritos como texto en vez de lista de Word. El lector no las anuncia como lista ni cuenta sus elementos.",
+  "docx_fake_list_rem": "Aplica la lista real de Word (Inicio → Viñadas/Numeración): la estructura navegable llega sola y el número se recalcula solo.",
+  "docx_heading_skips": "{n} saltos de nivel en los encabezados (p. ej. Título 1 → Título 3): la jerarquía del panel de navegación queda plana.",
+  "docx_heading_skips_rem": "Corrige los niveles intermedios: cada título debería bajar de a uno (1→2→3); revisa qué nivel debía estar entre los dos.",
+  "docx_generic_link": "{n} enlaces sin propósito en su texto: «pincha aquí» repetido, la URL cruda como texto, o un enlace solo-imagen sin descripción.",
+  "docx_generic_link_rem": "Escribe el destino en el texto del enlace («Descargar el informe anual (PDF, 2 MB)»); el lector navega por la lista de enlaces y el contexto no llega."
  },
  "dom": {
   "contrast_fail": "{n} zonas de texto con contraste insuficiente: {det}. (fg/fondo computados, con composición de transparencias).",
@@ -558,7 +564,13 @@
   "pdf_scanned_rem": "Aplica OCR con texto real y etiqueta el resultado.",
   "pdf_untagged": "sin árbol de estructura (/StructTreeRoot): el orden de lectura y los roles semánticos no existen para el lector. Es EL fallo raíz de los PDF inaccesibles (1.3.1).",
   "pdf_untagged_rem": "Etiqueta el documento (exporta con «PDF etiquetado» desde authoring, o remedia con Acrobat): sin árbol, todo lo demás es cosmético.",
-  "pdf_ocr_layer_note": "Todo el texto del PDF se dibuja en modo invisible (Tr 3): lo visible es imagen. Revisa si el escaneo lleva etiquetado y alternativos; la capa invisible puede anunciar texto que nadie ve. Dato de revisión, no fallo directo."
+  "pdf_ocr_layer_note": "Todo el texto del PDF se dibuja en modo invisible (Tr 3): lo visible es imagen. Revisa si el escaneo lleva etiquetado y alternativos; la capa invisible puede anunciar texto que nadie ve. Dato de revisión, no fallo directo.",
+  "pdf_table_no_header": "{n} celdas TD etiquetadas y ninguna TH: las tablas están en el árbol de tags sin fila de cabecera.",
+  "pdf_table_no_header_rem": "Re-etiqueta la fila de cabecera como TH (o /TH con scope) en el autor de origen; sin ella, el lector no anuncia columnas.",
+  "pdf_no_heading_tags": "Documento etiquetado sin ningún H1-H6: la navegación por encabezados no existe. Si es una carta o tríptico sin títulos puede ser legítimo: revisar.",
+  "pdf_no_heading_tags_rem": "Aplica estilos de título en el documento de origen y exporta con etiquetado; H1-H6 son el mapa del documento.",
+  "pdfua_contradiction": "El XMP declara PDF/UA parte {part} pero le falta: {missing}. El sello contradice su propio documento.",
+  "pdfua_contradiction_rem": "O se completa (idioma, título, etiquetado) o se retira la declaración pdfuaid del XMP: un sello que miente es peor que no llevar sello."
  },
  "scroll": {
   "limits": "Auditor de scroll infinito: heurística con foco real y observador de regiones vivas en {n} tandas. No sustituye la prueba con lector de screen reader en el feed real.",

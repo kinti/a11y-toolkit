@@ -227,7 +227,7 @@ def pdf_screen(path_or_bytes, lang='en'):
     _info_refs = re.findall(rb'/Info\s+(\d+)\s+\d+\s+R', todo)
     if _info_refs:
         _obj_id = _info_refs[-1]      # actualizaciones incrementales: el último manda
-        _m_obj = re.search(b'\b' + _obj_id + b'\s+\d+\s+obj(.{0,4000}?)endobj', todo, re.S)
+        _m_obj = re.search(rb'\b' + _obj_id + rb'\s+\d+\s+obj(.{0,4000}?)endobj', todo, re.S)
         if _m_obj:
             title_meta = re.search(rb'/Title\s*\(([^)]{1,300})\)', _m_obj.group(1))
     if not title_meta:
@@ -243,6 +243,13 @@ def pdf_screen(path_or_bytes, lang='en'):
                     title_meta = _m
                     break
     n_pages = len(re.findall(rb'/Type\s*/Page[^s]', todo))
+    # estructura del árbol de tags (solo si tagged): TD sin TH = tablas planas;
+    # cero H1-H6 = documento etiquetado SIN jerarquía navegable
+    n_tag_td = len(re.findall(rb'/S\s*/TD\b', todo))
+    n_tag_th = len(re.findall(rb'/S\s*/TH\b', todo))
+    n_tag_h = len(re.findall(rb'/S\s*/H[1-6]\b', todo))
+    _m_ua = re.search(rb'pdfuaid:part\s*=\s*["\x27]?\s*(\d+)', todo)
+    pdfua_part = int(_m_ua.group(1)) if _m_ua else None
     # /Alt acepta literal (/Alt (…)) y hex (/Alt <FEFF…>, la forma natural
     # UTF-16BE para alt no latino) — misma paridad que /TU
     n_alt = len(re.findall(rb'/Alt\s*[<(]', todo))
@@ -311,6 +318,36 @@ def pdf_screen(path_or_bytes, lang='en'):
             'issue': _t(lang, 'pdf_fake_link').format(n=len(bluish)),
             'remediation': _t(lang, 'pdf_fake_link_rem'),
             'examples': bluish})
+
+    # ── 1.3.1 en PDF: etiquetado plano (tablas sin TH, sin H1-H6) ──
+    _tagged_ok = bool(tagged and marked)
+    if _tagged_ok and n_tag_td and not n_tag_th:
+        findings.append({
+            'severity': 'medium', 'criterion': '1.3.1 (PDF)',
+            'signal': 'pdf_table_no_header',
+            'issue': _t(lang, 'pdf_table_no_header').format(n=n_tag_td),
+            'remediation': _t(lang, 'pdf_table_no_header_rem')})
+    if _tagged_ok and (n_pages or 0) >= 3 and not n_tag_h \
+            and not re.search(rb'/H[1-6]\b[^>]{0,200}/RoleMap|RoleMap[^>]{0,200}/H[1-6]\b', todo) \
+            and not re.search(rb'/FT\s*/(?:Tx|Ch|Btn|Sig)', todo):
+        findings.append({
+            'severity': 'low', 'criterion': '1.3.1 (PDF)',
+            'signal': 'pdf_no_heading_tags',
+            'issue': _t(lang, 'pdf_no_heading_tags'),
+            'remediation': _t(lang, 'pdf_no_heading_tags_rem')})
+    # ── contradicción PDF/UA: XMP declara pdfuaid:part pero falta idioma,
+    # título o etiquetado — el sello miente sobre su propio documento
+    if pdfua_part is not None:
+        _missing = [k for k, v in (('/Lang', lang_found is None),
+                                  ('/Title', title_meta is None),
+                                  ('StructTree', not _tagged_ok)) if v]
+        if _missing:
+            findings.append({
+                'severity': 'high', 'criterion': '1.3.1 (PDF)',
+                'signal': 'pdfua_contradiction',
+                'issue': _t(lang, 'pdfua_contradiction').format(
+                    part=pdfua_part, missing=', '.join(_missing)),
+                'remediation': _t(lang, 'pdfua_contradiction_rem')})
 
     # ── 3.3.2 / 4.1.2 en PDF: campos AcroForm sin etiqueta accesible ──
     # /FT declara el tipo de campo (/Tx texto, /Ch lista, /Sig firma, /Btn
@@ -384,6 +421,8 @@ def pdf_screen(path_or_bytes, lang='en'):
         'images': n_imgs, 'alt_entries': n_alt, 'actual_text': n_actual,
         'text_operators': n_text,
         'text_render': {'visible_ops': _t_vis, 'invisible_ops': _t_inv},
+        'pdfua_claimed': pdfua_part,
+        'tag_counts': {'td': n_tag_td, 'th': n_tag_th, 'h': n_tag_h},
         'ocr_layer_only': bool(_t_inv and not _t_vis),
         'form_fields': n_fields, 'form_labels': n_tu,
         'truncated': truncated,
