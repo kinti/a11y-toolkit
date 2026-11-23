@@ -622,10 +622,10 @@ class _Auditor(HTMLParser):
         self.autocomplete_mismatch = []
         self.heading_role_removed = []   # h1-h6 con rol que sustituye al de heading
         self.text_spacing_important = []  # 1.4.12: spacing !important inline (ACT 24afc2/78fd32/9e45ec)
-        self.a_no_href = []              # 2.1.1: <a> sin href usado como control (batida B1-a)
-        self.nested_main = []            # 1.3.1: main anidado en seccionante (B1-b)
-        self.fake_lists = []             # 1.3.1: lista falsa con viñetas y <br> (B1-c)
-        self.alert_polite = []           # 4.1.2: role=alert gritando en aria-live=polite (B1-d)
+        self.a_no_href = []              # 2.1.1: <a> sin href usado como control
+        self.nested_main = []            # 1.3.1: main anidado en seccionante
+        self.fake_lists = []             # 1.3.1: lista falsa con viñetas y <br>
+        self.alert_polite = []           # 4.1.2: role=alert gritando en aria-live=polite
         self.headers_bad = []            # 1.3.1: headers= apuntando fuera de tabla o a no-th (ACT d0f69e/a25f45)
         self.lang_xml_mismatch = []      # 3.1.2: lang y xml:lang discrepando (ACT 5b7ae0)
         self.nested_interactive = []    # 4.1.2: interactivo DENTRO de interactivo
@@ -1394,7 +1394,7 @@ class _Auditor(HTMLParser):
             # nombre le llega del alt)
             self.controls_raw.append(('area', a, '', [], _hidden))
         if tag == 'main' and not self._in_template:
-            # B1-b (batida 18-nov): main es top-level por definición — anidado
+            # main es top-level por definición: anidado
             # en section/aside/nav/article/main/header/footer no es ni landmark
             # válido ni estructura honesta (1.3.1)
             # [-1] es el PROPIO main (ya apilado cuando corre este chequeo):
@@ -1509,9 +1509,9 @@ class _Auditor(HTMLParser):
             if len(self._invokers) < 8:
                 self._invokers.append(((a.get('commandfor') or '').strip(),
                                         (a.get('command') or '').strip().lower()))
-        # ── batida 18-nov, día 2 ──
+        # ── patrones de estructura y de estado ──
         if not self._in_template:
-            # B1-a: <a> SIN href con vida de control (2.1.1): tabindex>=0,
+            # <a> SIN href con vida de control (2.1.1): tabindex>=0,
             # onclick o rol interactivo. Sin href NO es enlace: el AT no lo
             # anuncia como tal aunque sea enfocable y le echen un click.
             # Exento: tabindex=-1 (ancla objetivo legítima) y <a> puro con id
@@ -1524,7 +1524,7 @@ class _Auditor(HTMLParser):
                 if _viva and len(self.a_no_href) < 12:
                     _tx = ' '.join(self._ctrl[-1]['text']).strip()[:20] if self._ctrl else ''
                     self.a_no_href.append('<a>' + (f' "{_tx}"' if _tx else ''))
-            # B1-d: role=alert ES assertive en sí mismo (ARIA): un aria-live
+            # role=alert ES assertive en sí mismo (ARIA): un aria-live
             # polite encima lo contradice (4.1.2, estado que no es el que dice)
             _role_low = (a.get('role') or '').strip().lower()
             _live = (a.get('aria-live') or '').strip().lower()
@@ -1669,8 +1669,8 @@ class _Auditor(HTMLParser):
         elif tag == 'nav':
             self._in_nav = max(0, self._in_nav - 1)
         elif tag == 'p':
-            # B1-c: lista falsa = ≥2 viñetas tipográficas + separadores <br>
-            # en un párrafo fuera de listas reales (batida 18-nov, htmhell 30)
+            # lista falsa = ≥2 viñetas tipográficas + separadores <br>
+            # en un párrafo fuera de listas reales
             if self._p_bullets is not None and self._p_bullets >= 2 \
                     and self._p_brs >= 1 and self._list_depth == 0 \
                     and len(self.fake_lists) < 8:
@@ -1909,7 +1909,7 @@ class _Auditor(HTMLParser):
             m = _SENSORIAL.search(re.sub(r'«[^»]*»|“[^”]*”|"[^"]*"', ' ', data))
             if m and len(self.sensory) < 6:
                 self.sensory.append(m.group(0).strip()[:60])
-            # B1-c: viñetas tipográficas en prosa = lista falsa (umbral ≥2;
+            # viñetas tipográficas en prosa = lista falsa (umbral ≥2;
             # un solo guion de cita o de lista de definición NO es lista)
             if self._p_bullets is not None:
                 self._p_bullets += len(re.findall(

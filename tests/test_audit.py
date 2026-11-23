@@ -285,7 +285,7 @@ assert _ts['severity'] == 'medium' and _ts['criterion'].startswith('1.4.12')
 assert len(_ts.get('examples') or []) == 2, _ts        # line + letter; sin !important NO
 
 
-# ── batida día 2: las 6 señales de los museos del horror + ACT ─────────────
+# ── seis señales de patrón estático + ACT ──────────────────────────────────
 R_D2 = audit_html('<!doctype html><html lang="es"><head><title>t</title></head><body>'
                   '<nav><a href="/">h</a></nav><main><h1>t</h1>'
                   '<a tabindex="0" onclick="f()">Login</a>'
@@ -358,7 +358,7 @@ for _frag, _debe in (
     assert _tiene == _debe, _frag
 
 
-# ── bloque DAFO: password 1.3.5, select autofocus, roles huérfanos, skip roto ──
+# ── password 1.3.5, select autofocus, roles huérfanos, skip roto ────────────
 # el select[autofocus] SOLO es hallazgo con un script de cambio de contexto: el
 # atributo solo no cambia nada (Chromium 147: foco en el control, opción
 # inicial intacta) y antes bloqueaba CI sin incumplir 3.2.1

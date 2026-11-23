@@ -1,6 +1,15 @@
 # Changelog
 
-## main — pendiente
+## 5.33.0 — 2026-11-24
+- **Comments in the public sources tidied, and the hygiene check can read a
+  private list.** A few code comments carried internal working labels. They
+  are rewritten in neutral terms, comments only: the code on each changed
+  line is identical. `tests/test_solido.py` can now verify this on every run:
+  it reads the list of terms that must never appear in a tracked file from an
+  untracked file inside `.git/`, so the list itself stays out of the
+  repository, and it skips with a notice when that file is absent. What it
+  does NOT do: the check only runs where the private list exists; elsewhere
+  the pre-commit hook and the read before publishing remain the guard.
 - **CI: the 3.9 grammar guard now covers every Python directory.** The
   previous commit shipped a test with a backslash inside an f-string
   expression. That compiles on Python 3.12 and later, so the local suite was
@@ -192,7 +201,7 @@
   What it does NOT do: per-tool `outputSchema` declarations (the 37 tools
   keep their JSON shapes undocumented in the schema layer) and batching
   remain out.
-- **Five additions closing the external-review gap and the day-3 backlog:**
+- **Five additions closing the external-review gap:**
 - **`role_orphan` (1.3.1, medium)** — explicit widget roles without their
   required container: role=listitem outside a list, menuitem outside
   menu/menubar, option outside listbox, tab outside tablist, treeitem outside
@@ -269,6 +278,9 @@
   carries the counts plus a review note (tagging/alternatives of the scan,
   invisible layer announcing text nobody sees). Data, not a finding. Pinned
   pure-invisible vs mixed synthetic PDFs.
+
+## 5.32.0 — 2026-11-23
+
 - **Static audit patterns.** Added signals for interactive anchors without
   `href`, nested `main`, bullet-and-break lists, polite alerts, conflicting
   `lang` / `xml:lang`, and broken `headers` references. Table validation

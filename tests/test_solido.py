@@ -389,6 +389,34 @@ _aguja = b'a11y-' + b'drafts'  # partida: el propio test no contiene el literal 
 for _f in _tracked:
     with open(os.path.join(ROOT, _f), 'rb') as _fh:
         assert _aguja not in _fh.read().lower(), f'nombre de ubicación interna publicado en {_f}'
+# 5a. la misma higiene para cualquier término interno: COMENTARIOS del código
+# incluidos (el repaso antes de publicar miraba CHANGELOG, readmes y docs, y
+# unas etiquetas de trabajo se quedaron en fuentes y tests a través de varias
+# versiones). La lista no puede vivir en este fichero sin publicarla: se lee
+# de .git/a11y-internal-terms.txt (un término por línea, `#` = comentario),
+# que git jamás trackea. Sin la lista la comprobación se omite CON AVISO
+_terms = os.path.join(ROOT, '.git', 'a11y-internal-terms.txt')
+_publico = [f for f in _tracked if not f.startswith(('bench/tetra-acl/', 'bench/results/'))]
+if os.path.exists(_terms):
+    _pat = []
+    with open(_terms, encoding='utf-8') as _fh:
+        for _ln in _fh:
+            _ln = _ln.strip().lower()
+            if _ln and not _ln.startswith('#'):
+                _pat.append(_ln.encode())
+    assert _pat, 'la lista de términos internos está vacía'
+    _fugas = set()
+    for _f in _publico:
+        with open(os.path.join(ROOT, _f), 'rb') as _fh:
+            _low = _fh.read().lower()
+        if any(_t in _low for _t in _pat):
+            _fugas.add(_f)
+    # jamás imprimir el término: solo el fichero (la salida de un test es
+    # pública en cuanto se pega en un issue o en un log de CI)
+    assert not _fugas, f'términos internos en ficheros trackeados: {sorted(_fugas)[:8]}'
+    print(f'  higiene: {len(_pat)} términos internos ausentes de {len(_publico)} ficheros trackeados ✓')
+else:
+    print('  higiene: AVISO, sin .git/a11y-internal-terms.txt (lista privada): término interno no comprobado')
 
 # ---------- 5b. frontera de ficheros (la respuesta VERIFICADA al aviso
 # "Filesystem access" de los escáneres de supply-chain): el motor no abre

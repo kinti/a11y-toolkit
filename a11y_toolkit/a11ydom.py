@@ -862,9 +862,9 @@ def audit_dom(data, url='(rendered)', lang='en', color_scheme='light'):
         _add(findings, lang, 'low', '1.4.3', 'contrast_review', n=remaining)
 
     # 1b. Contraste del placeholder (::placeholder): el gris típico sobre
-    # blanco falla 1.4.3 y el AT lo lee como texto real (Léonie Watson,
-    # estado del sector 2026). Severidad de contrast_fail (medium: la misma
-    # clase de texto que falla, no grave como un bloqueo de uso).
+    # blanco falla 1.4.3 y el AT lo lee como texto real. Severidad de
+    # contrast_fail (medium: la misma clase de texto que falla, no grave
+    # como un bloqueo de uso).
     ph_failures = data.get('placeholderContrast') or []
     if ph_failures:
         det = '; '.join(
