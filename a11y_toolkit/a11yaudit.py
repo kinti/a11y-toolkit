@@ -596,6 +596,10 @@ class _Auditor(HTMLParser):
         self.headers_bad = []            # 1.3.1: headers= apuntando fuera de tabla o a no-th (ACT d0f69e/a25f45)
         self.lang_xml_mismatch = []      # 3.1.2: lang y xml:lang discrepando (ACT 5b7ae0)
         self.nested_interactive = []    # 4.1.2: interactivo DENTRO de interactivo
+        self.select_auto_focus = []      # 3.2.1: select[autofocus] (flechas = cambio)
+        self.skip_broken = []           # 2.4.1: skip/fragmento a id inexistente (F89)
+        self.role_orphans = []          # 1.3.1: rol sin su padre requerido (ACT bc4a75 familia)
+        self._skip_hrefs = []           # (href, texto) de enlaces internos skip
         self.invoker_bad = []           # 4.1.2: commandfor sin destino o tipo erróneo
         self.aria_level_gt6 = []        # 1.3.1: aria-level>6 (los lectores lo degradan)
         self._invokers = []             # (idref, command) pendientes de validar
@@ -969,7 +973,7 @@ class _Auditor(HTMLParser):
                 _tok_ac = (a.get('autocomplete') or '').strip().lower()
                 _covered = bool(_tok_ac) and _tok_ac not in ('off', 'on')
                 if (not _covered) and kind != 'search' and not _recipient and (
-                        kind in ('email', 'tel')
+                        kind in ('email', 'tel', 'password')
                         or _PERSONAL_DATA.search((a.get('name') or '') + ' ' + (a.get('id') or ''))):
                     self.missing_autocomplete.append(f'input type={kind} name={a.get("name") or "?"}'[:44])
                     self.autocomplete_elems.append(a)
@@ -1394,6 +1398,50 @@ class _Auditor(HTMLParser):
             self._heading_attrs = a
             self._heading_hidden = _hidden
             self._heading_tag = tag
+        # select[autofocus] (3.2.1): en forms-mode las flechas del lector
+        # CAMBIAN la opción committed sin intención del usuario
+        if tag == 'select' and 'autofocus' in a \
+                and not self._in_template and len(self.select_auto_focus) < 5:
+            self.select_auto_focus.append('select[autofocus]')
+        # roles con padre requerido (familia ACT bc4a75, hueco cazado por la
+        # comparativa externa): listitem sin lista, menuitem sin menu, option
+        # sin listbox, tab sin tablist, treeitem sin árbol. SOLO roles
+        # EXPLÍCITOS (el li implícito fuera de lista es otra familia, muy FP):
+        # el padre vale por rol explícito O etiqueta implícita (ul/ol = list).
+        _ROLE_PARENTS = {
+            'listitem': ('list', 'menu'),
+            'menuitem': ('menu', 'menubar'),
+            'menuitemcheckbox': ('menu', 'menubar', 'group'),
+            'menuitemradio': ('menu', 'menubar', 'group'),
+            'option': ('listbox',),
+            'tab': ('tablist',),
+            'treeitem': ('tree', 'group'),
+        }
+        _IMPLICIT_PARENT = {'list': ('ul', 'ol'), 'menu': ('menu',), 'menubar': (),
+                            'listbox': (), 'tablist': (), 'tree': (), 'group': ()}
+        _rv = (a.get('role') or '').strip().lower()
+        if _rv in _ROLE_PARENTS and not self._in_template and not _hidden \
+                and len(self.role_orphans) < 8:
+            _required_set = _ROLE_PARENTS[_rv]
+            _has_parent = False
+            for _anc_tag, _anc_a, _ in reversed(self._el_stack):
+                if _anc_a is a:
+                    continue
+                _anc_role = (_anc_a.get('role') or '').strip().lower()
+                for _nec in _required_set:
+                    if _anc_role == _nec or _anc_tag in _IMPLICIT_PARENT.get(_nec, ()):
+                        _has_parent = True
+                        break
+                if _has_parent:
+                    break
+            if not _has_parent:
+                self.role_orphans.append(f'role="{_rv}" sin su {"/".join(_required_set)}')
+        # enlaces internos: candidatos a skip; el VOCABULARIO y el destino se
+        # deciden post-parse (el texto llega al cerrar el control)
+        if tag == 'a' and not self._in_template:
+            _href = (a.get('href') or '').strip()
+            if _href.startswith('#') and _href != '#' and len(self._skip_hrefs) < 12:
+                self._skip_hrefs.append((_href[1:], a))
         # interactivo dentro de interactivo (4.1.2): el modelo de contenido lo
         # prohíbe; el AT anuncia mal el interno y el externo pierde su límite.
         # Ancestros por el ÁRBOL REAL (_el_stack), no por _ctrl (malformados).
@@ -2334,6 +2382,23 @@ def audit_html(html_text, url='(html)', lang='en', standard=None, target=None):
     if p.invoker_bad:
         add_ej('medium', '4.1.2', 'invoker_command_bad', p.invoker_bad,
                n=len(p.invoker_bad), example=', '.join(p.invoker_bad[:4]))
+    if p.select_auto_focus:
+        add('medium', '3.2.1', 'select_auto_focus', n=len(p.select_auto_focus))
+    if p.role_orphans:
+        add_ej('medium', '1.3.1', 'role_orphan', p.role_orphans,
+               n=len(p.role_orphans), example=', '.join(p.role_orphans[:4]))
+    # skips (F89): SOLO enlaces con vocabulario de salto (patrón 3e12e1) cuyo
+    # destino no existe. Una nota al pie rota es otro aviso (y menor): el
+    # mecanismo de bypass ROTO es lo que deja a quien navega atrapado en la
+    # repetitive nav (2.4.1 medium).
+    _ctrl_txt = {id(_a): _txt for _t, _a, _txt, _i, _h in p.controls_raw}
+    for _ref, _a in p._skip_hrefs:
+        if _ref and _ref not in p.ids and len(p.skip_broken) < 8:
+            if _SKIP_TEXT.search(_ctrl_txt.get(id(_a), '') or ''):
+                p.skip_broken.append(f'#{_ref[:24]}')
+    if p.skip_broken:
+        add_ej('medium', '2.4.1', 'skip_broken', p.skip_broken,
+               n=len(p.skip_broken), example=', '.join(p.skip_broken[:4]))
     if p.headers_bad:
         examples = [f'headers="{token[:20]}"' for token, _ in p.headers_bad[:5]]
         add_ej('medium', '1.3.1', 'headers_attr_bad', examples,

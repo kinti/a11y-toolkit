@@ -248,7 +248,13 @@
   "invoker_command_bad": "{n} botones con comandos invoker rotos: {example}. El commandfor no resuelve o el comando no casa con el tipo de destino (show-modal/close exigen <dialog>; los comandos popover exigen el atributo popover) (4.1.2).",
   "invoker_command_bad_rem": "Apunta commandfor a un id existente del tipo correcto: <dialog> para show-modal/close, [popover] para show/hide/toggle-popover. Sin destino no hay comportamiento ni estados gestionados.",
   "aria_level_gt6": "{n} encabezados con aria-level mayor que 6: {example}. El valor es ARIA válido y Chromium lo expone tal cual; el comportamiento documentado de JAWS es degradarlo a otro nivel (matriz TetraLogical 2026): comprueba la intención y tu lector objetivo (1.3.1).",
-  "aria_level_gt6_rem": "Si la jerarquía real cabe en h1-h6, quita el aria-level extra; si necesitas niveles más profundos, verifica con el lector que usan tus personas usuarias antes de fiarte del número escrito."
+  "aria_level_gt6_rem": "Si la jerarquía real cabe en h1-h6, quita el aria-level extra; si necesitas niveles más profundos, verifica con el lector que usan tus personas usuarias antes de fiarte del número escrito.",
+  "role_orphan": "{n} roles sin su contenedor requerido: {example}. Un listitem sin lista, un tab sin tablist o un option sin listbox pierden la estructura que anuncia su rol (1.3.1).",
+  "role_orphan_rem": "Envuélvelos en el contenedor de su rol (list, menu, listbox, tablist, tree) o en la etiqueta implícita equivalente (ul/ol para list).",
+  "skip_broken": "{n} enlaces de salto con destino inexistente: {example}. El mecanismo de bypass apunta a un id que no existe y quien navega queda atrapado en la navegación repetida (2.4.1, F89).",
+  "skip_broken_rem": "Apunta el enlace al id real del contenido principal (o crea el id): un bypass roto es peor que no tener bypass.",
+  "select_auto_focus": "{n} select con autofocus: en modo formulario del lector, las flechas CAMBIAN la opción seleccionada sin intención del usuario (3.2.1).",
+  "select_auto_focus_rem": "Quita el autofocus del select (o muévelo al campo de texto inicial del formulario si el foco automático es imprescindible)."
  },
  "badge": {
   "name": "a11y-toolkit",

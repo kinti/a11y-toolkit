@@ -1,6 +1,29 @@
 # Changelog
 
 ## main — pendiente
+- **Five additions closing the external-review gap and the day-3 backlog:**
+- **`role_orphan` (1.3.1, medium)** — explicit widget roles without their
+  required container: role=listitem outside a list, menuitem outside
+  menu/menubar, option outside listbox, tab outside tablist, treeitem outside
+  tree/group. Parents count by explicit role OR implicit element (ul/ol =
+  list). Explicit roles only — implicit `<li>` outside lists is a different,
+  noisier family left out on purpose. This is the gap the external
+  comparison caught (a role=listitem outside a list that axe flagged and
+  both toolkit modes missed).
+- **`skip_broken` (2.4.1, medium)** — skip links whose fragment target does
+  not exist (failure F89): the bypass mechanism aims at nothing and the user
+  stays trapped in the repeated navigation. Skip-vocabulary links only
+  (the 3e12e1 pattern); a broken footnote anchor is a different, lesser
+  issue and stays out.
+- **`select_auto_focus` (3.2.1, medium)** — a select carrying autofocus: in
+  the screen reader forms mode, arrow keys change the committed option
+  without the user intending it.
+- **`autocomplete` (1.3.5) now covers password fields** — current-password/
+  new-password tokens were missing from the applicability set; the auth
+  bundle is complete.
+- Pins cover the five positive cases and the clean page (password with the
+  right token, select without autofocus, listitem inside ul and inside
+  role=list, skip link to an existing id, broken non-skip anchor exempt).
 - **The monthly benchmark can no longer false-green** (external review,
   2026-11-23): a Playwright/engine failure inside `bench/compara.py` used to
   land as an `{'error': ...}` row with exit code 0, and a failed rendered

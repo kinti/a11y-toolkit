@@ -347,6 +347,32 @@ assert result['table_no_th']['paths'][0].endswith('>table:nth-of-type(1)')
 print('table headers: full token list, exact paths and nested isolation ✓')
 
 
+# ── bloque DAFO: password 1.3.5, select autofocus, roles huérfanos, skip roto ──
+_r = audit_html('<!doctype html><html lang="es"><head><title>t</title></head><body>'
+                '<nav><a href="/">h</a></nav><main><h1>x</h1>'
+                '<form><input type="password" name="pw">'
+                '<select autofocus><option>a</option></select></form>'
+                '<div role="listitem">cosa</div>'
+                '<a href="#no-existe">Saltar al contenido</a>'
+                '</main></body></html>')
+_s = {f['signal'] for f in _r['findings']}
+for _esp in ('autocomplete', 'select_auto_focus', 'role_orphan', 'skip_broken'):
+    assert _esp in _s, f'{_esp} falta: {sorted(_s)}'
+_r_ok = audit_html('<!doctype html><html lang="es"><head><title>t</title></head><body>'
+                   '<nav><a href="/">h</a></nav><main><h1>x</h1>'
+                   '<form><input type="password" name="pw" autocomplete="current-password">'
+                   '<select><option>a</option></select></form>'
+                   '<div role="list"><div role="listitem">cosa</div></div>'
+                   '<ul><li role="listitem">dos</li></ul>'
+                   '<a href="#principal">Saltar al contenido</a><p id="principal">x</p>'
+                   '<a href="#roto">nota al pie</a>'
+                   '</main></body></html>')
+_ok = {f['signal'] for f in _r_ok['findings']}
+for _pro in ('select_auto_focus', 'role_orphan', 'skip_broken'):
+    assert _pro not in _ok, f'{_pro} en página limpia: {sorted(_ok)}'
+assert 'autocomplete' not in _ok, 'password con token correcto no debe acusar'
+
+
 # ── anidado + invokers + aria-level: la tanda de las listas recientes ────────
 def _mk_d3(frag):
     return audit_html('<!doctype html><html lang="es"><head><title>t</title></head>'
