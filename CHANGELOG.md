@@ -1,6 +1,17 @@
 # Changelog
 
 ## main — pendiente
+- **MCP protocol negotiation + structuredContent:** the server now supports
+  2024-11-05, 2025-06-18 and 2025-11-25 and negotiates per the spec — a
+  supported requested version is answered as-is, an unknown one gets our
+  latest. Tool calls in a 2025-06-18+ session return the result object as
+  native `structuredContent` alongside the text (clients no longer parse
+  JSON out of a text block); 2024-11-05 sessions stay text-only, byte
+  compatible. Verified over real stdio: modern session (negotiated + native
+  == text), old session (text only), unknown version (latest answered).
+  What it does NOT do: per-tool `outputSchema` declarations (the 37 tools
+  keep their JSON shapes undocumented in the schema layer) and batching
+  remain out.
 - **Five additions closing the external-review gap and the day-3 backlog:**
 - **`role_orphan` (1.3.1, medium)** — explicit widget roles without their
   required container: role=listitem outside a list, menuitem outside

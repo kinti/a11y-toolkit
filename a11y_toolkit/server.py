@@ -1696,6 +1696,13 @@ def main():
                 _stream.reconfigure(**_kw)
             except (ValueError, OSError, AttributeError):
                 pass  # exotic/closed streams: keep their default encoding
+    # versiones que este servidor soporta DE VERDAD (batching no está
+    # implementado, así que las 2025-* se sirven sin esa característica y
+    # el cliente lo sabe por las capabilities). La negociación es por
+    # spec: si el cliente pide una soportada se responde ESA; si pide una
+    # desconocida, se responde la última nuestra.
+    _SUPPORTED = ('2024-11-05', '2025-06-18', '2025-11-25')
+    _session = {'proto': '2024-11-05'}
     for line in sys.stdin:
         line = line.strip()
         if not line:
@@ -1717,11 +1724,11 @@ def main():
             continue  # notificación: sin respuesta
         try:
             if method == 'initialize':
+                _requested = (msg.get('params') or {}).get('protocolVersion', '')
+                _session['proto'] = (_requested if _requested in _SUPPORTED
+                                     else _SUPPORTED[-1])
                 resp = {'jsonrpc': '2.0', 'id': mid, 'result': {
-                    # MCP: answer with the LATEST version we actually support,
-                    # never echo the client's (batching is rejected below, so
-                    # echoing e.g. '2025-06-18' would be a partial lie)
-                    'protocolVersion': '2024-11-05',
+                    'protocolVersion': _session['proto'],
                     'capabilities': {'tools': {}, 'prompts': {}},
                     'serverInfo': {'name': 'a11y-toolkit', 'version': VERSION},
                     'instructions': INSTRUCTIONS,
@@ -1732,7 +1739,19 @@ def main():
                 resp = {'jsonrpc': '2.0', 'id': mid, 'result': {'tools': TOOLS}}
             elif method == 'tools/call':
                 p = msg.get('params', {})
-                resp = {'jsonrpc': '2.0', 'id': mid, 'result': invoke(p.get('name'), p.get('arguments') or {})}
+                _r = invoke(p.get('name'), p.get('arguments') or {})
+                if _session['proto'] >= '2025-06-18':
+                    # structuredContent (MCP 2025-06-18): el MISMO objeto que
+                    # viaja como texto, también como JSON nativo — el cliente
+                    # moderno no tiene que re-parsear; el texto sigue para los
+                    # antiguos. Es la pieza que la comparativa externa echaba
+                    # en falta (JSON-as-text en pleno 2026).
+                    try:
+                        _r['structuredContent'] = json.loads(
+                            _r['content'][0]['text'])
+                    except Exception:  # noqa: BLE001 — texto no-JSON: sin nativo
+                        pass
+                resp = {'jsonrpc': '2.0', 'id': mid, 'result': _r}
             elif method == 'prompts/list':
                 resp = {'jsonrpc': '2.0', 'id': mid, 'result': {'prompts': _PROMPTS}}
             elif method in ('prompts/get', 'prompts/call'):  # get = spec method (2024-11-05); call kept as alias

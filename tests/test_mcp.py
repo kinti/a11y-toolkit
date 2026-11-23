@@ -145,7 +145,7 @@ _p3 = subprocess.run([sys.executable, '-m', 'a11y_toolkit.server'], cwd=ROOT,
                                        'params': {'protocolVersion': '2099-99-99'}}),
                      capture_output=True, text=True, timeout=60)
 _r3 = json.loads(_p3.stdout.splitlines()[0])
-assert _r3['result']['protocolVersion'] == '2024-11-05', _r3['result']['protocolVersion']
+assert _r3['result']['protocolVersion'] == '2025-11-25', _r3['result']['protocolVersion']
 
 
 # main() reconfigura stdio a UTF-8: un pipe cp1252 no puede matar el server
@@ -196,4 +196,25 @@ _ver = json.loads(server.invoke('a11y_journey_verdict',
 assert 'error' not in _ver, _ver
 _miss = json.loads(server.invoke('a11y_journey_verdict', {'steps': _STEPS})['content'][0]['text'])
 assert 'error' in _miss and 'task' in _miss['error'] and 'outcome' in _miss['error'], _miss
-print('PROTOCOLO 5.26.1 OK ✓ (UTF-8 forzado, protocolVersion 2024-11-05, ledger enum, snippet en, journey verify-only)')
+print('PROTOCOLO 5.26.1 OK ✓ (UTF-8 forzado, negociación 2024/2025/última, ledger enum, snippet en, journey verify-only)')
+
+# ── 2026-11-25: structuredContent — el objeto viaja como JSON nativo cuando
+# la sesión negociada es moderna (>= 2025-06-18); el texto sigue para los viejos
+_req_mod = [
+    {'jsonrpc': '2.0', 'id': 1, 'method': 'initialize',
+     'params': {'protocolVersion': '2025-11-25', 'capabilities': {}, 'clientInfo': {'name': 't'}}},
+    {'jsonrpc': '2.0', 'method': 'notifications/initialized'},
+    {'jsonrpc': '2.0', 'id': 2, 'method': 'tools/call',
+     'params': {'name': 'a11y_contrast_pair', 'arguments': {'fg': '#777777', 'bg': '#ffffff'}}},
+]
+_pm = subprocess.run([sys.executable, '-m', 'a11y_toolkit.server'], cwd=ROOT,
+                     input='\n'.join(json.dumps(r) for r in _req_mod),
+                     capture_output=True, text=True, timeout=60)
+_rm = {json.loads(l).get('id'): json.loads(l) for l in _pm.stdout.splitlines() if l.strip()}
+assert _rm[1]['result']['protocolVersion'] == '2025-11-25'
+_sc = _rm[2]['result'].get('structuredContent')
+assert _sc and _sc.get('ratio', 0) > 4, _sc
+assert json.loads(_rm[2]['result']['content'][0]['text']) == _sc, 'texto y nativo difieren'
+# la sesión VIEJA de arriba (REQ2, 2024-11-05) NO lleva structuredContent
+assert 'structuredContent' not in r2[11]['result']
+print('STRUCTURED CONTENT OK ✓ (2025-11-25 nativo + 2024-11-05 texto solo)')
