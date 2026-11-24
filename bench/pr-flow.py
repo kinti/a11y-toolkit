@@ -129,6 +129,17 @@ def _count(finding):
     return int(m.group(1)) if m else None
 
 
+def _instances(finding):
+    """Counter of the instances a finding carries. An absent finding is an
+    empty counter. A finding that carries no element (page-level: a missing
+    title, a missing lang attribute) is ONE instance of its own: it used to
+    vanish from the diff, so a page losing its title reported zero new."""
+    if finding is None:
+        return Counter()
+    carried = _elements(finding)
+    return Counter(carried) if carried else Counter([None])
+
+
 def compare(before, after):
     """Per-element diff of two toolkit reports."""
     fb, fa = _findings(before), _findings(after)
@@ -138,9 +149,10 @@ def compare(before, after):
         eb, ea = _elements(b), _elements(a)
         if max(len(eb), len(ea)) < _CARRIED:
             # every instance is carried on both sides: compare by element
-            cb, ca = Counter(eb), Counter(ea)
-            new += [[key[0], key[1], el] for el in sorted((ca - cb).elements())]
-            fixed += [[key[0], key[1], el] for el in sorted((cb - ca).elements())]
+            # (a page-level finding is one instance)
+            cb, ca = _instances(b), _instances(a)
+            new += [[key[0], key[1], el] for el in sorted((ca - cb).elements(), key=str)]
+            fixed += [[key[0], key[1], el] for el in sorted((cb - ca).elements(), key=str)]
             same += sum((cb & ca).values())
             continue
         # at or past the carried cap: the report may hide elements. What it

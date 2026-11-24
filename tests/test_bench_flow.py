@@ -68,14 +68,28 @@ with open(os.path.join(_D, 'index.html'), 'w', encoding='utf-8') as _f:
 
 
 class _H(BaseHTTPRequestHandler):
+    """index.html para cualquier ruta, salvo dos que solo cambian para
+    Chromium y solo a partir de su SEGUNDA navegación (la primera es el pase
+    renderizado del toolkit; la segunda, la carga de axe): /flip.html responde
+    404 y /jump.html redirige a index.html. Así los dos pases del toolkit
+    reciben la página buena y solo la carga de axe recibe otra cosa."""
+    _navegaciones = {'/flip.html': 0, '/jump.html': 0}
+
     def do_GET(self):
-        path = os.path.join(_D, 'index.html')
-        if not os.path.exists(path):
-            self.send_error(404)
-            return
-        with open(path, 'rb') as f:
+        with open(os.path.join(_D, 'index.html'), 'rb') as f:
             body = f.read()
-        self.send_response(200)
+        status, location = 200, None
+        es_chromium = 'Chrome' in self.headers.get('User-Agent', '')
+        if es_chromium and self.path in self._navegaciones:
+            self._navegaciones[self.path] += 1
+            if self._navegaciones[self.path] >= 2:       # la 2ª navegación ya es la de axe
+                if self.path == '/flip.html':
+                    status = 404
+                else:
+                    status, location = 302, '/index.html'
+        self.send_response(status)
+        if location:
+            self.send_header('Location', location)
         self.send_header('Content-Type', 'text/html; charset=utf-8')
         self.send_header('Content-Length', str(len(body)))
         self.end_headers()
@@ -115,28 +129,89 @@ if _HAS_AXE:
     assert '1.1.1' in _both['axe']['criterios'], _both['axe']
     assert '1.1.1' in _both['coinciden'], _both
     assert _both['axe']['rules_inapplicable'] > 0, 'axe no llegó a ejecutar sus reglas'
+    assert _both['axe']['http_status'] == 200, _both['axe']
+    assert _both['axe']['url_final'] == _both['toolkit']['url_final'] == URL, _both
     assert compara.problems([_both], expected=1, min_signals=0) == []
-    print('2. compara: toolkit y axe devuelven resultados de verdad ✓')
+    print('2. compara: toolkit y axe devuelven resultados de verdad sobre la misma página ✓')
 else:
     print('2. compara con axe real: SKIP (sin axe.min.js local ni en caché)')
 
-# ── 3. el gate: una fila solo es evidencia con los tres motores ───────────────
+# ── 2b. la carga de axe tiene que ser LA MISMA página y una respuesta sana ────
+# Antes: con 200 para los dos pases del toolkit y un 404 en la carga de axe,
+# la fila salía con los tres motores «ok» y --check la daba por buena (axe
+# aportaba los criterios de la página de error). No hace falta axe real: el
+# problema se detecta ANTES de ejecutarlo, que es lo que el espía demuestra
+_base = URL.rsplit('/', 1)[0]
+_axe_espia_llamadas = []
+
+
+def _axe_espia(page, axe_js=None):
+    _axe_espia_llamadas.append(page.url)
+    return {'violations': [], 'inapplicable_count': 0}
+
+
+compara.axe_en_pagina = _axe_espia
+try:
+    for _ruta, _texto in ((f'{_base}/flip.html', 'axe cargó una respuesta HTTP 404'),
+                          (f'{_base}/jump.html', 'no es la misma página')):
+        try:
+            compara.compara(_ruta)
+        except RuntimeError as _e:
+            assert _texto in str(_e), (_ruta, _e)
+        else:
+            raise AssertionError(f'{_ruta}: la fila salió como buena')
+    assert _axe_espia_llamadas == [], f'axe corrió sobre otra página: {_axe_espia_llamadas}'
+finally:
+    compara.axe_en_pagina = _real_axe
+# por la CLI la fila viaja como fallida y el exit code dice la verdad (el
+# contador del servidor se reinicia para repetir el escenario desde el principio)
+_H._navegaciones['/flip.html'] = 0
+_out = io.StringIO()
+with contextlib.redirect_stdout(_out), contextlib.redirect_stderr(io.StringIO()):
+    _rc = compara.main([f'{_base}/flip.html'])
+_filas = json.loads(_out.getvalue())
+assert _rc == 1 and _filas[0]['failed'] \
+    and 'axe cargó una respuesta HTTP 404' in _filas[0]['error'], (_rc, _filas[0])
+print('2b. la carga de axe con un 404 o con otra página final: fila rechazada ✓')
+
+# ── 3. el gate: una fila solo es evidencia con los tres motores, sobre la
+# misma página y con una respuesta sana en la carga de axe ────────────────────
+_PAG = 'http://u/p'
 _good = {'url': 'u', 'engines': {'toolkit_static': 'ok', 'toolkit_rendered': 'ok', 'axe': 'ok'},
-         'toolkit': {'criterios': ['1.1.1'] * 5},
-         'axe': {'violaciones': [], 'criterios': [], 'rules_inapplicable': 60}}
+         'toolkit': {'criterios': ['1.1.1'] * 5, 'url_final': _PAG},
+         'axe': {'violaciones': [], 'criterios': [], 'rules_inapplicable': 60,
+                 'http_status': 200, 'url_final': _PAG}}
+
+
+def _axe(**cambios):
+    return dict(_good['axe'], **cambios)
+
+
 assert compara.problems([_good], expected=1) == []
 assert compara.problems([dict(_good, engines=None)]) == [
     'u: no results from toolkit_static', 'u: no results from toolkit_rendered',
     'u: no results from axe']
+# el formato anterior a esta comprobación no llevaba estado HTTP ni URL final
 assert compara.problems([dict(_good, axe={'violaciones': [], 'criterios': []})]) == [
-    'u: axe executed no rules']
+    'u: axe executed no rules', 'u: axe audited HTTP None, not the requested page',
+    'u: toolkit and axe did not audit the same final page']
 assert compara.problems([dict(_good, engines={'toolkit_static': 'ok', 'axe': 'ok'})]) == [
     'u: no results from toolkit_rendered']
 assert compara.problems([{'url': 'u', 'failed': True, 'error': 'boom'}], min_signals=0) == [
     'u: run failed: boom']
 assert compara.problems([_good], expected=4) == ['expected 4 results, got 1']
 assert compara.problems([dict(_good, toolkit={'criterios': ['1.1.1']})]) == [
+    'u: toolkit and axe did not audit the same final page',
     'toolkit found almost nothing (1 criteria) collector regression?']
+# axe sobre una respuesta de error, aunque el navegador la haya cargado bien
+for _st in (404, 500, None, '200', True):
+    assert compara.problems([dict(_good, axe=_axe(http_status=_st))], min_signals=0) == [
+        'u: axe audited HTTP %s, not the requested page' % _st], _st
+# axe sobre otra página que el toolkit
+assert compara.problems([dict(_good, axe=_axe(url_final='http://u/otra'))], min_signals=0) == [
+    'u: toolkit and axe did not audit the same final page']
+assert compara.problems([dict(_good, toolkit={'criterios': ['1.1.1'] * 5})], min_signals=0) == [
+    'u: toolkit and axe did not audit the same final page']
 # --check por CLI sobre un fichero de verdad: verde con filas completas, 1 si no
 _p_ok, _p_bad = os.path.join(_D, 'ok.json'), os.path.join(_D, 'bad.json')
 for _p, _rows in ((_p_ok, [_good] * 4), (_p_bad, [_good] * 3 + [dict(_good, engines=None)])):
@@ -213,10 +288,35 @@ rc, r = _run(F['clean'], F['clean'])
 assert rc == 0 and r['tools']['toolkit_static']['new'] == [] \
     and r['tools']['toolkit_static']['fixed'] == [] and r['summary']['inconclusive'] == {}, r
 
-# 4d. un hallazgo NUEVO por debajo del tope se localiza
+# 4d. un hallazgo NUEVO por debajo del tope se localiza (y sin «arreglada» fantasma)
 rc, r = _run(F['clean'], F['new1'])
 assert rc == 0 and r['new_per_tool'] == {'toolkit_static': 1}, r['summary']
 assert r['tools']['toolkit_static']['new'][0][2].endswith('img:nth-of-type(3)')
+assert r['tools']['toolkit_static']['fixed'] == [], r['tools']['toolkit_static']
+
+# 4g. hallazgos de PÁGINA (van sin elemento: falta el título). ANTES no
+# entraban en el diff: una página que perdía el título daba cero nuevas.
+# Ahora son UNA instancia propia, en los dos sentidos, y no inventan fantasmas
+_CON_T = ('<!doctype html><html lang="en"><head><title>t</title></head>'
+          '<body><main><h1>x</h1><p>hi</p></main></body></html>')
+_SIN_T = ('<!doctype html><html lang="en"><head></head>'
+          '<body><main><h1>x</h1><p>hi</p></main></body></html>')
+F['con_t'], F['sin_t'] = _write('con_t.html', _CON_T), _write('sin_t.html', _SIN_T)
+rc, r = _run(F['con_t'], F['sin_t'])
+_st = r['tools']['toolkit_static']
+assert rc == 0 and _st['new'] == [['2.4.2', 'title_missing', None]] and _st['fixed'] == [], _st
+assert r['new_per_tool'] == {'toolkit_static': 1}, r['summary']
+rc, r = _run(F['sin_t'], F['con_t'])
+assert r['tools']['toolkit_static']['fixed'] == [['2.4.2', 'title_missing', None]] \
+    and r['tools']['toolkit_static']['new'] == [], r['tools']['toolkit_static']
+assert r['summary']['fixed_per_tool'] == {'toolkit_static': 1}, r['summary']
+rc, r = _run(F['sin_t'], F['sin_t'])
+assert r['tools']['toolkit_static']['new'] == [] and r['tools']['toolkit_static']['fixed'] == [] \
+    and r['tools']['toolkit_static']['same'] >= 1, r['tools']['toolkit_static']
+# y en el pase renderizado, que re-ejecuta el repertorio estático sobre el DOM vivo
+rc, r = _run(F['con_t'], F['sin_t'], '--rendered')
+_rt = r['tools']['toolkit_rendered']
+assert rc == 0 and 'error' not in _rt and any('title' in x[1] for x in _rt['new']), _rt
 
 # 4e. el pase estático FALLA → error y exit 1 (antes: cero hallazgos y exit 0).
 # Ninguna entrada conocida hace caer al motor (red de seguridad
@@ -233,7 +333,7 @@ assert r['summary']['failed'] == ['toolkit_static'] and r['new_per_tool'] == {},
 # 4f. fichero ilegible: JSON con el error y exit 1 (antes: traza sin salida)
 rc, r = _run(os.path.join(_D, 'nope.html'), F['clean'])
 assert rc == 1 and 'cannot read' in r['tools']['toolkit_static']['error'], (rc, r)
-print('4. pr-flow estático: 6→7 declarada, traslado por elemento, error = exit 1 ✓')
+print('4. pr-flow estático: 6→7 declarada, traslado por elemento, hallazgos de página, error = exit 1 ✓')
 
 # 5. --rendered y --axe con el pool por defecto (antes: traza y sin JSON,
 # porque --axe abría su propia sesión de Playwright encima del pool)

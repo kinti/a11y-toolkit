@@ -253,8 +253,10 @@
   "role_orphan_rem": "Wrap them in their role's container (list, menu, listbox, tablist, tree) or the equivalent implicit element (ul/ol for list).",
   "skip_broken": "{n} skip links pointing at nonexistent targets: {example}. The bypass mechanism aims at an id that does not exist and the user stays trapped in the repeated navigation (2.4.1, F89).",
   "skip_broken_rem": "Point the link at the real id of the main content (or create the id): a broken bypass is worse than no bypass.",
-  "select_auto_focus": "{n} selects with autofocus carry a script that changes the context ({example}). The page loads with focus already on the control, so the navigation, new window, submit or focus move it triggers is one key away for someone who never chose to enter it (3.2.1).",
-  "select_auto_focus_rem": "Remove the autofocus from the select, or keep it and run the script on activation (a Go button) instead of on focus or on selection change."
+  "select_auto_focus": "{n} selects with autofocus run a script that changes the context as soon as they receive focus ({example}). The page loads with focus already on the control, so the navigation, new window, submit or focus move fires without the user doing anything (3.2.1).",
+  "select_auto_focus_rem": "Remove the autofocus from the select, or keep it and run the script on activation (a Go button) instead of on focus.",
+  "select_auto_focus_input": "{n} selects with autofocus run a script that changes the context when the option changes or a key is pressed ({example}). The page loads with focus already on the control, so a change of option or a keypress is enough to navigate, open a window, submit or move focus, with no notice beforehand (3.2.2).",
+  "select_auto_focus_input_rem": "Remove the autofocus from the select, or tell the user before the control that changing the option performs the action; a Go button makes the action explicit."
  },
  "badge": {
   "name": "a11y-toolkit",

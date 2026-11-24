@@ -427,13 +427,18 @@ _OVERLAY_WIDGETS = (
 _SKIP_TEXT = re.compile(
     r'skip|jump to|saltar|ir al contenido|ir para o conte[uú]do|passer au contenu', re.I)
 
-# 3.2.1: un select[autofocus] solo cambia el contexto si lleva un script que
-# lo haga. Eventos que dispara quien aterrizó en el control sin elegirlo (el
-# foco llega solo al cargar; después, la primera tecla o el cambio de opción) y
-# llamadas que cambian el contexto: navegación, ventana nueva, envío, foco.
-_FOCUS_EVENTS = ('onfocus', 'onchange', 'oninput', 'onkeydown', 'onkeyup', 'onkeypress')
+# Un select[autofocus] solo cambia el contexto si lleva un script que lo haga
+# (el atributo solo no cambia nada). Dos precisiones:
+# - El EVENTO que ejecuta el script decide el criterio, como WCAG los separa:
+#   al recibir el foco es 3.2.1 (el foco llega solo al cargar); al cambiar la
+#   opción, al recibir entrada o al pulsar una tecla es 3.2.2.
+# - Solo cuenta un script que CAMBIA el contexto: asignar la URL, navegar,
+#   abrir una ventana, enviar o mover el foco. LEER location.href no cambia
+#   nada y no es hallazgo.
+_FOCUS_EVENT = ('onfocus',)
+_INPUT_EVENTS = ('onchange', 'oninput', 'onkeydown', 'onkeyup', 'onkeypress')
 _CTX_CHANGE = re.compile(
-    r'\blocation\s*=(?!=)|\blocation\.href\b|\blocation\.(?:replace|assign|reload)\s*\('
+    r'\blocation(?:\.href)?\s*=(?!=)|\blocation\.(?:replace|assign|reload)\s*\('
     r'|\bwindow\.open\s*\(|\.submit\s*\(|\.focus\s*\(', re.I)
 
 # contexto requerido por rol (ARIA 1.2; la misma tabla que la regla
@@ -629,8 +634,10 @@ class _Auditor(HTMLParser):
         self.headers_bad = []            # 1.3.1: headers= apuntando fuera de tabla o a no-th (ACT d0f69e/a25f45)
         self.lang_xml_mismatch = []      # 3.1.2: lang y xml:lang discrepando (ACT 5b7ae0)
         self.nested_interactive = []    # 4.1.2: interactivo DENTRO de interactivo
-        self.select_auto_focus = []      # 3.2.1: select[autofocus] + script de cambio de contexto
+        self.select_auto_focus = []      # 3.2.1: select[autofocus] + script de contexto en onfocus
         self.select_auto_focus_elems = []
+        self.select_auto_focus_input = []   # 3.2.2: igual, en cambio de opción / entrada / tecla
+        self.select_auto_focus_input_elems = []
         self.skip_broken = []           # 2.4.1: skip/fragmento a id inexistente (F89)
         self.skip_broken_elems = []
         self.role_orphans = []          # 1.3.1: rol sin su padre requerido (ACT ff89c9)
@@ -1449,20 +1456,24 @@ class _Auditor(HTMLParser):
             self._heading_attrs = a
             self._heading_hidden = _hidden
             self._heading_tag = tag
-        # select[autofocus] (3.2.1): el control recibe el foco al cargar, pero
-        # el atributo SOLO no cambia nada (medido en Chromium 147 sin interfaz:
+        # select[autofocus]: el control recibe el foco al cargar, pero el
+        # atributo SOLO no cambia nada (medido en Chromium 147 sin interfaz:
         # foco en el control, opción inicial intacta). Es hallazgo cuando
-        # además lleva un script de cambio de contexto en un evento que dispara
-        # quien aterrizó allí sin elegirlo (el foco, un cambio de opción, una tecla)
+        # además lleva un script de cambio de contexto; el evento decide el
+        # criterio (ver _FOCUS_EVENT / _INPUT_EVENTS). Un ejemplo por select y
+        # criterio: con onfocus y onchange que navegan hay DOS hallazgos
         if tag == 'select' and 'autofocus' in a and not self._in_template \
                 and not _hidden:
-            for _ev in _FOCUS_EVENTS:
-                _code = a.get(_ev) or ''
-                if _code and _CTX_CHANGE.search(_code) \
-                        and len(self.select_auto_focus) < 5:
-                    self.select_auto_focus.append(f'select[autofocus][{_ev}="{_code[:40]}"]')
-                    self.select_auto_focus_elems.append(a)
-                    break
+            for _events, _dest, _elems in (
+                    (_FOCUS_EVENT, self.select_auto_focus, self.select_auto_focus_elems),
+                    (_INPUT_EVENTS, self.select_auto_focus_input,
+                     self.select_auto_focus_input_elems)):
+                for _ev in _events:
+                    _code = a.get(_ev) or ''
+                    if _code and _CTX_CHANGE.search(_code) and len(_dest) < 5:
+                        _dest.append(f'select[autofocus][{_ev}="{_code[:40]}"]')
+                        _elems.append(a)
+                        break
         # roles con contexto requerido (ARIA 1.2 §5.2.7: el elemento debe
         # estar contenido en, o ser owned por, un elemento del rol de contexto;
         # ACT ff89c9). SOLO roles EXPLÍCITOS (el li implícito fuera de lista es
@@ -2468,6 +2479,11 @@ def audit_html(html_text, url='(html)', lang='en', standard=None, target=None):
         add_ej('medium', '3.2.1', 'select_auto_focus', p.select_auto_focus,
                n=len(p.select_auto_focus), example=', '.join(p.select_auto_focus[:4]),
                paths=p._finding_paths(p.select_auto_focus_elems))
+    if p.select_auto_focus_input:
+        add_ej('medium', '3.2.2', 'select_auto_focus_input', p.select_auto_focus_input,
+               n=len(p.select_auto_focus_input),
+               example=', '.join(p.select_auto_focus_input[:4]),
+               paths=p._finding_paths(p.select_auto_focus_input_elems))
     # contexto requerido por rol: se resuelve aquí porque el dueño por
     # aria-owns puede declararse después que el elemento que salva
     for _a, _rv, _chain in p._role_ctx_pending:

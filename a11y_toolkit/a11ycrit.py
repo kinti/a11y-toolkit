@@ -887,7 +887,7 @@ MODES_BY_CRITERION = {
     '2.4.11': ('rendered',),
     '2.5.8': ('rendered',),
     '3.2.1': ('keyboard', 'site', 'static'),
-    '3.2.2': ('keyboard',),
+    '3.2.2': ('keyboard', 'site', 'static'),
     '3.3.1': ('forms', 'journey'),
     '3.3.3': ('forms', 'journey'),
     # señales a nivel de sitio (solo el crawl las ve)
@@ -992,6 +992,7 @@ _SIGNAL_CRIT = {
     'invoker_command_bad': '4.1.2',
     'aria_level_gt6': '1.3.1',
     'select_auto_focus': '3.2.1',
+    'select_auto_focus_input': '3.2.2',
     'role_orphan': '1.3.1',
     'skip_broken': '2.4.1',
     'docx_fake_list': '1.3.1',

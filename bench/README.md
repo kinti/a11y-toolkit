@@ -34,11 +34,16 @@ Reading it honestly:
 
 The gate in CI is `python3 bench/compara.py --check bench/results.json
 --expect 4`. A row only counts as evidence with results from the three
-engines (toolkit static, toolkit rendered, axe): the check rejects a failed
-row, a row missing an engine and a row where axe executed no rules, and it
-still requires the toolkit to find things across the pages (4 criteria or
-more). The previous gate looked at the toolkit alone, so a run could go
-green with axe not running.
+engines (toolkit static, toolkit rendered, axe) on the same page: the check
+rejects a failed row, a row missing an engine, a row where axe executed no
+rules, a row where axe's own page load was an error response (4xx or 5xx) and
+a row where the toolkit and axe ended on different final URLs. It still
+requires the toolkit to find things across the pages (4 criteria or more).
+The previous gate looked at the toolkit alone, so a run could go green with
+axe not running, and later with axe auditing a 404 the browser had loaded
+without complaint. Each row records `axe.http_status` and the `url_final` of
+both engines; result files recorded before that carry neither and are
+rejected by `--check`.
 
 The scripts never open a Playwright session of their own. The rendered audit
 keeps the engine's browser pool alive for the rest of the process, and a
@@ -62,6 +67,9 @@ appeared and which disappeared:
   pass, by example text in the rendered one, and in axe by failing node
   (rule plus target). A failure that moves from element A to element B is
   one new and one fixed.
+- A finding that is not tied to an element (a missing `title`, a missing
+  `lang`) counts as one page-level instance, reported with a `null` element:
+  a page that loses its title reports one new finding.
 - A finding aggregates many elements and carries only the first ones (5 in
   the static pass). At or past that number the report cannot back an
   element-level verdict, so the signal is listed under

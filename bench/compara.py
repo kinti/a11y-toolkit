@@ -98,8 +98,22 @@ def compara(url, lang='en'):
     # driver en este hilo («Sync API inside the asyncio loop»)
     page, close_page = browser.borrow_page()
     try:
-        page.goto(url, wait_until='load', timeout=60000)
+        resp = page.goto(url, wait_until='load', timeout=60000)
         page.wait_for_timeout(600)
+        axe_status = resp.status if resp is not None else None
+        # un 404 cargado en el navegador NO es un error de navegación: la
+        # página de error se audita igual de bien y la fila salía como buena,
+        # comparando el toolkit sobre la página real contra axe sobre un error
+        if axe_status is None or axe_status >= 400:
+            raise RuntimeError(
+                f'axe cargó una respuesta HTTP {axe_status}: no es la página pedida')
+        # y los dos motores tienen que haber auditado la MISMA página final:
+        # se comprueba antes de ejecutar axe, que no corre sobre otra página
+        axe_url = page.url.split('#')[0]
+        toolkit_url = str(informe_dom.get('url') or url).split('#')[0]
+        if axe_url != toolkit_url:
+            raise RuntimeError(
+                f'axe terminó en {axe_url} y el toolkit en {toolkit_url}: no es la misma página')
         axe_bruto = axe_en_pagina(page)
     finally:
         close_page()
@@ -118,10 +132,13 @@ def compara(url, lang='en'):
         'toolkit': {'score_estatico': informe_estatico.get('score'),
                     'score_dom': informe_dom.get('score'),
                     'criterios': sorted(tk),
-                    'findings_dom': len(informe_dom.get('findings', []))},
+                    'findings_dom': len(informe_dom.get('findings', [])),
+                    'url_final': toolkit_url},
         'axe': {'violaciones': [(v['id'], v['nodos'], v['impacto']) for v in axe_bruto['violations']],
                 'criterios': sorted(ax),
-                'rules_inapplicable': axe_bruto.get('inapplicable_count')},
+                'rules_inapplicable': axe_bruto.get('inapplicable_count'),
+                'http_status': axe_status,
+                'url_final': axe_url},
         'coinciden': sorted(tk & ax),
         'solo_axe': sorted(ax - tk),      # candidatos a hueco/falso negativo nuestro
         'solo_toolkit': sorted(tk - ax),  # candidatos a falso positivo o señal extra
@@ -137,8 +154,9 @@ def compara(url, lang='en'):
 
 def problems(results, expected=None, min_signals=4):
     """What invalidates a benchmark run. A row is only evidence when the THREE
-    engines produced results: the old gate only checked that the toolkit
-    found something, so it went green with axe not running at all."""
+    engines produced results ON THE SAME PAGE: the old gate only checked that
+    the toolkit found something, so it went green with axe not running at all,
+    and later with axe auditing a 404 the browser had loaded without complaint."""
     out = []
     if expected is not None and len(results) != expected:
         out.append(f'expected {expected} results, got {len(results)}')
@@ -152,8 +170,15 @@ def problems(results, expected=None, min_signals=4):
         for engine in _ENGINES:
             if ran.get(engine) != 'ok':
                 out.append(f'{url}: no results from {engine}')
-        if not r.get('axe', {}).get('rules_inapplicable'):
+        axe = r.get('axe') or {}
+        if not axe.get('rules_inapplicable'):
             out.append(f'{url}: axe executed no rules')
+        status = axe.get('http_status')
+        if not isinstance(status, int) or isinstance(status, bool) or status >= 400:
+            out.append(f'{url}: axe audited HTTP {status}, not the requested page')
+        final = ((r.get('toolkit') or {}).get('url_final'), axe.get('url_final'))
+        if not final[0] or not final[1] or final[0] != final[1]:
+            out.append(f'{url}: toolkit and axe did not audit the same final page')
         signals += len(r.get('toolkit', {}).get('criterios', []))
     if signals < min_signals:
         out.append(f'toolkit found almost nothing ({signals} criteria) '

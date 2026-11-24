@@ -1,5 +1,43 @@
 # Changelog
 
+## main — pendiente
+- **`bench/pr-flow.py`: page-level findings enter the diff.** A finding that
+  is not tied to an element (a missing `title`, a missing `lang`) used to
+  vanish from the comparison: a page that lost its title reported zero new
+  findings, in the static pass and in the rendered one. Each page-level
+  finding now counts as one instance, in both directions (new and fixed), and
+  it never produces a phantom: a finding that is simply absent on one side is
+  not reported as the opposite. Pinned for static and rendered, with the bug
+  reintroduced to confirm the pin goes red. What it does NOT do: a page-level
+  finding cannot be located, so its element is `null`.
+- **`bench/compara.py`: axe has to audit the same page the toolkit audited,
+  on a sane response.** The benchmark loads the URL a third time for axe. A
+  404 in that load is not a navigation error for the browser, so axe audited
+  the error page, the row came out with the three engines marked ok and
+  `--check` accepted it: the toolkit on the real page against axe on an
+  error page. Now the row fails when axe's own load answered 4xx/5xx or when
+  it ended on a different final URL than the toolkit, before axe runs. Each
+  row records `axe.http_status` and the `url_final` of both engines, and
+  `--check` rejects a row without them or with a mismatch. Pinned with a
+  local server that answers 200 to the toolkit passes and a 404 (or a
+  redirect) to axe's load. What it does NOT do: result files recorded before
+  this change carry no HTTP status and are rejected by `--check`; they stay
+  valid as history.
+- **`select_auto_focus` (3.2.1) narrowed to focus, and a new
+  `select_auto_focus_input` (3.2.2).** Two corrections to the signal shipped
+  in 5.33.0. First, reading the URL on focus (`logger(location.href)`,
+  comparing it) was flagged as a change of context and blocked a valid
+  change: only a script that changes the context counts now (assigning the
+  URL, navigating, opening a window, submitting, moving the focus). Second,
+  WCAG separates a change of context on receiving focus (3.2.1) from one on
+  input (3.2.2), and the signal hung both from 3.2.1: a script on `onfocus`
+  stays in `select_auto_focus` (3.2.1); a script on option change, input or
+  key goes to the new `select_auto_focus_input` (3.2.2). A select carrying
+  both gets two findings. Score-moving on purpose; 3.2.2 gains a static
+  signal. Pinned with the read cases and with each signal firing on its own
+  event and only on it. What it does NOT do: a select without `autofocus`
+  that navigates on change is still not a static finding (the rendered pass
+  measures that with `input_navigates`).
 ## 5.33.0 — 2026-11-24
 - **Comments in the public sources tidied, and the hygiene check can read a
   private list.** A few code comments carried internal working labels. They
