@@ -148,7 +148,7 @@
   "lang_missing_rem": "Add lang=\"en\" (the real language) to <html>: screen readers pick the synthetic voice from it.",
   "lang_region_invalid": "lang “{l}”: the region subtag does not exist (ISO 3166). Use the language alone (“en”) or a real region (“en-GB”).",
   "lang_region_invalid_rem": "Validate the region against the IANA Language Subtag Registry: “en” alone or “en-GB” with a real region.",
-  "limits": "Automation ≈ one third of WCAG: this is an express filter, not a substitute for manual review (keyboard, screen reader, real contrast, audit rhyme).",
+  "limits": "Automation ≈ one third of WCAG: this is an express filter, not a substitute for manual review (keyboard, screen reader, real contrast).",
   "list_structure": "{n} illegal children inside <ul>/<ol> (only <li>, <script> and <template> are valid).",
   "list_structure_rem": "Wrap loose content in <li> or use another container: screen readers announce the list with its item count and skip non-<li> content.",
   "meta_refresh": "<meta http-equiv=\"refresh\"> with a timed reload/redirect ({v}s).",

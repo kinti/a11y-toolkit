@@ -59,6 +59,10 @@ def build(html_text, lang=None, title=None, form_errors=True):
     the fixed html. The record is a fact about this run, not a promise."""
     from .server import VERSION   # lazy: server importa este módulo arriba
     res = _autofix(html_text, lang=lang, title=title, form_errors=form_errors)
+    if res.get('error'):
+        # `not_applied` del registro sellado nace de la auditoría que falló:
+        # sellar uno incompleto sería enunciar un hecho falso
+        return {'error': res['error']}
     patch_set = {
         'format': FORMAT,
         'source_sha256': _sha(html_text),
@@ -135,6 +139,10 @@ def main(argv):
                 f.write(res['fixed_html'])
         return 0 if res['status'] in ('reproduced', 'stale') else 1
     res = build(html_text)
+    if res.get('error'):
+        # la auditoría que alimenta `not_applied` falló: nada se sella
+        print(json.dumps(res, ensure_ascii=False, indent=1))
+        return 1
     payload = json.dumps(res['patch_set'], ensure_ascii=False, indent=1)
     if a.out:
         with open(a.out, 'w', encoding='utf-8') as f:

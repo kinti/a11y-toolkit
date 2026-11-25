@@ -50,17 +50,39 @@ def axe_en_pagina(page, axe_js=None):
     return bruto
 
 
+from a11y_toolkit.a11ycrit import _C as _CRITERION_LEVELS  # noqa: E402
+
+# Lo que el toolkit audita: WCAG 2.2 A y AA (la tabla del propio motor). axe
+# etiqueta además criterios AAA y obsoletos (1.4.6, 2.4.9, 4.1.1): entraban en
+# `solo_axe` como si fueran huecos nuestros (revisión 2026-11-25)
+_AA = frozenset(code for code, (level, _) in _CRITERION_LEVELS.items() if level in ('A', 'AA'))
+
+
+def _axe_criteria(violation):
+    criteria = set()
+    for tag in violation.get('tags', []):
+        match = _WCAG_TAG.fullmatch(tag)
+        if match:
+            criteria.add('.'.join(match.groups()))
+    return criteria
+
+
 def axe_a_criterios(bruto):
+    """Criterios WCAG 2.2 A/AA que axe encontró → [(regla, nodos, impacto)]."""
     out = {}
     for v in bruto['violations']:
-        criteria = set()
-        for tag in v.get('tags', []):
-            match = _WCAG_TAG.fullmatch(tag)
-            if match:
-                criteria.add('.'.join(match.groups()))
-        for crit in sorted(criteria):
+        for crit in sorted(_axe_criteria(v) & _AA):
             out.setdefault(crit, []).append((v['id'], v['nodos'], v['impacto']))
     return out
+
+
+def axe_out_of_scope(bruto):
+    """Criterios que axe etiquetó y el bench deja fuera (AAA, obsoletos): se
+    listan en la fila en vez de desaparecer en silencio."""
+    out = set()
+    for v in bruto['violations']:
+        out |= _axe_criteria(v) - _AA
+    return sorted(out, key=lambda code: tuple(int(part) for part in code.split('.')))
 
 
 def compara(url, lang='en'):
@@ -127,6 +149,7 @@ def compara(url, lang='en'):
                     'url_final': toolkit_url},
         'axe': {'violaciones': [(v['id'], v['nodos'], v['impacto']) for v in axe_bruto['violations']],
                 'criterios': sorted(ax),
+                'out_of_scope': axe_out_of_scope(axe_bruto),
                 'rules_inapplicable': axe_bruto.get('inapplicable_count'),
                 'http_status': axe_status,
                 'url_final': axe_url},

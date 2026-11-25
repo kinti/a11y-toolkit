@@ -91,24 +91,35 @@ decodificar imágenes al medir el contraste por píxeles.
 ```sh
 python -m pip install a11y-toolkit playwright pillow
 python -m playwright install chromium
-a11ytoolkit dom https://example.com --browser chromium
+a11ytoolkit dom https://example.com
 ```
 
-Si tu cliente MCP usa un entorno aislado de `uvx`, configúralo para que
+La CLI no tiene opción de navegador: usa el primero que encuentre. Para
+elegir uno, pasa `browser` a las herramientas MCP. Si tu cliente MCP usa un
+entorno aislado de `uvx`, configúralo para que
 ejecute `a11y-toolkit-mcp` desde el entorno donde instalaste Playwright.
 Las comprobaciones con navegador también funcionan con Firefox, WebKit,
 Chrome y Edge si están instalados.
+
+El contenido de un `<details>` cerrado ya no se acusa como sin nombre ni sin
+foco. `a11y_snapshot` puede ejecutarse justo después de una auditoría de
+navegador en la misma sesión, y `a11y_contrast_dom` devuelve un timeout de
+carga como objeto de error. Si `load` agota el timeout pero el DOM está
+completo, `a11y_audit_dom` audita la página renderizada y la anota en
+`page_errors`; sube `timeout` en sitios lentos. Los hallazgos renderizados
+traen `count`, el total de instancias (los ejemplos siguen limitados a 6).
 
 ## Del hallazgo a la corrección verificada
 
 ### Localiza el problema y vuelve a comprobarlo
 
 Ejecuta estos comandos sobre el mismo archivo HTML. La copia anotada
-marca los elementos que el informe puede localizar en el código original.
+marca los elementos que el informe puede localizar en el código original, y
+`marks.json` indica la ruta de cada elemento marcado.
 
 ```sh
 a11ytoolkit audit --file page.html > audit.json
-a11ytoolkit annotate page.html --report audit.json -o annotated.html
+a11ytoolkit annotate page.html --report audit.json -o annotated.html --marks marks.json
 ```
 
 Aplica la corrección en `page.html` y repite la auditoría. El comando
@@ -145,6 +156,22 @@ y tipo de sesión. Para revisar el HTML que cambió en una rama de Git,
 usa `a11ytoolkit audit --changed --base origin/main`. Para comparar el
 orden del foco en un recorrido con guion, usa `trace`. [Ejemplos de CI y teclado](docs/cookbook.md)
 
+El presupuesto empareja instancias por `stable_paths` (id, `data-testid`,
+nombre ARIA) antes que por rutas posicionales. En un rastreo, las URLs
+fallidas no gastan el cupo de páginas; el rastreo se detiene cuando los
+fallos llegan al doble del cupo y el informe lo indica con
+`failed_pages_capped`.
+
+`a11ytoolkit init` también instala una barrera al guardar en
+`.claude/settings.json`. `guard` falla cerrado: un guardado que el motor no
+puede auditar (más de 3 MB, no parseable) devuelve `decision: "error"` y
+exit 1 en vez de `allow`; `A11Y_GATE=off` salta el hook y `--lang es`
+responde en español. `fix` devuelve `error` cuando falla su auditoría
+final. Para volver a comprobar un informe, `a11y_disprove` revisa cada
+hallazgo anterior en la página real; con menos rutas guardadas que
+instancias, solo confirma una señal que sigue en la misma página y solo
+descarta con prueba completa.
+
 ### Entrega la evidencia para revisión
 
 ```sh
@@ -178,9 +205,12 @@ de pruebas o en un entorno preparado para recibir esos envíos.
 
 **48 de los 55 criterios A/AA de WCAG 2.2 cuentan con al menos una señal
 automatizada (87 %)** en los modos de comprobación disponibles. Una señal
-cubre una condición concreta dentro de un criterio. La muestra, las
-pruebas ejecutadas y la revisión manual determinan qué puede concluir
-quien evalúa la conformidad. El paquete de evidencias lo detalla criterio
+cubre una condición concreta dentro de un criterio. Cuenta cualquier señal,
+incluso las parciales: un criterio entra en este recuento en cuanto se
+comprueba una de sus condiciones, y eso no dice nada sobre las demás. La
+muestra, las pruebas ejecutadas y la revisión manual determinan qué puede
+concluir quien evalúa la conformidad. El paquete de evidencias lo detalla
+criterio
 por criterio. [Lista de comprobación manual](skills/a11y-toolkit/references/wcag22-manual-checklist.md) · [Estándares y correspondencias](docs/standards-coverage.md)
 
 | Evidencia | Qué mide |
@@ -238,7 +268,7 @@ aceptan `lang` (`en` o `es`) y devuelven JSON. [Referencia MCP](docs/tools.md)
 | [`a11y_forms`](docs/tools.md#a11y_forms) | Interacciones | Prueba de errores de formulario |
 | [`a11y_hover`](docs/tools.md#a11y_hover) | Interacciones | Comprueba si los mensajes emergentes se pueden cerrar (1.4.13) |
 | [`a11y_reflow`](docs/tools.md#a11y_reflow) | Interacciones | Comprueba la redistribución a 320 píxeles CSS |
-| [`a11y_scroll`](docs/tools.md#a11y_scroll) | Interacciones | Auditoría de desplazamiento infinito |
+| [`a11y_scroll`](docs/tools.md#a11y_scroll) | Interacciones | Auditoría de desplazamiento infinito (pasiva por defecto; con interactive=true pulsa solo el control que indiques) |
 | [`a11y_sr_transcript`](docs/tools.md#a11y_sr_transcript) | Interacciones | Transcripción del árbol de accesibilidad del navegador |
 | [`a11y_reduced_motion`](docs/tools.md#a11y_reduced_motion) | Interacciones | Comprueba la preferencia `prefers-reduced-motion` |
 | [`a11y_forced_colors`](docs/tools.md#a11y_forced_colors) | Interacciones | Detecta posibles problemas con los colores forzados |
@@ -246,7 +276,7 @@ aceptan `lang` (`en` o `es`) y devuelven JSON. [Referencia MCP](docs/tools.md)
 | [`a11y_evidence`](docs/tools.md#a11y_evidence) | Cobertura y evidencia | Paquete de evidencias verificable |
 | [`a11y_disprove`](docs/tools.md#a11y_disprove) | Cobertura y evidencia | Vuelve a comprobar los hallazgos de una auditoría |
 | [`a11y_ledger`](docs/tools.md#a11y_ledger) | Cobertura y evidencia | Mantiene un registro de cobertura entre auditorías |
-| [`a11y_wcag3_preview`](docs/tools.md#a11y_wcag3_preview) | Cobertura y evidencia | Vista previa del borrador WCAG 3 |
+| [`a11y_wcag3_preview`](docs/tools.md#a11y_wcag3_preview) | Cobertura y evidencia | Vista previa del borrador WCAG 3 (sin puntuación) |
 | [`a11y_scope`](docs/tools.md#a11y_scope) | Cobertura y evidencia | Propone el alcance y la aplicabilidad para revisión |
 | [`a11y_route`](docs/tools.md#a11y_route) | Diagnóstico | Propone comprobaciones según el objetivo o la página |
 <!-- TOOLS:END -->

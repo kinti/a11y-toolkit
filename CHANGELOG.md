@@ -1,9 +1,116 @@
 # Changelog
 
 ## main — pendiente
+- **Closed menus without false positives.** The accessible name of a link,
+  button or field no longer depends on layout. Chromium keeps layout boxes
+  for the content of a closed `<details>` without painting it, so every
+  link of a closed menu was reported as having no accessible name (4.1.2)
+  and as never receiving focus (2.4.7). The focus pass now skips content
+  that is not rendered. A really empty link is still reported. Pinned with a
+  closed menu in a real browser. What it does NOT do: a named graphic is
+  still asked for a data equivalent (a logo with `role="img"` included),
+  `a11y_snapshot` still reads names from the painted text, and Firefox and
+  WebKit report nothing for an empty link inside a closed `<details>`.
+- **Snapshot after a browser audit.** `a11y_snapshot` runs right after
+  `a11y_audit_dom` in the same process. The shared browser left its event
+  loop marked as running in the thread, and the second session failed with
+  "Please use the Async API instead". Only `a11y_snapshot` releases and
+  restores that marker. `A11Y_BROWSER_POOL=0` still works. What it does NOT
+  do: the shared browser is still not safe for several threads at once.
+- **`a11y_contrast_dom` load timeout.** A page that does not load returns a
+  clean error object (`error`, `url`), the same contract as an HTTP 400,
+  instead of an exception. No retry and no longer timeout. An error inside
+  the contrast pass itself still raises.
+- **Slow `load` in `a11y_audit_dom` (contract change).** When the `load`
+  event exceeds `timeout` but the navigation arrived and the document was
+  parsed, the page is audited. The tool no longer returns `error`: it
+  returns the report with a non-empty `page_errors` list and without
+  `http_status`. That measurement is not complete: the evidence pack and
+  the comparison tools still treat a report with `page_errors` as partial.
+  Raise `timeout` for slow sites. What it does NOT do: a gate that only
+  checks `error` now reads the findings of that partial report. A main
+  document that never answers is still a load error.
+- **Language fixes.** The load error of `a11y_scroll` follows the report
+  language. The Spanish catalog says "lector de pantalla" instead of
+  "lector de screen reader". The fourth item of the limits sentence was
+  removed from both catalogs because it said nothing; the sentence keeps
+  keyboard, screen reader and real contrast. What it does NOT do: no
+  replacement text was invented for the removed item.
+- **`count` in rendered findings.** Every rendered finding that knows its
+  total carries `count`, the number of instances on the page. Examples
+  stay capped at 6. With this field `budget` detects a page that grows
+  from 8 to 11 images without alt text, pinned with two real rendered
+  reports through the budget. Scores do not change. A signal that reports
+  no total carries no field.
+- **The gate fails closed.** `guard` no longer answers `allow` when the
+  engine cannot audit a save (over 3 MB, unparseable content). It returns
+  `decision: "error"` with `failed` and the cause, exit 1 from the CLI and
+  exit 2 from the hook, in English or Spanish (`--lang`, `A11Y_LANG`).
+  `A11Y_GATE=off` now disables the hook; it was documented and not
+  implemented. An unreadable hook payload still allows the save. What it
+  does NOT do: it does not audit above the 3 MB limit, and the block
+  message is still English only.
+- **The gate that `init` installs works.** `a11ytoolkit init` writes
+  `a11ytoolkit guard-hook` into the client hook settings, and the CLI only
+  dispatched `guard`. The command answered "Unknown subcommand" with
+  exit 2 on every save, clean or not, so the client refused all of them.
+  The CLI now dispatches `guard-hook` with the protocol of `guard --hook`.
+  Pinned with the installed command through the dispatcher inside a real
+  Git repository. Existing installs need no change.
+- **The automatic fix declares what it did not measure.** `fix` and
+  `a11y_autofix` return `error` when their final audit fails, and the CLI
+  exits with 1. The fixed file is still written. `patches build` does not
+  seal an incomplete record and its CLI exits with 1. The deterministic
+  fixes are still applied.
+- **Slow pages are measured.** A complete HTTP body that takes longer than
+  the read window is audited when its size agrees with `Content-Length` or
+  the stream ended cleanly. A truncated body still returns an error. What
+  it does NOT do: a server that trickles without closing is not cut off by
+  the deadline.
+- **Crawling without spending the quota on failures.** Failed URLs no
+  longer consume the number of pages requested. Failures are capped at
+  twice the quota, and the site report says so with `failed_pages_capped`.
+- **Budgets match instances by a stable identity.** Static findings carry
+  `stable_paths` (id, `data-testid`, ARIA name), aligned with `paths` and
+  `null` where the element has no stable attribute. The budget matches
+  instances by them before falling back to positional paths, so a sibling
+  inserted before an element is not counted as new. An instance budget
+  reads reports without `count` or paths and lists in `sampled_counts` the
+  signals known only through a sample. What it does NOT do: an element
+  without a stable attribute is still compared by position, and the anchors
+  do not check for uniqueness.
+- **Clean errors in the budget CLI.** A missing file or broken JSON passed
+  to `budget` returns JSON with `error` and exit 1.
+- **Benchmark with A and AA criteria.** `bench/compara.py` crosses only the
+  A and AA criteria of WCAG 2.2 with axe. The AAA and retired criteria
+  (1.4.6, 2.4.9, 4.1.1) are listed in `axe.out_of_scope`. What it does NOT
+  do: a AAA or retired criterion that this toolkit also emits stops
+  counting as an agreement.
+- **`disprove` decides with path samples.** A finding with more instances
+  than saved paths is confirmed when the signal is still on the same page,
+  and is rejected only with complete proof. A numeric `criterion` or
+  `paths`, or an invalid findings list, returns an error instead of a
+  trace. What it does NOT do: with several candidates of the same signal
+  and criterion the finding stays `not-rechecked`.
+- **Corrupt DOCX without a trace.** Any exception raised while reading a
+  DOCX (zlib, zip, XML) returns the error JSON and exit 1. What it does
+  NOT do: a programming error in the screening is reported the same way,
+  as an error instead of a trace.
+- **README examples.** The browser example no longer passes `--browser` to
+  `a11ytoolkit dom`: the CLI has no such option and uses the first engine
+  it finds, and the engine is chosen with the `browser` argument of the
+  MCP tools. The `annotate` example writes `marks.json`, the list of
+  marked elements. Next to the coverage figure, both READMEs say that any
+  signal counts, including a partial one.
+- **Changelog history closed.** The entries of 5.34.0, 5.34.1, 5.35.0,
+  5.35.1, 5.35.2 and 5.35.3 (32 entries) were still under `pendiente`
+  although those versions are published; each one is now under its
+  version. The 5.34.1 entry no longer repeats the failed-page retention
+  that 5.34.0 introduced.
 - **Bilingual README.** Both editions start with a working CLI example
   and follow a finding through repair, regression checks and evidence.
   Coverage and benchmark figures link to their methods and results.
+## 5.35.3 — 2026-11-25
 - **Complete corpus submissions.** The scorer reports valid coverage of
   mutants and placebo controls separately. Missing, repeated, unknown or
   malformed cases make `corpus evaluate` exit 1 with diagnostic JSON. Scores
@@ -12,6 +119,7 @@
   of requested pages and requires distinct final URLs. Divergence details
   use exact WCAG codes. Live-page counts measure engine agreement, and
   accuracy requires independently reviewed ground truth.
+## 5.35.2 — 2026-11-25
 - **Document CLI errors.** PDF, DOCX and WebVTT input failures return JSON
   and exit 1. PDF files above the read limit and incomplete or oversized
   caption downloads return an error before scoring.
@@ -24,6 +132,7 @@
   attributes are read by namespace. Header checks stay with their own table.
 - **WebVTT syntax.** The checker validates the signature, timestamp fields and
   cue order before adding a cue to the coverage and reading-speed measures.
+## 5.35.1 — 2026-11-25
 - **Installed npm launchers.** The MCP binary responds to initialization and
   the fallback CLI forwards its subcommand and arguments to the pinned `uvx`
   release. Node MCP instructions select the server binary explicitly. The
@@ -42,6 +151,7 @@
 - **Active measurements in evidence.** The evidence matrix derives values
   from the same findings as its current verdict. Historical rejected rows
   remain available in the embedded audit for review.
+## 5.35.0 — 2026-11-25
 - **Complete re-audits.** `disprove` uses the fresh score, coverage and findings,
   including any new signals. Matching element paths support confirmation.
   An ambiguous prior match stays available for review.
@@ -58,10 +168,11 @@
   continues to verify sealed v2 packs.
 - **Template sampling.** The README examples describe template fingerprints
   as a sampling aid. Pages sharing a fingerprint can have different findings.
+## 5.34.1 — 2026-11-25
 - **Complete static measurements.** Local HTML above the input limit and
   HTTP bodies cut short or over the size limit after decompression return an
-  audit error. Crawls keep failed child pages in `page_errors` and the
-  changed-file gate exits with an error if a file could not be measured.
+  audit error, and the changed-file gate exits with an error if a file could
+  not be measured.
 - **Same-page reverification and evidence.** `disprove` checks the final URL
   against the original measurement. A different destination leaves the
   original findings and score in an error result. An unverified finding
@@ -79,6 +190,12 @@
 - **Native listbox context.** An explicit option can inherit its required
   listbox context from a native `select` with `multiple` or `size` greater
   than one. A genuinely orphaned option still emits the existing signal.
+## 5.34.0 — 2026-11-25
+- **`count` in static findings.** A static finding whose signal measures a
+  total carries `count`, the number of instances on the page. `examples`
+  and `paths` stay capped at 5, so the total could not be read from them.
+  The budget compares these totals. A signal that reports no total carries
+  no field.
 - **Page and instance regression budgets.** Crawl reports retain failed
   URLs under `page_errors`. `budget` returns exit 1 for an incomplete run,
   a missing baseline page or a changed audit mode. Fresh baselines use

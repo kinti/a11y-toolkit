@@ -381,7 +381,13 @@ def autofix(html_text, lang=None, title=None, url='(html)', form_errors=True):
                                  'remediation': h['remediation']})
 
     fixed = _unmask(fixed)
-    return {'fixed_html': fixed, 'applied': applied, 'not_applied': not_applied}
+    result = {'fixed_html': fixed, 'applied': applied, 'not_applied': not_applied}
+    if report.get('error'):
+        # `not_applied` nace de esa auditoría: si el motor no pudo mirar el
+        # HTML (más de 3 MB, no parseable), una lista vacía leía como "nada
+        # pendiente" cuando es "no medido" — el error viaja (2026-11-25)
+        result['error'] = report['error']
+    return result
 
 
 _DO_NOT_TOUCH = {
@@ -444,13 +450,19 @@ def main(argv):
         with open(a.out, 'w', encoding='utf-8') as f:
             f.write(res['fixed_html'])
         print(json.dumps({'file': a.out, 'applied': res['applied'],
-                          'not_applied': res['not_applied']}, ensure_ascii=False, indent=1))
+                          'not_applied': res['not_applied'],
+                          **({'error': res['error']} if res.get('error') else {})},
+                         ensure_ascii=False, indent=1))
         # human-facing thank-you goes to stderr AFTER the JSON: piped stdout
         # stays machine-parseable, and only a real fix (a file written) asks
         _star_nudge_once()
     else:
         print(res['fixed_html'])
-    return 0
+        if res.get('error'):
+            print(json.dumps({'error': res['error']}, ensure_ascii=False), file=sys.stderr)
+    # los arreglos deterministas se aplicaron; el error dice que `not_applied`
+    # no pudo calcularse — estado de error visible, no un verde incompleto
+    return 1 if res.get('error') else 0
 
 
 if __name__ == '__main__':

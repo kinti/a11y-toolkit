@@ -137,7 +137,12 @@ def snapshot(url, output=None, auth_state=None, engine='chromium'):
     engine: chromium (default), firefox, webkit, chrome, msedge — la misma
     captura en otro motor es la materia prima de la matriz cross-engine."""
     from playwright.sync_api import sync_playwright
-    with sync_playwright() as p:
+    # The browser pool leaves its own loop as this thread's «running loop»
+    # after a11y_audit_dom and friends; opened on top of it, this second sync
+    # session died with «Playwright Sync API inside the asyncio loop».
+    # Detach the pool loop first, re-attach it when this session is over.
+    from .a11ydom import _OwnSyncSession
+    with _OwnSyncSession(), sync_playwright() as p:
         launch = _LAUNCHERS.get(engine or 'chromium', _LAUNCHERS['chromium'])
         nav = launch(p)
         ctx = nav.new_context(storage_state=auth_state) if auth_state else nav

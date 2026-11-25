@@ -127,6 +127,7 @@ SUBCOMMANDS = {
     'locate': (a11ylocate, None),
     'patches': (a11ypatches, None),
     'guard': (a11ygate, None),
+    'guard-hook': (a11ygate, 'hook_main'),   # the command `init` installs
     'engines': (a11yengines, None),
     'trace': (a11ytrace, None),
     'patterns': (a11ypatterns, None),

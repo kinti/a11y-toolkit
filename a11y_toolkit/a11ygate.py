@@ -12,20 +12,25 @@ second the failure would have been born.
 
 Honesty, as everywhere: the gate audits what the engine sees (part of
 WCAG) — a filter, not a conformance verdict, and it says so in every
-refusal. A11Y_GATE=off disables it; --hook fails open (a gate that crashes
-a developer's flow gets uninstalled — refusing on OUR error helps nobody).
+refusal. A11Y_GATE=off disables it. Two failures, two answers: an
+unreadable hook PAYLOAD fails open (there is nothing to judge), but an
+engine ERROR on a real save fails CLOSED — decision `error`, never
+`allow` (a page over 3 MB used to pass as verified with an image
+without alt). A11Y_LANG=es answers in Spanish.
 
 Output:
   verdict(old, new, path) -> {decision, blocked[], warnings[], counts...}
+                            or {decision: 'error', failed, error, note}
   guard_hook(payload)     -> (exit_code, stderr)   # Claude Code protocol
 
 CLI:
-  a11ytoolkit guard --file index.html          # human verdict, exit 2 = block
+  a11ytoolkit guard --file index.html          # 0 allow / 2 block / 1 error
   a11ytoolkit guard --hook                     # stdin JSON -> exit protocol
 """
 
 import argparse
 import json
+import os
 import re
 import subprocess
 import sys
@@ -40,6 +45,23 @@ _SEV_ORDER = {'high': 0, 'medium': 1, 'low': 2}
 _LIST_CAP = 6
 _FOOT = ('the gate audits what the engine sees — a filter, not a '
          'conformance verdict · disable: A11Y_GATE=off')
+_FOOT_ES = ('el gate audita lo que el motor ve — un filtro, no un veredicto '
+            'de conformidad · desactivar: A11Y_GATE=off')
+# el gate NO PUDO auditar: falla cerrado (jamás `allow`) y dice por qué
+_ERROR_MSG = {
+    'en': {'note': ('the gate could not audit this save: nothing is verified. '
+                    'Fix the cause below or bypass the gate for this save with '
+                    'A11Y_GATE=off'),
+           'side': {'new': 'saved content', 'old': 'git HEAD version'}},
+    'es': {'note': ('el gate no pudo auditar este guardado: nada está verificado. '
+                    'Corrige la causa de abajo o salta el gate para este guardado '
+                    'con A11Y_GATE=off'),
+           'side': {'new': 'contenido guardado', 'old': 'versión de git HEAD'}},
+}
+
+
+def _lang(lang):
+    return lang if lang in _ERROR_MSG else 'en'
 
 
 def is_user_facing(path):
@@ -71,20 +93,26 @@ def old_version(path, project='.'):
         return ''
 
 
-def verdict(old_content, new_content, path='(file)'):
+def verdict(old_content, new_content, path='(file)', lang='en'):
     """Compare findings in OLD (git HEAD) vs NEW (the save in flight).
 
     The engine aggregates findings by KIND (one 'img without alt' finding
     covers N images), so the gate works on KINDS, like the budget module:
     a NEW kind with high/medium severity refuses the save; new LOW kinds
     and kinds already in HEAD are warnings. Returns {decision, blocked[],
-    warnings[], known, before, after, score}."""
-    old = audit_html(old_content or '', url=f'(old) {path}')
-    new = audit_html(new_content or '', url=f'(new) {path}')
+    warnings[], known, before, after, score}; if the engine cannot audit
+    either side: {decision: 'error', failed: 'new'|'old', error, note}."""
+    lang = _lang(lang)
+    old = audit_html(old_content or '', url=f'(old) {path}', lang=lang)
+    new = audit_html(new_content or '', url=f'(new) {path}', lang=lang)
     if 'error' in old or 'error' in new:
-        return {'decision': 'allow', 'path': path,
-                'note': 'unparseable content — the gate does not judge '
-                        'what the engine cannot parse'}
+        # FALLA CERRADO: `allow` se lee como "verificado" y aquí no se miró
+        # nada (una página de más de 3 MB pasaba con una imagen sin alt)
+        side = 'new' if 'error' in new else 'old'
+        failed = new if side == 'new' else old
+        return {'decision': 'error', 'path': path, 'blocked': [], 'warnings': [],
+                'failed': side, 'error': failed['error'],
+                'note': _ERROR_MSG[lang]['note'], 'lang': lang}
 
     before = _counts(old.get('findings', []))
     after = _counts(new.get('findings', []))
@@ -169,11 +197,22 @@ def payload_to_write(payload):
     return path, None
 
 
-def guard_hook(payload_text):
+def _fmt_error(v):
+    lang = _lang(v.get('lang'))
+    side = _ERROR_MSG[lang]['side'].get(v.get('failed'), _ERROR_MSG[lang]['side']['new'])
+    return '\n'.join([f"[a11y gate] {v['note']}",
+                      f"  cause ({side}): {v.get('error', '')}",
+                      _FOOT_ES if lang == 'es' else _FOOT])
+
+
+def guard_hook(payload_text, lang=None):
     """stdin JSON → (exit_code, stderr) under the Claude Code protocol:
     exit 2 blocks the write and feeds stderr back to the model; exit 0
-    allows (stderr is a transcript note). Fails OPEN on unreadable input —
-    a gate that errors the developer's flow gets uninstalled."""
+    allows (stderr is a transcript note). An unreadable payload fails OPEN
+    (nothing to judge); a save the engine could not audit fails CLOSED."""
+    if (os.environ.get('A11Y_GATE') or '').strip().lower() == 'off':
+        return 0, ''
+    lang = _lang(lang or os.environ.get('A11Y_LANG'))
     try:
         payload = json.loads(payload_text or '')
     except Exception:  # noqa: BLE001
@@ -183,7 +222,9 @@ def guard_hook(payload_text):
         return 0, ''
     if not is_user_facing(path):
         return 0, ''
-    v = verdict(old_version(path), content, path)
+    v = verdict(old_version(path), content, path, lang=lang)
+    if v['decision'] == 'error':
+        return 2, _fmt_error(v)
     if v['decision'] == 'block':
         return 2, _fmt_verdict(v)
     if v.get('warnings'):
@@ -198,16 +239,24 @@ def main(argv):
     ap.add_argument('--hook', action='store_true',
                     help='read the client hook JSON payload from stdin')
     ap.add_argument('--file', help='audit this file directly')
+    ap.add_argument('--lang', default=os.environ.get('A11Y_LANG') or 'en',
+                    help='message language: en (default) or es')
     a = ap.parse_args(argv)
+    lang = _lang(a.lang.strip().lower() if isinstance(a.lang, str) else 'en')
     if a.hook:
         text = sys.stdin.read()
-        code, err = guard_hook(text)
+        code, err = guard_hook(text, lang=lang)
         if err:
             print(err, file=sys.stderr)
         return code
     if a.file:
         content = open(a.file, encoding='utf-8', errors='replace').read()
-        v = verdict(old_version(a.file), content, a.file)
+        v = verdict(old_version(a.file), content, a.file, lang=lang)
+        if v['decision'] == 'error':
+            print(json.dumps({k: v[k] for k in ('decision', 'path', 'failed', 'error', 'note')},
+                             ensure_ascii=False, indent=1))
+            print(_fmt_error(v), file=sys.stderr)
+            return 1
         print(json.dumps({k: v[k] for k in ('decision', 'path', 'known',
                                             'before', 'after', 'score')},
                          ensure_ascii=False, indent=1))
@@ -219,6 +268,12 @@ def main(argv):
         return 0
     ap.print_usage()
     return 2
+
+
+def hook_main(argv):
+    """`a11ytoolkit guard-hook`: the exact command `a11yinit.GATE_CMD` writes
+    into the client hook settings. Same protocol as `guard --hook`."""
+    return main(['--hook'] + list(argv))
 
 
 if __name__ == '__main__':

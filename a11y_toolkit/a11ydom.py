@@ -15,6 +15,7 @@ CLI:
 """
 
 import argparse
+import asyncio
 import json
 import re
 import sys
@@ -38,6 +39,58 @@ class _NavigationHTTPError(RuntimeError):
         message = (f'HTTP {self.status}: no se pudo cargar la página solicitada'
                    if lang == 'es' else str(self))
         return {'error': message, 'url': self.url, 'http_status': self.status}
+
+
+class _NavigationLoadError(RuntimeError):
+    """The page did not load at all (timeout, network failure). Reported with
+    the same clean contract as an HTTP error — never raised to the caller."""
+
+    def __init__(self, url, reason):
+        super().__init__(reason)
+        self.url = url
+        self.reason = reason
+
+    def report(self, lang='en'):
+        return {'error': _LOAD_ERR.get(lang, _LOAD_ERR['en']).format(e=self.reason),
+                'url': self.url}
+
+
+def _first_line(error):
+    """One-line cause of a Playwright error (its message carries a call log)."""
+    return str(error).strip().split('\n')[0] or type(error).__name__
+
+
+def _is_playwright_timeout(error):
+    """Playwright's TimeoutError without importing Playwright at module load
+    (the toolkit must stay importable without it)."""
+    try:
+        from playwright.sync_api import TimeoutError as _PwTimeout
+    except Exception:  # noqa: BLE001
+        return False
+    return isinstance(error, _PwTimeout)
+
+
+def _rendered_despite_timeout(page, error):
+    """True when `load` timed out but the document IS there: the navigation
+    committed (the page is no longer about:blank) and the parser finished
+    (readyState interactive/complete) — a hanging subresource, not a dead
+    page. False for any other failure and when the navigation never committed."""
+    if not _is_playwright_timeout(error):
+        return False
+    try:
+        if page.url in ('', 'about:blank'):
+            return False
+        return page.evaluate('document.readyState') in ('interactive', 'complete')
+    except Exception:  # noqa: BLE001
+        return False
+
+
+_SLOW_LOAD = {'es': ('el evento load no llegó en {t} s: se auditó el DOM ya '
+                     'renderizado (readyState {rs}); lo que cargue después '
+                     'no está evaluado'),
+              'en': ('the load event did not fire within {t} s: the rendered '
+                     'DOM was audited (readyState {rs}); whatever loads '
+                     'later is not evaluated')}
 
 
 def _load_page(page, url, timeout, wait_until='load'):
@@ -168,6 +221,58 @@ def _close_pool():
             pw.stop()
         except Exception:  # noqa: BLE001
             pass
+    # the driver is gone: its loop must not stay pinned to this thread as a
+    # «running» loop (a closed loop pinned here is the «Event loop is closed»
+    # poison of the old pool)
+    _loop = getattr(pw, '_loop', None)
+    if _loop is not None and asyncio._get_running_loop() is _loop:
+        asyncio._set_running_loop(None)
+
+
+def _pool_loop():
+    """The asyncio loop the pool's Playwright driver runs on (None: no pool)."""
+    return getattr(_POOL['playwright'], '_loop', None)
+
+
+def _unpin_loop():
+    """Detach the pool loop from THIS thread so a SECOND sync session can
+    start here (a11y_snapshot, a host's own Playwright).
+
+    Root cause closed (review 2026-11-25): Playwright's sync client ends every
+    call with asyncio._set_running_loop(loop) and the loop stays suspended
+    inside its dispatcher greenlet, so it still reports is_running() == True.
+    The next sync_playwright() in the same thread found that marker and died
+    with «It looks like you are using Playwright Sync API inside the asyncio
+    loop» (a11y_snapshot right after a11y_audit_dom). Only the pool's OWN
+    loop is detached: a real host loop running in the thread is never touched
+    (Playwright keeps its own error for that misuse). No pool loop
+    (A11Y_BROWSER_POOL=0, pool never started): no-op, as before."""
+    loop = _pool_loop()
+    if loop is not None and asyncio._get_running_loop() is loop:
+        asyncio._set_running_loop(None)
+
+
+def _pin_loop():
+    """Re-attach the pool loop to THIS thread after the second session ended:
+    the pool is touched again as if nothing happened. The sync client needs
+    its loop marked as running to resume it («no running event loop»)."""
+    loop = _pool_loop()
+    if loop is not None and asyncio._get_running_loop() is None:
+        asyncio._set_running_loop(loop)
+
+
+class _OwnSyncSession:
+    """`with` guard for a caller that opens its OWN sync Playwright session in
+    a thread where the pool may have run (a11y_snapshot): detaches the pool
+    loop first and re-attaches it once the second session is over, so the
+    thread is left exactly as the pool expects it."""
+
+    def __enter__(self):
+        _unpin_loop()
+        return self
+
+    def __exit__(self, *exc):
+        _pin_loop()
 
 
 atexit.register(_close_pool)
@@ -253,6 +358,29 @@ def _t(lang, key, n=None):
 # implicit <label> > content > title. Static string — no page data ever lands
 # here.
 _JS_NAMEOF = r'''
+  // Layout-free text. innerText only returns what is being PAINTED: the
+  // content of a closed <details> keeps its boxes in Chromium (so it passes
+  // the visibility filter) but is not painted, and every link of a closed
+  // menu came out as having NO accessible name. When innerText gives nothing
+  // the same text is read from the tree — when the user opens the disclosure
+  // that IS the name — while a really empty element keeps giving ''.
+  const textOf = el => {
+    const painted = (el.innerText || '').trim();
+    if (painted) return painted;
+    const parts = [];
+    const walk = node => {
+      for (const c of node.childNodes) {
+        if (c.nodeType === 3) { parts.push(c.nodeValue); continue; }
+        if (c.nodeType !== 1) continue;
+        if (['SCRIPT', 'STYLE', 'NOSCRIPT', 'TEMPLATE'].includes(c.tagName)) continue;
+        const s = getComputedStyle(c);
+        if (s.display === 'none' || s.visibility === 'hidden' || s.visibility === 'collapse') continue;
+        walk(c);
+      }
+    };
+    walk(el);
+    return parts.join(' ').replace(/\s+/g, ' ').trim();
+  };
   const nameOf = el => {
     let n = '';
     // 1. aria-labelledby: a whitespace-SEPARATED id list — resolve each id
@@ -265,19 +393,19 @@ _JS_NAMEOF = r'''
       const parts = [];
       for (const id of el.getAttribute('aria-labelledby').trim().split(/\s+/)) {
         const ref = byId(id);
-        if (ref) parts.push((ref.innerText || '').trim());
+        if (ref) parts.push(textOf(ref));
       }
       n = parts.join(' ').trim();
     }
     // 2. aria-label
     if (!n) n = (el.getAttribute('aria-label') || '').trim();
     // 3. implicit <label>
-    if (!n && el.labels && el.labels[0]) n = el.labels[0].innerText.trim();
+    if (!n && el.labels && el.labels[0]) n = textOf(el.labels[0]);
     // 4. content: input value/image alt, element text, descendant img alt
     if (!n && el.tagName === 'INPUT' && ['submit', 'button', 'reset'].includes(el.type)) n = el.value || '';
     if (!n && el.tagName === 'INPUT' && el.type === 'image') n = el.alt || '';
     if (!n && ['A', 'BUTTON', 'SUMMARY'].includes(el.tagName)) {
-      n = (el.innerText || '').trim();
+      n = textOf(el);
       // accname: a descendant image's alt contributes to the link's name
       if (!n) { const im = el.querySelector('img[alt]'); if (im) n = (im.getAttribute('alt') || '').trim(); }
     }
@@ -780,9 +908,26 @@ _JS = r'''(maxEj) => {
   // ---- foco: indicador visible (heurístico) + contraste en estado focus ----
   const hiddenEl = el => { const r = el.getBoundingClientRect();
     return (r.width <= 2 && r.height <= 2); };
+  // Content that is NOT rendered although it keeps layout boxes: the content
+  // of a closed <details> (Chromium keeps real rects, so vis() lets it
+  // through) and anything under content-visibility:hidden. It cannot take
+  // focus now, and that is hidden content, not a failure — it turns into a
+  // real control when the user opens it. A closed <summary> IS rendered.
+  const hiddenContent = el => {
+    let inSummary = false;
+    for (let n = el; n && n.nodeType === 1; n = n.parentElement) {
+      const tag = n.tagName;
+      if (tag === 'SUMMARY') inSummary = true;
+      else if (tag === 'DETAILS') {
+        if (!n.open && !inSummary) return true;
+        inSummary = false;
+      } else if (getComputedStyle(n).contentVisibility === 'hidden') return true;
+    }
+    return false;
+  };
   const stops = deepQ(INTER)
-    .filter(el => vis(el) && !el.disabled && el.getAttribute('tabindex') !== '-1'
-                  && !hiddenEl(el)).slice(0, 40);
+    .filter(el => vis(el) && !hiddenContent(el) && !el.disabled
+                  && el.getAttribute('tabindex') !== '-1' && !hiddenEl(el)).slice(0, 40);
   const activeEl = () => { let a = document.activeElement;
     while (a && a.shadowRoot && a.shadowRoot.activeElement) a = a.shadowRoot.activeElement;
     return a; };
@@ -853,6 +998,11 @@ def _add(findings, lang, severity, code, key, examples=None, **fmt):
              'remediation': _t(lang, key + '_rem').format(**fmt)}
     if examples:
         h['examples'] = examples[:MAX_EXAMPLES]
+    # total instances: the examples are capped, the count is not — the
+    # instance budget compares totals (8 vs 11 images), never the 6 shown.
+    # Same line as add() in a11yaudit.py: no rendered report carried it.
+    if type(fmt.get('n')) is int and fmt['n'] > 0:
+        h['count'] = fmt['n']
     findings.append(h)
 
 
@@ -2175,6 +2325,7 @@ def audit_dom_url(url, timeout=45, lang='en', auth_state=None, browser='auto', c
     page, close_page = _pooled_page(nav, auth_state)
     _resp = None
     page_url_final = None
+    slow_load = None
     try:
         if color_scheme in ('dark', 'light'):
             # contraste por esquema: los temas oscuros fallan donde el claro
@@ -2184,7 +2335,11 @@ def audit_dom_url(url, timeout=45, lang='en', auth_state=None, browser='auto', c
             _resp = page.goto(url, wait_until='load', timeout=timeout * 1000)
             page.wait_for_timeout(400)
         except Exception as e:  # noqa: BLE001
-            return _load_error(e, lang, _LOAD_ERR.get(lang, _LOAD_ERR['en']))
+            if not _rendered_despite_timeout(page, e):
+                return _load_error(e, lang, _LOAD_ERR.get(lang, _LOAD_ERR['en']))
+            # `load` timed out on a hanging subresource but the document is
+            # parsed and rendered: audit it and leave the record below
+            slow_load = page.evaluate('document.readyState')
         data = page.evaluate(_JS, MAX_EXAMPLES)
         # 1.4.12: inject the WCAG spacing overrides, count clipped texts
         data['spacingClipped'] = page.evaluate(_JS_SPACING)
@@ -2237,6 +2392,13 @@ def audit_dom_url(url, timeout=45, lang='en', auth_state=None, browser='auto', c
     report_out = audit_dom(data, final_url, lang=lang, color_scheme=color_scheme)
     report_out['authenticated'] = bool(auth_state)
     report_out['browser'] = browser_kind
+    if slow_load:
+        # the record for the layers above: evidence and before/after
+        # comparisons already treat a non-empty page_errors as «not a
+        # complete measurement» — this page was audited, but not wholly loaded
+        report_out['page_errors'] = [{
+            'url': final_url,
+            'error': _SLOW_LOAD.get(lang, _SLOW_LOAD['en']).format(t=timeout, rs=slow_load)}]
     try:
         _st = _resp.status if _resp is not None else None
     except Exception:  # noqa: BLE001 — respuesta ya consumida
@@ -2495,6 +2657,11 @@ def contrast_walk(url, max_walk=400, max_sample=24, dark=False,
         page = ctx.new_page()
         try:
             _load_page(page, url, timeout * 1000)
+        except _NavigationHTTPError:
+            raise
+        except Exception as error:  # noqa: BLE001 — timeout/network: same clean contract as an HTTP error
+            raise _NavigationLoadError(url, _first_line(error)) from error
+        try:
             page.wait_for_timeout(300)
             return _pass(page)
         finally:
@@ -2505,7 +2672,7 @@ def contrast_walk(url, max_walk=400, max_sample=24, dark=False,
 
     try:
         entries, skipped, unparsed = _run('light')
-    except _NavigationHTTPError as error:
+    except (_NavigationHTTPError, _NavigationLoadError) as error:
         return error.report(lang)
     report = {'mode': 'contrast-walk', 'url': url, 'scheme': 'light',
               'checked': len(entries),
@@ -2525,7 +2692,7 @@ def contrast_walk(url, max_walk=400, max_sample=24, dark=False,
     if dark:
         try:
             entries_d, skipped_d, _unp_d = _run('dark')
-        except _NavigationHTTPError as error:
+        except (_NavigationHTTPError, _NavigationLoadError) as error:
             return error.report(lang)
         report['dark'] = {'scheme': 'dark', 'checked': len(entries_d),
                           'elements': entries_d,

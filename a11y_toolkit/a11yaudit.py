@@ -65,6 +65,35 @@ def path_segment(tag, nth):
     return f'{tag}:nth-of-type({nth})'
 
 
+_CSS_IDENT = re.compile(r'^[A-Za-z][A-Za-z0-9_-]*$')
+
+
+def _css_string(value):
+    """Valor entre comillas CSS (selector válido para cualquier atributo)."""
+    return '"' + value.replace('\\', '\\\\').replace('"', '\\"').replace('\n', '\\a ') + '"'
+
+
+def _stable_anchor(attrs):
+    """Selector ESTABLE de un elemento cuando lo tiene — id, data-testid o un
+    nombre ARIA (aria-label / aria-labelledby) —; None si solo cabe
+    identificarlo por posición. No sustituye a `paths` (la ruta determinista
+    tag:nth-of-type que comparten annotate/locate): la acompaña para quien
+    necesite una identidad que sobreviva a insertar un hermano delante, como
+    el presupuesto (revisión 2026-11-25). Degradación honesta: sin atributo
+    estable no se inventa nada."""
+    value = (attrs.get('id') or '').strip()
+    if value:
+        return '#' + value if _CSS_IDENT.match(value) else '[id=' + _css_string(value) + ']'
+    value = (attrs.get('data-testid') or '').strip()
+    if value:
+        return '[data-testid=' + _css_string(value) + ']'
+    for name in ('aria-label', 'aria-labelledby'):
+        value = (attrs.get(name) or '').strip()
+        if value:
+            return '[' + name + '=' + _css_string(value) + ']'
+    return None
+
+
 class _ElementPaths:
     """Store one segment and parent index per distinct route."""
 
@@ -513,6 +542,7 @@ class _Auditor(HTMLParser):
         # resolver la ruta de LO QUE COGIERON sin cambiar sus tuplas.
         self._paths = _ElementPaths()
         self._elem_paths = {}      # id(attrs) → índice de ruta
+        self._path_anchors = {}    # ruta posicional → selector estable (si lo tiene)
         super().__init__(convert_charrefs=True)
         self.imgs_no_alt = []
         self.alt_quality_bad = []   # (razón, alt, attrs) — emitida en findings
@@ -841,6 +871,9 @@ class _Auditor(HTMLParser):
                 for _sp in self._stray_pend:
                     _sp[3] = True
         self._elem_paths[id(a)] = self._paths.start(tag)
+        anchor = _stable_anchor(a)
+        if anchor:
+            self._path_anchors[self._paths.format(self._elem_paths[id(a)])] = anchor
         # rasgos estructurales para el scope de aplicabilidad (a11yscope):
         # evidencia POSITIVA — cero <video> habilita proponer 1.2.x como no
         # aplicable; la ausencia de señal jamás cuenta como ausencia de
@@ -2327,6 +2360,11 @@ def audit_html(html_text, url='(html)', lang='en', standard=None, target=None):
         paths = fmt.pop('paths', None)
         if paths:
             h['paths'] = paths[:5]
+            anchors = [p._path_anchors.get(path) for path in h['paths']]
+            if any(anchors):
+                # alineada con `paths` (null = el elemento no tiene atributo
+                # estable): identidad que sobrevive a insertar un hermano delante
+                h['stable_paths'] = anchors
         findings.append(h)
 
     def add_ej(severity, code, key_msg, examples, **fmt):
@@ -2942,7 +2980,16 @@ def _fetch(url, timeout=30, truncate_at=None, accept_ct=(), _meta=None, *, requi
         while len(data) < ceiling + 1:
             if time.monotonic() >= read_deadline:
                 if complete:
-                    raise _FetchError('err_incomplete_html')
+                    # Cuerpo COMPLETO que tardó ≠ cuerpo truncado: si los bytes
+                    # recibidos cuadran con Content-Length (length llega a 0) o
+                    # el flujo terminó bien, se acepta; solo lo incompleto es error
+                    length = getattr(r, 'length', None)
+                    try:
+                        finished = length == 0 if length is not None else r.read(1) == b''
+                    except Exception:  # noqa: BLE001 — estancado a medio cuerpo
+                        finished = False
+                    if not finished:
+                        raise _FetchError('err_incomplete_html')
                 break
             chunk = r.read(min(65536, ceiling + 1 - len(data)))
             if not chunk:
@@ -3181,9 +3228,18 @@ def audit_site(url, max_pages=5, timeout=30, lang='en', from_sitemap=True,
     # discovery: sitemap first (WCAG-EM's enumeration), links as fallback
     urls_sm = _urls_sitemap(url, timeout=timeout) if from_sitemap else []
     queue = urls_sm or _internal_links(html_text, entry_final, url)
-    while queue and len(reports) + len(page_errors) < max_pages:
+    # Las URLs FALLIDAS no gastan el presupuesto de páginas (con cupo de 5
+    # solo se medían tres y se despreciaba una buena): el cupo lo consumen las
+    # medidas. Para que un sitemap de enlaces muertos no corretee sin fin, los
+    # fallos tienen su propio techo — y el informe lo dice
+    failed_cap = 2 * max_pages
+    failed_pages_capped = False
+    while queue and len(reports) < max_pages:
         if deadline is not None and time.monotonic() >= deadline:
             budget_exhausted = True
+            break
+        if len(page_errors) >= failed_cap:
+            failed_pages_capped = True
             break
         next = queue.pop(0)
         if next in seen:
@@ -3236,6 +3292,7 @@ def audit_site(url, max_pages=5, timeout=30, lang='en', from_sitemap=True,
         'mode': 'site',
         'budget_exhausted': budget_exhausted,
         'page_errors': page_errors,
+        'failed_pages_capped': failed_pages_capped,
         'not_measured': _not_measured(lang),
         'discovery': 'sitemap' if urls_sm else 'links',
         'pages': len(reports),

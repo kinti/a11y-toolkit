@@ -88,24 +88,35 @@ pixel-based contrast checks.
 ```sh
 python -m pip install a11y-toolkit playwright pillow
 python -m playwright install chromium
-a11ytoolkit dom https://example.com --browser chromium
+a11ytoolkit dom https://example.com
 ```
 
-If your MCP client uses an isolated `uvx` environment, launch it from the
+The CLI has no browser option and uses the first engine it finds. Choose the
+engine with the `browser` argument of the MCP tools. If your MCP client uses
+an isolated `uvx` environment, launch it from the
 browser-enabled environment instead. Set its command to that environment's
 `a11y-toolkit-mcp` executable. Rendered checks also support installed Firefox,
 WebKit, Chrome and Edge.
+
+Closed `<details>` content is no longer reported as unnamed or unfocusable.
+`a11y_snapshot` can run right after a browser audit in the same session, and
+`a11y_contrast_dom` returns a load timeout as an error object. When `load`
+exceeds the timeout but the DOM is complete, `a11y_audit_dom` audits the
+rendered page and lists it in `page_errors`; raise `timeout` for slow sites.
+Rendered findings carry `count`, the total number of instances (examples are
+capped at 6).
 
 ## From a finding to a verified fix
 
 ### Locate the issue and recheck it
 
 Run these commands on the same local HTML file. The annotated copy marks
-the elements the report can locate in the original source.
+the elements the report can locate in the original source, and
+`marks.json` lists the path of each marked element.
 
 ```sh
 a11ytoolkit audit --file page.html > audit.json
-a11ytoolkit annotate page.html --report audit.json -o annotated.html
+a11ytoolkit annotate page.html --report audit.json -o annotated.html --marks marks.json
 ```
 
 Apply the remediation in `page.html`, then repeat the audit. For text contrast,
@@ -140,6 +151,20 @@ captures. To check changed HTML in a Git branch, use
 `a11ytoolkit audit --changed --base origin/main`. To compare focus order in a
 scripted journey, use `trace`. [CI and keyboard recipes](docs/cookbook.md)
 
+Budgets match instances by `stable_paths` (id, `data-testid`, ARIA name)
+before positional paths. In a crawl, failed URLs do not spend the page
+quota; the crawl stops after failures reach twice the quota and the report
+says so with `failed_pages_capped`.
+
+`a11ytoolkit init` also installs a write-time gate in `.claude/settings.json`.
+`guard` fails closed: a save the engine cannot audit (over 3 MB,
+unparseable) returns `decision: "error"` and exit 1 instead of `allow`;
+`A11Y_GATE=off` bypasses the hook and `--lang es` answers in Spanish. `fix`
+returns `error` when its final audit fails. To re-verify a report,
+`a11y_disprove` checks each earlier finding on the live page; with fewer
+saved paths than instances it confirms only a signal still on the same page
+and rejects only with complete proof.
+
 ### Hand off the evidence
 
 ```sh
@@ -171,8 +196,11 @@ environment where submissions are expected. [Examples and command options](docs/
 
 **48 of 55 A/AA criteria carry at least one automated signal (87%)** in
 the supported WCAG 2.2 check modes. A signal covers a specific condition
-within a criterion. The sample, the selected checks and the manual review
-determine what a reviewer can conclude about conformance. The evidence pack
+within a criterion. Any signal counts, even a partial one: a criterion
+appears in this count as soon as one of its conditions is checked, which
+says nothing about the others. The sample, the selected checks and the
+manual review determine what a reviewer can conclude about conformance.
+The evidence pack
 shows those distinctions criterion by criterion. [Manual review checklist](skills/a11y-toolkit/references/wcag22-manual-checklist.md) · [Standards and mappings](docs/standards-coverage.md)
 
 | Evidence | What it measures |

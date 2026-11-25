@@ -80,7 +80,7 @@ def _add(findings, lang, sev, code, key, **fmt):
 
 def audit_scroll(url, max_batches=5, lang='en', timeout=45, auth_state=None, browser='auto',
                  interactive=False, load_more=None):
-    from .a11ydom import _get_browser, _load_error, _load_page, _pooled_page
+    from .a11ydom import _LOAD_ERR, _get_browser, _load_error, _load_page, _pooled_page
     nav = _get_browser(preferred=browser)
     # BrowserContext.new_page() NO acepta viewport: _pooled_page lo manda al
     # new_context cuando hay auth_state
@@ -90,7 +90,9 @@ def audit_scroll(url, max_batches=5, lang='en', timeout=45, auth_state=None, bro
             _load_page(page, url, timeout * 1000)
             page.wait_for_timeout(500)
         except Exception as e:  # noqa: BLE001
-            return _load_error(e, lang, 'no se pudo cargar: {e}')
+            # the bilingual template of the rendered family: the old hard-coded
+            # Spanish text came out in English reports (review 2026-11-25)
+            return _load_error(e, lang, _LOAD_ERR.get(lang, _LOAD_ERR['en']))
         page.evaluate(_MON)
         page.evaluate("(() => { const c = document.querySelector("
                       "  'article a[href], [role=article] a[href], main li a[href]');"

@@ -148,7 +148,7 @@
   "lang_missing_rem": "Añade lang=\"es\" (o el idioma real) a <html>: lectores de pantalla eligen la voz sintética por él.",
   "lang_region_invalid": "lang «{l}»: la subetiqueta de región no existe (ISO 3166). Usa el idioma solo («es») o una región real («es-AR»).",
   "lang_region_invalid_rem": "Valida la región en el IANA Language Subtag Registry: «es» a secas o «es-AR» con región real.",
-  "limits": "Automatización ≈ un tercio de WCAG: esto es un filtro exprés, no sustituye revisión manual (teclado, lector de pantalla, contraste real, refrán de auditoría).",
+  "limits": "Automatización ≈ un tercio de WCAG: esto es un filtro exprés, no sustituye revisión manual (teclado, lector de pantalla, contraste real).",
   "list_structure": "{n} hijos ilegales dentro de <ul>/<ol> (solo <li>, <script> y <template> son válidos).",
   "list_structure_rem": "Mete el contenido suelto en <li> o usa otro contenedor: los lectores anuncian la lista con su número de ítems y se saltan lo que no es <li>.",
   "meta_refresh": "<meta http-equiv=\"refresh\"> con recarga/redirección temporizada ({v}s).",
@@ -576,7 +576,7 @@
   "pdfua_contradiction_rem": "O se completa (idioma, título, etiquetado) o se retira la declaración pdfuaid del XMP: un sello que miente es peor que no llevar sello."
  },
  "scroll": {
-  "limits": "Auditor de scroll infinito: heurística con foco real y observador de regiones vivas en {n} tandas. No sustituye la prueba con lector de screen reader en el feed real.",
+  "limits": "Auditor de scroll infinito: heurística con foco real y observador de regiones vivas en {n} tandas. No sustituye la prueba con lector de pantalla en el feed real.",
   "scroll_focus": "El elemento con foco {where} tras cargar una tanda ({detail}). Fallo documentado del scroll infinito: quien navega con teclado pierde su punto de lectura (2.4.3).",
   "scroll_focus_rem": "No re-renderices el contenedor del feed: AÑADE nodos al final (appendChild/insertAdjacentHTML). Si el foco cae en contenido eliminado, devuélvelo al equivalente nuevo.",
   "scroll_no_announce": "{n} tandas cargadas sin ningún anuncio: no hay región aria-live/status que reciba texto durante la carga ni role=\"feed\" en el contenedor (4.1.3).",

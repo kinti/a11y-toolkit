@@ -54,11 +54,21 @@ _CLI_MSG = {
     'es': {'stdin_json': ('stdin no contiene un JSON de informe válido — '
                           'esperado: la salida de `a11ytoolkit audit` '
                           '(p. ej. {"url": …, "score": …, "findings": […]}) '
-                          'por tubería, o usa --audit fichero.json')},
+                          'por tubería, o usa --audit fichero.json'),
+           'stdin_snapshot': ('stdin no contiene un JSON de snapshot válido — '
+                              'esperado: la salida de `a11ytoolkit snapshot` '
+                              '(p. ej. {"url": …, "elements": […]})'),
+           'file_json': ('no se pudo leer {role} {file}: {err} — se esperaba un '
+                         'fichero JSON escrito por este toolkit')},
     'en': {'stdin_json': ('stdin is not a valid audit-report JSON — expected: '
                           'the output of `a11ytoolkit audit` (e.g. {"url": …, '
                           '"score": …, "findings": […]}), or pass '
-                          '--audit report.json instead')},
+                          '--audit report.json instead'),
+           'stdin_snapshot': ('stdin is not a valid snapshot JSON — expected: '
+                              'the output of `a11ytoolkit snapshot` '
+                              '(e.g. {"url": …, "elements": […]})'),
+           'file_json': ('could not read {role} {file}: {err} — expected a JSON '
+                         'file written by this toolkit')},
 }
 
 
@@ -79,17 +89,34 @@ def _page_index(pages):
         url = page.get('url')
         if not isinstance(url, str) or not url or url in result:
             raise ValueError('every audited page must have a unique URL')
-        findings = {}
+        findings, sampled = {}, set()
         for finding in _active_findings(page):
             signal = normalize_signal(finding['signal'])
-            paths = [path for path in (finding.get('paths') or []) if isinstance(path, str)]
+            stored = finding.get('paths') if isinstance(finding.get('paths'), list) else []
+            stable = finding.get('stable_paths') if isinstance(finding.get('stable_paths'), list) else []
+            # `stable_paths` viaja alineada con `paths` (null sin atributo
+            # estable) y puede faltar entera: cada ruta conserva su posición
+            located = sorted(((path, stable[index] if index < len(stable) else None)
+                              for index, path in enumerate(stored) if isinstance(path, str)),
+                             key=lambda pair: (pair[0], pair[1] if isinstance(pair[1], str) else ''))
+            paths = [path for path, _ in located]
             count = finding.get('count')
             if type(count) is not int or count < 1:
-                count = max(len(paths), len(finding.get('examples') or []), 1)
-            findings[signal] = {'severity': finding['severity'], 'count': max(count, len(paths)),
-                                'paths': sorted(paths)}
+                examples = finding.get('examples')
+                # sin `count` las instancias se cuentan por sus ejemplos, que el
+                # motor RECORTA: es una muestra, y el veredicto lo dice
+                count = max(len(paths), len(examples) if isinstance(examples, list) else 0, 1)
+                if not paths:
+                    sampled.add(signal)
+            entry = {'severity': finding['severity'], 'count': max(count, len(paths)),
+                     'paths': paths}
+            anchors = {path: anchor for path, anchor in located
+                       if isinstance(anchor, str) and anchor}
+            if anchors:
+                entry['anchors'] = anchors
+            findings[signal] = entry
         result[url] = {'mode': page.get('mode', 'static'), 'conditions': audit_conditions(page),
-                       'findings': findings}
+                       'findings': findings, 'sampled': sorted(sampled)}
     return result
 
 
@@ -113,18 +140,43 @@ def init(audit):
     }
 
 
+def _located(entry):
+    """[(ruta posicional, selector estable o None)] — solo lo identificado."""
+    entry = entry or {}
+    anchors = entry.get('anchors') if isinstance(entry.get('anchors'), dict) else {}
+    return [(path, anchors.get(path)) for path in entry.get('paths', [])]
+
+
+def _unmatched_by_anchor(located, matched):
+    """Rutas posicionales de las instancias que la identidad estable NO emparejó."""
+    used, out = Counter(), []
+    for path, anchor in located:
+        if anchor and used[anchor] < matched[anchor]:
+            used[anchor] += 1
+            continue
+        out.append(path)
+    return out
+
+
 def _instance_delta(before, after):
     before_count = before['count'] if before else 0
     after_count = after['count'] if after else 0
-    before_paths = (before or {}).get('paths', [])
-    after_paths = (after or {}).get('paths', [])
+    located_before, located_after = _located(before), _located(after)
+    # Identidad ESTABLE primero: un elemento con id, data-testid o nombre ARIA
+    # es el MISMO aunque insertar un hermano delante desplace su ruta
+    # posicional (revisión 2026-11-25). Lo demás se compara por ruta, como
+    # siempre — sin atributo estable no se inventa identidad.
+    matched = (Counter(anchor for _, anchor in located_before if anchor)
+               & Counter(anchor for _, anchor in located_after if anchor))
+    before_paths = _unmatched_by_anchor(located_before, matched)
+    after_paths = _unmatched_by_anchor(located_after, matched)
     old, new = Counter(before_paths), Counter(after_paths)
-    before_missing = max(0, before_count - len(before_paths))
-    after_missing = max(0, after_count - len(after_paths))
+    before_missing = max(0, before_count - len(located_before))
+    after_missing = max(0, after_count - len(located_after))
     added_paths = sum((new - old).values())
     removed_paths = sum((old - new).values())
     if not before_missing and not after_missing:
-        return added_paths, removed_paths, 'paths'
+        return added_paths, removed_paths, 'stable-paths' if matched else 'paths'
     # A path observed on one side could be among the hidden paths on the other.
     # Any excess over those hidden slots is still a demonstrated change.
     added_by_count = max(0, after_count - before_count)
@@ -196,8 +248,14 @@ def compare(budget, audit, today=None):
         blocking = set(budget.get('blocking', ['high', 'medium']))
         max_new = int(budget.get('max_new', 0))
         signals = {normalize_signal(h['signal']) for pg in pages for h in _active_findings(pg)}
+        sampled = set()
         if budget.get('format') == BUDGET_FORMAT:
-            verdict = _compare_instances(budget, _page_index(pages), blocking)
+            index = _page_index(pages)
+            # señales cuyas instancias solo se conocen por una MUESTRA de
+            # ejemplos (informe sin `count` ni rutas): no se puede demostrar
+            # crecimiento más allá de la muestra, y el veredicto lo dice
+            sampled = {signal for pg in index.values() for signal in pg['sampled']}
+            verdict = _compare_instances(budget, index, blocking)
         else:
             if any(p.get('mode') == 'rendered' for p in pages):
                 return {'error': 'a rendered audit needs a baseline with recorded capture conditions'}
@@ -222,9 +280,13 @@ def compare(budget, audit, today=None):
             'resolved': len(verdict['resolved']),
         },
         'baseline_expired': expired,
+        'sampled_counts': sorted(sampled),
         'note': ('ok=false: there are new blocking findings (or the baseline expired). '
                  'ok=true: nothing new vs the accepted baseline — fix baseline items '
-                 'and re-run --init to lower it.'),
+                 'and re-run --init to lower it.'
+                 + (' sampled_counts: signals whose instances are known only through '
+                    'a sample of examples — growth beyond that sample cannot be '
+                    'demonstrated.' if sampled else '')),
     }
 
 
@@ -319,12 +381,31 @@ def main(argv):
     ap.add_argument('--snapshot', help='structural compare: today\'s snapshot JSON')
     ap.add_argument('--url', help='auditar esta URL al vuelo')
     a = ap.parse_args(argv)
+    def read_json(path, role):
+        """JSON de un fichero de entrada, o None con el error de USO ya impreso
+        (JSON + exit 1): un fichero inexistente o corrupto no es un traceback."""
+        try:
+            with open(path, encoding='utf-8') as f:
+                return json.load(f)
+        except (OSError, ValueError) as err:
+            print(json.dumps({'error': _CLI_MSG['en']['file_json'].format(
+                role=role, file=path, err=str(err)[:160])}, ensure_ascii=False))
+            return None
+
     if a.init_snapshot:
         if a.init_snapshot == '-':
-            snap = json.loads(sys.stdin.read())
+            try:
+                snap = json.loads(sys.stdin.read())
+            except ValueError:
+                snap = None
+            if snap is None:
+                print(json.dumps({'error': _CLI_MSG['en']['stdin_snapshot']},
+                                 ensure_ascii=False))
+                return 1
         else:
-            with open(a.init_snapshot, encoding='utf-8') as f:
-                snap = json.load(f)
+            snap = read_json(a.init_snapshot, 'the snapshot')
+            if snap is None:
+                return 1
         b = init_structural(snap)
         if 'error' in b:
             print(json.dumps(b, ensure_ascii=False))
@@ -334,8 +415,9 @@ def main(argv):
     if a.init:
         inform = None
         if a.audit:
-            with open(a.audit, encoding='utf-8') as f:
-                inform = json.load(f)
+            inform = read_json(a.audit, 'the audit report')
+            if inform is None:
+                return 1
         elif not sys.stdin.isatty():
             try:
                 inform = json.loads(sys.stdin.read())
@@ -352,10 +434,12 @@ def main(argv):
         print(json.dumps(baseline, ensure_ascii=False, indent=1))
         return 1 if 'error' in baseline else 0
     if a.snapshot:
-        with open(a.budget, encoding='utf-8') as f:
-            budget = json.load(f)
-        with open(a.snapshot, encoding='utf-8') as f:
-            snap = json.load(f)
+        budget = read_json(a.budget, 'the budget')
+        if budget is None:
+            return 1
+        snap = read_json(a.snapshot, 'the snapshot')
+        if snap is None:
+            return 1
         verdict = compare_structural(budget, snap)
         if 'error' in verdict:
             # presupuesto no-estructural / snapshot malformado: error de USO
@@ -367,11 +451,13 @@ def main(argv):
     if not (a.audit or a.url):
         print('need --audit report.json or --url https://…')
         return 1
-    with open(a.budget, encoding='utf-8') as f:
-        budget = json.load(f)
+    budget = read_json(a.budget, 'the budget')
+    if budget is None:
+        return 1
     if a.audit:
-        with open(a.audit, encoding='utf-8') as f:
-            report = json.load(f)
+        report = read_json(a.audit, 'the audit report')
+        if report is None:
+            return 1
     else:
         from .a11yaudit import audit_url
         report = audit_url(a.url)

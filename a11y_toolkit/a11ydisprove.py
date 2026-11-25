@@ -47,15 +47,30 @@ def _recheck(url, expected_url, timeout, lang, color_scheme=None, auth_state=Non
     return fresh, None
 
 
+def _text(value):
+    return value if isinstance(value, str) else ''
+
+
+def _count(finding):
+    count = finding.get('count')
+    return count if type(count) is int and count > 0 else None
+
+
 def _finding_key(finding):
-    return (normalize_signal(finding.get('signal', '')),
-            (finding.get('criterion') or '').split(' ', 1)[0])
+    # el informe es entrada externa: un `signal` o `criterion` numérico no
+    # puede tirar la reverificación (revisión 2026-11-25)
+    return (normalize_signal(_text(finding.get('signal'))),
+            _text(finding.get('criterion')).split(' ', 1)[0])
 
 
 def _location_evidence(finding):
-    paths = tuple(sorted(set(finding.get('paths') or [])))
+    """(rutas guardadas, cubren TODAS las instancias). Las rutas de un
+    hallazgo con más instancias que rutas son una MUESTRA, no el inventario."""
+    stored = finding.get('paths')
+    paths = tuple(sorted({path for path in (stored if isinstance(stored, (list, tuple)) else [])
+                          if isinstance(path, str)}))
     if paths:
-        count = finding.get('count')
+        count = _count(finding)
         return paths, count == len(paths) if count is not None else len(paths) < 5
     return (), False
 
@@ -79,10 +94,12 @@ def _classify_findings(previous, current, lang):
         if not candidates or (complete and all(known and not set(paths).intersection(new_paths)
                                                 for new_paths, known in locations)):
             historical.append(dict(old, status='rejected', reject_reason=rejected))
-        elif len(candidates) == 1 and ((complete and locations[0] == (paths, True))
-                                       or (not paths and not locations[0][0]
-                                           and old.get('examples') == candidates[0].get('examples')
-                                           and old.get('count') == candidates[0].get('count'))):
+        elif len(candidates) == 1:
+            # una sola candidata de la misma señal, en la misma página, y sin
+            # prueba completa de que los elementos originales ya no fallan: el
+            # defecto se reproduce → confirmada. Antes, una MUESTRA de rutas (8
+            # instancias, 5 guardadas) no confirmaba nunca y quedaba
+            # `not-rechecked` sin haber mirado la evidencia (2026-11-25)
             candidates[0]['status'] = 'confirmed'
         else:
             historical.append(dict(old, disprover_status='not-rechecked'))
@@ -104,11 +121,22 @@ def disprove(url, report=None, timeout=30, lang='en', auth_state=None):
             report = audit_dom_url(url, timeout=timeout, lang=lang, auth_state=auth_state)
         else:
             report = audit_url(url, timeout=timeout, lang=lang)
+    if not isinstance(report, dict):
+        report = {'error': ('El informe no es un objeto JSON de informe de auditoría.'
+                            if lang == 'es'
+                            else 'The report is not an audit-report JSON object.')}
     if report.get('error'):
         return report
     mode_name = report.get('mode', 'static')
     expected_url = report.get('url') or url
     findings = report.get('findings', [])
+    if not isinstance(findings, list) or any(not isinstance(h, dict) for h in findings):
+        # el informe es entrada externa (CLI --file / MCP): una lista de
+        # hallazgos que no lo es se dice, no se tronca
+        message = ('El informe trae una lista de hallazgos inválida: se esperaba una lista de objetos.'
+                   if lang == 'es' else
+                   'The report carries an invalid findings list: a list of objects was expected.')
+        return dict(report, error=message, disprover={'executed': False, 'reason': message})
 
     if mode_name == 'site':
         # site reports nest findings INSIDE each page: re-checking them against

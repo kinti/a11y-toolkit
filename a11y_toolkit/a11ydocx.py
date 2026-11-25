@@ -104,7 +104,13 @@ def docx_screen(path, lang='en'):
     try:
         with zipfile.ZipFile(path) as archive:
             return _screen_zip(archive, lang, path)
-    except (OSError, zipfile.BadZipFile, RuntimeError, ET.ParseError, ValueError, _OverCap) as error:
+    except Exception as error:  # noqa: BLE001
+        # Un fichero corrupto falla de tantas maneras como decodificadores
+        # intervienen (zipfile.BadZipFile, zlib.error, EOFError, LZMAError,
+        # NotImplementedError por compresión desconocida, ET.ParseError,
+        # LookupError por codificación XML desconocida…): la lista cerrada
+        # dejaba 26 de 120 DOCX corruptos con traceback (revisión 2026-11-25).
+        # La promesa del cribado es JSON + exit 1 para CUALQUIER fichero.
         message = 'No se pudo leer el DOCX' if lang == 'es' else 'Could not read DOCX'
         return {'error': f'{message}: {error}', 'mode': 'docx', 'file': os.path.basename(path)}
 
