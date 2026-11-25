@@ -33,6 +33,8 @@ For report artifacts, `report_status` is `complete`, `partial`, `failed` or
 findings list. A partial crawl contributes the pages that ran. Its errors are
 retained in the artifact. Older packs can omit `report_status`. The verifier
 recomputes it from the report body and checks it separately from the seal.
+Findings with `disprover_status: "not-rechecked"` remain in the embedded
+report and contribute `automated-review` to the criterion matrix.
 
 **Pack/2 rename (2026-09-23)**: every wire key is now English — `criterios`→`criteria`, `estado`→`status`, `esfuerzo`→`effort`, `artefactos`→`artifacts`, `evaluador`→`reviewer`, `informes`→`reports` (tool argument), `verificados`→`verified` (tool argument), `formato`→`format`, and the rest per the pack itself. Pack/1 packs remain valid historical documents; builders MUST emit pack/2.
 

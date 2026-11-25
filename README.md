@@ -243,7 +243,7 @@ Install it with `pip install a11y-toolkit` (or `uv tool install a11y-toolkit`).
 a11ytoolkit audit --changed                     # ONLY what changed since HEAD (CI gate)
 a11ytoolkit audit --changed --base origin/main  # a branch's changes — exit 2 on high/medium
 a11ytoolkit audit --url https://example.com --pages 5   # sitemap-first crawl with page_errors for failed pages
-a11ytoolkit audit --file table.html  # checks every headers ID against cells in the same data table
+a11ytoolkit audit --file table.html  # table headers in their own table; exits 1 if the HTML exceeds the input limit
 a11ytoolkit pair "#1f2328" "#fbfaf7"                    # contrast
 a11ytoolkit image hero.jpg --text "#fff" --region 120,40,420,90
 a11ytoolkit forms https://mysite/contact                # form errors
@@ -257,10 +257,10 @@ a11ytoolkit fix --file page.html -o fixed.html          # safe autofix
 a11ytoolkit declaration --entity "Acme" --url https://… --status partial --framework eaa
 a11ytoolkit snapshot https://mysite --out before.json   # before deploy
 a11ytoolkit diff before.json after.json                 # after deploy
-a11ytoolkit evidence audit.json -o pack.json            # evidence pack with report input status and measured coverage
-a11ytoolkit disprove --url https://mysite               # re-verify findings
+a11ytoolkit evidence audit.json -o pack.json            # measured coverage; findings without reverification stay in review
+a11ytoolkit disprove --url https://mysite --file audit.json  # re-verify at the original final URL
 a11ytoolkit budget --init --audit audit.json > budget.json  # accept the measured findings by page, count and available paths
-a11ytoolkit budget --budget budget.json --audit next.json   # exit 1 for incomplete measurement, 2 for a regression
+a11ytoolkit budget --budget budget.json --audit next.json   # exit 1 incomplete, 2 on regressions proven by counts or paths
 # legacy debt does not block: adopt CI today, don't let accessibility get worse while you pay it down
 a11ytoolkit budget --init-snapshot s.json > structural.json      # structural budget: today's structure is accepted
 a11ytoolkit budget --budget structural.json --snapshot s2.json   # only NEW rendered structure blocks (exit 0/2)
@@ -269,7 +269,9 @@ a11ytoolkit trace https://mysite --script journey.json -o t.json  # scripted rea
 a11ytoolkit trace https://mysite --script j.json --capture-dialog-state -o t.json  # + per-step modal state, then: trace diff a.json b.json --gate-dialog-state
 a11ytoolkit trace diff a.json b.json  # exit 1 for invalid captures, 2 for regressions
 a11ytoolkit patterns https://mysite                       # APG keyboard contracts, live: dialog / tablist / disclosure / combobox / menu / slider
-a11ytoolkit ledger recurrence --ledger a11y-ledger.json   # chronic signals + hot urls: the review queue without ML
+a11ytoolkit ledger record --url https://mysite --audit audit.json  # tracks findings across comparable runs
+a11ytoolkit ledger gaps --url https://mysite --lang en             # remaining coverage gaps
+a11ytoolkit ledger recurrence --ledger a11y-ledger.json            # chronic signals and URLs to review
 a11ytoolkit contrast-dom https://mysite --walk            # perceptual pass: per-element ratios, thresholds, suggestions
 a11ytoolkit sarif --from-audit audit.json -o a11y.sarif # GitHub code scanning
 a11ytoolkit badge --score 92 --out badge.svg            # honest SVG

@@ -255,7 +255,7 @@ Instálalo con `pip install a11y-toolkit` (o `uv tool install a11y-toolkit`).
 a11ytoolkit audit --changed                     # SOLO lo cambiado desde HEAD (gate de CI)
 a11ytoolkit audit --changed --base origin/main  # los cambios de una rama — exit 2 en high/medium
 a11ytoolkit audit --url https://example.com --pages 5   # rastreo, sitemap primero y page_errors para páginas fallidas
-a11ytoolkit audit --file tabla.html  # comprueba todos los IDs de headers dentro de la misma tabla de datos
+a11ytoolkit audit --file tabla.html  # encabezados dentro de su tabla y código 1 si el HTML supera el límite
 a11ytoolkit pair "#1f2328" "#fbfaf7"                    # contraste
 a11ytoolkit image hero.jpg --text "#fff" --region 120,40,420,90
 a11ytoolkit forms https://mysite/contact                # errores de formulario
@@ -269,10 +269,10 @@ a11ytoolkit fix --file page.html -o fixed.html          # autofix seguro
 a11ytoolkit declaration --entity "Acme" --url https://… --status partial --framework eaa
 a11ytoolkit snapshot https://mysite --out before.json   # antes del deploy
 a11ytoolkit diff before.json after.json                 # tras el deploy
-a11ytoolkit evidence audit.json -o pack.json            # pack de evidencia con estado del informe y cobertura medida
-a11ytoolkit disprove --url https://mysite               # re-verifica hallazgos
+a11ytoolkit evidence audit.json -o pack.json            # cobertura medida y revisión para los hallazgos sin reverificar
+a11ytoolkit disprove --url https://mysite --file audit.json  # reverifica en la URL final del informe original
 a11ytoolkit budget --init --audit audit.json > budget.json  # acepta los hallazgos medidos por página, recuento y rutas disponibles
-a11ytoolkit budget --budget budget.json --audit next.json   # código 1 si la medición es incompleta, 2 si hay regresión
+a11ytoolkit budget --budget budget.json --audit next.json   # código 1 si es incompleta, 2 si recuentos o rutas prueban regresión
 # la deuda legacy no bloquea: adopta CI hoy, que la accesibilidad no empeore mientras la pagas
 a11ytoolkit budget --init-snapshot s.json > estructural.json    # presupuesto estructural: la estructura de HOY se acepta
 a11ytoolkit budget --budget estructural.json --snapshot s2.json # solo la estructura renderizada NUEVA bloquea (exit 0/2)
@@ -281,7 +281,9 @@ a11ytoolkit trace https://mysite --script journey.json -o t.json  # jornada real
 a11ytoolkit trace https://mysite --script j.json --capture-dialog-state -o t.json  # + estado modal por paso, luego: trace diff a.json b.json --gate-dialog-state
 a11ytoolkit trace diff a.json b.json  # código 1 si la captura es inválida, 2 si hay regresión
 a11ytoolkit patterns https://mysite                       # contratos APG de teclado, en vivo: dialog / tablist / disclosure / combobox / menu / slider
-a11ytoolkit ledger recurrence --ledger a11y-ledger.json   # señales crónicas + urls calientes: la cola de revisión sin ML
+a11ytoolkit ledger record --url https://mysite --audit audit.json  # registra hallazgos entre auditorías comparables
+a11ytoolkit ledger gaps --url https://mysite --lang es             # criterios pendientes de revisión
+a11ytoolkit ledger recurrence --ledger a11y-ledger.json            # hallazgos recurrentes y URLs para revisar
 a11ytoolkit contrast-dom https://mysite --walk            # pase perceptual: ratios por elemento, umbrales, sugerencias
 a11ytoolkit sarif --from-audit audit.json -o a11y.sarif # GitHub code scanning
 a11ytoolkit badge --score 92 --out badge.svg            # SVG honesto

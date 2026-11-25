@@ -1,6 +1,27 @@
 # Changelog
 
 ## main — pendiente
+- **Complete static measurements.** Local HTML above the input limit and
+  HTTP bodies cut short or over the size limit after decompression return an
+  audit error. Crawls keep failed child pages in `page_errors` and the
+  changed-file gate exits with an error if a file could not be measured.
+- **Same-page reverification and evidence.** `disprove` checks the final URL
+  against the original measurement. A different destination leaves the
+  original findings and score in an error result. An unverified finding
+  stays in the evidence pack as `automated-review`; repeated calls on a
+  crawl still require page-level reverification.
+- **Coverage ledger comparability.** Crawl entries collect findings from
+  the measured pages. A failed capture, a changed audit mode or missing
+  previously recorded pages leaves the ledger unchanged. The first complete
+  crawl upgrades an older entry with an unknown sample. `ledger gaps` runs
+  in the CLI and accepts `--lang`.
+- **Regression budgets with capped routes.** When reports expose only a
+  sample of their element paths, the budget reports a provable minimum from
+  the paths and total counts. It sets `basis` to `partial-paths` when the
+  paths prove a stronger delta than the totals alone.
+- **Native listbox context.** An explicit option can inherit its required
+  listbox context from a native `select` with `multiple` or `size` greater
+  than one. A genuinely orphaned option still emits the existing signal.
 - **Page and instance regression budgets.** Crawl reports retain failed
   URLs under `page_errors`. `budget` returns exit 1 for an incomplete run,
   a missing baseline page or a changed audit mode. Fresh baselines use

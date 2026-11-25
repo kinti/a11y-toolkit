@@ -267,4 +267,25 @@ assert _init_budget(_capture_error)['pages_failed'] == ['https://site/a']
 assert not _cmp(_initial_multi, _capture_error).get('ok')
 print('18. budget: aumento de instancias, delta sobre el límite, página nueva y página no medida ✓')
 
-print('OK test_budget_structural: 18 checks')
+
+def _catalog_with_missing_alt(start):
+    images = []
+    for i in range(12):
+        alt = '' if start <= i < start + 6 else f'alt="Product {i} on the shelf"'
+        images.append(f'<img src="product-{i}.png" {alt}>')
+    return _audit_budget('<html lang="en"><head><title>Product listing</title></head>'
+                         '<body><main><h1>Product listing</h1>' + ''.join(images)
+                         + '</main></body></html>', url='https://site/catalog')
+
+
+_catalog_budget = _init_budget(_catalog_with_missing_alt(0))
+assert _cmp(_catalog_budget, _catalog_with_missing_alt(0))['ok']
+_moved = _cmp(_catalog_budget, _catalog_with_missing_alt(6))
+assert not _moved['ok'] and _moved['changes'] == [
+    {'url': 'https://site/catalog', 'signal': 'img_no_alt', 'new': 4,
+     'resolved': 4, 'new_blocking': 4, 'basis': 'partial-paths'}], _moved
+_possible_overlap = _cmp(_catalog_budget, _catalog_with_missing_alt(1))
+assert _possible_overlap['ok'] and not _possible_overlap['changes'], _possible_overlap
+print('19. budget: detecta el mínimo demostrable sin confundir rutas omitidas con regresiones ✓')
+
+print('OK test_budget_structural: 19 checks')

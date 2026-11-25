@@ -22,7 +22,7 @@ import sys
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, ROOT)
 
-from a11y_toolkit.a11yaudit import audit_html, audit_url  # noqa: E402
+from a11y_toolkit.a11yaudit import MAX_HTML, audit_html, audit_url  # noqa: E402
 from a11y_toolkit.a11yscope import build_scope  # noqa: E402
 
 
@@ -98,8 +98,9 @@ def main(argv):
     if url:
         report = audit_url(url, timeout=30, lang=a.lang, standard=std_arg, target=targets[0])
     else:
-        report = audit_html(open(a.file, encoding='utf-8', errors='replace').read()[:2_000_000],
-                            url=a.file, lang=a.lang, standard=std_arg, target=targets[0])
+        with open(a.file, encoding='utf-8', errors='replace') as source:
+            report = audit_html(source.read(MAX_HTML + 1), url=a.file, lang=a.lang,
+                                standard=std_arg, target=targets[0])
     if 'error' in report:
         print(json.dumps(report, ensure_ascii=False))
         return 1

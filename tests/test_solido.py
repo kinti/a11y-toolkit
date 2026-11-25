@@ -34,7 +34,7 @@ _hallazgo = {k for k in es
               'no_post_copy', 'invalid_color', 'invalid_region', 'region_outside',
               'no_pixels', 'load_error', 'opaque_text', 'fetch_error',
               'rendered_reason', 'overlay_widgets_note', 'statement_note',
-              'err_unparseable', 'err_too_big', 'err_not_html',
+              'err_unparseable', 'err_too_big', 'err_incomplete_html', 'err_not_html',
               'err_redirect_blocked')}   # dato del namespace audit, no un finding
 sin_rem = sorted(k for k in _hallazgo if f'{k}_rem' not in es)
 assert not sin_rem, f"findings sin _rem (KeyError al emitir): {sin_rem}"

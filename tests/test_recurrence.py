@@ -139,3 +139,40 @@ _ent = json.load(open(_led2))['entries'][
 assert _ent['active_signals'] == ['img_no_alt'] and _ent['resolved_signals'] == [], _ent
 print('10. ledger: informe con error conserva el último estado válido ✓')
 
+import contextlib
+import io
+from pathlib import Path
+
+with tempfile.TemporaryDirectory() as _d:
+    _root = 'https://example.test/'
+    _file = Path(_d) / 'ledger.json'
+    _single = {'url': _root, 'mode': 'static', 'score': 88,
+               'findings': [{'signal': 'img_no_alt', 'severity': 'high'}]}
+    _child = dict(_single, url=_root + 'catalog')
+    _site = {'url': _root, 'mode': 'site', 'mean_score': 88, 'reports': [_single, _child]}
+    record(_root, _single, path=_file)
+    _before = _file.read_bytes()
+    assert record(_root, _site, path=_file).get('error') and _file.read_bytes() == _before
+    _capture = io.StringIO()
+    with contextlib.redirect_stdout(_capture):
+        assert ledger_main(['gaps', '--url', _root, '--ledger', str(_file), '--lang', 'es']) == 0
+    assert json.loads(_capture.getvalue())['status'] == 'audited'
+
+    _site_path = Path(_d) / 'site-ledger.json'
+    _entry = record(_root, _site, path=_site_path)
+    assert _entry['active_signals'] == ['img_no_alt'] and len(_entry['page_modes']) == 2
+    _site_before = _site_path.read_bytes()
+    _partial = dict(_site, reports=[_single], page_errors=[{'url': _child['url'], 'error': '503'}])
+    assert record(_root, _partial, path=_site_path).get('error')
+    assert record(_root, dict(_site, reports=[_single]), path=_site_path).get('error')
+    assert _site_path.read_bytes() == _site_before
+    _fixed = dict(_site, reports=[dict(_single, findings=[]), dict(_child, findings=[])])
+    assert record(_root, _fixed, path=_site_path)['resolved_signals'] == ['img_no_alt']
+    _legacy_scope_path = Path(_d) / 'legacy-site.json'
+    _legacy_scope = {'entries': {_hl.sha256(_root.encode()).hexdigest()[:16]:
+                                {'url': _root, 'mode': 'site', 'active_signals': ['img_no_alt']}},
+                     'history': []}
+    _upgraded = record(_root, _fixed, ledger=_legacy_scope, path=_legacy_scope_path)
+    assert _upgraded['page_modes'] and _upgraded['resolved_signals'] == []
+print('11. ledger: ámbito medido, rastreo completo y gaps por CLI ✓')
+

@@ -24,65 +24,40 @@ CLI:
 import argparse
 import json
 
-from .a11yaudit import normalize_signal  # noqa: E402  (compat 5.10)
 import sys
 
-from .a11yaudit import audit_url, audit_html
+from .a11yaudit import audit_url, normalize_signal, page_identity
 
 
-def _recheck_static(url, findings, timeout=30, lang='en'):
-    """Re-run the static audit and check which findings still fire."""
-    fresh_report = audit_url(url, timeout=timeout, lang=lang)
-    if 'error' in fresh_report:
-        return findings, fresh_report['error']
-    fresh_signals = {h['signal'] for h in fresh_report.get('findings', [])}
-    verified = []
-    for h in findings:
-        if normalize_signal(h.get('signal', '')) in fresh_signals:
-            h['status'] = 'confirmed'
-        else:
-            h['status'] = 'rejected'
-            _rj = ('la señal {s!r} ya no dispara al re-auditar — la página '
-                   'puede haber cambiado, o el hallazgo era un falso positivo'
-                   if lang == 'es' else
-                   "signal {s!r} no longer fires on re-audit — the page may "
-                   'have changed, or the finding was a false positive')
-            h['reject_reason'] = _rj.format(s=h.get('signal', '?'))
-        verified.append(h)
-    return verified, None
-
-
-def _recheck_rendered(url, findings, timeout=45, lang='en', color_scheme=None):
-    """Re-run the rendered audit and check which findings still fire.
-
-    Repite las CONDICIONES del informe original (revisión externa
-    2026-11-22): un informe auditado en dark mode reverificado en claro
-    «rechazaba» contrast_fail reales — 88→100 con la página intacta. Sin la
-    condición registrada, nada se rechaza: not-rechecked."""
-    try:
+def _recheck(url, expected_url, findings, timeout, lang, color_scheme=None):
+    """Compare findings only after a successful visit to the same page."""
+    if color_scheme is None:
+        fresh = audit_url(url, timeout=timeout, lang=lang)
+    else:
         from .a11ydom import audit_dom_url
-    except ImportError:
-        return findings, "Playwright not installed"
-    fresh_report = audit_dom_url(url, timeout=timeout, lang=lang,
-                                 color_scheme=color_scheme or 'light')
-    if 'error' in fresh_report:
-        return findings, fresh_report['error']
-    fresh_signals = {h['signal'] for h in fresh_report.get('findings', [])}
+        fresh = audit_dom_url(url, timeout=timeout, lang=lang, color_scheme=color_scheme)
+    if 'error' in fresh:
+        return findings, fresh['error']
+    if page_identity(fresh.get('url')) != page_identity(expected_url):
+        return findings, ('La reauditoría terminó en una URL distinta de la del informe original.'
+                          if lang == 'es' else
+                          'The re-audit ended at a different URL from the original report.')
+
+    signals = {h['signal'] for h in fresh['findings']}
+    rejected = ('La señal {signal!r} ya no aparece en la nueva auditoría de la página.'
+                if lang == 'es' else
+                'Signal {signal!r} no longer fires in the new audit of the page.')
     verified = []
-    for h in findings:
-        if normalize_signal(h.get('signal', '')) in fresh_signals:
-            h['status'] = 'confirmed'
+    for finding in findings:
+        checked = dict(finding)
+        checked.pop('disprover_status', None)
+        checked.pop('reject_reason', None)
+        if normalize_signal(checked.get('signal', '')) in signals:
+            checked['status'] = 'confirmed'
         else:
-            h['status'] = 'rejected'
-            _rj = ('la señal {s!r} ya no dispara en la re-auditoría renderizada '
-                   '— el elemento puede haber cambiado o arreglarse, o el primer '
-                   'hallazgo era un falso positivo'
-                   if lang == 'es' else
-                   "signal {s!r} no longer fires in the rendered re-audit — the "
-                   'element may have changed, been fixed, or the first finding '
-                   'was a false positive')
-            h['reject_reason'] = _rj.format(s=h.get('signal', '?'))
-        verified.append(h)
+            checked['status'] = 'rejected'
+            checked['reject_reason'] = rejected.format(signal=checked.get('signal', '?'))
+        verified.append(checked)
     return verified, None
 
 
@@ -92,32 +67,30 @@ def disprove(url, report=None, timeout=30, lang='en'):
     Returns a report with each finding marked confirmed/rejected."""
     if report is None:
         report = audit_url(url, timeout=timeout, lang=lang)
-        if 'error' in report:
-            return report
-
+    if report.get('error'):
+        return report
     mode_name = report.get('mode', 'static')
+    expected_url = report.get('url') or url
     findings = report.get('findings', [])
 
-    if mode_name == 'site' and not findings:
+    if mode_name == 'site':
         # site reports nest findings INSIDE each page: re-checking them against
         # ONE url marked everything 'rejected' and scored 100 on unreviewed
         # evidence. Honest path: not-rechecked per page, with the pointer to
         # re-verify each page properly.
-        every_finding = []
-        for page in (report.get('reports') or []):   # 'pages' es un CONTEO, no una lista
-            for h in page.get('findings', []):
-                every_finding.append(dict(h, disprover_status='not-rechecked',
-                                          page=page.get('url', '')))
+        if not findings:
+            findings = [dict(h, page=page.get('url', '')) for page in report.get('reports', [])
+                        for h in page.get('findings', [])]
         res = dict(report)
-        res['findings'] = every_finding
+        res['findings'] = [dict(h, disprover_status='not-rechecked') for h in findings]
         res['disprover'] = {'executed': False,
                             'reason': ('site mode: each finding belongs to a page; '
                                        're-verify with a11ydisprove --url <page> '
                                        '--file <that page report>')}
         return res
 
-    if mode_name in ('static', 'site'):
-        verified, err = _recheck_static(url, findings, timeout=timeout, lang=lang)
+    if mode_name == 'static':
+        verified, err = _recheck(url, expected_url, findings, timeout, lang)
     elif mode_name == 'rendered':
         # condición necesaria: el esquema de color bajo el que se auditó. Sin
         # él no se reverifica (rechazar un contrast_fail de dark mode tras
@@ -135,8 +108,7 @@ def disprove(url, report=None, timeout=30, lang='en'):
                            'under light); re-audit with a11y_audit_dom and disprove '
                            'THAT report')}
             return res
-        verified, err = _recheck_rendered(url, findings, timeout=timeout, lang=lang,
-                                          color_scheme=scheme)
+        verified, err = _recheck(url, expected_url, findings, timeout, lang, color_scheme=scheme)
     else:
         # no re-verifier for this mode: report not-rechecked, never a proxy
         # audit (a keyboard finding must not vanish just because the wrong
@@ -149,7 +121,7 @@ def disprove(url, report=None, timeout=30, lang='en'):
         return res
 
     if err:
-        return {'error': f'disprove re-audit failed: {err}'}
+        return dict(report, error=err, disprover={'executed': False, 'reason': err})
 
     result = dict(report)
     result['findings'] = verified

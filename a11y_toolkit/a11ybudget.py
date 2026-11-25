@@ -44,7 +44,7 @@ import datetime
 import json
 from collections import Counter
 
-from .a11yaudit import normalize_signal  # noqa: E402  (compat 5.10)
+from .a11yaudit import completed_report_pages, normalize_signal  # noqa: E402  (compat 5.10)
 import sys
 
 # mensajes CLI bilingües (patrón _labels): el stdin de --init espera el JSON
@@ -63,28 +63,6 @@ _CLI_MSG = {
 
 
 BUDGET_FORMAT = 'a11y-budget/2'
-
-
-def _report_pages(audit):
-    """Return usable pages, or an error if the measurement was incomplete."""
-    if not isinstance(audit, dict) or audit.get('error'):
-        return [], {'error': 'the audit failed or was not a report'}
-    pages = audit.get('reports', [audit])
-    if not isinstance(pages, list) or not pages:
-        return [], {'error': 'the audit contains no page reports'}
-    failures = audit.get('page_errors', [])
-    if not isinstance(failures, list) or any(not isinstance(page, dict) for page in failures):
-        return [], {'error': 'the audit contains invalid page errors'}
-    failures = failures[:]
-    for page in pages:
-        if not isinstance(page, dict):
-            return [], {'error': 'the audit contains an invalid page report'}
-        if page.get('error') or not isinstance(page.get('findings'), list):
-            failures.append(page)
-    if failures or audit.get('budget_exhausted'):
-        return [], {'error': 'the audit did not complete; compare after all pages are measured',
-                    'pages_failed': [page.get('url') for page in failures]}
-    return pages, None
 
 
 def _page_index(pages):
@@ -108,7 +86,7 @@ def _page_index(pages):
 
 def init(audit):
     """Build a page- and instance-scoped baseline from a complete audit."""
-    pages, error = _report_pages(audit)
+    pages, error = completed_report_pages(audit)
     if error:
         return error
     try:
@@ -131,10 +109,21 @@ def _instance_delta(before, after):
     after_count = after['count'] if after else 0
     before_paths = (before or {}).get('paths', [])
     after_paths = (after or {}).get('paths', [])
-    if len(before_paths) == before_count and len(after_paths) == after_count:
-        old, new = Counter(before_paths), Counter(after_paths)
-        return sum((new - old).values()), sum((old - new).values()), 'paths'
-    return max(0, after_count - before_count), max(0, before_count - after_count), 'count'
+    old, new = Counter(before_paths), Counter(after_paths)
+    before_missing = max(0, before_count - len(before_paths))
+    after_missing = max(0, after_count - len(after_paths))
+    added_paths = sum((new - old).values())
+    removed_paths = sum((old - new).values())
+    if not before_missing and not after_missing:
+        return added_paths, removed_paths, 'paths'
+    # A path observed on one side could be among the hidden paths on the other.
+    # Any excess over those hidden slots is still a demonstrated change.
+    added_by_count = max(0, after_count - before_count)
+    removed_by_count = max(0, before_count - after_count)
+    added = max(added_by_count, added_paths - before_missing)
+    removed = max(removed_by_count, removed_paths - after_missing)
+    basis = 'partial-paths' if (added, removed) != (added_by_count, removed_by_count) else 'count'
+    return added, removed, basis
 
 
 def _compare_instances(budget, pages, blocking):
@@ -185,7 +174,7 @@ def _compare_signals(budget, pages, blocking):
 
 def compare(budget, audit, today=None):
     """Compare a complete run against the active baseline."""
-    pages, error = _report_pages(audit)
+    pages, error = completed_report_pages(audit)
     if error:
         return error
     if not isinstance(budget, dict) or budget.get('format') not in (None, BUDGET_FORMAT):

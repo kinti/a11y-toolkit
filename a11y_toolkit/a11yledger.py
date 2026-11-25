@@ -30,7 +30,7 @@ from datetime import datetime, timezone
 
 import tempfile
 
-from .a11yaudit import normalize_signal  # noqa: E402  (compat 5.10)
+from .a11yaudit import completed_report_pages, normalize_signal, page_identity
 
 # per-path lock: always multi-thread; multi-process on POSIX (fcntl).
 # Without it, two concurrent writes left a truncated JSON (external review
@@ -99,33 +99,66 @@ def _save(ledger, path='a11y-ledger.json'):
         raise
 
 
-def record(url, report, ledger=None, path='a11y-ledger.json'):
+def record(url, report, ledger=None, path='a11y-ledger.json', lang='en'):
     """Record an audit result in the ledger (thread/process safe)."""
     with _lock(path):
-        return _record(url, report, ledger=ledger, path=path)
+        return _record(url, report, ledger=ledger, path=path, lang=lang)
 
 
 def _hash_url(url):
     return hashlib.sha256(url.encode()).hexdigest()[:16]
 
 
-def _record(url, report, ledger=None, path='a11y-ledger.json'):
-    # un informe FALLIDO jamás escribe (revisión externa 2026-11-22: con
-    # {'error': …} findings quedaba vacío y TODAS las señales activas
-    # pasaban a «resolved» — el libro mentía). Se conserva el último estado
-    # válido y se devuelve el error.
-    if not isinstance(report, dict) or report.get('error'):
-        return {'error': 'the audit report failed (error field) — the last '
-                         'valid ledger state is preserved'}
+def _record(url, report, ledger=None, path='a11y-ledger.json', lang='en'):
+    pages, error = completed_report_pages(report)
+    if error:
+        return {**error, 'error': ('La auditoría falló o es incompleta. Se conserva el historial.'
+                                   if lang == 'es' else
+                                   'The audit failed or is incomplete. The ledger is unchanged.')}
+    if page_identity(url) not in {page_identity(report.get('url') or url),
+                                  page_identity(report.get('requested_url')),
+                                  page_identity(pages[0].get('url'))}:
+        return {'error': ('La URL no coincide con el informe.' if lang == 'es' else
+                          'The URL does not match the audit report.')}
+    page_modes, measured = {}, {}
+    mode = report.get('mode', 'static')
+    for page in pages:
+        page_url = page.get('url') or (url if 'reports' not in report else None)
+        page_mode = page.get('mode', 'static')
+        identity = page_identity(page_url)
+        if identity is None or identity in measured or not isinstance(page_mode, str):
+            return {'error': ('Cada página debe tener una URL única y un modo de auditoría.'
+                              if lang == 'es' else
+                              'Every page must have a unique URL and an audit mode.')}
+        page_modes[page_url] = page_mode
+        measured[identity] = page_mode
     if ledger is None:
         ledger = _load(path)
     now = datetime.now(timezone.utc).isoformat(timespec='seconds')
     entry_key = _hash_url(url)
 
-    # señales activas y score
-    signals = sorted({normalize_signal(h.get('signal', '')) for h in report.get('findings', [])})
-    score = report.get('score')
     prev = ledger['entries'].get(entry_key, {})
+    previous_mode = prev.get('mode', 'static')
+    # Older crawl entries have no list of measured pages. The first complete
+    # crawl records that scope without resolving findings from an unknown one.
+    previous_pages = prev.get('page_modes', {} if previous_mode == 'site' else {url: previous_mode})
+    if prev and (mode != previous_mode or any(
+            measured.get(page_identity(page)) != page_mode
+            for page, page_mode in previous_pages.items())):
+        return {'error': ('Cambió el modo o faltan páginas de la auditoría anterior. '
+                          'Usa un historial distinto para otro alcance.' if lang == 'es' else
+                          'The audit mode changed or prior pages are missing. '
+                          'Use a different ledger for a different scope.')}
+
+    signals = set()
+    for page in pages:
+        for finding in page['findings']:
+            if not isinstance(finding, dict) or not isinstance(finding.get('signal'), str) or not finding['signal']:
+                return {'error': ('El informe contiene un hallazgo inválido.' if lang == 'es' else
+                                  'The audit contains an invalid finding.')}
+            if finding.get('status') != 'rejected' and finding.get('disprover_status') != 'rejected':
+                signals.add(normalize_signal(finding['signal']))
+    score = report.get('score', report.get('mean_score'))
 
     # resoluciones PERSISTENTES (señal→{resolved_on, seen_count}): antes se
     # recalculaban solo contra el audit anterior y la resolución se olvidaba
@@ -143,8 +176,10 @@ def _record(url, report, ledger=None, path='a11y-ledger.json'):
                        for s in prev['resolved_signals']}
     for s in signals:            # volvió a estar activa → la resolución caduca
         resolutions.pop(s, None)
-    ever_seen = set(resolutions) | set(prev.get('active_signals', []))
-    for s in ever_seen - set(signals):
+    ever_seen = set(resolutions)
+    if previous_pages:
+        ever_seen.update(prev.get('active_signals', []))
+    for s in ever_seen - signals:
         if s in resolutions:     # sigue ausente: la resolución original aguanta
             resolutions[s]['seen_count'] = int(resolutions[s].get('seen_count', 1)) + 1
         else:
@@ -155,10 +190,11 @@ def _record(url, report, ledger=None, path='a11y-ledger.json'):
         'last_audit': now,
         'score': score,
         'previous_score': prev.get('score'),
-        'active_signals': signals,
+        'active_signals': sorted(signals),
         'resolved_signals': sorted(resolutions),
         'resolutions': resolutions,
-        'mode': report.get('mode', 'static'),
+        'mode': mode,
+        'page_modes': page_modes,
         'disprover': report.get('disprover'),
     }
 
@@ -298,9 +334,11 @@ def main(argv):
     s1.add_argument('--url', required=True)
     s1.add_argument('--audit', required=True, help='audit report JSON file')
     s1.add_argument('--ledger', default='a11y-ledger.json')
+    s1.add_argument('--lang', default='en', choices=['en', 'es'])
     s2 = sub.add_parser('gaps')
     s2.add_argument('--url', required=True)
     s2.add_argument('--ledger', default='a11y-ledger.json')
+    s2.add_argument('--lang', default='en', choices=['en', 'es'])
     s3 = sub.add_parser('summary')
     s3.add_argument('--ledger', default='a11y-ledger.json')
     s4 = sub.add_parser('recurrence')
@@ -309,7 +347,7 @@ def main(argv):
     if a.cmd == 'record':
         with open(a.audit, encoding='utf-8') as f:
             report = json.load(f)
-        r = record(a.url, report, path=a.ledger)
+        r = record(a.url, report, path=a.ledger, lang=a.lang)
         print(json.dumps(r, ensure_ascii=False, indent=1))
         if isinstance(r, dict) and r.get('error'):
             return 1   # informe fallido: error de ejecución, no un verde

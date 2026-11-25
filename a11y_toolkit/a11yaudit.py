@@ -22,7 +22,7 @@ import os
 import re
 import sys
 import urllib.request
-from urllib.parse import unquote
+from urllib.parse import unquote, urlsplit
 from html.parser import HTMLParser
 from . import a11yi18n
 
@@ -461,6 +461,17 @@ _IMPLICIT_PARENT = {'list': ('ul', 'ol'), 'menu': ('menu',)}
 # contexto (un treeitem carpeta agrupa sus hijos en un group)
 _OWN_GROUP_ROLE = {'treeitem'}
 _IMPLICIT_CONTEXT = {tag: role for role, tags in _IMPLICIT_PARENT.items() for tag in tags}
+_HTML_UNSIGNED_INTEGER = re.compile(r'[\t\n\f\r ]*\+?([0-9]+)')
+
+
+def _implicit_context(tag, attrs):
+    if tag == 'select':
+        if 'multiple' in attrs:
+            return 'listbox'
+        size = _HTML_UNSIGNED_INTEGER.match(attrs.get('size') or '')
+        if size and size.group(1).lstrip('0') not in ('', '1'):
+            return 'listbox'
+    return _IMPLICIT_CONTEXT.get(tag)
 
 
 class _RoleContext:
@@ -871,9 +882,9 @@ class _Auditor(HTMLParser):
         if not _hidden and tag != 'template':
             if role in _ROLE_PARENTS:
                 self._role_ctx_pending.append((a, role, parent_context))
-            if role or tag in _IMPLICIT_CONTEXT or a.get('id') or a.get('aria-owns'):
-                context = _RoleContext(role or _IMPLICIT_CONTEXT.get(tag),
-                                       a.get('id'), parent_context)
+            effective_role = role or _implicit_context(tag, a)
+            if effective_role or a.get('id') or a.get('aria-owns'):
+                context = _RoleContext(effective_role, a.get('id'), parent_context)
                 for owned_id in (a.get('aria-owns') or '').split():
                     if owned_id != context.element_id:
                         self._owned_by.setdefault(owned_id, context)
@@ -1954,6 +1965,46 @@ def normalize_report(report):
     return out
 
 
+def page_identity(url):
+    """Ignore fragments and normalize the origin and empty root path."""
+    if not isinstance(url, str) or not url:
+        return None
+    try:
+        parts = urlsplit(url)
+        if parts.scheme not in ('http', 'https') or not parts.hostname:
+            return url
+        port = parts.port
+    except ValueError:
+        return url
+    if port is None:
+        port = 443 if parts.scheme == 'https' else 80
+    return (parts.scheme, parts.hostname, port, parts.path or '/', parts.query)
+
+
+def completed_report_pages(report):
+    """Return measured pages or the reason they cannot support a comparison."""
+    if not isinstance(report, dict) or report.get('error'):
+        return [], {'error': 'the audit failed or was not a report'}
+    pages = report.get('reports', [report])
+    if not isinstance(pages, list) or not pages:
+        return [], {'error': 'the audit contains no page reports'}
+    failures = report.get('page_errors', [])
+    if not isinstance(failures, list) or any(not isinstance(page, dict) for page in failures):
+        return [], {'error': 'the audit contains invalid page errors'}
+    failures = failures[:]
+    for page in pages:
+        if not isinstance(page, dict):
+            return [], {'error': 'the audit contains an invalid page report'}
+        status = page.get('http_status')
+        if (page.get('error') or not isinstance(page.get('findings'), list)
+                or status is not None and (type(status) is not int or not 200 <= status < 400)):
+            failures.append(page)
+    if failures or report.get('budget_exhausted'):
+        return [], {'error': 'the audit did not complete; compare after all pages are measured',
+                    'pages_failed': [page.get('url') for page in failures]}
+    return pages, None
+
+
 def compute_score(findings):
     """Puntuación 0-100: penalización ponderada por hallazgo (alta 12, media 6, baja 2)."""
     weights = {'high': 12, 'medium': 6, 'low': 2}
@@ -2014,9 +2065,11 @@ def _not_measured(lang='en'):
 
 def audit_html(html_text, url='(html)', lang='en', standard=None, target=None):
     """Analiza una cadena HTML y devuelve el informe de hallazgos (es/en)."""
+    if isinstance(html_text, str) and len(html_text) > MAX_HTML:
+        return {'url': url, 'error': _t(lang, 'err_too_big').format(mb=MAX_HTML // 1000000)}
     p = _Auditor()
     try:
-        p.feed(html_text[:MAX_HTML])
+        p.feed(html_text)
         p.close()
     except Exception as e:  # noqa: BLE001
         # un atributo hostil NO puede tirar la auditoría de 3 MB de página
@@ -2857,7 +2910,7 @@ def _fetch(url, timeout=30, truncate_at=None, accept_ct=(), _meta=None):
         ceiling = truncate_at or MAX_HTML
         # TOTAL-CLOCK reading: the socket timeout is per-operation and a server
         # dribbling one byte per operation reset it forever. Read in chunks
-        # with a global deadline: what arrived is enough to audit (partial).
+        # with a global deadline. A full audit requires a complete response.
         import time
         read_deadline = time.monotonic() + max(timeout, 5)
         try:
@@ -2867,19 +2920,30 @@ def _fetch(url, timeout=30, truncate_at=None, accept_ct=(), _meta=None):
         data = b''
         while len(data) < ceiling + 1:
             if time.monotonic() >= read_deadline:
-                break          # partial: what arrived suffices to audit
+                if truncate_at is None:
+                    raise _FetchError('err_incomplete_html')
+                break
             chunk = r.read(min(65536, ceiling + 1 - len(data)))
             if not chunk:
                 break
             data += chunk
-        if len(data) > ceiling and truncate_at is None:
-            raise _FetchError('err_too_big', mb=MAX_HTML // 1000000)
+        if truncate_at is None:
+            if len(data) > ceiling:
+                raise _FetchError('err_too_big', mb=MAX_HTML // 1000000)
+            if getattr(r, 'length', 0):
+                raise _FetchError('err_incomplete_html')
         if (r.headers.get('Content-Encoding') or '').lower() == 'gzip' or data[:2] == b'\x1f\x8b':
-            import zlib
-            d = zlib.decompressobj(16 + zlib.MAX_WBITS)
-            data = d.decompress(data, ceiling)   # techo duro también al descomprimir
-            if d.unconsumed_tail:
-                data = data[:ceiling]            # bomba gzip: truncado, no OOM
+            import gzip
+            from io import BytesIO
+            try:
+                with gzip.GzipFile(fileobj=BytesIO(data)) as stream:
+                    data = stream.read(ceiling + 1)
+            except EOFError as err:
+                raise _FetchError('err_incomplete_html') from err
+            if truncate_at is None and len(data) > ceiling:
+                raise _FetchError('err_too_big', mb=MAX_HTML // 1000000)
+        if truncate_at is not None:
+            data = data[:ceiling]
         ctype = (r.headers.get('Content-Type') or '').lower()
         base = ctype.split(';')[0].strip()
         extra_ok = any(base == p or base.startswith(p + '/') for p in accept_ct)
@@ -3077,7 +3141,7 @@ def audit_site(url, max_pages=5, timeout=30, lang='en', from_sitemap=True,
     def _parse_page(html_txt, page_url):
         pg = _Auditor()
         try:
-            pg.feed(html_txt[:MAX_HTML])
+            pg.feed(html_txt)
             pg.close()
         except Exception as e:  # noqa: BLE001
             return pg, {'url': page_url, 'error': _t(lang, 'err_unparseable').format(e=str(e)[:120])}
@@ -3085,7 +3149,10 @@ def audit_site(url, max_pages=5, timeout=30, lang='en', from_sitemap=True,
     p0, p0_err = _parse_page(html_text, entry_final)
     if p0_err:
         return p0_err
-    reports = [audit_html(html_text, entry_final, lang=lang)]
+    initial = audit_html(html_text, entry_final, lang=lang)
+    if initial.get('error'):
+        return dict(initial, url=entry_final)
+    reports = [initial]
     parsers = [p0]
     page_errors = []
     budget_exhausted = False
@@ -3203,7 +3270,10 @@ def audit_changed(base='HEAD', lang='en', cwd='.'):
         if not os.path.exists(filepath):
             continue  # renombrado/eliminado entre el diff y ahora
         with open(filepath, encoding='utf-8', errors='replace') as fh:
-            reports.append(audit_html(fh.read(), f, lang=lang))
+            report = audit_html(fh.read(MAX_HTML + 1), f, lang=lang)
+        if report.get('error'):
+            return report
+        reports.append(report)
 
     findings = [h for r in reports for h in r.get('findings', [])]
     scores = [r['score'] for r in reports if r.get('score') is not None]
@@ -3297,7 +3367,7 @@ def main(argv):
             return 1
     else:
         with open(a.file, encoding='utf-8', errors='replace') as f:
-            res = audit_html(f.read(), a.file, lang=a.lang,
+            res = audit_html(f.read(MAX_HTML + 1), a.file, lang=a.lang,
                              standard=a.standard, target=a.target)
     # site/changed no pasan por audit_html: enriquecer post-hoc para que
     # --standard nunca se descarte en silencio en NINGUNA ruta del CLI

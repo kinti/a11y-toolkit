@@ -205,10 +205,7 @@ def build_pack(reports, snapshot=None, reviewer=None, notes=None, verified=None,
     touched = {}
     for inf in pages:
         for h in inf.get('findings', []):
-            if (h.get('status') == 'rejected'
-                    or h.get('disprover_status') in ('rejected', 'not-rechecked')):
-                # un hallazgo desmentido (o no reverificado) no puede volver a
-                # convertirse en fallo dentro del pack
+            if h.get('status') == 'rejected' or h.get('disprover_status') == 'rejected':
                 continue
             crit = h.get('criterion')
             if not crit or not isinstance(crit, str):   # informe malformado: saltar
@@ -219,6 +216,7 @@ def build_pack(reports, snapshot=None, reviewer=None, notes=None, verified=None,
             # afirmar un FALLO — el hallazgo queda como review (evidencia, no
             # veredicto). Solo un fail del motor es un automated-fail.
             state = ('automated-fail' if severity in ('high', 'medium')
+                     and h.get('disprover_status') != 'not-rechecked'
                      else 'automated-review')
             # el peor estado gana: fail > review
             if touched.get(code) != 'automated-fail':

@@ -232,6 +232,7 @@
   "rendered_reason": "requires the rendered audit (a11y_audit_dom / a11ytoolkit dom): computed styles, cascade, var(), real layout",
   "err_unparseable": "unparseable HTML: {e}",
   "err_too_big": "HTML larger than {mb} MB",
+  "err_incomplete_html": "Incomplete HTTP response body; audit cancelled",
   "err_not_html": "the URL does not return HTML (Content-Type: {ct})",
   "role_no_tabindex": {
    "one": "1 element with an interactive role (button/link) and no tabindex: not reachable by keyboard (JS could add it at runtime — the rendered pass confirms).",

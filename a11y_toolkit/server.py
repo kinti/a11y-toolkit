@@ -97,7 +97,7 @@ try:
 except ImportError:
     ARIALIVE_JS = None  # repo checkout: read the file
 
-VERSION = '5.34.0'
+VERSION = '5.34.1'
 
 # Params renombrados a inglés en 5.11.0; se aceptan los nombres previos.
 PARAM_ALIASES = {
@@ -1518,7 +1518,7 @@ def invoke(name, args):
                 if not args.get('url') or not args.get('report'):
                     return _content({'error': 'record requires url + report'})
                 from .a11yledger import record as _rec
-                return _content(_rec(args['url'], args['report'], path=path))
+                return _content(_rec(args['url'], args['report'], path=path, lang=args.get('lang', 'en')))
             if action == 'gaps':
                 if not args.get('url'):
                     return _content({'error': 'gaps requires url'})

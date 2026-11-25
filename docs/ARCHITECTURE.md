@@ -18,7 +18,7 @@ import guards. Output es/en; wire keys English (`a11y-evidence-pack/2`).
 |---|---|
 | `server.py` | MCP stdio server: 37 tools, 5 prompts, routing/annotations dicts. VERSION lives here. |
 | `a11y.py` | CLI dispatcher (`SUBCOMANDOS` dict → module mains). |
-| `a11yaudit.py` | Static auditor: 50+ signals, `CRIT` name maps, weighted 0-100 score, per-table header validation, sitemap crawl (`audit_site` / `evaluate_site`). |
+| `a11yaudit.py` | Static auditor: 50+ signals, `CRIT` name maps, weighted 0-100 score, per-table header validation, sitemap crawl (`audit_site` / `evaluate_site`). Input limits and incomplete HTTP bodies produce errors. `completed_report_pages` validates the measured sample for the budget and ledger. |
 | `a11ydom.py` | Rendered auditor (Playwright): shadow DOM, state contrast, target size, reflow, keyboard walk, forms, hover, sr_transcript; browser pool + auto-detection; `_TD` catalog. |
 | `a11yscroll.py` | Infinite-scroll audit (focus survival, announcements, feed end). |
 | `a11yevidence.py` | Evidence pack builder (`a11y-evidence-pack/2`): 55-criterion matrix, effort per row, SHA-256 chain, embedded bodies. |
@@ -50,8 +50,8 @@ import guards. Output es/en; wire keys English (`a11y-evidence-pack/2`).
 | `a11ypatterns.py` | APG keyboard contracts for high-risk ARIA widgets, tested live: visible dialogs (Esc closes, modal focus containment), tablists (ArrowRight/Left move focus — roving tabindex; selection follows focus or Enter/Space), disclosures (activation flips aria-expanded; menu buttons excluded — that pattern tests them), comboboxes (ArrowDown opens + flips aria-expanded; Esc closes), menu buttons (activation opens a visible menu; Esc closes + refocuses), sliders (arrows change aria-valuenow; the value trio exposed, its absence is its own 4.1.2 finding). Findings family `pattern_*` with bilingual remediation from the `patterns` locale section. Only patterns VISIBLE at load (opening closed dialogs means guessing a trigger flow — never on a live site). CLI + suite, not a tool (D17). |
 | `a11ydiff.py` | Snapshot + regression diff (interactives, focus order, tree); `snapshot(engine=)` feeds the engines matrix. |
 | `a11ybudget.py` | Error budget: only NEW blocking findings fail (exit 2); structural variant `--init-snapshot`/`--snapshot` applies the same doctrine to the rendered structure (accepted baseline of interactives + focus chain, focus = relative order of surviving keys, `removed_block`, review_date expiry). |
-| `a11yledger.py` | Coverage ledger: what was audited, when, resolved across runs. |
-| `a11ydisprove.py` | Disprover: re-audits live page, marks findings confirmed/rejected. |
+| `a11yledger.py` | Coverage ledger: findings and resolutions across complete runs with the same audit mode and coverage of previously measured pages. |
+| `a11ydisprove.py` | Disprover: re-audits the original final URL and marks findings confirmed/rejected after a comparable measurement. |
 | `a11yvalidate.py` | W3C Nu validator integration (url + html modes). |
 | `a11ysarif.py` | SARIF 2.1.0 export for GitHub code scanning. |
 | `a11ybadge.py` | Honest SVG badge (score + date + scope, XML-escaped). |

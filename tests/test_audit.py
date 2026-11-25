@@ -505,6 +505,13 @@ assert _orphan['count'] == 12 and len(_orphan['paths']) == len(_orphan['examples
 _hidden_owner = audit_html('<template><div role="list" aria-owns="b"></div></template>'
                            '<div role="listitem" id="b">Orphan</div>')
 assert 'role_orphan' in {f['signal'] for f in _hidden_owner['findings']}, _hidden_owner
+for _attrs in ('multiple', 'size="4"', 'size="+2"', 'size="2 trailing"'):
+    _select_listbox = audit_html(f'<label for="colors">Pick colors</label><select id="colors" {_attrs}>'
+                                '<optgroup label="Primary"><option role="option">Red</option>'
+                                '</optgroup></select>')
+    assert 'role_orphan' not in {f['signal'] for f in _select_listbox['findings']}, _select_listbox
+_outside_listbox = audit_html('<div role="option">Red</div>')
+assert 'role_orphan' in {f['signal'] for f in _outside_listbox['findings']}, _outside_listbox
 _inert_skip = audit_html('<a href="#target">Skip to content</a>'
                          '<template><a name="target"></a></template>')
 assert 'skip_broken' in {f['signal'] for f in _inert_skip['findings']}, _inert_skip

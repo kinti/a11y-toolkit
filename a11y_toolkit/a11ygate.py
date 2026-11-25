@@ -79,8 +79,8 @@ def verdict(old_content, new_content, path='(file)'):
     a NEW kind with high/medium severity refuses the save; new LOW kinds
     and kinds already in HEAD are warnings. Returns {decision, blocked[],
     warnings[], known, before, after, score}."""
-    old = audit_html((old_content or '')[:3_000_000], url=f'(old) {path}')
-    new = audit_html((new_content or '')[:3_000_000], url=f'(new) {path}')
+    old = audit_html(old_content or '', url=f'(old) {path}')
+    new = audit_html(new_content or '', url=f'(new) {path}')
     if 'error' in old or 'error' in new:
         return {'decision': 'allow', 'path': path,
                 'note': 'unparseable content — the gate does not judge '

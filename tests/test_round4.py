@@ -120,7 +120,7 @@ check('normalize_report findings-dict hostil',
 
 # ── cadena de conformidad ───────────────────────────────────────────────────
 from a11y_toolkit.a11yevidence import build_pack  # noqa: E402
-# disprover-site: findings top-level (not-rechecked) NO resucitan
+# A finding that was not rechecked remains visible for review.
 _site = {'mode': 'site', 'url': 'https://x', 'reports': [
     {'mode': 'static', 'url': 'https://x/a', 'findings': [
         {'severity': 'high', 'criterion': '1.1.1 Non-text Content', 'signal': 'img_no_alt',
@@ -130,8 +130,8 @@ _site = {'mode': 'site', 'url': 'https://x', 'reports': [
                   'disprover_status': 'not-rechecked', 'page': 'https://x/a'}]}
 _pack = build_pack([_site])
 _row = [c for c in _pack['criteria'] if c['criterion'].startswith('1.1.1')][0]
-check('disproved-site: not-rechecked no resucita en la matriz',
-      _row['status'] != 'automated-fail', _row['status'])
+check('disproved-site: not-rechecked queda en revisión',
+      _row['status'] == 'automated-review', _row['status'])
 
 # vpat remarks: cita hallazgos de artifacts site (desciende reports[]);
 # en el caso disproved (arriba) quedarse VACÍO es lo honesto — todos muertos
@@ -195,5 +195,93 @@ _src = open(os.path.join(os.path.dirname(__file__), '..', 'a11y_toolkit', 'a11yd
             encoding='utf-8').read()
 check('disprove re-audita con el color_scheme del informe',
       'color_scheme=scheme' in _src)
+
+import contextlib
+import gzip
+import io
+import tempfile
+from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+from pathlib import Path
+from threading import Thread
+
+from a11y_toolkit.a11yaudit import MAX_HTML, audit_site, audit_url, main as audit_main
+from scripts.verify_pack import verify
+
+_image = '<main><h1>Product listing</h1><img src="product.png"></main>'
+_normal_html = BASE.format(_image)
+_large_html = BASE.format('<!--' + ' ' * MAX_HTML + '-->' + _image)
+with tempfile.TemporaryDirectory() as _tmp:
+    _file = Path(_tmp) / 'large.html'
+    _file.write_text(_large_html, encoding='utf-8')
+    _output = io.StringIO()
+    with contextlib.redirect_stdout(_output):
+        _exit = audit_main(['--file', str(_file)])
+    _oversize = json.loads(_output.getvalue())
+    check('CLI HTML grande → error sin puntuación completa',
+          _exit == 1 and 'error' in _oversize and 'score' not in _oversize, _oversize)
+
+
+class _AuditPages(BaseHTTPRequestHandler):
+    redirect_to_login = False
+
+    def do_GET(self):
+        target = {'/alias': '/product'}.get(self.path)
+        if self.path == '/product' and self.redirect_to_login:
+            target = '/login'
+        if target:
+            self.send_response(302)
+            self.send_header('Location', target)
+            self.end_headers()
+            return
+        contents = {'/product': BASE.format(_image + '<a href="/other">More products</a>'),
+                    '/other': _normal_html, '/large': _large_html, '/gzip': _normal_html,
+                    '/broken': _normal_html, '/login': BASE.format('<h1>Sign in to continue</h1>')}
+        data = contents[self.path].encode('utf-8')
+        self.send_response(200)
+        self.send_header('Content-Type', 'text/html; charset=utf-8')
+        if self.path in ('/large', '/gzip'):
+            data = gzip.compress(data)
+            self.send_header('Content-Encoding', 'gzip')
+        length = len(data) + (20 if self.path == '/broken' else 0)
+        self.send_header('Content-Length', str(length))
+        self.end_headers()
+        self.wfile.write(data)
+
+    def log_message(self, *args):
+        pass
+
+
+with ThreadingHTTPServer(('127.0.0.1', 0), _AuditPages) as _http:
+    _worker = Thread(target=_http.serve_forever, daemon=True)
+    _worker.start()
+    try:
+        _root = f'http://127.0.0.1:{_http.server_port}'
+        _gzip = audit_url(_root + '/gzip')
+        _too_large = audit_url(_root + '/large')
+        _broken = audit_url(_root + '/broken')
+        check('gzip completo se mide; exceso y cuerpo HTTP parcial devuelven error',
+              any(f['signal'] == 'img_no_alt' for f in _gzip['findings'])
+              and _too_large.get('error') == 'HTML larger than 3 MB'
+              and 'Incomplete HTTP response' in _broken.get('error', ''), _broken)
+        _site_report = audit_site(_root + '/product', max_pages=2, from_sitemap=False)
+        _not_checked = _disp(_root + '/product', report=_site_report)
+        _repeat = _disp(_root + '/product', report=_not_checked)
+        _sealed = build_pack([_repeat])
+        _status = next(c['status'] for c in _sealed['criteria'] if c['criterion'].startswith('1.1.1 '))
+        check('un rastreo sin reverificar conserva la evidencia para revisión',
+              not _repeat['disprover']['executed'] and _status == 'automated-review'
+              and verify(_sealed)[0], _status)
+        _report = audit_url(_root + '/alias')
+        _confirmed = _disp(_root + '/alias', report=_report)
+        check('una redirección estable permite confirmar el hallazgo de la URL final',
+              _confirmed['disprover']['confirmed'] >= 1 and not _report['findings'][0].get('status'))
+        _AuditPages.redirect_to_login = True
+        _mismatch = _disp(_root + '/alias', report=_report)
+        check('disprove rechaza un destino distinto y conserva el informe original',
+              bool(_mismatch.get('error')) and not _mismatch['disprover']['executed']
+              and _mismatch['score'] == _report['score'] and _mismatch['findings'] == _report['findings'])
+    finally:
+        _http.shutdown()
+        _worker.join()
 
 print(f'\nRONDA 4 OK ✓ ({ok} pines: motor, cadena, rendered)')

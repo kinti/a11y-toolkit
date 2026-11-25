@@ -232,6 +232,7 @@
   "rendered_reason": "requiere la auditoría renderizada (a11y_audit_dom / a11ytoolkit dom): estilos computados, cascada, var(), layout real",
   "err_unparseable": "HTML no analizable: {e}",
   "err_too_big": "HTML de más de {mb} MB",
+  "err_incomplete_html": "Cuerpo HTTP incompleto; auditoría cancelada",
   "err_not_html": "la URL no devuelve HTML (Content-Type: {ct})",
   "role_no_tabindex": {
    "one": "1 elemento con rol interactivo (button/link) sin tabindex: inalcanzable por teclado (el JS puede añadirlo en runtime — el pase rendered confirma).",
