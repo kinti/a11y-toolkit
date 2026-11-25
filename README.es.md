@@ -254,7 +254,7 @@ Instálalo con `pip install a11y-toolkit` (o `uv tool install a11y-toolkit`).
 ```bash
 a11ytoolkit audit --changed                     # SOLO lo cambiado desde HEAD (gate de CI)
 a11ytoolkit audit --changed --base origin/main  # los cambios de una rama — exit 2 en high/medium
-a11ytoolkit audit --url https://example.com --pages 5   # rastreo, sitemap primero
+a11ytoolkit audit --url https://example.com --pages 5   # rastreo, sitemap primero y page_errors para páginas fallidas
 a11ytoolkit audit --file tabla.html  # comprueba todos los IDs de headers dentro de la misma tabla de datos
 a11ytoolkit pair "#1f2328" "#fbfaf7"                    # contraste
 a11ytoolkit image hero.jpg --text "#fff" --region 120,40,420,90
@@ -269,9 +269,10 @@ a11ytoolkit fix --file page.html -o fixed.html          # autofix seguro
 a11ytoolkit declaration --entity "Acme" --url https://… --status partial --framework eaa
 a11ytoolkit snapshot https://mysite --out before.json   # antes del deploy
 a11ytoolkit diff before.json after.json                 # tras el deploy
-a11ytoolkit evidence audit.json -o pack.json            # pack de evidencia verificable (not-run salvo que un modo con señal corriera de verdad)
+a11ytoolkit evidence audit.json -o pack.json            # pack de evidencia con estado del informe y cobertura medida
 a11ytoolkit disprove --url https://mysite               # re-verifica hallazgos
-a11ytoolkit budget --budget budget.json --audit audit.json  # solo lo NUEVO bloquea (exit 1 = el informe falló)
+a11ytoolkit budget --init --audit audit.json > budget.json  # acepta los hallazgos medidos por página, recuento y rutas disponibles
+a11ytoolkit budget --budget budget.json --audit next.json   # código 1 si la medición es incompleta, 2 si hay regresión
 # la deuda legacy no bloquea: adopta CI hoy, que la accesibilidad no empeore mientras la pagas
 a11ytoolkit budget --init-snapshot s.json > estructural.json    # presupuesto estructural: la estructura de HOY se acepta
 a11ytoolkit budget --budget estructural.json --snapshot s2.json # solo la estructura renderizada NUEVA bloquea (exit 0/2)

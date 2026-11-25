@@ -49,6 +49,38 @@ def _sha256(obj):
     return hashlib.sha256(_canon(obj).encode('utf-8')).hexdigest()
 
 
+def _is_page_report(report):
+    # Keep in sync with the builder without importing the engine.
+    if not isinstance(report, dict) or report.get('error'):
+        return False
+    identity = report.get('url') or report.get('file')
+    findings = report.get('findings')
+    status = report.get('http_status')
+    return (isinstance(identity, str) and bool(identity.strip())
+            and isinstance(report.get('mode', 'static'), str)
+            and isinstance(findings, list)
+            and all(isinstance(f, dict) and isinstance(f.get('signal', ''), str) for f in findings)
+            and (status is None or type(status) is int and 200 <= status < 400))
+
+
+def _report_status(body):
+    if not isinstance(body, dict):
+        return 'invalid'
+    if body.get('error'):
+        return 'failed'
+    pages = body.get('reports')
+    if isinstance(pages, list):
+        usable = sum(_is_page_report(page) for page in pages)
+        if usable:
+            return ('partial' if usable != len(pages) or body.get('page_errors')
+                    or body.get('budget_exhausted') else 'complete')
+        if body.get('page_errors') or any(isinstance(page, dict) and page.get('error')
+                                         for page in pages):
+            return 'failed'
+        return 'invalid'
+    return 'complete' if _is_page_report(body) else 'invalid'
+
+
 def verify(pack):
     """Pack (dict) → (ok, checks). checks: [{check, ok, detail}] — every
     failure names WHERE the chain broke."""
@@ -79,10 +111,11 @@ def verify(pack):
         fail('structure', f'criteria must be exactly 55 entries (the WCAG 2.2 '
              f'A/AA matrix), got {len(criteria) if isinstance(criteria, list) else type(criteria).__name__}')
     else:
-        bad = [c.get('criterion', '?') for c in criteria
-               if not isinstance(c, dict) or c.get('status') not in STATES]
-        if bad:
-            fail('structure', f'criterion rows with unknown status: {bad[:3]}')
+        codes = [c['criterion'].split()[0] for c in criteria
+                 if isinstance(c, dict) and c.get('status') in STATES
+                 and isinstance(c.get('criterion'), str) and c['criterion'].strip()]
+        if len(set(codes)) != 55:
+            fail('criteria matrix', 'expected 55 distinct criterion codes with known statuses')
         else:
             ok('criteria matrix', '55 entries, known statuses')
 
@@ -102,7 +135,7 @@ def verify(pack):
     else:
         fail('structure', 'summary must be an object of status counts')
 
-    verified_bodies = recorded = 0
+    verified_bodies = recorded = report_count = usable_reports = 0
     if not isinstance(pack['artifacts'], list):
         fail('artifacts', 'artifacts must be a list')
     else:
@@ -121,6 +154,13 @@ def verify(pack):
                     verified_bodies += 1
             else:
                 recorded += 1
+            if str(a.get('type', '')).startswith('report:'):
+                report_count += 1
+                measured = _report_status(a.get('body'))
+                if measured == 'invalid' or a.get('report_status', measured) != measured:
+                    fail(f'report input #{i + 1}', 'invalid report or inconsistent measurement status')
+                elif measured in ('complete', 'partial'):
+                    usable_reports += 1
         if verified_bodies or recorded:
             note = f'{verified_bodies} recomputed from embedded bodies'
             note += f', {recorded} recorded without body (not recomputable from the pack)' if recorded else ''
@@ -128,6 +168,13 @@ def verify(pack):
         elif not any(not c['ok'] for c in checks if c['check'].startswith('artifact')):
             fail('artifacts', 'no artifacts to verify — an evidence pack '
                  'must carry at least one artifact')
+
+    if isinstance(criteria, list) and any(isinstance(row, dict) and row.get('status') in
+            ('not-flagged', 'automated-fail', 'automated-review') for row in criteria):
+        if not usable_reports:
+            fail('measurement evidence', 'automated coverage without a completed audit report')
+    if report_count and not any(c['check'].startswith('report input') for c in checks):
+        ok('report inputs', f'{usable_reports}/{report_count} contain completed measurements')
 
     sealed = _sha256({k: v for k, v in pack.items()
                       if k not in ('sha256', 'generated')})

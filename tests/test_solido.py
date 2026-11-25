@@ -384,6 +384,7 @@ if sys.version_info >= (3, 12):
 # interna aparece en fichero trackeado alguno (el hook bloquea al commit).
 _tracked = subprocess.run(['git', 'ls-files'], cwd=ROOT, capture_output=True,
                           text=True, check=True).stdout.split()
+_tracked = [f for f in _tracked if os.path.isfile(os.path.join(ROOT, f))]
 assert '.zcodeignore' not in _tracked, '.zcodeignore trackeada — git rm --cached .zcodeignore'
 _aguja = b'a11y-' + b'drafts'  # partida: el propio test no contiene el literal que busca
 for _f in _tracked:

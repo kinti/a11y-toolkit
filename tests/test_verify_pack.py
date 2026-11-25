@@ -186,6 +186,28 @@ with _tf.TemporaryDirectory() as _d:
     assert _r.returncode == 0, f'verify_pack rechazó un pack con not-applicable: {_r.stdout[:240]}'
 print('verify_pack acepta not-applicable (scope humano) ✓')
 
+_invalid = _bpack([{}])
+assert _invalid['summary']['not-flagged'] == 0, _invalid['summary']
+assert _invalid['artifacts'][0]['report_status'] == 'invalid'
+_failed = _bpack([{'error': 'HTTP 503'}])
+assert _failed['summary']['not-flagged'] == 0
+assert _failed['artifacts'][0]['report_status'] == 'failed'
+_partial = _bpack([{'url': 'https://x', 'mode': 'site', 'reports': [_aud],
+                    'page_errors': [{'url': 'https://x/b', 'error': 'HTTP 503'}]}])
+assert _partial['artifacts'][0]['report_status'] == 'partial'
+assert _partial['summary']['not-flagged'] > 0
+with _tf.TemporaryDirectory() as _d:
+    _p = _os.path.join(_d, 'p.json')
+    for _candidate, _expected in ((_invalid, 1), (_failed, 0), (_partial, 0)):
+        with open(_p, 'w') as f:
+            _json.dump(_candidate, f)
+        _r = run(_p, '--json')
+        _checks = {row['check']: row['ok'] for row in _json.loads(_r.stdout)['checks']}
+        assert _r.returncode == _expected and _checks['pack seal'], _r.stdout
+        if _expected:
+            assert _checks['report input #1'] is False, _checks
+print('verify_pack distinguishes a valid seal from valid measurement inputs ✓')
+
 
 
 if __name__ == '__main__':

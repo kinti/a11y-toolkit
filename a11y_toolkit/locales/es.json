@@ -255,8 +255,8 @@
   "skip_broken_rem": "Apunta el enlace al id real del contenido principal (o crea el id): un bypass roto es peor que no tener bypass.",
   "select_auto_focus": "{n} select con autofocus ejecutan un script que cambia el contexto en cuanto reciben el foco ({example}). La página carga con el foco ya en el control, así que la navegación, la ventana nueva, el envío o el cambio de foco se dispara sin que el usuario haya hecho nada (3.2.1).",
   "select_auto_focus_rem": "Quita el autofocus del select, o consérvalo y ejecuta el script al activar (un botón Ir) en vez de al recibir el foco.",
-  "select_auto_focus_input": "{n} select con autofocus ejecutan un script que cambia el contexto al cambiar la opción o al pulsar una tecla ({example}). La página carga con el foco ya en el control, así que basta cambiar la opción o pulsar una tecla para navegar, abrir una ventana, enviar o mover el foco, sin aviso previo (3.2.2).",
-  "select_auto_focus_input_rem": "Quita el autofocus del select, o avisa antes del control de que cambiar la opción ejecuta la acción; un botón Ir deja la acción explícita."
+  "select_auto_focus_input": "{n} select con autofocus contienen un script que puede cambiar el contexto al cambiar la opción o al pulsar una tecla ({example}). Comprueba el comportamiento y que el usuario recibe un aviso antes de usar el control (3.2.2).",
+  "select_auto_focus_input_rem": "Avisa al usuario antes de que use el control de que cambiar la opción ejecuta la acción, o proporciona un botón Ir explícito."
  },
  "badge": {
   "name": "a11y-toolkit",

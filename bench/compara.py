@@ -15,7 +15,9 @@ CLI:  python3 bench/compara.py https://www.gov.uk [otra-url ...]
 import argparse
 import json
 import os
+import re
 import sys
+from urllib.parse import urlsplit
 
 AQUI = os.path.dirname(os.path.abspath(__file__))
 RAIZ = os.path.dirname(AQUI)
@@ -28,39 +30,14 @@ from a11y_toolkit.a11ydom import audit_dom_url  # noqa: E402
 
 _ENGINES = ('toolkit_static', 'toolkit_rendered', 'axe')
 
-# mapa señal-toolkit → criterio, para comparar por criterio WCAG
-CRIT_TOOLKIT = {'1.1.1', '1.2.2', '1.3.1', '1.3.5', '1.4.2', '1.4.3', '1.4.4',
-                '2.1.1', '2.2.1', '2.4.1', '2.4.2', '2.4.3', '2.4.4', '2.4.7',
-                '2.5.8', '3.1.1', '3.2.5', '3.3.2', '4.1.2'}
+_WCAG_TAG = re.compile(r'wcag([1-4])([0-9])([0-9]{1,2})')
 
-# reglas axe (violaciones) → criterio WCAG aproximado
-AXE_A_CRIT = {
-    'image-alt': '1.1.1', 'input-image-alt': '1.1.1', 'area-alt': '1.1.1',
-    'button-name': '4.1.2', 'link-name': '4.1.2',
-    'label': '3.3.2', 'label-title-only': '3.3.2',
-    'html-has-lang': '3.1.1', 'html-lang-valid': '3.1.1', 'valid-lang': '3.1.1',
-    'document-title': '2.4.2',
-    'heading-order': '1.3.1', 'empty-heading': '1.3.1', 'page-has-heading-one': '1.3.1',
-    'th-has-data-cells': '1.3.1', 'table-fake-caption': '1.3.1', 'td-has-header': '1.3.1',
-    'td-headers-attr': '1.3.1', 'th-has-data-cells': '1.3.1',
-    'color-contrast': '1.4.3', 'color-contrast-enhanced': '1.4.3',
-    'meta-viewport': '1.4.4', 'meta-viewport-large': '1.4.4',
-    'aria-allowed-attr': '4.1.2', 'aria-allowed-role': '4.1.2', 'aria-command-name': '4.1.2',
-    'aria-dialog-name': '4.1.2', 'aria-meter-name': '4.1.2', 'aria-progressbar-name': '4.1.2',
-    'aria-required-attr': '4.1.2', 'aria-required-children': '4.1.2',
-    'aria-required-parent': '4.1.2', 'aria-roles': '4.1.2', 'aria-toggle-field-name': '4.1.2',
-    'aria-tooltip-name': '4.1.2', 'aria-valid-attr': '4.1.2', 'aria-valid-attr-value': '4.1.2',
-    'role-img-alt': '4.1.2', 'scrollable-region-focusable': '2.1.1',
-    'meta-refresh': '2.2.1', 'blink': '2.2.2', 'marquee': '2.2.2',
-    'bypass': '2.4.1', 'frame-title': '4.1.2', 'region': '2.4.1',
-    'tabindex': '2.4.3', 'duplicate-id-aria': '4.1.2', 'duplicate-id-active': '2.4.3',
-    'identical-links-same-purpose': '2.4.4', 'link-in-text-block': '2.4.4',
-    'focus-order-semantics': '2.4.3', 'frame-focusable-content': '2.4.7',
-    'target-size': '2.5.8', 'autocomplete-valid': '1.3.5', 'autocomplete-appropriate': '1.3.5',
-    'video-caption': '1.2.2', 'audio-caption': '1.2.2',
-    'list': '1.3.1', 'listitem': '1.3.1', 'definition-list': '1.3.1',
-    'select-name': '3.3.2', 'nested-interactive': '4.1.2', 'hidden-content': None,
-}
+
+def _page_url(url):
+    if not url:
+        return None
+    parts = urlsplit(url)
+    return parts._replace(path=parts.path or '/', fragment='').geturl()
 
 
 def axe_en_pagina(page, axe_js=None):
@@ -76,8 +53,12 @@ def axe_en_pagina(page, axe_js=None):
 def axe_a_criterios(bruto):
     out = {}
     for v in bruto['violations']:
-        crit = AXE_A_CRIT.get(v['id'])
-        if crit:
+        criteria = set()
+        for tag in v.get('tags', []):
+            match = _WCAG_TAG.fullmatch(tag)
+            if match:
+                criteria.add('.'.join(match.groups()))
+        for crit in sorted(criteria):
             out.setdefault(crit, []).append((v['id'], v['nodos'], v['impacto']))
     return out
 
@@ -92,6 +73,11 @@ def compara(url, lang='en'):
         # parece limpia es el peor falso verde que existe (hallado en la
         # revisión externa de nov-2026)
         raise RuntimeError(f"renderizado falló: {informe_dom['error']}")
+    static_url = _page_url(informe_estatico.get('url'))
+    toolkit_url = _page_url(informe_dom.get('url'))
+    if not static_url or static_url != toolkit_url:
+        raise RuntimeError(
+            f'estático terminó en {static_url} y renderizado en {toolkit_url}: no es la misma página')
     # axe corre en el MISMO navegador que el pase renderizado (una página
     # prestada de su pool): abrir aquí una sesión de Playwright propia
     # reventaba con la configuración por defecto, porque el pool deja vivo su
@@ -104,13 +90,12 @@ def compara(url, lang='en'):
         # un 404 cargado en el navegador NO es un error de navegación: la
         # página de error se audita igual de bien y la fila salía como buena,
         # comparando el toolkit sobre la página real contra axe sobre un error
-        if axe_status is None or axe_status >= 400:
+        if axe_status is None or not 200 <= axe_status < 400:
             raise RuntimeError(
                 f'axe cargó una respuesta HTTP {axe_status}: no es la página pedida')
         # y los dos motores tienen que haber auditado la MISMA página final:
         # se comprueba antes de ejecutar axe, que no corre sobre otra página
-        axe_url = page.url.split('#')[0]
-        toolkit_url = str(informe_dom.get('url') or url).split('#')[0]
+        axe_url = _page_url(page.url)
         if axe_url != toolkit_url:
             raise RuntimeError(
                 f'axe terminó en {axe_url} y el toolkit en {toolkit_url}: no es la misma página')
@@ -121,7 +106,8 @@ def compara(url, lang='en'):
     tk_est = {h['criterion'].split(' ')[0] for h in informe_estatico.get('findings', [])}
     tk_dom = {h['criterion'].split(' ')[0] for h in informe_dom.get('findings', [])}
     tk = tk_est | tk_dom
-    ax = set(axe_a_criterios(axe_bruto))
+    axe_criteria = axe_a_criterios(axe_bruto)
+    ax = set(axe_criteria)
 
     return {
         'url': url,
@@ -133,6 +119,7 @@ def compara(url, lang='en'):
                     'score_dom': informe_dom.get('score'),
                     'criterios': sorted(tk),
                     'findings_dom': len(informe_dom.get('findings', [])),
+                    'url_final_static': static_url,
                     'url_final': toolkit_url},
         'axe': {'violaciones': [(v['id'], v['nodos'], v['impacto']) for v in axe_bruto['violations']],
                 'criterios': sorted(ax),
@@ -143,7 +130,7 @@ def compara(url, lang='en'):
         'solo_axe': sorted(ax - tk),      # candidatos a hueco/falso negativo nuestro
         'solo_toolkit': sorted(tk - ax),  # candidatos a falso positivo o señal extra
         'divergencias_detalle': {
-            'solo_axe': {c: axe_a_criterios(axe_bruto)[c] for c in sorted(ax - tk)},
+            'solo_axe': {c: axe_criteria[c] for c in sorted(ax - tk)},
             'solo_toolkit': {c: [h for h in (informe_estatico.get('findings', []) +
                                              informe_dom.get('findings', []))
                                  if h['criterion'].startswith(c)]
@@ -174,10 +161,11 @@ def problems(results, expected=None, min_signals=4):
         if not axe.get('rules_inapplicable'):
             out.append(f'{url}: axe executed no rules')
         status = axe.get('http_status')
-        if not isinstance(status, int) or isinstance(status, bool) or status >= 400:
+        if type(status) is not int or not 200 <= status < 400:
             out.append(f'{url}: axe audited HTTP {status}, not the requested page')
-        final = ((r.get('toolkit') or {}).get('url_final'), axe.get('url_final'))
-        if not final[0] or not final[1] or final[0] != final[1]:
+        toolkit = r.get('toolkit') or {}
+        final = (toolkit.get('url_final_static'), toolkit.get('url_final'), axe.get('url_final'))
+        if not all(final) or len(set(final)) != 1:
             out.append(f'{url}: toolkit and axe did not audit the same final page')
         signals += len(r.get('toolkit', {}).get('criterios', []))
     if signals < min_signals:

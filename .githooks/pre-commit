@@ -1,20 +1,4 @@
 #!/usr/bin/env bash
-# Internal documents never reach the public repo — block at commit time.
 set -euo pipefail
-# (the specific internal names live in generic patterns below — nothing in
-# this file may name a private location: everything here is public)
-PATRONES=(drafts/ internal/ .draft.md .local.md competencia competitor backlog estrategia zcodeignore)
-# deletions can't leak content — only check files the commit adds or modifies
-STAGED=$(git diff --cached --name-only --diff-filter=ACMR || true)
-for f in $STAGED; do
-  low=$(echo "$f" | tr 'A-Z' 'a-z')
-  for p in "${PATRONES[@]}"; do
-    if [[ "$low" == *"$p"* ]]; then
-      echo "✗ DOCUMENTO INTERNO EN COMMIT: $f"
-      echo "  El material interno (borradores, notas privadas) no se publica en el repo público."
-      echo "  Si es un falso positivo, renombra el fichero o usa git commit --no-verify conscientemente."
-      exit 1
-    fi
-  done
-done
-exit 0
+cd "$(git rev-parse --show-toplevel)"
+exec python3 scripts/check_public_tree.py

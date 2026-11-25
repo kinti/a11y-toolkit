@@ -56,6 +56,19 @@ _MODE_TOOL = {
 }
 
 
+def _is_page_report(report):
+    if not isinstance(report, dict) or report.get('error'):
+        return False
+    identity = report.get('url') or report.get('file')
+    findings = report.get('findings')
+    status = report.get('http_status')
+    return (isinstance(identity, str) and bool(identity.strip())
+            and isinstance(report.get('mode', 'static'), str)
+            and isinstance(findings, list)
+            and all(isinstance(f, dict) and isinstance(f.get('signal', ''), str) for f in findings)
+            and (status is None or type(status) is int and 200 <= status < 400))
+
+
 def _canon(obj):
     return json.dumps(obj, ensure_ascii=False, sort_keys=True, separators=(',', ':'))
 
@@ -153,38 +166,42 @@ def build_pack(reports, snapshot=None, reviewer=None, notes=None, verified=None,
     tx = a11yi18n.pack(lang).get('evidence', {})
     language = lang if tx else 'en'
     tx = tx or a11yi18n.pack('en')['evidence']
-    reports = [normalize_report(i) for i in reports]  # compat 5.10: señales previas al rename
-
-    # site crawls (audit_site) nest the per-page reports under 'reports': a
-    # pack built from a crawl must flatten them BEFORE deriving (the same
-    # shape a11ysarif reads), or the whole crawl counts as automated-fail: 0
-    # while pages carry real failures. Artifacts stay one-per-INPUT report —
-    # the seal seals what came in, not the flattened view.
-    pages = []
+    pages, modes_included, report_artifacts = [], set(), []
     for inf in reports:
-        subs = inf.get('reports')
-        # PREFERENCIA: si el informe tiene findings TOP-LEVEL son las COPIAS
-        # RE-VERIFICADAS (la salida del disprover sobre un site report las
-        # escribe arriba, no dentro de reports[]) — aplanarlas encima usaría
-        # los ejemplares MUERTOS y los hallazgos desmentidos resucitarían
-        if isinstance(inf.get('findings'), list) and inf['findings']:
+        state = 'invalid'
+        if isinstance(inf, dict) and inf.get('error'):
+            state = 'failed'
+        elif isinstance(inf, dict) and isinstance(inf.get('reports'), list):
+            usable = [normalize_report(p) for p in inf['reports'] if _is_page_report(p)]
+            if usable:
+                state = ('partial' if len(usable) != len(inf['reports']) or inf.get('page_errors')
+                         or inf.get('budget_exhausted') else 'complete')
+                modes_included.update(p.get('mode', 'static') for p in usable)
+                # The disprover puts its revised findings on the site wrapper.
+                # Only actual page reports contribute executed modes.
+                if _is_page_report(inf) and inf['findings']:
+                    inf = normalize_report(inf)
+                    pages.append(inf)
+                else:
+                    pages.extend(usable)
+            elif inf.get('page_errors') or any(isinstance(p, dict) and p.get('error')
+                                               for p in inf['reports']):
+                state = 'failed'
+        elif _is_page_report(inf):
+            inf = normalize_report(inf)
+            state = 'complete'
             pages.append(inf)
-        elif isinstance(subs, list) and subs:
-            pages.extend(normalize_report(s) for s in subs if isinstance(s, dict))
-        else:
-            pages.append(inf)
-
-    # SOLO informes ACEPTADOS cuentan como cobertura: un informe con 'error'
-    # no miró nada (la revisión externa 2026-11-22: cero informes, o solo
-    # informes de error, y el pack declaraba 34 criterios not-flagged que
-    # nadie había mirado). Siguen sellados como artefactos — son entradas —
-    # pero no aportan evidencia de chequeo ejecutado.
-    pages = [p for p in pages if not (isinstance(p, dict) and p.get('error'))]
+            modes_included.add(inf.get('mode', 'static'))
+        metadata = inf if isinstance(inf, dict) else {}
+        mode = metadata.get('mode')
+        report_artifacts.append({'type': f"report:{mode if isinstance(mode, str) else 'static'}",
+                                 'url': metadata.get('url'), 'sha256': _sha256(inf),
+                                 'score': metadata.get('score'), 'report_status': state,
+                                 'body': inf})
 
     # matriz de criterios: los que tocamos (estado según hallazgos) + manuales
     from .a11ycrit import _C as _CAT, effort
     codes_aa = sorted(k for k, v in _CAT.items() if v[0] in ('A', 'AA'))
-    modes_included = {inf.get('mode', 'static') for inf in pages}
     touched = {}
     for inf in pages:
         for h in inf.get('findings', []):
@@ -233,14 +250,14 @@ def build_pack(reports, snapshot=None, reviewer=None, notes=None, verified=None,
             code = str(h.get('criterion') or '').split(' ')[0]
             if code not in values:
                 val = {}
-                issue_txt = h.get('issue') or ''   # issue null explícito: sin crash
+                issue_txt = str(h.get('issue') or '')
                 if 'ratio' in issue_txt.lower() or ':' in issue_txt:
                     import re as _re
                     m = _re.search(r'([\d.]+):1', issue_txt)
                     if m:
                         val['measured'] = f'{m.group(1)}:1'
                 _ex_list = h.get('examples', [])
-                if _ex_list:
+                if isinstance(_ex_list, list) and _ex_list:
                     val['example'] = str(_ex_list[0])[:80]
                 if val:
                     values[code] = val
@@ -343,12 +360,7 @@ def build_pack(reports, snapshot=None, reviewer=None, notes=None, verified=None,
     # priced human scope out. The class prices live in a11ycrit (single source).
     pending_effort = _pending_effort(matrix, tx['manual_remaining'])
 
-    artifacts = []
-    for i, inf in enumerate(reports):
-        artifacts.append({'type': f"report:{inf.get('mode', 'static')}",
-                           'url': inf.get('url'), 'sha256': _sha256(inf),
-                           'score': inf.get('score'),
-                           'body': inf})  # embedded: pack self-verifying
+    artifacts = report_artifacts
     if snapshot:
         artifacts.append({'type': 'snapshot:a11y', 'url': snapshot.get('url'),
                            'sha256': _sha256(snapshot), 'elements': len(snapshot.get('elements', []))})

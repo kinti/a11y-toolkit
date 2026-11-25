@@ -24,7 +24,11 @@ a11y-watch:
         a11ytoolkit budget --init < audit.json > budget.json
         echo "Sin budget.json — primera base generada como artefacto. Revísala, commitea y vuelve a lanzar." && exit 1
       fi
-    - a11ytoolkit budget --budget budget.json --audit audit.json | tee budget-verdict.json
+    - |
+      result=0
+      a11ytoolkit budget --budget budget.json --audit audit.json > budget-verdict.json || result=$?
+      cat budget-verdict.json
+      exit "$result"
   artifacts:
     when: always
     paths:

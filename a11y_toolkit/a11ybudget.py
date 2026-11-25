@@ -16,11 +16,12 @@ Budget file (budget.json):
     "review_date": "2026-12-07"                 // baseline expiry (optional)
   }
 
-Generate the baseline:  a11ytoolkit audit --url https://mysite | a11ytoolkit budget --init
+Generate the baseline:  a11ytoolkit budget --init --audit today.json
 Compare with:           a11ytoolkit budget --budget budget.json --audit audit.json
-Exit code: 0 ok / 2 blocked.
+Exit code: 0 ok / 1 incomplete or invalid / 2 blocked.
 
-Only stable keys ('signal') and severities are compared, never prose.
+New baselines compare by page, signal and element path or measured count.
+Existing signal-only baselines retain their original comparison.
 
 Structural budget (the same SRE doctrine applied to the RENDERED structure —
 what a11y snapshot captures):
@@ -41,6 +42,7 @@ and the budget stops counting cosmetic churn as structure.
 import argparse
 import datetime
 import json
+from collections import Counter
 
 from .a11yaudit import normalize_signal  # noqa: E402  (compat 5.10)
 import sys
@@ -60,37 +62,115 @@ _CLI_MSG = {
 }
 
 
+BUDGET_FORMAT = 'a11y-budget/2'
+
+
+def _report_pages(audit):
+    """Return usable pages, or an error if the measurement was incomplete."""
+    if not isinstance(audit, dict) or audit.get('error'):
+        return [], {'error': 'the audit failed or was not a report'}
+    pages = audit.get('reports', [audit])
+    if not isinstance(pages, list) or not pages:
+        return [], {'error': 'the audit contains no page reports'}
+    failures = audit.get('page_errors', [])
+    if not isinstance(failures, list) or any(not isinstance(page, dict) for page in failures):
+        return [], {'error': 'the audit contains invalid page errors'}
+    failures = failures[:]
+    for page in pages:
+        if not isinstance(page, dict):
+            return [], {'error': 'the audit contains an invalid page report'}
+        if page.get('error') or not isinstance(page.get('findings'), list):
+            failures.append(page)
+    if failures or audit.get('budget_exhausted'):
+        return [], {'error': 'the audit did not complete; compare after all pages are measured',
+                    'pages_failed': [page.get('url') for page in failures]}
+    return pages, None
+
+
+def _page_index(pages):
+    result = {}
+    for page in pages:
+        url = page.get('url')
+        if not isinstance(url, str) or not url or url in result:
+            raise ValueError('every audited page must have a unique URL')
+        findings = {}
+        for finding in page['findings']:
+            signal = normalize_signal(finding['signal'])
+            paths = [path for path in (finding.get('paths') or []) if isinstance(path, str)]
+            count = finding.get('count')
+            if type(count) is not int or count < 1:
+                count = max(len(paths), len(finding.get('examples') or []), 1)
+            findings[signal] = {'severity': finding['severity'], 'count': max(count, len(paths)),
+                                'paths': sorted(paths)}
+        result[url] = {'mode': page.get('mode', 'static'), 'findings': findings}
+    return result
+
+
 def init(audit):
-    """Informe (o site) → fichero de presupuesto inicial."""
-    pages = audit.get('reports') if 'reports' in audit else [audit]
-    signals = sorted({normalize_signal(h.get('signal', '')) for pg in pages for h in pg.get('findings', [])})
+    """Build a page- and instance-scoped baseline from a complete audit."""
+    pages, error = _report_pages(audit)
+    if error:
+        return error
+    try:
+        index = _page_index(pages)
+    except (ValueError, KeyError, TypeError) as err:
+        return {'error': f'invalid budget input: {err}'}
     return {
+        'format': BUDGET_FORMAT,
         'url': audit.get('url', ''),
-        'signals': signals,
+        'signals': sorted({signal for page in index.values() for signal in page['findings']}),
+        'pages': index,
         'blocking': ['high', 'medium'],
         'max_new': 0,
         'review_date': (datetime.date.today() + datetime.timedelta(days=90)).isoformat(),
     }
 
 
-def compare(budget, audit, today=None):
-    """Presupuesto vs informe actual → veredicto ok/bloqueado con el detalle."""
-    # un informe FALLIDO no es evidencia de nada (revisión externa 2026-11-22:
-    # con {'error': …} current quedaba vacío, TODO el baseline salía
-    # «resolved» y el gate día verde). Sin páginas usables → error; las
-    # sub-páginas fallidas de un crawl se excluyen y se declaran.
-    if not isinstance(audit, dict) or audit.get('error'):
-        return {'error': 'the audit report failed (error field) — a failed run '
-                         'is not evidence that findings were fixed'}
-    pages = audit.get('reports') if isinstance(audit.get('reports'), list) else [audit]
-    failed = [pg.get('url') for pg in pages
-              if isinstance(pg, dict) and pg.get('error')]
-    pages = [pg for pg in pages if not (isinstance(pg, dict) and pg.get('error'))]
-    if not pages:
-        return {'error': f'all {len(failed)} pages of the report failed — '
-                         'nothing to compare'}
+def _instance_delta(before, after):
+    before_count = before['count'] if before else 0
+    after_count = after['count'] if after else 0
+    before_paths = (before or {}).get('paths', [])
+    after_paths = (after or {}).get('paths', [])
+    if len(before_paths) == before_count and len(after_paths) == after_count:
+        old, new = Counter(before_paths), Counter(after_paths)
+        return sum((new - old).values()), sum((old - new).values()), 'paths'
+    return max(0, after_count - before_count), max(0, before_count - after_count), 'count'
+
+
+def _compare_instances(budget, pages, blocking):
+    base = budget['pages']
+    missing = sorted(set(base) - set(pages))
+    if missing:
+        return {'error': 'baseline pages were not audited', 'pages_missing': missing}
+    changes = []
+    for url, page in sorted(pages.items()):
+        prior = base.get(url)
+        if prior and prior['mode'] != page['mode']:
+            return {'error': 'the audit mode changed for a baseline page', 'url': url}
+        old = prior['findings'] if prior else {}
+        current = page['findings']
+        for signal in sorted(set(old) | set(current)):
+            before, after = old.get(signal), current.get(signal)
+            added, removed, basis = _instance_delta(before, after)
+            added_blocking = 0
+            if after and after['severity'] in blocking:
+                added_blocking = added if before and before['severity'] in blocking else after['count']
+            if added or removed or added_blocking:
+                changes.append({'url': url, 'signal': signal, 'new': added,
+                                'resolved': removed, 'new_blocking': added_blocking,
+                                'basis': basis})
+    return {
+        'new': sorted({change['signal'] for change in changes if change['new']}),
+        'resolved': sorted({change['signal'] for change in changes if change['resolved']}),
+        'new_blocking': sorted({change['signal'] for change in changes if change['new_blocking']}),
+        'new_blocking_count': sum(change['new_blocking'] for change in changes),
+        'changes': changes,
+    }
+
+
+def _compare_signals(budget, pages, blocking):
+    """Keep the original comparison for existing signal-only baselines."""
     base = {normalize_signal(s) for s in budget.get('signals', [])}
-    blocking = set(budget.get('blocking', ['high', 'medium']))
     current = {}
     for pg in pages:
         for h in pg.get('findings', []):
@@ -99,8 +179,29 @@ def compare(budget, audit, today=None):
     resolved = sorted(base - set(current))
     new_blocking = [s for s in new
                           if any(sev in blocking for sev in current[s])]
-    max_new = int(budget.get('max_new', 0))
-    ok = len(new_blocking) <= max_new
+    return {'new': new, 'resolved': resolved, 'new_blocking': new_blocking,
+            'new_blocking_count': len(new_blocking)}
+
+
+def compare(budget, audit, today=None):
+    """Compare a complete run against the active baseline."""
+    pages, error = _report_pages(audit)
+    if error:
+        return error
+    if not isinstance(budget, dict) or budget.get('format') not in (None, BUDGET_FORMAT):
+        return {'error': 'not a compatible findings budget'}
+    try:
+        blocking = set(budget.get('blocking', ['high', 'medium']))
+        max_new = int(budget.get('max_new', 0))
+        if budget.get('format') == BUDGET_FORMAT:
+            verdict = _compare_instances(budget, _page_index(pages), blocking)
+        else:
+            verdict = _compare_signals(budget, pages, blocking)
+    except (ValueError, KeyError, TypeError) as err:
+        return {'error': f'invalid budget input: {err}'}
+    if 'error' in verdict:
+        return verdict
+    ok = verdict['new_blocking_count'] <= max_new
     expired = False
     date = budget.get('review_date')
     if date:
@@ -108,15 +209,12 @@ def compare(budget, audit, today=None):
     return {
         'ok': ok and not expired,
         'url': audit.get('url', budget.get('url', '')),
-        'new': new,
-        'new_blocking': new_blocking,
-        'resolved': resolved,
-        **({'pages_failed': failed} if failed else {}),
+        **verdict,
         'summary': {
-            'baseline': len(base),
-            'current': len(current),
-            'new': len(new),
-            'resolved': len(resolved),
+            'baseline': len(set(budget.get('signals', []))),
+            'current': len({normalize_signal(h['signal']) for pg in pages for h in pg['findings']}),
+            'new': len(verdict['new']),
+            'resolved': len(verdict['resolved']),
         },
         'baseline_expired': expired,
         'note': ('ok=false: there are new blocking findings (or the baseline expired). '
@@ -230,7 +328,10 @@ def main(argv):
         return 0
     if a.init:
         inform = None
-        if not sys.stdin.isatty():
+        if a.audit:
+            with open(a.audit, encoding='utf-8') as f:
+                inform = json.load(f)
+        elif not sys.stdin.isatty():
             try:
                 inform = json.loads(sys.stdin.read())
             except json.JSONDecodeError:
@@ -239,14 +340,12 @@ def main(argv):
                 print(json.dumps({'error': _CLI_MSG['en']['stdin_json']},
                                  ensure_ascii=False))
                 return 1
-        elif a.audit:
-            with open(a.audit, encoding='utf-8') as f:
-                inform = json.load(f)
         if not inform:
             print('need the report via stdin or --audit file')
             return 1
-        print(json.dumps(init(inform), ensure_ascii=False, indent=1))
-        return 0
+        baseline = init(inform)
+        print(json.dumps(baseline, ensure_ascii=False, indent=1))
+        return 1 if 'error' in baseline else 0
     if a.snapshot:
         with open(a.budget, encoding='utf-8') as f:
             budget = json.load(f)

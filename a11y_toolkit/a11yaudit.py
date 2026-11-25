@@ -460,9 +460,16 @@ _IMPLICIT_PARENT = {'list': ('ul', 'ol'), 'menu': ('menu',)}
 # roles para los que, dentro de un group, un ancestro del MISMO rol cierra el
 # contexto (un treeitem carpeta agrupa sus hijos en un group)
 _OWN_GROUP_ROLE = {'treeitem'}
-# saltos de aria-owns que se siguen en cadena antes de cortar (un dueño que a
-# su vez es owned por otro): corta también los ciclos A owns B owns A
-_OWN_DEPTH = 8
+_IMPLICIT_CONTEXT = {tag: role for role, tags in _IMPLICIT_PARENT.items() for tag in tags}
+
+
+class _RoleContext:
+    __slots__ = ('role', 'element_id', 'parent')
+
+    def __init__(self, role, element_id, parent):
+        self.role = role
+        self.element_id = element_id
+        self.parent = parent
 
 # encabezados cortos legítimos (acrónimos y términos técnicos): «FAQ», «API»…
 _SHORT_HEADINGS = {'FAQ', 'API', 'CSS', 'SVG', 'APP', 'MAP', 'EN', 'DE', 'ES', 'PT', 'FR',
@@ -578,7 +585,7 @@ class _Auditor(HTMLParser):
         self._nohiding_cls_set = set()   # subconjunto display:none/visibility (foco)
         self._icon_links = []
         self._ahf_deferred = []    # (tag, id) off-screen: decidir post-parse con los scripts completos
-        self._el_stack = []        # (tag, attrs, [texto directo]) — texto propio del elemento
+        self._el_stack = []        # (tag, attrs, [texto directo], contexto ARIA)
         self._role_field_ids = set()   # ids de campos por rol: su texto directo es su nombre
         self._field_buffers = {}       # id → texto directo (rescatado al cerrar)
         self._role_field_text = []     # (attrs, texto directo) de campos por rol, con o sin id
@@ -645,8 +652,7 @@ class _Auditor(HTMLParser):
         self._skip_hrefs = []           # (fragmento, attrs) de enlaces de salto (vocabulario ya filtrado)
         self._name_anchors = set()      # <a name="…">: destino de fragmento legítimo
         self._role_ctx_pending = []     # (attrs, rol, ancestros DOM) a resolver post-parse
-        self._owned_by = {}             # id → attrs del elemento que lo declara en aria-owns
-        self._owner_ancestors = {}      # id(attrs) → ancestros DOM del dueño (aria-owns)
+        self._owned_by = {}             # id → contexto del dueño por aria-owns
         self.invoker_bad = []           # 4.1.2: commandfor sin destino o tipo erróneo
         self.aria_level_gt6 = []        # 1.3.1: aria-level>6 (los lectores lo degradan)
         self._invokers = []             # (idref, command) pendientes de validar
@@ -859,6 +865,18 @@ class _Auditor(HTMLParser):
         # que no consultan _hidden llevan guardia explícita
         if self._in_template:
             _hidden = True
+        parent_context = self._el_stack[-1][3] if self._el_stack else None
+        role = (a.get('role') or '').strip().lower()
+        context = parent_context
+        if not _hidden and tag != 'template':
+            if role in _ROLE_PARENTS:
+                self._role_ctx_pending.append((a, role, parent_context))
+            if role or tag in _IMPLICIT_CONTEXT or a.get('id') or a.get('aria-owns'):
+                context = _RoleContext(role or _IMPLICIT_CONTEXT.get(tag),
+                                       a.get('id'), parent_context)
+                for owned_id in (a.get('aria-owns') or '').split():
+                    if owned_id != context.element_id:
+                        self._owned_by.setdefault(owned_id, context)
         if tag not in _VOID:
             self._depth += 1
             self._hidden_stack.append((_hidden, _hidden_aria))
@@ -870,7 +888,7 @@ class _Auditor(HTMLParser):
                 self._ah_true_depth += 1
             if a.get('id'):
                 self._open_ids.append((a['id'], self._depth))
-            self._el_stack.append((tag, a, []))
+            self._el_stack.append((tag, a, [], context))
             if tag == 'nav' and a.get('id'):
                 self._nav_ids.add(a['id'])
             if a.get('onclick'):
@@ -1474,23 +1492,8 @@ class _Auditor(HTMLParser):
                         _dest.append(f'select[autofocus][{_ev}="{_code[:40]}"]')
                         _elems.append(a)
                         break
-        # roles con contexto requerido (ARIA 1.2 §5.2.7: el elemento debe
-        # estar contenido en, o ser owned por, un elemento del rol de contexto;
-        # ACT ff89c9). SOLO roles EXPLÍCITOS (el li implícito fuera de lista es
-        # otra familia, muy FP). Aquí solo se REGISTRA: el veredicto es
-        # post-parse porque el dueño por aria-owns puede venir después.
-        _rv = (a.get('role') or '').strip().lower()
-        if _rv in _ROLE_PARENTS and not self._in_template and not _hidden \
-                and len(self._role_ctx_pending) < 400:
-            self._role_ctx_pending.append(
-                (a, _rv, [(_t, _fa) for _t, _fa, _ in self._el_stack if _fa is not a]))
-        if a.get('aria-owns') and len(self._owner_ancestors) < 400:
-            self._owner_ancestors[id(a)] = \
-                [(tag, a)] + [(_t, _fa) for _t, _fa, _ in self._el_stack if _fa is not a]
-            for _owned_id in str(a['aria-owns']).split():
-                self._owned_by.setdefault(_owned_id, a)
         # destino clásico de fragmento: <a name="…"> también resuelve #…
-        if tag == 'a' and a.get('name'):
+        if tag == 'a' and a.get('name') and not self._in_template:
             self._name_anchors.add(a['name'])
         # interactivo dentro de interactivo (4.1.2): el modelo de contenido lo
         # prohíbe; el AT anuncia mal el interno y el externo pierde su límite.
@@ -1501,7 +1504,7 @@ class _Auditor(HTMLParser):
                                   not in ('hidden', 'submit', 'button', 'reset', 'image')) \
                 or (a.get('role') or '').strip().lower() in ('button', 'link'):
             if len(self.nested_interactive) < 6:
-                for _anc_tag, _anc_a, _ in reversed(self._el_stack):
+                for _anc_tag, _anc_a, _, _ in reversed(self._el_stack):
                     if _anc_a is a:
                         continue        # el propio elemento ya viaja en la pila
                     _anc_inter = _anc_tag in _INTER_HOST
@@ -1574,7 +1577,7 @@ class _Auditor(HTMLParser):
             for _ in range(_nframes):
                 if not self._el_stack:
                     break
-                _etag, _eattrs, _ebuf = self._el_stack.pop()
+                _etag, _eattrs, _ebuf, _ = self._el_stack.pop()
                 if _etag == 'table':
                     self._finish_table(self._table_stack.pop())
                 if _etag == 'canvas':
@@ -1745,46 +1748,35 @@ class _Auditor(HTMLParser):
         index = self._elem_paths.get(id(attrs))
         return self._paths.format(index) if index is not None else None
 
-    def _context_satisfied(self, role, chain, need=None, _depth=0):
-        """¿La cadena de ancestros (del más cercano al más lejano) da a `role`
-        su contexto requerido? El ancestro vale por rol explícito o por etiqueta
-        implícita (ul/ol = list). Un `group` aceptado como paso obliga a
-        seguir: el grupo necesita su propio contexto. Y cualquier elemento de
-        la cadena puede estar owned por aria-owns: su dueño hace entonces de
-        ancestro (ARIA 1.2: «contained inside (or owned by)»), también en
-        cadena (un listbox que posee un group que posee la option)."""
-        if need is None:
-            need = _ROLE_PARENTS[role]
-        for anc_tag, anc_a in chain:
-            anc_role = (anc_a.get('role') or '').strip().lower()
-            if anc_role in ('presentation', 'none'):
-                continue      # transparente en el árbol de accesibilidad
-
-            def _is(required):
-                return anc_role == required or (
-                    not anc_role and anc_tag in _IMPLICIT_PARENT.get(required, ()))
-            if 'group' in need and _is('group'):
+    def _context_satisfied(self, role, context, known):
+        """Search DOM and aria-owns ancestors, sharing outcomes across widgets."""
+        if context is None:
+            return False
+        initial = (context, _ROLE_PARENTS[role])
+        todo = [initial]
+        previous = {initial: None}
+        while todo:
+            state = todo.pop()
+            node, need = state
+            if known.get(state) is False:
+                continue
+            if known.get(state) or (node.role in need and node.role != 'group'):
+                while state is not None:
+                    known[state] = True
+                    state = previous[state]
+                return True
+            if node.role == 'group' and 'group' in need:
                 need = tuple(r for r in need if r != 'group') + (
                     (role,) if role in _OWN_GROUP_ROLE else ())
-            elif any(_is(r) for r in need):
-                return True
-            # este elemento está owned: se reintenta con su dueño de ancestro
-            # (la cadena del dueño empieza por él) y lo que falte hasta aquí
-            if _depth < _OWN_DEPTH:
-                owner = self._owned_by.get(anc_a.get('id') or '')
-                if owner is not None and self._context_satisfied(
-                        role, self._owner_ancestors[id(owner)], need, _depth + 1):
-                    return True
+            owner = (self._owned_by.get(node.element_id)
+                     if node.role not in ('none', 'presentation') else None)
+            for ancestor in (node.parent, owner):
+                successor = (ancestor, need)
+                if ancestor is not None and successor not in previous:
+                    previous[successor] = state
+                    todo.append(successor)
+        known.update(dict.fromkeys(previous, False))
         return False
-
-    def _role_context_satisfied(self, attrs, role, chain):
-        """Contexto por DOM o, si el DOM no basta, por aria-owns: el elemento
-        está declarado en el aria-owns de otro, y su dueño hace de ancestro."""
-        owner = self._owned_by.get(attrs.get('id') or '')
-        if owner is not None and \
-                self._context_satisfied(role, self._owner_ancestors[id(owner)]):
-            return True
-        return self._context_satisfied(role, chain)
 
     _RE_CHAR_KEY = re.compile(r'key(?:Code)?\s*===?\s*["\']([a-zA-Z0-9])["\']', re.S)
 
@@ -2257,6 +2249,8 @@ def audit_html(html_text, url='(html)', lang='en', standard=None, target=None):
         h = {'severity': severity, 'criterion': _crit(lang, code), 'signal': key_msg,
              'issue': _t(lang, key_msg, n=fmt.get('n')).format(**fmt)}
         h['remediation'] = _t(lang, key_msg + '_rem').format(**fmt)
+        if type(fmt.get('n')) is int and fmt['n'] > 0:
+            h['count'] = fmt['n']
         paths = fmt.pop('paths', None)
         if paths:
             h['paths'] = paths[:5]
@@ -2480,19 +2474,26 @@ def audit_html(html_text, url='(html)', lang='en', standard=None, target=None):
                n=len(p.select_auto_focus), example=', '.join(p.select_auto_focus[:4]),
                paths=p._finding_paths(p.select_auto_focus_elems))
     if p.select_auto_focus_input:
-        add_ej('medium', '3.2.2', 'select_auto_focus_input', p.select_auto_focus_input,
+        add_ej('low', '3.2.2', 'select_auto_focus_input', p.select_auto_focus_input,
                n=len(p.select_auto_focus_input),
                example=', '.join(p.select_auto_focus_input[:4]),
                paths=p._finding_paths(p.select_auto_focus_input_elems))
     # contexto requerido por rol: se resuelve aquí porque el dueño por
     # aria-owns puede declararse después que el elemento que salva
-    for _a, _rv, _chain in p._role_ctx_pending:
-        if not p._role_context_satisfied(_a, _rv, _chain) and len(p.role_orphans) < 8:
+    role_contexts = {}
+    orphans = 0
+    for _a, _rv, context in p._role_ctx_pending:
+        known = role_contexts.setdefault(_rv, {})
+        if (p._context_satisfied(_rv, p._owned_by.get(_a.get('id')), known)
+                or p._context_satisfied(_rv, context, known)):
+            continue
+        orphans += 1
+        if len(p.role_orphans) < 5:
             p.role_orphans.append(f'role="{_rv}": {"/".join(_ROLE_PARENTS[_rv])}')
             p.role_orphan_elems.append(_a)
-    if p.role_orphans:
+    if orphans:
         add_ej('medium', '1.3.1', 'role_orphan', p.role_orphans,
-               n=len(p.role_orphans), example=', '.join(p.role_orphans[:4]),
+               n=orphans, example=', '.join(p.role_orphans[:4]),
                paths=p._finding_paths(p.role_orphan_elems))
     # skips (F89): SOLO enlaces con vocabulario de salto (patrón 3e12e1) cuyo
     # destino no existe. Una nota al pie rota es otro aviso (y menor): el
@@ -3086,13 +3087,16 @@ def audit_site(url, max_pages=5, timeout=30, lang='en', from_sitemap=True,
         return p0_err
     reports = [audit_html(html_text, entry_final, lang=lang)]
     parsers = [p0]
+    page_errors = []
+    budget_exhausted = False
     seen = {url.split('#')[0].rstrip('/'), entry_final}
     # discovery: sitemap first (WCAG-EM's enumeration), links as fallback
     urls_sm = _urls_sitemap(url, timeout=timeout) if from_sitemap else []
     queue = urls_sm or _internal_links(html_text, entry_final, url)
-    while queue and len(reports) < max_pages:
+    while queue and len(reports) + len(page_errors) < max_pages:
         if deadline is not None and time.monotonic() >= deadline:
-            break          # budget exhausted: partial, not eternal
+            budget_exhausted = True
+            break
         next = queue.pop(0)
         if next in seen:
             continue
@@ -3100,7 +3104,11 @@ def audit_site(url, max_pages=5, timeout=30, lang='en', from_sitemap=True,
         _m = {}
         try:
             html_pg = _fetch(next, timeout=timeout, _meta=_m)
-        except Exception:  # noqa: BLE001
+        except _FetchError as err:
+            page_errors.append({'url': next, 'error': _t(lang, err.key).format(**err.fmt)})
+            continue
+        except Exception as err:  # noqa: BLE001
+            page_errors.append({'url': next, 'error': _t(lang, 'fetch_error').format(e=err)})
             continue
         # enlaces y reporte contra la URL FINAL (4ª pasada: tras una
         # redirección, resolver contra la PEDIDA visitaba rutas equivocadas)
@@ -3110,8 +3118,13 @@ def audit_site(url, max_pages=5, timeout=30, lang='en', from_sitemap=True,
         seen.add(next_final)
         pg, pg_err = _parse_page(html_pg, next_final)
         if pg_err is not None:
-            continue   # página rota: no cuenta, el crawl sigue
-        reports.append(audit_html(html_pg, next_final, lang=lang))
+            page_errors.append(pg_err)
+            continue
+        report = audit_html(html_pg, next_final, lang=lang)
+        if report.get('error'):
+            page_errors.append(dict(report, url=next_final))
+            continue
+        reports.append(report)
         parsers.append(pg)
         if len(reports) < max_pages and not from_sitemap:
             for new in _internal_links(html_pg, next_final, url):
@@ -3133,7 +3146,8 @@ def audit_site(url, max_pages=5, timeout=30, lang='en', from_sitemap=True,
     return {
         'url': url,
         'mode': 'site',
-        'budget_exhausted': bool(deadline is not None and time.monotonic() >= deadline),
+        'budget_exhausted': budget_exhausted,
+        'page_errors': page_errors,
         'not_measured': _not_measured(lang),
         'discovery': 'sitemap' if urls_sm else 'links',
         'pages': len(reports),

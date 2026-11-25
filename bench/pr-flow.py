@@ -125,6 +125,8 @@ def _count(finding):
     """Affected elements read from the message, or None when it does not say."""
     if finding is None:
         return 0
+    if type(finding.get('count')) is int:
+        return finding['count']
     m = _LEADING_COUNT.match(str(finding.get('issue') or ''))
     return int(m.group(1)) if m else None
 

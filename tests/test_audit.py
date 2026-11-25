@@ -381,7 +381,7 @@ assert _af['severity'] == 'medium' and _af['criterion'].startswith('3.2.1')
 assert 'onfocus="window.open' in _af['examples'][0], _af
 assert 'script' in _af['issue'] and _af['paths'], _af
 _afi = next(f for f in _r['findings'] if f['signal'] == 'select_auto_focus_input')
-assert _afi['severity'] == 'medium' and _afi['criterion'].startswith('3.2.2'), _afi
+assert _afi['severity'] == 'low' and _afi['criterion'].startswith('3.2.2'), _afi
 assert 'onchange="location=this.value"' in _afi['examples'][0] and _afi['paths'], _afi
 _r_ok = audit_html('<!doctype html><html lang="es"><head><title>t</title></head><body>'
                    '<nav><a href="/">h</a></nav><main><h1>x</h1>'
@@ -491,6 +491,23 @@ _en = {f['signal']: f['issue'] for f in _mk_ctx(
     'en')['findings'] if f['signal'].startswith('select_auto_focus')}
 assert 'as soon as they receive focus' in _en['select_auto_focus'], _en
 assert 'when the option changes or a key is pressed' in _en['select_auto_focus_input'], _en
+_warned = audit_html('<p id="warning">Changing the city opens a new page.</p>'
+                     '<label>City <select autofocus aria-describedby="warning" '
+                     'onchange="location.href=this.value"><option>Paris</option>'
+                     '</select></label>')
+_review = next(f for f in _warned['findings'] if f['signal'] == 'select_auto_focus_input')
+assert _review['severity'] == 'low' and 'advance notice' in _review['issue'], _review
+
+_valid_list = '<div role="list">' + '<div role="listitem">a</div>' * 400 + '</div>'
+_late_orphans = audit_html(_valid_list + '<div role="listitem">b</div>' * 12)
+_orphan = next(f for f in _late_orphans['findings'] if f['signal'] == 'role_orphan')
+assert _orphan['count'] == 12 and len(_orphan['paths']) == len(_orphan['examples']) == 5, _orphan
+_hidden_owner = audit_html('<template><div role="list" aria-owns="b"></div></template>'
+                           '<div role="listitem" id="b">Orphan</div>')
+assert 'role_orphan' in {f['signal'] for f in _hidden_owner['findings']}, _hidden_owner
+_inert_skip = audit_html('<a href="#target">Skip to content</a>'
+                         '<template><a name="target"></a></template>')
+assert 'skip_broken' in {f['signal'] for f in _inert_skip['findings']}, _inert_skip
 # un ciclo de aria-owns (A posee B posee A) corta sin colgar y no salva nada
 assert 'role_orphan' in _tres('<div role="group" id="a" aria-owns="b"></div>'
                               '<div role="group" id="b" aria-owns="a op1"></div>'

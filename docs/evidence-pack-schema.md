@@ -28,6 +28,12 @@ builder output): [`evidence-pack.sample.json`](evidence-pack.sample.json).
 | `notice` | string | The standing honesty statement: evidence, not conformance. |
 | `sha256` | string | **Pack hash**: SHA-256 of the pack's canonical JSON **with the `sha256` and `generated` fields removed** (since 5.13.0 — re-emitting the same evidence yields the same seal; before that, only `sha256` was removed). Any post-seal edit of any **sealed** field breaks it; `generated` is deliberately outside the seal. |
 
+For report artifacts, `report_status` is `complete`, `partial`, `failed` or
+`invalid`. Coverage comes from usable page reports with a URL or file and a
+findings list. A partial crawl contributes the pages that ran. Its errors are
+retained in the artifact. Older packs can omit `report_status`. The verifier
+recomputes it from the report body and checks it separately from the seal.
+
 **Pack/2 rename (2026-09-23)**: every wire key is now English — `criterios`→`criteria`, `estado`→`status`, `esfuerzo`→`effort`, `artefactos`→`artifacts`, `evaluador`→`reviewer`, `informes`→`reports` (tool argument), `verificados`→`verified` (tool argument), `formato`→`format`, and the rest per the pack itself. Pack/1 packs remain valid historical documents; builders MUST emit pack/2.
 
 

@@ -37,13 +37,15 @@ The gate in CI is `python3 bench/compara.py --check bench/results.json
 engines (toolkit static, toolkit rendered, axe) on the same page: the check
 rejects a failed row, a row missing an engine, a row where axe executed no
 rules, a row where axe's own page load was an error response (4xx or 5xx) and
-a row where the toolkit and axe ended on different final URLs. It still
+a row where any of the three passes ended on a different final URL. It still
 requires the toolkit to find things across the pages (4 criteria or more).
 The previous gate looked at the toolkit alone, so a run could go green with
 axe not running, and later with axe auditing a 404 the browser had loaded
-without complaint. Each row records `axe.http_status` and the `url_final` of
-both engines; result files recorded before that carry neither and are
-rejected by `--check`.
+without complaint. Rows record `axe.http_status`, both rendered `url_final`
+values and `toolkit.url_final_static`. Earlier result files are historical
+records and lack fields needed by `--check`. The comparison uses each axe
+rule's numeric WCAG tags. Rules without a criterion tag remain in the raw
+violations and are excluded from the WCAG divergence lists.
 
 The scripts never open a Playwright session of their own. The rendered audit
 keeps the engine's browser pool alive for the rest of the process, and a
@@ -73,7 +75,8 @@ appeared and which disappeared:
 - A finding aggregates many elements and carries only the first ones (5 in
   the static pass). At or past that number the report cannot back an
   element-level verdict, so the signal is listed under
-  `insufficient_evidence` with the count delta read from the message: a page
+  `insufficient_evidence` with the measured count delta (read from the
+  message for older reports): a page
   going from 6 to 7 images without alt reports 1 new finding that cannot be
   located. `summary.inconclusive` names the affected tools and signals.
 - Routes are positional: inserting an element shifts the routes of its later
@@ -99,3 +102,8 @@ The first case checks that the emitted selector still includes all 3,200
 ancestors. The second checks that every submitted path produces a mark.
 These inputs isolate deep nesting and large mark counts. Times will vary
 with the input, Python version and hardware.
+
+In a separate CPython 3.12 run with 3,200 wrappers and 400 explicit
+`listitem` roles, the parent-linked ARIA check reduced peak Python
+allocations from 81.07 MiB to 2.58 MiB. A role after the first 400 is now
+checked as well.

@@ -255,8 +255,8 @@
   "skip_broken_rem": "Point the link at the real id of the main content (or create the id): a broken bypass is worse than no bypass.",
   "select_auto_focus": "{n} selects with autofocus run a script that changes the context as soon as they receive focus ({example}). The page loads with focus already on the control, so the navigation, new window, submit or focus move fires without the user doing anything (3.2.1).",
   "select_auto_focus_rem": "Remove the autofocus from the select, or keep it and run the script on activation (a Go button) instead of on focus.",
-  "select_auto_focus_input": "{n} selects with autofocus run a script that changes the context when the option changes or a key is pressed ({example}). The page loads with focus already on the control, so a change of option or a keypress is enough to navigate, open a window, submit or move focus, with no notice beforehand (3.2.2).",
-  "select_auto_focus_input_rem": "Remove the autofocus from the select, or tell the user before the control that changing the option performs the action; a Go button makes the action explicit."
+  "select_auto_focus_input": "{n} selects with autofocus contain a script that may change context when the option changes or a key is pressed ({example}). Verify the behavior and check that users receive advance notice before operating the control (3.2.2).",
+  "select_auto_focus_input_rem": "Tell users before they operate the control that changing the option performs the action, or provide an explicit Go button."
  },
  "badge": {
   "name": "a11y-toolkit",

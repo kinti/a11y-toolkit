@@ -80,6 +80,13 @@ class _H(BaseHTTPRequestHandler):
             body = f.read()
         status, location = 200, None
         es_chromium = 'Chrome' in self.headers.get('User-Agent', '')
+        if self.path == '/split.html' and not es_chromium:
+            status, location = 302, '/index.html'
+        if self.path == '/crawl.html':
+            body = (b'<!doctype html><html lang="en"><head><title>Fixture</title></head>'
+                    b'<body><a href="/outage.html">Page</a></body></html>')
+        if self.path == '/outage.html':
+            status = 503
         if es_chromium and self.path in self._navegaciones:
             self._navegaciones[self.path] += 1
             if self._navegaciones[self.path] >= 2:       # la 2ª navegación ya es la de axe
@@ -153,7 +160,8 @@ def _axe_espia(page, axe_js=None):
 compara.axe_en_pagina = _axe_espia
 try:
     for _ruta, _texto in ((f'{_base}/flip.html', 'axe cargó una respuesta HTTP 404'),
-                          (f'{_base}/jump.html', 'no es la misma página')):
+                          (f'{_base}/jump.html', 'no es la misma página'),
+                          (f'{_base}/split.html', 'estático terminó en')):
         try:
             compara.compara(_ruta)
         except RuntimeError as _e:
@@ -178,7 +186,7 @@ print('2b. la carga de axe con un 404 o con otra página final: fila rechazada �
 # misma página y con una respuesta sana en la carga de axe ────────────────────
 _PAG = 'http://u/p'
 _good = {'url': 'u', 'engines': {'toolkit_static': 'ok', 'toolkit_rendered': 'ok', 'axe': 'ok'},
-         'toolkit': {'criterios': ['1.1.1'] * 5, 'url_final': _PAG},
+         'toolkit': {'criterios': ['1.1.1'] * 5, 'url_final_static': _PAG, 'url_final': _PAG},
          'axe': {'violaciones': [], 'criterios': [], 'rules_inapplicable': 60,
                  'http_status': 200, 'url_final': _PAG}}
 
@@ -210,6 +218,14 @@ for _st in (404, 500, None, '200', True):
 # axe sobre otra página que el toolkit
 assert compara.problems([dict(_good, axe=_axe(url_final='http://u/otra'))], min_signals=0) == [
     'u: toolkit and axe did not audit the same final page']
+assert compara.problems([dict(_good, toolkit=dict(_good['toolkit'], url_final_static='http://u/otra'))]) == [
+    'u: toolkit and axe did not audit the same final page']
+_tagged = {'violations': [
+    {'id': 'aria-required-parent', 'nodos': 1, 'impacto': 'critical',
+     'tags': ['wcag2a', 'wcag131', 'wcag1410']},
+    {'id': 'region', 'nodos': 1, 'impacto': 'moderate', 'tags': ['best-practice']},
+]}
+assert set(compara.axe_a_criterios(_tagged)) == {'1.3.1', '1.4.10'}
 assert compara.problems([dict(_good, toolkit={'criterios': ['1.1.1'] * 5})], min_signals=0) == [
     'u: toolkit and axe did not audit the same final page']
 # --check por CLI sobre un fichero de verdad: verde con filas completas, 1 si no
@@ -229,6 +245,13 @@ assert _cli(compara, '--check', _p_ok, '--expect', '4')[0] == 0
 _rc_bad, _out_bad = _cli(compara, '--check', _p_bad, '--expect', '4')
 assert _rc_bad == 1 and 'no results from axe' in _out_bad, _out_bad
 print('3. gate del benchmark: sin resultados de un motor no hay verde ✓')
+
+from a11y_toolkit.a11yaudit import audit_site
+from a11y_toolkit.a11ybudget import init as budget_init
+_crawl = audit_site(f'{_base}/crawl.html', max_pages=2, from_sitemap=False)
+assert _crawl['pages'] == 1 and _crawl['page_errors'][0]['url'] == f'{_base}/outage.html', _crawl
+assert '503' in _crawl['page_errors'][0]['error'], _crawl
+assert budget_init(_crawl).get('error'), _crawl
 
 
 # ── 4. pr-flow ────────────────────────────────────────────────────────────────

@@ -242,7 +242,7 @@ Install it with `pip install a11y-toolkit` (or `uv tool install a11y-toolkit`).
 ```bash
 a11ytoolkit audit --changed                     # ONLY what changed since HEAD (CI gate)
 a11ytoolkit audit --changed --base origin/main  # a branch's changes — exit 2 on high/medium
-a11ytoolkit audit --url https://example.com --pages 5   # sitemap-first crawl
+a11ytoolkit audit --url https://example.com --pages 5   # sitemap-first crawl with page_errors for failed pages
 a11ytoolkit audit --file table.html  # checks every headers ID against cells in the same data table
 a11ytoolkit pair "#1f2328" "#fbfaf7"                    # contrast
 a11ytoolkit image hero.jpg --text "#fff" --region 120,40,420,90
@@ -257,9 +257,10 @@ a11ytoolkit fix --file page.html -o fixed.html          # safe autofix
 a11ytoolkit declaration --entity "Acme" --url https://… --status partial --framework eaa
 a11ytoolkit snapshot https://mysite --out before.json   # before deploy
 a11ytoolkit diff before.json after.json                 # after deploy
-a11ytoolkit evidence audit.json -o pack.json            # verifiable evidence pack (not-run unless a covering mode actually ran)
+a11ytoolkit evidence audit.json -o pack.json            # evidence pack with report input status and measured coverage
 a11ytoolkit disprove --url https://mysite               # re-verify findings
-a11ytoolkit budget --budget budget.json --audit audit.json  # only NEW findings block (exit 1 = the report itself failed)
+a11ytoolkit budget --init --audit audit.json > budget.json  # accept the measured findings by page, count and available paths
+a11ytoolkit budget --budget budget.json --audit next.json   # exit 1 for incomplete measurement, 2 for a regression
 # legacy debt does not block: adopt CI today, don't let accessibility get worse while you pay it down
 a11ytoolkit budget --init-snapshot s.json > structural.json      # structural budget: today's structure is accepted
 a11ytoolkit budget --budget structural.json --snapshot s2.json   # only NEW rendered structure blocks (exit 0/2)

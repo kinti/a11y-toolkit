@@ -25,7 +25,6 @@ import guards. Output es/en; wire keys English (`a11y-evidence-pack/2`).
 | `a11ycrit.py` | Knowledge catalog: `_C` (86 criteria A/AA/AAA, es/en), `_EFFORT` (55 A/AA effort classes), `effort()`. |
 | `a11yvpat.py` | VPAT 2.5 (WCAG edition) generator: pack → accessible HTML VPAT, machine fills Remarks, human sets levels (overrides), signature references pack sha256. |
 | `a11yfingerprints.py` | Multi-hash template fingerprints (twin-page detection): three independent views per region (structure / classes / attributes, text always excluded, id-referencing volatile attrs excluded by design), template = the structure view, localized divergence {page, region, view} against the representative, one-representative-per-template sample suggestion (WCAG-EM Step 3 helper) — deterministic hashlib-only, CLI + suite, not a tool. |
-| `a11ydistrib.py` | Statistics layer for WCAG-EM aggregation (HEGM translation): Wilson intervals for per-criterion prevalence, zero-inflated mixture (δ0 + Exp + Gauss over the positives) fitted by deterministic EM with declared init, HEGM's failure catalog imported as fit validations (dead component / collapsed variance / single distinct value — a broken fit never publishes an interval, the rejection is declared), seeded percentile bootstrap over the lo/hi minute bands publishing the outer envelope — statistics over the sample, never conformance. |
 | `a11ycorpus.py` | Versioned audit corpus (VK-LSVD translation): freezes a mutant-bank exam as a dataset release — pages + cases.jsonl (sealed ground truth keyed by WCAG criterion, engine-neutral) + hash-sealed MANIFEST + published reference baseline from this engine; `evaluate` scores any third-party submission (kill rate, placebo false positives, per-criterion confusion); a published version is never edited (D12 applied to data). CLI-only infrastructure, not a tool. |
 | `a11yopenacr.py` | OpenACR (GSA) generator: pack → machine-readable ACR YAML (fixed-schema emitter, JSON escaping = valid YAML, no dependency), same honesty rule as the VPAT; hyphenated adherence levels in the YAML. |
 | `a11yi18n.py` | Locale-pack loader: community `locales/<lang>.json` catalogs, English fallback, CLDR plurals, product overlays. |
@@ -71,8 +70,10 @@ PyPI `a11y-toolkit` · GitHub releases · official MCP registry
 ## Release workflow
 
 1. Review the working tree against the pending changelog, both READMEs and
-   the affected reference docs. `make release V=X.Y.Z` includes the entire
-   working tree in the release commit.
+   the affected reference docs. `make release V=X.Y.Z` stages the entire
+   working tree and checks the staged content before committing. It uses
+   `scripts/check_public_tree.py` and the optional private term list stored
+   in the Git metadata directory.
 2. Run `make test` with Chromium available. To rehearse a version, use a
    disposable checkout and run `python3 scripts/versionar.py X.Y.Z`. It
    updates the versioned surfaces, runs every `tests/test_*.py` suite, and
@@ -171,18 +172,6 @@ PyPI `a11y-toolkit` · GitHub releases · official MCP registry
   per template (WCAG-EM Step 3). Cross-industry translation: multi-hash
   identification from industrial recommender systems.
 
-- **D21 — A broken fit never publishes an interval (distribution over
-  mean, validated)**: the mean lies in silence on zero-inflated,
-  long-tailed per-page numbers (most pages clean, a few catastrophic —
-  HEGM's exact territory, ICDM 2026). `a11ydistrib.py` models the full
-  distribution, but its EM mixture can fail exactly the way HEGM's own
-  catalog documents (dead component, collapsed variance, single distinct
-  value). Those failures are IMPORTED as validations, not patched away:
-  a fit that trips one is declared in the output with its reasons and
-  the interval falls back to the seeded bootstrap. Hiding a bad fit
-  behind a floor or a re-roll would be the statistical version of
-  claiming conformance.
-
 - **D22 — Frozen beats regenerated (a published corpus version is never
   edited)**: the mutant generator evolves with the engine; a benchmark
   that silently changed underneath a published score is broken. The
@@ -208,9 +197,9 @@ PyPI `a11y-toolkit` · GitHub releases · official MCP registry
 | T9 | aria-live panel self-observation loop (`role="log"` panel) | Documented in SKILL.md — do not reintroduce. |
 | T10 | Browser hardcoding | Auto-detect chain chromium→firefox→webkit→chrome→msedge; pool reuse. |
 | T11 | `mcp-publisher` run outside repo root | `server.json not found` — run from repo root; token expires ~1h. |
+| T12 | Release stages local operational notes | Keep working artifacts outside the public tree and check staged content before creating the tag. |
 | T13 | Changelog announces a fix that never landed (edit lost between batch writes; "verified" by the script's print) | Re-read the file after the write; assert the fixed string exists post-write; pin the reproduction. |
 | T14 | Release cut by hand without versionar (tag ≠ file versions; PyPI rejects duplicate wheel) | `make release` / versionar ALWAYS, even for fix-only releases. Burned tag = superseded, never edited. |
-| T12 | Private repos on deploy hosts | minipc pull needs `GIT_SSH_COMMAND="ssh -i /root/.ssh/a11y_deploy"`; remote is SSH. |
 
 ## Where things live
 

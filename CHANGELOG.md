@@ -1,6 +1,33 @@
 # Changelog
 
 ## main — pendiente
+- **Page and instance regression budgets.** Crawl reports retain failed
+  URLs under `page_errors`. `budget` returns exit 1 for an incomplete run,
+  a missing baseline page or a changed audit mode. Fresh baselines use
+  page URLs and element paths or measured counts, so a second image
+  without alt text consumes the budget. Existing signal-only files still
+  work. Recreate them from a complete report to enable instance tracking.
+  Counts can detect growth when a report caps its paths. They cannot
+  establish which instance moved when paths are missing. The GitLab CI
+  example preserves the gate's exit code while saving its JSON verdict.
+- **Evidence input validation.** Empty or malformed reports cannot
+  contribute automated coverage. Artifacts record their measurement status,
+  and the standalone verifier checks report inputs separately from the
+  SHA-256 seal. Failed and partial captures can still be archived.
+- **Benchmark identity and rule mapping.** Static, rendered and axe passes
+  must land on the same final URL. The comparator uses axe's WCAG criterion
+  tags, including multi-criterion rules, and excludes untagged best practices
+  from the WCAG comparison. Earlier result files remain historical records.
+- **ARIA context and input navigation.** Required-parent checks share a
+  parent-linked context, examine every candidate and cap displayed examples
+  only. An anchor in inert template content cannot satisfy a skip link.
+  The static 3.2.2 signal is review severity since the script alone cannot
+  establish whether users received advance notice.
+- **Publication boundary.** The standalone statistical inference module for
+  WCAG-EM effort projections has moved out of the public distribution.
+  Releases check all staged content for private working material before
+  committing. The local audit, evidence and conformance draft commands retain
+  their public entry points.
 - **`bench/pr-flow.py`: page-level findings enter the diff.** A finding that
   is not tied to an element (a missing `title`, a missing `lang`) used to
   vanish from the comparison: a page that lost its title reported zero new

@@ -134,6 +134,11 @@ def main():
     if con_tag:
         r = subprocess.run(['git', 'add', '-A'], cwd=AQUI)
         assert r.returncode == 0
+        r = subprocess.run([sys.executable, os.path.join(AQUI, 'scripts', 'check_public_tree.py'),
+                            '--all'], cwd=AQUI)
+        if r.returncode != 0:
+            print('Public tree check failed. Review the staged content before releasing.')
+            return 2
         r = subprocess.run(['git', 'commit', '-q', '-m', f'v{nueva}: versioned via scripts/versionar.py'],
                            cwd=AQUI)
         assert r.returncode == 0

@@ -237,7 +237,34 @@ _crawl = _cmp({'signals': ['img_no_alt'], 'url': 'x'},
               {'url': 'x', 'reports': [
                   {'url': 'a', 'findings': [{'signal': 'img_no_alt', 'severity': 'high'}]},
                   {'url': 'b', 'error': 'timeout'}]})
-assert _crawl['pages_failed'] == ['b'] and _crawl['ok'], _crawl
-print('17. budget: informe con error → error; crawl parcial declara páginas caídas ✓')
+assert _crawl['pages_failed'] == ['b'] and _crawl.get('error') and 'resolved' not in _crawl, _crawl
+print('17. budget: informe con error o rastreo parcial → error ✓')
 
-print('OK test_budget_structural: 17 checks')
+from a11y_toolkit.a11yaudit import audit_html as _audit_budget
+from a11y_toolkit.a11ybudget import init as _init_budget
+
+def _image_page(count, url='https://site/a'):
+    return _audit_budget('<html lang="en"><head><title>Sample</title></head>'
+                         '<body><main><h1>Sample</h1>' + '<img src="image.png">' * count
+                         + '</main></body></html>', url=url)
+
+_initial_budget = _init_budget(_image_page(1))
+assert _cmp(_initial_budget, _image_page(1))['ok']
+_added_image = _cmp(_initial_budget, _image_page(2))
+assert not _added_image['ok'] and _added_image['new_blocking_count'] == 1, _added_image
+_capped = _cmp(_init_budget(_image_page(6)), _image_page(7))
+assert _capped['changes'] == [{'url': 'https://site/a', 'signal': 'img_no_alt',
+                               'new': 1, 'resolved': 0, 'new_blocking': 1,
+                               'basis': 'count'}], _capped
+_multi = {'url': 'https://site', 'reports': [_image_page(1), _image_page(0, 'https://site/b')]}
+_initial_multi = _init_budget(_multi)
+_missing = _cmp(_initial_multi, dict(_multi, reports=_multi['reports'][1:]))
+assert _missing.get('error') and _missing['pages_missing'] == ['https://site/a'], _missing
+_page_add = _cmp(_initial_multi, dict(_multi, reports=[_image_page(1), _image_page(1, 'https://site/b')]))
+assert _page_add['changes'][0]['url'] == 'https://site/b' and not _page_add['ok'], _page_add
+_capture_error = dict(_multi, page_errors=[{'url': 'https://site/a', 'error': 'HTTP 503'}])
+assert _init_budget(_capture_error)['pages_failed'] == ['https://site/a']
+assert not _cmp(_initial_multi, _capture_error).get('ok')
+print('18. budget: aumento de instancias, delta sobre el límite, página nueva y página no medida ✓')
+
+print('OK test_budget_structural: 18 checks')

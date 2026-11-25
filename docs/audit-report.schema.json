@@ -64,6 +64,11 @@
             "minLength": 10,
             "description": "Concrete fix the agent can apply"
           },
+          "count": {
+            "type": "integer",
+            "minimum": 1,
+            "description": "Observed occurrences of an aggregated finding, including occurrences beyond the examples cap when the rule measured them"
+          },
           "examples": {
             "type": "array",
             "items": { "type": "string" },
