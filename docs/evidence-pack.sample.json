@@ -1,7 +1,7 @@
 {
  "format": "a11y-evidence-pack/3",
  "lang": "en",
- "generated": "2026-11-22T01:05:09+00:00",
+ "generated": "2026-11-25T13:32:52+00:00",
  "tool": "a11y-toolkit (github.com/kinti/a11y-toolkit)",
  "summary": {
   "automated-fail": 5,
@@ -60,8 +60,8 @@
   },
   {
    "criterion": "1.2.5 Audio Description (Prerecorded)",
-   "status": "not-flagged",
-   "note": "not-flagged ≠ pass: no automated signal fired on this sample",
+   "status": "not-run",
+   "note": "no check for this criterion ran on this sample — missing: —",
    "effort": {
     "class": "MAX",
     "why": "audio description requires watching and judging the video."
@@ -133,7 +133,7 @@
   {
    "criterion": "1.4.11 Non-text Contrast",
    "status": "not-run",
-   "note": "no check for this criterion ran on this sample — missing: a11y_audit_dom",
+   "note": "no check for this criterion ran on this sample — missing: —",
    "effort": {
     "class": "MED",
     "why": "focus-indicator contrast computed; verify visually."
@@ -384,8 +384,8 @@
   },
   {
    "criterion": "3.2.1 On Focus",
-   "status": "not-run",
-   "note": "no check for this criterion ran on this sample — missing: a11y_keyboard",
+   "status": "not-flagged",
+   "note": "not-flagged ≠ pass: no automated signal fired on this sample",
    "effort": {
     "class": "MIN",
     "why": "focus-triggered navigation detected; confirm."
@@ -393,8 +393,8 @@
   },
   {
    "criterion": "3.2.2 On Input",
-   "status": "not-run",
-   "note": "no check for this criterion ran on this sample — missing: a11y_keyboard",
+   "status": "not-flagged",
+   "note": "not-flagged ≠ pass: no automated signal fired on this sample",
    "effort": {
     "class": "MIN",
     "why": "select-triggered navigation detected; confirm."
@@ -411,8 +411,8 @@
   },
   {
    "criterion": "3.2.4 Consistent Identification",
-   "status": "not-flagged",
-   "note": "not-flagged ≠ pass: no automated signal fired on this sample",
+   "status": "not-run",
+   "note": "no check for this criterion ran on this sample — missing: —",
    "effort": {
     "class": "MED",
     "why": "consistent identification compared across pages; confirm the icons."
@@ -543,6 +543,7 @@
    "url": "https://sample.example",
    "sha256": "95ee507fb2c4d305c9179ef8da8bd24cecac9c7dc24728f61bc8211bbf525693",
    "score": 52,
+   "report_status": "complete",
    "body": {
     "url": "https://sample.example",
     "score": 52,
@@ -610,5 +611,5 @@
  "notes": null,
  "build": null,
  "notice": "This pack is evidence, not conformance: it says what machines found and what remains for a human. A conformance claim requires the signature block completed by a qualified person who reviewed the manual list.",
- "sha256": "227558b192fdefb8dd492728dc4df894a71b1599138d15b06b8f329c9548ec0d"
+ "sha256": "39a7230aa3cf4aaca544edd313713becc282c000be116ebaa868909ea8ea0a26"
 }

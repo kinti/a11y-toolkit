@@ -175,12 +175,13 @@ with tempfile.TemporaryDirectory() as _d:
     _upgraded = record(_root, _fixed, ledger=_legacy_scope, path=_legacy_scope_path)
     assert _upgraded['page_modes'] and _upgraded['resolved_signals'] == []
     _rendered_path = Path(_d) / 'rendered-ledger.json'
-    _dark = dict(_single, mode='rendered', color_scheme='dark')
+    _dark = dict(_single, mode='rendered', color_scheme='dark', authenticated=False, browser='chromium')
     _fixed_dark = dict(_dark, findings=[])
     assert record(_root, _dark, path=_rendered_path)['page_conditions'][_root] == {
-        'color_scheme': 'dark'}
+        'color_scheme': 'dark', 'authenticated': False, 'browser': 'chromium'}
     _rendered_before = _rendered_path.read_bytes()
     assert record(_root, dict(_fixed_dark, color_scheme='light'), path=_rendered_path).get('error')
+    assert record(_root, dict(_fixed_dark, authenticated=True), path=_rendered_path).get('error')
     assert _rendered_path.read_bytes() == _rendered_before
     assert record(_root, _fixed_dark, path=_rendered_path)['resolved_signals'] == ['img_no_alt']
 print('11. ledger: ámbito medido, rastreo completo y gaps por CLI ✓')

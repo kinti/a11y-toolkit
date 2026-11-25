@@ -11,6 +11,8 @@ The universal block every client ultimately stores:
 - **args**: `--from a11y-toolkit a11y-toolkit-mcp`
 
 (`pipx install a11y-toolkit` + command `a11y-toolkit-mcp` works too.)
+
+For the npm distribution, use `npx -y -p @kinti/a11y-toolkit a11y-toolkit-mcp`.
 Add `timeoutMs: 60000` where the client supports it — rendered audits,
 snapshots and scroll walks start a browser.
 

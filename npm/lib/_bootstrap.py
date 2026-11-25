@@ -16,8 +16,8 @@ _ENGINE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, _ENGINE)
 
 _ENTRY = {
-    'a11y_toolkit.a11y': 'main',
-    'a11y_toolkit.server': 'main',
+    'a11y_toolkit.a11y',
+    'a11y_toolkit.server',
 }
 
 
@@ -25,8 +25,10 @@ def _run(entry, args):
     if entry not in _ENTRY:
         print(f'unknown entry: {entry}', file=sys.stderr)
         return 2
-    module = __import__(entry, fromlist=[_ENTRY[entry]])
-    return getattr(module, _ENTRY[entry])(args)
+    module = __import__(entry, fromlist=['main'])
+    if entry == 'a11y_toolkit.server':
+        return module.main()
+    return module.main(args)
 
 
 if __name__ == '__main__':

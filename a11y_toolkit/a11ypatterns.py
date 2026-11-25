@@ -356,16 +356,16 @@ def _test_sliders(page, findings, lang, cap=3):
 
 def audit_patterns(url, timeout=45, lang='en', auth_state=None, browser='auto'):
     """One url → widget patterns found + contract findings (filter, not verdict)."""
-    from .a11ydom import _get_browser, _pooled_page
+    from .a11ydom import _get_browser, _load_error, _load_page, _pooled_page
     lang = 'es' if lang == 'es' else 'en'
     nav = _get_browser(preferred=browser)
     page, close_page = _pooled_page(nav, auth_state)
     try:
         try:
-            page.goto(url, wait_until='load', timeout=timeout * 1000)
+            _load_page(page, url, timeout * 1000)
             page.wait_for_timeout(400)
         except Exception as e:  # noqa: BLE001
-            return {'error': f'could not load: {e}'}
+            return _load_error(e, lang, 'could not load: {e}')
 
         counts = page.evaluate(_COUNTS)
         findings = []

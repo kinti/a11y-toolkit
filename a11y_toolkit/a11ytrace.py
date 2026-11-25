@@ -33,6 +33,7 @@ import sys
 from datetime import datetime, timezone
 
 from . import a11ydiff
+from .a11ydom import _NavigationHTTPError, _load_page
 
 # Silent live-region collector: accumulates announcements and exposes a
 # drain() so each trace step reads EXACTLY the announcements it triggered.
@@ -97,19 +98,6 @@ _DIALOG_STATE_JS = '''() => {
 }'''
 
 
-class _TraceHttpError(Exception):
-    def __init__(self, status, url):
-        super().__init__(f'HTTP {status}: could not capture the requested page')
-        self.status = status
-        self.url = url
-
-
-def _goto(page, url, timeout):
-    response = page.goto(url, wait_until='load', timeout=timeout)
-    if response is not None and response.status >= 400:
-        raise _TraceHttpError(response.status, page.url)
-
-
 def _run_script_action(page, act):
     """One scripted action → (label, ok). Selector-valued actions target CSS."""
     kind = act.get('kind', '')
@@ -131,7 +119,7 @@ def _run_script_action(page, act):
         page.wait_for_timeout(int(act.get('ms', 300)))
         return f'wait:{act.get("ms", 300)}', True
     if kind == 'goto':
-        _goto(page, act.get('url', ''), timeout=30000)
+        _load_page(page, act.get('url', ''), timeout=30000)
         # la navegación destruye el recolector (contexto nuevo): re-inyectarlo
         # o el drain de ESTE paso y de los siguientes tronaría/volvería vacío
         page.evaluate(_COLLECTOR)
@@ -146,15 +134,17 @@ def _run_script(page, script, dialog_state=False, check_navigation=None):
     navigations = 0
     url_now = page.url
     for i, act in enumerate(script):
-        if not isinstance(act, dict):
-            continue
         try:
-            label, _ok = _run_script_action(page, act)
-        except _TraceHttpError:
+            if isinstance(act, dict):
+                label, succeeded = _run_script_action(page, act)
+            else:
+                label, succeeded = 'invalid action', False
+        except _NavigationHTTPError:
             raise
         except Exception as e:  # noqa: BLE001 — a failed action is a recorded step too
             label = f'{act.get("kind", "?")}:{act.get("selector") or act.get("key") or ""}'
             label += f' (failed: {str(e)[:60]})'
+            succeeded = False
         page.wait_for_timeout(200)
         if check_navigation is not None:
             check_navigation()
@@ -163,7 +153,7 @@ def _run_script(page, script, dialog_state=False, check_navigation=None):
         if page.url != url_now:
             navigations += 1
             url_now = page.url
-        step = {'step': i + 1, 'action': label, 'focus': info,
+        step = {'step': i + 1, 'action': label, 'action_succeeded': succeeded, 'focus': info,
                 'announcements': anns, 'url': page.url}
         if dialog_state:
             try:
@@ -190,6 +180,8 @@ def trace(url, steps=25, output=None, auth_state=None, timeout=45, script=None, 
     el foco al opener pero DEJA el modal abierto es una divergencia de
     estado que el foco solo no ve."""
     from .a11ydom import _get_browser, _pooled_page
+    if script is not None and (not isinstance(script, list) or not script):
+        return {'error': 'the trace script must be a non-empty list of actions'}
     nav = _get_browser(preferred=browser)
     page, close_page = _pooled_page(nav, auth_state)
     navigation_error = None
@@ -199,7 +191,7 @@ def trace(url, steps=25, output=None, auth_state=None, timeout=45, script=None, 
         request = response.request
         if (navigation_error is None and response.status >= 400
                 and request.is_navigation_request() and request.frame == page.main_frame):
-            navigation_error = _TraceHttpError(response.status, response.url)
+            navigation_error = _NavigationHTTPError(response.status, response.url)
 
     def check_navigation():
         if navigation_error is not None:
@@ -208,8 +200,8 @@ def trace(url, steps=25, output=None, auth_state=None, timeout=45, script=None, 
     try:
         page.on('response', observe_response)
         try:
-            _goto(page, url, timeout=timeout * 1000)
-        except _TraceHttpError:
+            _load_page(page, url, timeout=timeout * 1000)
+        except _NavigationHTTPError:
             raise
         except Exception as e:  # noqa: BLE001
             return {'error': f'could not load: {e}'}
@@ -256,8 +248,8 @@ def trace(url, steps=25, output=None, auth_state=None, timeout=45, script=None, 
         except Exception:  # noqa: BLE001
             tree = None
         check_navigation()
-    except _TraceHttpError as e:
-        return {'error': str(e), 'url': e.url, 'http_status': e.status}
+    except _NavigationHTTPError as e:
+        return e.report()
     finally:
         close_page()
 
@@ -266,6 +258,7 @@ def trace(url, steps=25, output=None, auth_state=None, timeout=45, script=None, 
             **({'dialog_state_captured': True} if capture_dialog_state else {}),
             'steps': walk,
             'summary': {'steps_taken': len(walk),
+                        'failed_actions': sum(s.get('action_succeeded') is False for s in walk),
                         'announcements': sum(len(s.get('announcements') or [])
                                              for s in walk),
                         'navigations': navigations,
@@ -339,17 +332,25 @@ def _trace_error(trace):
                 or (step.get('announcements') is not None
                     and not isinstance(step['announcements'], list))):
             return f'invalid step {index}'
+        succeeded = step.get('action_succeeded')
+        if 'action_succeeded' in step and type(succeeded) is not bool:
+            return f'invalid action status at step {index}'
+        action = step.get('action')
+        legacy_failure = (succeeded is None and isinstance(action, str)
+                          and (action.startswith('unknown:') or ' (failed:' in action))
+        if succeeded is False or legacy_failure:
+            return f'script action failed at step {index}'
     return None
 
 
 def trace_diff(a, b, gate_dialog_state=False):
-    """Two traces → verdict. Focus behavior gates; announcements inform.
+    """Two traces → verdict. Failed actions invalidate a capture.
 
     gate_dialog_state (issue #16): OPT-IN — compara también el estado de
     diálogo capturado (trace --capture-dialog-state). Sin foco perdido ni
     reordenado pero con el modal ABIERTO donde antes cerraba: regresión.
     Evidencia faltante o acciones distintas → INCONCLUSIVE, nunca un falso
-    PASS. El foco sigue siendo el único gate por defecto."""
+    PASS. El foco se compara después de validar la ejecución."""
     for label, capture in (('reference', a), ('candidate', b)):
         error = _trace_error(capture)
         if error:
@@ -382,7 +383,8 @@ def trace_diff(a, b, gate_dialog_state=False):
         'focus': {'before': fa, 'after': fb, 'lost': lost, 'gained': gained,
                   'first_divergence': first_divergence},
         **({'dialog_gate': gate} if gate_dialog_state else {}),
-        'note': ('focus behavior is the gate: a lost or forked tab sequence '
+        'note': ('failed scripted actions invalidate the capture (exit 1); '
+                 'a lost or forked tab sequence '
                  'blocks (exit 2). Announcement counts are reported, not '
                  'gated — content changes legitimately between builds; a '
                  'collapsed layer (had announcements, now zero) is flagged '

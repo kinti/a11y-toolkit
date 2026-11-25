@@ -25,6 +25,10 @@ def main():
           f"{pkg['version']} vs {server['version']}")
     check('bins declarados', set(pkg['bin']) == {'a11y-toolkit', 'a11y-toolkit-mcp'})
     check('files cubre bin y lib', {'bin/', 'lib/'} <= set(pkg['files']))
+    registry_npm = next(p for p in server['packages'] if p['registryType'] == 'npm')
+    check('registro npm selecciona el bin MCP de forma explícita',
+          [a['value'] for a in registry_npm['packageArguments']]
+          == ['-y', '-p', pkg['name'], 'a11y-toolkit-mcp'])
 
     print('== 1b. autocontenido END-TO-END (empaqueta y ejecuta como el workflow)')
     import shutil, subprocess
@@ -37,6 +41,20 @@ def main():
         ok = r.returncode == 0 and '"ratio"' in r.stdout
         check('bin Node → motor interno (pair real, sin uv ni red)', ok,
               (r.stderr or r.stdout)[:150])
+        requests = [
+            {'jsonrpc': '2.0', 'id': 1, 'method': 'initialize',
+             'params': {'protocolVersion': '2025-11-25'}},
+            {'jsonrpc': '2.0', 'id': 2, 'method': 'tools/list'},
+        ]
+        mcp_run = subprocess.run(['node', os.path.join(ROOT, 'npm', 'bin', 'a11y-toolkit-mcp.cjs')],
+                                 input=''.join(json.dumps(req) + '\n' for req in requests),
+                                 capture_output=True, text=True, timeout=30)
+        replies = [json.loads(line) for line in mcp_run.stdout.splitlines()]
+        check('bin MCP responde a initialize y tools/list',
+              mcp_run.returncode == 0 and len(replies) == 2
+              and replies[0]['result']['serverInfo']['version'] == pkg['version']
+              and any(tool['name'] == 'a11y_audit_url' for tool in replies[1]['result']['tools']),
+              (mcp_run.stderr or mcp_run.stdout)[:200])
     finally:
         shutil.rmtree(os.path.join(ROOT, 'npm', 'a11y_toolkit'), ignore_errors=True)
 
@@ -58,7 +76,21 @@ def main():
           'astral.sh/uv' in runner and 'ENOENT' in runner)
     check('runner explica cómo instalar uv (sin ENOENT críptico)',
           'astral.sh/uv' in runner and 'ENOENT' in runner)
-    check('passthrough de argumentos', 'process.argv.slice(2)' in runner)
+    probe = """
+const child = require('child_process');
+child.spawnSync = () => ({status: 1});
+child.spawn = (command, args) => {
+  process.stdout.write(JSON.stringify(args));
+  return {on() {}};
+};
+const runner = require(process.argv[1]);
+process.argv = ['node', 'a11y-toolkit', 'pair', '#767676', '#ffffff'];
+runner.run('a11y_toolkit.a11y');
+"""
+    fallback = subprocess.run(['node', '-e', probe, os.path.join(ROOT, 'npm', 'lib', 'runner.cjs')],
+                              capture_output=True, text=True, timeout=30, check=True)
+    check('fallback uvx recibe el subcomando y sus argumentos', json.loads(fallback.stdout)
+          == ['--from', 'a11y-toolkit==' + pkg['version'], 'a11ytoolkit', 'pair', '#767676', '#ffffff'])
 
     print('== 2b. aislamiento del directorio auditado (revisión externa 2026-11-22)')
     # un módulo homónimo plantado en el CWD NO puede ejecutarse: VS Code lanza

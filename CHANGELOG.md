@@ -1,6 +1,24 @@
 # Changelog
 
 ## main — pendiente
+- **Installed npm launchers.** The MCP binary responds to initialization and
+  the fallback CLI forwards its subcommand and arguments to the pinned `uvx`
+  release. Node MCP instructions select the server binary explicitly. The
+  npm workflow tests both binaries from the tarball it publishes.
+- **HTTP errors in browser tools.** Interaction audits, visual probes and
+  snapshots reject HTTP error responses before collecting measurements. An
+  error page contributes no completed coverage to an evidence pack.
+- **Comparable browser sessions.** Rendered audits record the browser,
+  color scheme and whether a local session file was supplied. `disprove`
+  requires the original session for an authenticated capture. Budgets and
+  ledgers require recorded matching conditions for rendered comparisons.
+- **Failed scripted actions.** Trace captures record whether actions ran.
+  A failed action makes `trace diff` exit 1 even when the focus matches.
+- **Crawling without a sitemap.** Link discovery follows links found on child
+  pages when the sitemap is unavailable, up to the requested page limit.
+- **Active measurements in evidence.** The evidence matrix derives values
+  from the same findings as its current verdict. Historical rejected rows
+  remain available in the embedded audit for review.
 - **Complete re-audits.** `disprove` uses the fresh score, coverage and findings,
   including any new signals. Matching element paths support confirmation.
   An ambiguous prior match stays available for review.

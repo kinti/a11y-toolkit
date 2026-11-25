@@ -41,7 +41,7 @@ DEFAULT_ENGINES = ('chromium', 'firefox', 'webkit')
 
 
 def _capture(url, engine, auth_state=None):
-    """One engine's snapshot; raises on engine failure (caller records it)."""
+    """Capture one engine's snapshot."""
     return a11ydiff.snapshot(url, engine=engine, auth_state=auth_state)
 
 
@@ -90,8 +90,11 @@ def matrix(url, engines=None, auth_state=None, capture=None):
             failed.append({'engine': name, 'error': f'unknown engine (known: {", ".join(ENGINES)})'})
             continue
         try:
-            snaps[name] = capture(url, name, auth_state)
-            s = snaps[name]
+            s = capture(url, name, auth_state)
+            if 'error' in s:
+                failed.append({**s, 'engine': name})
+                continue
+            snaps[name] = s
             ok.append({'engine': name, 'elements': len(s.get('elements', [])),
                        'focus_steps': len(s.get('focus_order', [])),
                        'tree': 'accessibility_tree' in s or 'arbol_accesible' in s})
@@ -127,9 +130,8 @@ def matrix(url, engines=None, auth_state=None, capture=None):
                    'conformance claim.'),
     }
     if not enough:
-        report['note'] = ('fewer than 2 engines launched: install them with '
-                          '`playwright install firefox webkit` — a matrix of one '
-                          'engine cannot see cross-engine behavior')
+        report['note'] = ('fewer than 2 engines captured the page. Check the reported '
+                          'errors. Install missing engines with `playwright install firefox webkit`.')
     return report
 
 

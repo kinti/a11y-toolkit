@@ -26,6 +26,32 @@ from .contrast import parse_color, decode_png, sample_rgb, hexs, luminance, rati
 # carga y limits): bilingües aquí, igual que el catálogo (invariante es/en)
 _LOAD_ERR = {'es': 'no se pudo cargar: {e}',
              'en': 'could not load: {e}'}
+
+
+class _NavigationHTTPError(RuntimeError):
+    def __init__(self, status, url):
+        super().__init__(f'HTTP {status}: could not load the requested page')
+        self.status = status
+        self.url = url
+
+    def report(self, lang='en'):
+        message = (f'HTTP {self.status}: no se pudo cargar la página solicitada'
+                   if lang == 'es' else str(self))
+        return {'error': message, 'url': self.url, 'http_status': self.status}
+
+
+def _load_page(page, url, timeout, wait_until='load'):
+    response = page.goto(url, wait_until=wait_until, timeout=timeout)
+    if response is not None and response.status >= 400:
+        raise _NavigationHTTPError(response.status, page.url)
+
+
+def _load_error(error, lang, template='{e}'):
+    if isinstance(error, _NavigationHTTPError):
+        return error.report(lang)
+    return {'error': template.format(e=error)}
+
+
 _LIMITS_HCM = {
     'es': ('Heurística de revisión (1.4.3/1.4.11 en HCM): los fills '
            'coloreados hardcoded en SVG suelen caer al heredado con '
@@ -155,7 +181,7 @@ class _NoPoolBrowser:
     def __init__(self, headless, preferred):
         from playwright.sync_api import sync_playwright
         self._pw = sync_playwright().start()
-        self._nav, kind = _detect_browser(self._pw, preferred)
+        self._nav, self.kind = _detect_browser(self._pw, preferred)
         self._live_pages = 0
 
     def new_context(self, **kw):
@@ -1185,10 +1211,10 @@ def audit_forms(url, timeout=45, lang='en', auth_state=None, browser='auto'):
     page, close_page = _pooled_page(nav, auth_state)
     try:
         try:
-            page.goto(url, wait_until='load', timeout=timeout * 1000)
+            _load_page(page, url, timeout * 1000)
             page.wait_for_timeout(400)
         except Exception as e:  # noqa: BLE001
-            return {'error': _t(lang, 'fetch_error').format(e=e)}
+            return _load_error(e, lang, _t(lang, 'fetch_error'))
         url_before = page.url
         pre = page.evaluate(_JS_FORM_PRE)
         try:
@@ -1259,10 +1285,10 @@ def sr_transcript(url, timeout=45, lang='en', auth_state=None, browser='auto'):
     page, close_page = _pooled_page(nav, auth_state)
     try:
         try:
-            page.goto(url, wait_until='load', timeout=timeout * 1000)
+            _load_page(page, url, timeout * 1000)
             page.wait_for_timeout(400)
         except Exception as e:
-            return {'error': str(e)[:100]}
+            return _load_error(e, lang, '{e!s:.100}')
 
         try:
             tree = page.locator('body').aria_snapshot()
@@ -1343,10 +1369,10 @@ def audit_hover(url, timeout=45, lang='en', auth_state=None, browser='auto'):
     page, close_page = _pooled_page(nav, auth_state)
     try:
         try:
-            page.goto(url, wait_until='load', timeout=timeout * 1000)
+            _load_page(page, url, timeout * 1000)
             page.wait_for_timeout(400)
         except Exception as e:
-            return {'error': str(e)[:100]}
+            return _load_error(e, lang, '{e!s:.100}')
         # tooltips visibles ANTES de tocar nada: los preexistentes (ajenos)
         # jamas se atribuyen a un control por el mero hecho de hoverear
         _preexisting_tips = page.evaluate(_TOOLTIPS_VISIBLE_JS)
@@ -1538,10 +1564,10 @@ def audit_reflow(url, timeout=45, lang='en', auth_state=None, browser='auto'):
     page, close_page = _pooled_page(nav, auth_state, viewport={'width': 1280, 'height': 800})
     try:
         try:
-            page.goto(url, wait_until='load', timeout=timeout * 1000)
+            _load_page(page, url, timeout * 1000)
             page.wait_for_timeout(300)
         except Exception as e:  # noqa: BLE001
-            return {'error': _LOAD_ERR.get(lang, _LOAD_ERR['en']).format(e=e)}
+            return _load_error(e, lang, _LOAD_ERR.get(lang, _LOAD_ERR['en']))
 
         page.set_viewport_size({'width': 320, 'height': 800})
         page.wait_for_timeout(500)
@@ -1659,10 +1685,10 @@ def audit_keyboard(url, max_steps=60, lang='en', timeout=45, auth_state=None, br
     page, close_page = _pooled_page(nav, auth_state)
     try:
         try:
-            page.goto(url, wait_until='load', timeout=timeout * 1000)
+            _load_page(page, url, timeout * 1000)
             page.wait_for_timeout(400)
         except Exception as e:  # noqa: BLE001
-            return {'error': _LOAD_ERR.get(lang, _LOAD_ERR['en']).format(e=e)}
+            return _load_error(e, lang, _LOAD_ERR.get(lang, _LOAD_ERR['en']))
 
         page.evaluate("document.querySelectorAll('[data-a11ystop]').forEach(e => {"
                       " e.removeAttribute('data-a11ystop'); e.removeAttribute('data-a11yruta'); })")
@@ -2015,14 +2041,14 @@ def audit_forced_colors(url, timeout=45, lang='en', auth_state=None, browser='au
     page, close_page = _pooled_page(nav, auth_state)
     try:
         try:
-            page.goto(url, wait_until='load', timeout=timeout * 1000)
+            _load_page(page, url, timeout * 1000)
             page.wait_for_timeout(400)
             normal = page.evaluate(_JS_FC)
             page.emulate_media(forced_colors='active')
             page.wait_for_timeout(400)
             forced = page.evaluate(_JS_FC)
         except Exception as e:  # noqa: BLE001
-            return {'error': _t_audit(lang, 'fetch_error').format(e=e)}
+            return _load_error(e, lang, _t_audit(lang, 'fetch_error'))
     finally:
         close_page()
 
@@ -2087,14 +2113,14 @@ def audit_reduced_motion(url, timeout=45, lang='en', auth_state=None, browser='a
     page, close_page = _pooled_page(nav, auth_state)
     try:
         try:
-            page.goto(url, wait_until='load', timeout=timeout * 1000)
+            _load_page(page, url, timeout * 1000)
             page.wait_for_timeout(600)
             normal = page.evaluate(_JS_RM)
             page.emulate_media(reduced_motion='reduce')
             page.wait_for_timeout(600)
             reduced = page.evaluate(_JS_RM)
         except Exception as e:  # noqa: BLE001
-            return {'error': _t_audit(lang, 'fetch_error').format(e=e)}
+            return _load_error(e, lang, _t_audit(lang, 'fetch_error'))
     finally:
         close_page()
 
@@ -2145,6 +2171,7 @@ def audit_dom_url(url, timeout=45, lang='en', auth_state=None, browser='auto', c
     storage_state de Playwright (cookies/localStorage exportados con la sesión
     iniciada) para auditar detrás de login."""
     nav = _get_browser(preferred=browser)
+    browser_kind = nav.kind if isinstance(nav, _NoPoolBrowser) else _POOL['type']
     page, close_page = _pooled_page(nav, auth_state)
     _resp = None
     page_url_final = None
@@ -2157,8 +2184,7 @@ def audit_dom_url(url, timeout=45, lang='en', auth_state=None, browser='auto', c
             _resp = page.goto(url, wait_until='load', timeout=timeout * 1000)
             page.wait_for_timeout(400)
         except Exception as e:  # noqa: BLE001
-            if not page.content() or page.url in ('about:blank', ''):
-                return {'error': _LOAD_ERR.get(lang, _LOAD_ERR['en']).format(e=e)}
+            return _load_error(e, lang, _LOAD_ERR.get(lang, _LOAD_ERR['en']))
         data = page.evaluate(_JS, MAX_EXAMPLES)
         # 1.4.12: inject the WCAG spacing overrides, count clipped texts
         data['spacingClipped'] = page.evaluate(_JS_SPACING)
@@ -2209,6 +2235,8 @@ def audit_dom_url(url, timeout=45, lang='en', auth_state=None, browser='auto', c
     # /account redirigió — antes conservaba /account y solo añadía la nota
     final_url = (page_url_final or url).split('#')[0]
     report_out = audit_dom(data, final_url, lang=lang, color_scheme=color_scheme)
+    report_out['authenticated'] = bool(auth_state)
+    report_out['browser'] = browser_kind
     try:
         _st = _resp.status if _resp is not None else None
     except Exception:  # noqa: BLE001 — respuesta ya consumida
@@ -2253,7 +2281,10 @@ def contrast_dom(url, selector, text_color=None, sample=4, lang='en', timeout=45
     nav = _get_browser(preferred=browser)
     page, close_page = _pooled_page(nav, auth_state)
     try:
-        page.goto(url, wait_until='load', timeout=timeout * 1000)
+        try:
+            _load_page(page, url, timeout * 1000)
+        except Exception as e:  # noqa: BLE001
+            return _load_error(e, lang, _LOAD_ERR.get(lang, _LOAD_ERR['en']))
         page.wait_for_timeout(300)
         loc = page.locator(selector).first
         try:
@@ -2463,7 +2494,7 @@ def contrast_walk(url, max_walk=400, max_sample=24, dark=False,
                if auth_state else nav.new_context(color_scheme=scheme))
         page = ctx.new_page()
         try:
-            page.goto(url, wait_until='load', timeout=timeout * 1000)
+            _load_page(page, url, timeout * 1000)
             page.wait_for_timeout(300)
             return _pass(page)
         finally:
@@ -2472,7 +2503,10 @@ def contrast_walk(url, max_walk=400, max_sample=24, dark=False,
             except Exception:  # noqa: BLE001
                 pass
 
-    entries, skipped, unparsed = _run('light')
+    try:
+        entries, skipped, unparsed = _run('light')
+    except _NavigationHTTPError as error:
+        return error.report(lang)
     report = {'mode': 'contrast-walk', 'url': url, 'scheme': 'light',
               'checked': len(entries),
               'elements': entries,
@@ -2489,7 +2523,10 @@ def contrast_walk(url, max_walk=400, max_sample=24, dark=False,
             e['suggestion'] = s
 
     if dark:
-        entries_d, skipped_d, _unp_d = _run('dark')
+        try:
+            entries_d, skipped_d, _unp_d = _run('dark')
+        except _NavigationHTTPError as error:
+            return error.report(lang)
         report['dark'] = {'scheme': 'dark', 'checked': len(entries_d),
                           'elements': entries_d,
                           'summary': _summarize(entries_d, skipped_d, _unp_d)}

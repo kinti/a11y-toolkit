@@ -26,16 +26,18 @@ import json
 
 import sys
 
-from .a11yaudit import audit_url, normalize_signal, page_identity
+from .a11yaudit import (audit_conditions, audit_conditions_match, audit_url, normalize_signal,
+                        page_identity, rendered_conditions_recorded)
 
 
-def _recheck(url, expected_url, timeout, lang, color_scheme=None):
+def _recheck(url, expected_url, timeout, lang, color_scheme=None, auth_state=None, browser='auto'):
     """Obtain a successful measurement of the same page."""
     if color_scheme is None:
         fresh = audit_url(url, timeout=timeout, lang=lang)
     else:
         from .a11ydom import audit_dom_url
-        fresh = audit_dom_url(url, timeout=timeout, lang=lang, color_scheme=color_scheme)
+        fresh = audit_dom_url(url, timeout=timeout, lang=lang, color_scheme=color_scheme,
+                              auth_state=auth_state, browser=browser)
     if 'error' in fresh:
         return None, fresh['error']
     if page_identity(fresh.get('url')) != page_identity(expected_url):
@@ -87,12 +89,21 @@ def _classify_findings(previous, current, lang):
     return current, historical
 
 
-def disprove(url, report=None, timeout=30, lang='en'):
+def _unverified(report, reason):
+    findings = [dict(h, disprover_status='not-rechecked') for h in report.get('findings', [])]
+    return dict(report, findings=findings, disprover={'executed': False, 'reason': reason})
+
+
+def disprove(url, report=None, timeout=30, lang='en', auth_state=None):
     """Audit a URL and disprove findings, or verify an existing report.
 
     Return the fresh measurement and the outcomes of prior findings."""
     if report is None:
-        report = audit_url(url, timeout=timeout, lang=lang)
+        if auth_state:
+            from .a11ydom import audit_dom_url
+            report = audit_dom_url(url, timeout=timeout, lang=lang, auth_state=auth_state)
+        else:
+            report = audit_url(url, timeout=timeout, lang=lang)
     if report.get('error'):
         return report
     mode_name = report.get('mode', 'static')
@@ -116,35 +127,35 @@ def disprove(url, report=None, timeout=30, lang='en'):
         return res
 
     if mode_name == 'static':
+        if auth_state:
+            return _unverified(report, 'El informe estático no admite una sesión de navegador.'
+                               if lang == 'es' else
+                               'The static report does not support a browser session.')
         fresh, err = _recheck(url, expected_url, timeout, lang)
     elif mode_name == 'rendered':
-        # condición necesaria: el esquema de color bajo el que se auditó. Sin
-        # él no se reverifica (rechazar un contrast_fail de dark mode tras
-        # mirar la página en claro es exactamente el falso «arreglado» que
-        # este patrón existe para impedir)
-        scheme = report.get('color_scheme') or report.get('scheme')
-        if scheme not in ('light', 'dark'):
-            res = dict(report)
-            res['findings'] = [dict(h, disprover_status='not-rechecked') for h in findings]
-            res['disprover'] = {
-                'executed': False,
-                'reason': ('the rendered report does not record its color_scheme '
-                           '— re-verifying under a different condition could reject '
-                           'real findings (a dark-only contrast fail looks fixed '
-                           'under light); re-audit with a11y_audit_dom and disprove '
-                           'THAT report')}
-            return res
-        fresh, err = _recheck(url, expected_url, timeout, lang, color_scheme=scheme)
+        conditions = audit_conditions(report)
+        if not rendered_conditions_recorded(conditions):
+            return _unverified(report, ('El informe no registra todas las condiciones de captura. '
+                                       'Vuelve a auditar con a11y_audit_dom.' if lang == 'es' else
+                                       'Capture conditions are missing. Re-audit with a11y_audit_dom.'))
+        if bool(auth_state) != conditions['authenticated']:
+            return _unverified(report, ('La reauditoría necesita el mismo tipo de sesión que la captura. '
+                                       'Usa auth_state para una captura con sesión.' if lang == 'es' else
+                                       'Re-audit with the same session type as the capture. '
+                                       'Use auth_state for an authenticated capture.'))
+        scheme = conditions['color_scheme']
+        fresh, err = _recheck(url, expected_url, timeout, lang, color_scheme=scheme,
+                              auth_state=auth_state, browser=conditions['browser'])
+        if not err and not audit_conditions_match(mode_name, conditions, audit_conditions(fresh)):
+            return _unverified(report, 'La reauditoría cambió las condiciones de captura.'
+                               if lang == 'es' else 'Capture conditions changed during re-audit.')
     else:
         # no re-verifier for this mode: report not-rechecked, never a proxy
         # audit (a keyboard finding must not vanish just because the wrong
         # method ran). `rejected` is reserved for an equivalent check that
         # actually disproves the original finding.
-        res = dict(report)
-        res['findings'] = [dict(h, disprover_status='not-rechecked') for h in findings]
-        res['disprover'] = {'executed': False,
-                            'reason': f"no re-verifier for mode {mode_name!r}"}
-        return res
+        return _unverified(report, (f'No hay reauditoría para el modo {mode_name!r}.' if lang == 'es'
+                                   else f'No re-verifier for mode {mode_name!r}.'))
 
     if err:
         return dict(report, error=err, disprover={'executed': False, 'reason': err})
@@ -170,6 +181,7 @@ def main(argv):
     ap = argparse.ArgumentParser(description='Disprover: re-verify findings against the live page')
     ap.add_argument('--url', required=True, help='URL to audit and disprove')
     ap.add_argument('--file', help='existing report JSON (optional; if absent, audits first)')
+    ap.add_argument('--auth-state', help='local Playwright session for the original capture')
     ap.add_argument('--lang', default='en', choices=['en', 'es'])
     ap.add_argument('--timeout', type=int, default=30)
     ap.add_argument('-o', '--out', help='save result JSON here')
@@ -178,7 +190,7 @@ def main(argv):
     if a.file:
         with open(a.file, encoding='utf-8') as f:
             report = json.load(f)
-    res = disprove(a.url, report=report, timeout=a.timeout, lang=a.lang)
+    res = disprove(a.url, report=report, timeout=a.timeout, lang=a.lang, auth_state=a.auth_state)
     if 'error' in res:
         print(json.dumps(res))
         return 1

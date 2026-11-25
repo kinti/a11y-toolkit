@@ -27,6 +27,7 @@ CLI:
 import argparse
 import hashlib
 import json
+import re
 
 from .a11yaudit import normalize_report  # noqa: E402  (compat 5.10)
 import sys
@@ -193,10 +194,11 @@ def build_pack(reports, snapshot=None, reviewer=None, notes=None, verified=None,
     # matriz de criterios: los que tocamos (estado según hallazgos) + manuales
     from .a11ycrit import _C as _CAT, effort
     codes_aa = sorted(k for k, v in _CAT.items() if v[0] in ('A', 'AA'))
-    touched = {}
+    touched, values = {}, {}
     for inf in pages:
         for h in inf.get('findings', []):
-            if h.get('status') == 'rejected' or h.get('disprover_status') == 'rejected':
+            if (not isinstance(h, dict) or h.get('status') == 'rejected'
+                    or h.get('disprover_status') == 'rejected'):
                 continue
             crit = h.get('criterion')
             if not crit or not isinstance(crit, str):   # informe malformado: saltar
@@ -210,8 +212,23 @@ def build_pack(reports, snapshot=None, reviewer=None, notes=None, verified=None,
                      and h.get('disprover_status') != 'not-rechecked'
                      else 'automated-review')
             # el peor estado gana: fail > review
-            if touched.get(code) != 'automated-fail':
+            previous = touched.get(code)
+            if previous != 'automated-fail':
                 touched[code] = state
+                if previous != state:
+                    values.pop(code, None)
+            if touched[code] == state and code not in values:
+                value = {}
+                issue = str(h.get('issue') or '')
+                if 'ratio' in issue.lower() or ':' in issue:
+                    match = re.search(r'([\d.]+):1', issue)
+                    if match:
+                        value['measured'] = f'{match.group(1)}:1'
+                examples = h.get('examples')
+                if isinstance(examples, list) and examples:
+                    value['example'] = str(examples[0])[:80]
+                if value:
+                    values[code] = value
 
     verified = {v.split(' ')[0] for v in (verified or [])}
 
@@ -232,25 +249,6 @@ def build_pack(reports, snapshot=None, reviewer=None, notes=None, verified=None,
                 continue
             reason = row.get('reason')
             excluded[crit.split(' ')[0]] = reason if isinstance(reason, str) else ''
-    # extraer valores medidos clave de los hallazgos (ratio, ejemplos)
-    values = {}
-    for inf in pages:
-        for h in inf.get('findings', []):
-            code = str(h.get('criterion') or '').split(' ')[0]
-            if code not in values:
-                val = {}
-                issue_txt = str(h.get('issue') or '')
-                if 'ratio' in issue_txt.lower() or ':' in issue_txt:
-                    import re as _re
-                    m = _re.search(r'([\d.]+):1', issue_txt)
-                    if m:
-                        val['measured'] = f'{m.group(1)}:1'
-                _ex_list = h.get('examples', [])
-                if isinstance(_ex_list, list) and _ex_list:
-                    val['example'] = str(_ex_list[0])[:80]
-                if val:
-                    values[code] = val
-
     # criterios que requieren modos que este pack no incluye → not-run con el
     # nombre de la herramienta que falta (canónico en a11ycrit, re-derivado)
     from .a11ycrit import MODES_BY_CRITERION as _MODES_BY

@@ -24,7 +24,20 @@ jobs:
           cp -r a11y_toolkit npm/a11y_toolkit
           find npm/a11y_toolkit -name __pycache__ -type d -prune -exec rm -rf {} +
           cp LICENSE npm/LICENSE
+      - name: Pack and test the package installed from the tarball
+        id: pack
+        run: |
+          set -euo pipefail
+          archive="$RUNNER_TEMP/$(npm pack ./npm --pack-destination "$RUNNER_TEMP")"
+          prefix="$RUNNER_TEMP/a11y-npm-smoke"
+          npm install --prefix "$prefix" --offline --no-audit --no-fund "$archive"
+          bin="$prefix/node_modules/.bin"
+          "$bin/a11y-toolkit" pair '#767676' '#ffffff' | python3 -c 'import json, sys; assert json.load(sys.stdin)["ratio"] == 4.54'
+          printf '%s\n' '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-11-25"}}' '{"jsonrpc":"2.0","id":2,"method":"tools/list"}' |
+            "$bin/a11y-toolkit-mcp" | python3 -c 'import json, sys; rows = [json.loads(line) for line in sys.stdin]; assert rows[0]["result"]["serverInfo"]["version"] == sys.argv[1]; assert len(rows[1]["result"]["tools"]) == 37' "${GITHUB_REF_NAME#v}"
+          printf 'archive=%s\n' "$archive" >> "$GITHUB_OUTPUT"
       - name: Publish
-        run: npm publish ./npm --access public --provenance
+        run: npm publish "$ARCHIVE" --access public --provenance
         env:
+          ARCHIVE: ${{ steps.pack.outputs.archive }}
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

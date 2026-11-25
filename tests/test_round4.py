@@ -236,8 +236,14 @@ class _AuditPages(BaseHTTPRequestHandler):
             return
         contents = {'/product': BASE.format(_image + '<a href="/other">More products</a>'),
                     '/catalog': BASE.format(self.catalog_images),
+                    '/crawl': BASE.format('<a href="/category">Category</a>'),
+                    '/category': BASE.format('<a href="/details">Details</a>'),
+                    '/details': BASE.format(_image),
                     '/other': _normal_html, '/large': _large_html, '/gzip': _normal_html,
                     '/broken': _normal_html, '/login': BASE.format('<h1>Sign in to continue</h1>')}
+        if self.path not in contents:
+            self.send_error(404)
+            return
         data = contents[self.path].encode('utf-8')
         self.send_response(200)
         self.send_header('Content-Type', 'text/html; charset=utf-8')
@@ -266,6 +272,11 @@ with ThreadingHTTPServer(('127.0.0.1', 0), _AuditPages) as _http:
               and _too_large.get('error') == 'HTML larger than 3 MB'
               and 'Incomplete HTTP response' in _broken.get('error', ''), _broken)
         _site_report = audit_site(_root + '/product', max_pages=2, from_sitemap=False)
+        _fallback = audit_site(_root + '/crawl', max_pages=5)
+        check('el rastreo sin sitemap descubre enlaces desde páginas hijas',
+              _fallback['discovery'] == 'links' and _fallback['pages'] == 3
+              and _fallback['reports'][-1]['url'] == _root + '/details'
+              and any(f['signal'] == 'img_no_alt' for f in _fallback['reports'][-1]['findings']))
         _not_checked = _disp(_root + '/product', report=_site_report)
         _repeat = _disp(_root + '/product', report=_not_checked)
         _sealed = build_pack([_repeat])
@@ -300,6 +311,14 @@ with ThreadingHTTPServer(('127.0.0.1', 0), _AuditPages) as _http:
         check('disprove distingue dos imágenes con el mismo defecto',
               _active.get('status') != 'confirmed' and _active['paths'] != _rejected['paths']
               and _rejected['status'] == 'rejected', _moved)
+        _AuditPages.catalog_images = _image_one_fixed + _image_two_fixed
+        _fixed = _disp(_catalog, report=_current)
+        _fixed_pack = build_pack([_fixed])
+        _fixed_row = next(c for c in _fixed_pack['criteria'] if c['criterion'].startswith('1.1.1 '))
+        check('pack: un ejemplo descartado queda en el informe histórico y sale de la matriz',
+              _fixed_row['status'] == 'not-flagged' and 'value' not in _fixed_row
+              and any(f.get('status') == 'rejected' for f in _fixed['findings'])
+              and verify(_fixed_pack)[0], _fixed_row)
         _AuditPages.redirect_to_login = True
         _mismatch = _disp(_root + '/alias', report=_report)
         check('disprove rechaza un destino distinto y conserva el informe original',

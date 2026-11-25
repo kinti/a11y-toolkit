@@ -76,6 +76,10 @@ r = matrix('https://web', capture=lambda url, engine, auth_state=None:
 assert r['insufficient_engines'] and not r['ok'] and 'note' in r
 assert r['pairs'] == []
 print('4. single engine → insufficient_engines + note ✓')
+r = matrix('https://web', capture=lambda url, engine, auth_state=None:
+           {'error': 'HTTP 503', 'http_status': 503})
+assert not r['ok'] and r['insufficient_engines'] and not r['engines_ok'] and not r['pairs']
+assert all(e['http_status'] == 503 for e in r['engines_failed'])
 
 # --- 5. unknown engine names are reported, not silently dropped ---
 r = matrix('https://web', engines=['chromium', 'bogus'],

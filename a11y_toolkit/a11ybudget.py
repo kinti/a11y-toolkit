@@ -44,7 +44,7 @@ import datetime
 import json
 from collections import Counter
 
-from .a11yaudit import audit_conditions, completed_report_pages, normalize_signal
+from .a11yaudit import audit_conditions, audit_conditions_match, completed_report_pages, normalize_signal
 import sys
 
 # mensajes CLI bilingües (patrón _labels): el stdin de --init espera el JSON
@@ -145,7 +145,8 @@ def _compare_instances(budget, pages, blocking):
         prior = base.get(url)
         if prior and prior['mode'] != page['mode']:
             return {'error': 'the audit mode changed for a baseline page', 'url': url}
-        if prior and prior.get('conditions', {}) != page['conditions']:
+        if prior and not audit_conditions_match(page['mode'], prior.get('conditions', {}),
+                                                page['conditions']):
             return {'error': 'the capture conditions changed or were not recorded in the baseline',
                     'url': url}
         old = prior['findings'] if prior else {}
@@ -198,6 +199,8 @@ def compare(budget, audit, today=None):
         if budget.get('format') == BUDGET_FORMAT:
             verdict = _compare_instances(budget, _page_index(pages), blocking)
         else:
+            if any(p.get('mode') == 'rendered' for p in pages):
+                return {'error': 'a rendered audit needs a baseline with recorded capture conditions'}
             verdict = _compare_signals(budget, pages, blocking)
     except (ValueError, KeyError, TypeError) as err:
         return {'error': f'invalid budget input: {err}'}

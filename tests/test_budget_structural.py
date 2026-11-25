@@ -288,11 +288,15 @@ _possible_overlap = _cmp(_catalog_budget, _catalog_with_missing_alt(1))
 assert _possible_overlap['ok'] and not _possible_overlap['changes'], _possible_overlap
 print('19. budget: detecta el mínimo demostrable sin confundir rutas omitidas con regresiones ✓')
 
-_dark = dict(_image_page(1), mode='rendered', color_scheme='dark')
-_fixed_dark = dict(_image_page(0), mode='rendered', color_scheme='dark')
+_rendered = {'mode': 'rendered', 'color_scheme': 'dark', 'authenticated': False, 'browser': 'chromium'}
+_dark = dict(_image_page(1), **_rendered)
+_fixed_dark = dict(_image_page(0), **_rendered)
 _light = dict(_fixed_dark, color_scheme='light')
 _dark_budget = _init_budget(_dark)
 assert _cmp(_dark_budget, _light).get('error')
+assert _cmp(_dark_budget, dict(_fixed_dark, authenticated=True)).get('error')
+assert _cmp(_dark_budget, dict(_fixed_dark, browser='firefox')).get('error')
+assert _cmp({'signals': ['img_no_alt']}, _fixed_dark).get('error')
 assert _cmp(_dark_budget, _fixed_dark)['resolved'] == ['img_no_alt']
 _dark_budget['pages'][_dark['url']].pop('conditions')
 assert _cmp(_dark_budget, _fixed_dark).get('error')

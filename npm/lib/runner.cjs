@@ -35,7 +35,7 @@ function run(entry) {
     return;
   }
   const SCRIPTS = { 'a11y_toolkit.a11y': 'a11ytoolkit', 'a11y_toolkit.server': 'a11y-toolkit-mcp' };
-  const child = spawn(UVX, ['--from', `a11y-toolkit==${VERSION}`, SCRIPTS[entry] || entry], { stdio: 'inherit' });
+  const child = spawn(UVX, ['--from', `a11y-toolkit==${VERSION}`, SCRIPTS[entry] || entry, ...args], { stdio: 'inherit' });
   child.on('error', (e) => {
     if (e.code === 'ENOENT') {
       console.error('a11y-toolkit: needs python3 (>=3.9) or uv.');

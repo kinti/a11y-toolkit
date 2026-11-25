@@ -151,7 +151,7 @@ Full reference — descriptions, arguments, return shapes and behavior — in [d
 Works with **any MCP-capable client** — Claude Code/Desktop, Cursor, Windsurf, VS Code,
 Codex CLI, OpenCode, ZCode, Zed, Cline, Continue, Kimi Code… See
 [docs/clients.md](docs/clients.md) for every verified config format.
-Node-native? `npx -y @kinti/a11y-toolkit mcp…` — the npm launcher runs the
+Node-native? `npx -y -p @kinti/a11y-toolkit a11y-toolkit-mcp` runs the
 same engine ([npm/](npm/)). Composing it
 with the popular servers (Playwright, GitHub, Filesystem, Fetch…) —
 [docs/interop.md](docs/interop.md).
@@ -242,7 +242,7 @@ Install it with `pip install a11y-toolkit` (or `uv tool install a11y-toolkit`).
 ```bash
 a11ytoolkit audit --changed                     # changed HTML since HEAD, including Unicode paths
 a11ytoolkit audit --changed --base origin/main  # a branch's changes — exit 2 on high/medium
-a11ytoolkit audit --url https://example.com --pages 5   # sitemap-first crawl with page_errors for failed pages
+a11ytoolkit audit --url https://example.com --pages 5   # sitemap first, then recursive link discovery if unavailable
 a11ytoolkit audit --file table.html  # table headers in their own table; exits 1 if the HTML exceeds the input limit
 a11ytoolkit pair "#1f2328" "#fbfaf7"                    # contrast
 a11ytoolkit image hero.jpg --text "#fff" --region 120,40,420,90
@@ -258,16 +258,17 @@ a11ytoolkit declaration --entity "Acme" --url https://… --status partial --fra
 a11ytoolkit snapshot https://mysite --out before.json   # before deploy
 a11ytoolkit diff before.json after.json                 # after deploy
 a11ytoolkit evidence audit.json -o pack.json            # pack v3 with measured coverage and review counts
-a11ytoolkit disprove --url https://mysite --file audit.json  # re-audit the original destination, including new findings
+a11ytoolkit disprove --url https://mysite --file audit.json  # re-audit the original destination and capture conditions
+a11ytoolkit disprove --url https://mysite --file dom.json --auth-state session.json  # reuse the original local session
 a11ytoolkit budget --init --audit audit.json > budget.json  # accept the measured findings by page, count and available paths
-a11ytoolkit budget --budget budget.json --audit next.json   # exit 1 if incomplete or color scheme changed, 2 on regressions
+a11ytoolkit budget --budget budget.json --audit next.json   # exit 1 for incomplete or incompatible captures, 2 on regressions
 # legacy debt does not block: adopt CI today, don't let accessibility get worse while you pay it down
 a11ytoolkit budget --init-snapshot s.json > structural.json      # structural budget: today's structure is accepted
 a11ytoolkit budget --budget structural.json --snapshot s2.json   # only NEW rendered structure blocks (exit 0/2)
 a11ytoolkit engines https://mysite                        # same page in 3 engines: behavioral divergences, pairwise
 a11ytoolkit trace https://mysite --script journey.json -o t.json  # scripted journey; main-document HTTP errors fail capture
 a11ytoolkit trace https://mysite --script j.json --capture-dialog-state -o t.json  # + per-step modal state, then: trace diff a.json b.json --gate-dialog-state
-a11ytoolkit trace diff a.json b.json  # exit 1 for invalid captures, 2 for regressions
+a11ytoolkit trace diff a.json b.json  # exit 1 for invalid captures or failed actions, 2 for regressions
 a11ytoolkit patterns https://mysite                       # APG keyboard contracts, live: dialog / tablist / disclosure / combobox / menu / slider
 a11ytoolkit ledger record --url https://mysite --audit audit.json  # tracks findings across comparable runs
 a11ytoolkit ledger gaps --url https://mysite --lang en             # remaining coverage gaps
@@ -298,7 +299,12 @@ a11ytoolkit corpus verify corpus                  # the frozen corpus, verified
 For table findings, audit and annotate the same HTML to locate the cell with
 a broken `headers` reference. For keyboard regression checks, capture both
 runs with the same script. With the optional dialog gate, inspect
-`dialog_gate.status` alongside the exit code. [Worked examples](docs/cookbook.md#15-locate-a-broken-table-header-in-the-original-html)
+`dialog_gate.status` alongside the exit code. [Worked examples](docs/cookbook.md#13-locate-a-broken-table-header-in-the-original-html)
+
+Rendered comparisons require the same browser, color scheme and session type.
+Use the same account for authenticated runs and keep its session file local.
+Rebuild rendered budgets or start a new ledger when earlier captures lack
+these fields.
 
 ## Standards coverage
 

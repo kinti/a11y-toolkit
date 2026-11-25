@@ -1984,8 +1984,19 @@ def page_identity(url):
 def audit_conditions(report):
     """Identify recorded capture conditions that affect comparability."""
     if report.get('mode') == 'rendered':
-        return {'color_scheme': report.get('color_scheme') or report.get('scheme')}
+        return {'color_scheme': report.get('color_scheme') or report.get('scheme'),
+                'authenticated': report.get('authenticated'), 'browser': report.get('browser')}
     return {}
+
+
+def rendered_conditions_recorded(conditions):
+    return (conditions.get('color_scheme') in ('light', 'dark')
+            and isinstance(conditions.get('authenticated'), bool)
+            and isinstance(conditions.get('browser'), str) and bool(conditions['browser']))
+
+
+def audit_conditions_match(mode, previous, current):
+    return previous == current and (mode != 'rendered' or rendered_conditions_recorded(current))
 
 
 def completed_report_pages(report):
@@ -3200,7 +3211,7 @@ def audit_site(url, max_pages=5, timeout=30, lang='en', from_sitemap=True,
             continue
         reports.append(report)
         parsers.append(pg)
-        if len(reports) < max_pages and not from_sitemap:
+        if len(reports) < max_pages and not urls_sm:
             for new in _internal_links(html_pg, next_final, url):
                 if new not in seen:
                     queue.append(new)

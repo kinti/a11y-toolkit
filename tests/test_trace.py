@@ -143,6 +143,12 @@ for invalid in ({}, {'error': 'failed'}, {'steps': None}, {'steps': [{}]},
                 {'steps': [{'focus': []}]}, {'steps': [], 'http_status': 404}):
     assert trace_diff(A, invalid)['ok'] is False
     assert 'error' in trace_diff(invalid, A)
+successful_click = {'steps': [{'focus': None, 'action': 'click:#go', 'action_succeeded': True}]}
+for step in ({'action': 'click:#go', 'action_succeeded': False},
+             {'action': 'click:#go (failed: Timeout 5000ms)'}, {'action': 'unknown:go'}):
+    failed_click = {'steps': [dict(step, focus=None)]}
+    assert 'script action failed' in trace_diff(successful_click, failed_click)['error']
+assert trace_diff(successful_click, successful_click)['ok']
 empty = {'steps': [], 'dialog_state_captured': True}
 assert trace_diff(empty, empty, gate_dialog_state=True)['dialog_gate']['status'] == 'inconclusive'
 invalid_dialog = {'steps': [{'focus': None, 'dialog': {}}], 'dialog_state_captured': True}
@@ -237,8 +243,9 @@ assert any('Payment announced' in x for x in anns) and any('Email captured' in x
 assert t['steps'][1]['focus'] == '#pay'
 os.remove(sfx)
 d = trace_diff(t, t)
-assert d['ok']   # diff funciona igual sobre trazas scripted
-print('8. trace --script: jornada real, anuncios por acción, fallo grabado, diff ok ✓')
+assert not d['ok'] and 'script action failed at step 3' in d['error']
+assert t['summary']['failed_actions'] == 1 and t['steps'][2]['action_succeeded'] is False
+print('8. trace --script: acciones grabadas; un clic fallido invalida la comparación ✓')
 
 
 # ── issue #16: gate opcional de estado de diálogo en trace diff ────────────

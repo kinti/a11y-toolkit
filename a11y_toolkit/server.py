@@ -97,7 +97,7 @@ try:
 except ImportError:
     ARIALIVE_JS = None  # repo checkout: read the file
 
-VERSION = '5.35.0'
+VERSION = '5.35.1'
 
 # Params renombrados a inglés en 5.11.0; se aceptan los nombres previos.
 PARAM_ALIASES = {
@@ -558,12 +558,13 @@ TOOLS = [
         'name': 'a11y_disprove',
         'description': ('Re-audits the original live page and returns its current findings, '
                         'score and coverage. Rendered reports are rechecked under their '
-                        'recorded color scheme. Matching findings are confirmed, disappeared '
+                        'recorded browser, color scheme and session type. Matching findings are confirmed, disappeared '
                         'findings are rejected, and ambiguous historical matches are kept '
                         'for review. — Use a11y_evidence to seal the fresh measurement.'),
         'inputSchema': {'type': 'object', 'properties': {
             'url': {'type': 'string', 'description': 'URL to re-verify against'},
             'report': {'type': 'object', 'description': 'existing audit report (optional; if absent, audits first)'},
+            'auth_state': {'type': 'string', 'description': 'Local Playwright session for the original authenticated capture'},
             'lang': {'type': 'string', 'enum': ['es', 'en'], 'description': 'Output language (en default)'},
             'timeout': {'type': 'number', 'description': 'Timeout seconds (30 default)'},
         }, 'required': ['url']},
@@ -1016,6 +1017,7 @@ _PARAM_DOCS = {
  ('a11y_forced_colors', 'timeout'): 'Page load timeout seconds (45 default)',
  ('a11y_disprove', 'url'): 'URL to re-verify findings against',
  ('a11y_disprove', 'report'): 'Existing audit report to verify (optional; audits first if absent)',
+ ('a11y_disprove', 'auth_state'): 'Local Playwright session file for the original authenticated capture',
  ('a11y_disprove', 'timeout'): 'Fetch timeout seconds (default 30)',
  ('a11y_ledger', 'action'): 'record (add audit), gaps (what is missing), or summary (overview)',
  ('a11y_ledger', 'url'): 'URL being audited (for record/gaps)',
@@ -1501,7 +1503,7 @@ def invoke(name, args):
         try:
             return _content(disprove_fn(args['url'], report=args.get('report'),
                                        timeout=args.get('timeout', 30),
-                                       lang=args.get('lang', 'en')))
+                                       lang=args.get('lang', 'en'), auth_state=args.get('auth_state')))
         except Exception as e:
             return {'content': [{'type': 'text', 'text': f'error: {e}'}], 'isError': True}
     if name == 'a11y_ledger':

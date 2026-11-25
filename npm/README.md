@@ -16,7 +16,7 @@ As an MCP server (stdio):
 
 ```json
 { "mcpServers": { "a11y-toolkit": {
-    "command": "npx", "args": ["-y", "@kinti/a11y-toolkit", "a11y-toolkit-mcp"] } } }
+    "command": "npx", "args": ["-y", "-p", "@kinti/a11y-toolkit", "a11y-toolkit-mcp"] } } }
 ```
 
 ## Requirements

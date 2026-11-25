@@ -654,7 +654,7 @@ Builds the verifiable evidence pack: the machine→human handoff object for WCAG
 
 <sub>read-only · network</sub>
 
-Re-audits the original live page and returns its current findings, score and coverage. Rendered reports are rechecked under their recorded color scheme. Matching findings are confirmed, disappeared findings are rejected, and ambiguous historical matches are kept for review. — Use a11y_evidence to seal the fresh measurement. Returns the fresh audit JSON with score_original and disprover {executed, confirmed, rejected, previous_findings} when re-audited.
+Re-audits the original live page and returns its current findings, score and coverage. Rendered reports are rechecked under their recorded browser, color scheme and session type. Matching findings are confirmed, disappeared findings are rejected, and ambiguous historical matches are kept for review. — Use a11y_evidence to seal the fresh measurement. Returns the fresh audit JSON with score_original and disprover {executed, confirmed, rejected, previous_findings} when re-audited.
 
 
 **Arguments**
@@ -662,6 +662,8 @@ Re-audits the original live page and returns its current findings, score and cov
 - `url` *(required)*: URL to re-verify against.
 
 - `report`: existing audit report (optional; if absent, audits first).
+
+- `auth_state`: Local Playwright session for the original authenticated capture.
 
 - `lang` — one of ['es', 'en']: Output language (en default).
 

@@ -157,8 +157,8 @@ traducción puede ir a la zaga del inglés, que es la fuente canónica.
 
 Funciona con **cualquier cliente con MCP** — Claude Code/Desktop, Cursor,
 Windsurf, VS Code, Codex CLI, OpenCode, ZCode, Zed, Cline, Continue, Kimi
-Code… ¿Ecosistema Node? `npx -y @kinti/a11y-toolkit mcp…` — el lanzador npm
-ejecuta el mismo motor vía uv ([npm/](npm/)). Los formatos de configuración
+Code… ¿Ecosistema Node? `npx -y -p @kinti/a11y-toolkit a11y-toolkit-mcp` ejecuta
+el mismo motor ([npm/](npm/)). Los formatos de configuración
 verificados de cada cliente, en [docs/clients.md](docs/clients.md). Cómo se
 compone con los servidores populares (Playwright, GitHub, Filesystem,
 Fetch…) — [docs/interop.md](docs/interop.md). Recetas de principio a fin
@@ -254,7 +254,7 @@ Instálalo con `pip install a11y-toolkit` (o `uv tool install a11y-toolkit`).
 ```bash
 a11ytoolkit audit --changed                     # HTML cambiado desde HEAD, incluidas rutas con tildes
 a11ytoolkit audit --changed --base origin/main  # los cambios de una rama — exit 2 en high/medium
-a11ytoolkit audit --url https://example.com --pages 5   # rastreo, sitemap primero y page_errors para páginas fallidas
+a11ytoolkit audit --url https://example.com --pages 5   # sitemap primero, con rastreo recursivo de enlaces si falta
 a11ytoolkit audit --file tabla.html  # encabezados dentro de su tabla y código 1 si el HTML supera el límite
 a11ytoolkit pair "#1f2328" "#fbfaf7"                    # contraste
 a11ytoolkit image hero.jpg --text "#fff" --region 120,40,420,90
@@ -270,16 +270,17 @@ a11ytoolkit declaration --entity "Acme" --url https://… --status partial --fra
 a11ytoolkit snapshot https://mysite --out before.json   # antes del deploy
 a11ytoolkit diff before.json after.json                 # tras el deploy
 a11ytoolkit evidence audit.json -o pack.json            # pack v3 con cobertura medida y recuentos de revisión
-a11ytoolkit disprove --url https://mysite --file audit.json  # reaudita el destino original, incluidos los hallazgos nuevos
+a11ytoolkit disprove --url https://mysite --file audit.json  # reaudita el destino con las condiciones de captura originales
+a11ytoolkit disprove --url https://mysite --file dom.json --auth-state sesion.json  # reutiliza la sesión local original
 a11ytoolkit budget --init --audit audit.json > budget.json  # acepta los hallazgos medidos por página, recuento y rutas disponibles
-a11ytoolkit budget --budget budget.json --audit next.json   # código 1 si es incompleta o cambia el esquema de color, 2 si hay regresión
+a11ytoolkit budget --budget budget.json --audit next.json   # código 1 si las capturas son incompletas o incompatibles, 2 ante regresión
 # la deuda legacy no bloquea: adopta CI hoy, que la accesibilidad no empeore mientras la pagas
 a11ytoolkit budget --init-snapshot s.json > estructural.json    # presupuesto estructural: la estructura de HOY se acepta
 a11ytoolkit budget --budget estructural.json --snapshot s2.json # solo la estructura renderizada NUEVA bloquea (exit 0/2)
 a11ytoolkit engines https://mysite                        # la misma página en 3 motores: divergencias de comportamiento, por pares
 a11ytoolkit trace https://mysite --script journey.json -o t.json  # jornada scriptada; los errores HTTP del documento invalidan la captura
 a11ytoolkit trace https://mysite --script j.json --capture-dialog-state -o t.json  # + estado modal por paso, luego: trace diff a.json b.json --gate-dialog-state
-a11ytoolkit trace diff a.json b.json  # código 1 si la captura es inválida, 2 si hay regresión
+a11ytoolkit trace diff a.json b.json  # código 1 si la captura es inválida o falla una acción, 2 ante regresión
 a11ytoolkit patterns https://mysite                       # contratos APG de teclado, en vivo: dialog / tablist / disclosure / combobox / menu / slider
 a11ytoolkit ledger record --url https://mysite --audit audit.json  # registra hallazgos entre auditorías comparables
 a11ytoolkit ledger gaps --url https://mysite --lang es             # criterios pendientes de revisión
@@ -310,7 +311,12 @@ a11ytoolkit corpus verify corpus                               # el corpus conge
 Para localizar una referencia `headers` rota, audita y anota el mismo HTML.
 Para comprobar regresiones de teclado, captura ambas ejecuciones con el mismo
 guion. Si activas la comparación de diálogos, consulta `dialog_gate.status`
-junto al código de salida. [Ejemplos completos](docs/cookbook.md#15-locate-a-broken-table-header-in-the-original-html)
+junto al código de salida. [Ejemplos completos](docs/cookbook.md#13-locate-a-broken-table-header-in-the-original-html)
+
+Las comparaciones renderizadas requieren el mismo navegador, esquema de color
+y tipo de sesión. Usa la misma cuenta para las capturas autenticadas y conserva
+su archivo de sesión en local. Si los informes anteriores carecen de estos
+datos, crea una nueva línea base o un nuevo historial.
 
 ## Cobertura de estándares
 

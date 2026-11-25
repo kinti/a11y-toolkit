@@ -90,6 +90,11 @@ class _H(BaseHTTPRequestHandler):
         if self.path == '/asset.html':
             body = (b'<!doctype html><html lang="en"><head><title>Fixture</title></head>'
                     b'<body><main><img src="/outage.html" alt="Fixture"></main></body></html>')
+        if self.path == '/account.html':
+            account = b'<img src="/picture.png">' if 'qa_session=fixture' in self.headers.get('Cookie', '') \
+                else b'<p>Sign in to continue</p>'
+            body = (b'<!doctype html><html lang="en"><head><title>Fixture</title></head>'
+                    b'<body><main><h1>Account</h1>' + account + b'</main></body></html>')
         if es_chromium and self.path in self._navegaciones:
             self._navegaciones[self.path] += 1
             if self._navegaciones[self.path] >= 2:       # la 2ª navegación ya es la de axe
@@ -249,12 +254,51 @@ _rc_bad, _out_bad = _cli(compara, '--check', _p_bad, '--expect', '4')
 assert _rc_bad == 1 and 'no results from axe' in _out_bad, _out_bad
 print('3. gate del benchmark: sin resultados de un motor no hay verde ✓')
 
+from a11y_toolkit import a11y
 from a11y_toolkit.a11yaudit import audit_site
-from a11y_toolkit.a11ybudget import init as budget_init
+from a11y_toolkit.a11ybudget import compare as budget_compare, init as budget_init
+from a11y_toolkit.a11ydisprove import disprove
+from a11y_toolkit.a11ydom import audit_dom_url, audit_forms, audit_keyboard, audit_reflow
+from a11y_toolkit.a11yevidence import build_pack
+from a11y_toolkit.a11yledger import record as ledger_record
 _crawl = audit_site(f'{_base}/crawl.html', max_pages=2, from_sitemap=False)
 assert _crawl['pages'] == 1 and _crawl['page_errors'][0]['url'] == f'{_base}/outage.html', _crawl
 assert '503' in _crawl['page_errors'][0]['error'], _crawl
 assert budget_init(_crawl).get('error'), _crawl
+
+_maintenance = f'{_base}/outage.html'
+_unavailable = [audit(_maintenance) for audit in (audit_keyboard, audit_reflow, audit_forms)]
+assert all(r.get('error') and r.get('http_status') == 503 for r in _unavailable), _unavailable
+_sealed = build_pack(_unavailable)
+assert all(a['report_status'] == 'failed' for a in _sealed['artifacts'])
+assert _sealed['summary']['not-flagged'] == 0, _sealed['summary']
+for _tool in ('kbd', 'reflow', 'forms'):
+    _status, _body = _cli(a11y, _tool, _maintenance)
+    assert _status == 1 and json.loads(_body)['http_status'] == 503, (_status, _body)
+
+_url = f'{_base}/account.html'
+_state_path = os.path.join(_D, 'session.json')
+with open(_state_path, 'w', encoding='utf-8') as _state_file:
+    json.dump({'cookies': [{'name': 'qa_session', 'value': 'fixture', 'domain': '127.0.0.1',
+                            'path': '/', 'expires': -1, 'httpOnly': False, 'secure': False,
+                            'sameSite': 'Lax'}], 'origins': []}, _state_file)
+_authenticated = audit_dom_url(_url, auth_state=_state_path)
+_guest = audit_dom_url(_url)
+assert _authenticated['score'] == 88 and _guest['score'] == 100
+assert _authenticated['authenticated'] and not _guest['authenticated']
+assert 'qa_session' not in json.dumps(_authenticated) and _state_path not in json.dumps(_authenticated)
+_unverified = disprove(_url, report=_authenticated)
+assert not _unverified['disprover']['executed'] and _unverified['score'] == _authenticated['score']
+_verified = disprove(_url, report=_authenticated, auth_state=_state_path)
+assert _verified['disprover']['confirmed'] == 1 and _verified['score'] == _authenticated['score']
+assert 'error' in budget_compare(budget_init(_authenticated), _guest)
+_ledger_path = os.path.join(_D, 'account-ledger.json')
+assert 'error' not in ledger_record(_url, _authenticated, path=_ledger_path)
+with open(_ledger_path, 'rb') as _ledger_file:
+    _ledger_original = _ledger_file.read()
+assert 'error' in ledger_record(_url, _guest, path=_ledger_path)
+with open(_ledger_path, 'rb') as _ledger_file:
+    assert _ledger_file.read() == _ledger_original
 
 from a11y_toolkit.a11ytrace import trace, trace_diff
 _reference = trace(f'{_base}/crawl.html', steps=1)

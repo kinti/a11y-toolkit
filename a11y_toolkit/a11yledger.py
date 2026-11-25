@@ -30,7 +30,8 @@ from datetime import datetime, timezone
 
 import tempfile
 
-from .a11yaudit import audit_conditions, completed_report_pages, normalize_signal, page_identity
+from .a11yaudit import (audit_conditions, audit_conditions_match, completed_report_pages,
+                        normalize_signal, page_identity)
 
 # per-path lock: always multi-thread; multi-process on POSIX (fcntl).
 # Without it, two concurrent writes left a truncated JSON (external review
@@ -154,8 +155,9 @@ def _record(url, report, ledger=None, path='a11y-ledger.json', lang='en'):
                           'Use a different ledger for a different scope.')}
     current_conditions = {page_identity(page): value for page, value in page_conditions.items()}
     previous_conditions = prev.get('page_conditions', {})
-    if prev and any(previous_conditions.get(page, {}) != current_conditions.get(page_identity(page), {})
-                    for page in previous_pages):
+    if prev and any(not audit_conditions_match(page_mode, previous_conditions.get(page, {}),
+                                               current_conditions.get(page_identity(page), {}))
+                    for page, page_mode in previous_pages.items()):
         return {'error': ('Cambiaron las condiciones de captura o el historial antiguo no las registra.'
                           if lang == 'es' else
                           'Capture conditions changed or were not recorded in the old ledger.')}

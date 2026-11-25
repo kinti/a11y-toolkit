@@ -142,7 +142,12 @@ def snapshot(url, output=None, auth_state=None, engine='chromium'):
         nav = launch(p)
         ctx = nav.new_context(storage_state=auth_state) if auth_state else nav
         page = ctx.new_page() if auth_state else nav.new_page()
-        page.goto(url, wait_until='networkidle', timeout=45000)
+        from .a11ydom import _NavigationHTTPError, _load_page
+        try:
+            _load_page(page, url, timeout=45000, wait_until='networkidle')
+        except _NavigationHTTPError as error:
+            nav.close()
+            return error.report()
         elements = page.evaluate(COLLECTOR)
 
         # Árbol de accesibilidad REAL (roles/nombres computados, lo que anuncia
@@ -177,6 +182,9 @@ _NOTE = {
 
 
 def diff(a, b, lang='en'):
+    for capture in (a, b):
+        if 'error' in capture:
+            return {**capture, 'ok': False}
     # multiset por firma: dos controles con el MISMO nombre (Edit por fila,
     # botones-icono sin name) son dos elementos — un dict por clave los
     # colapsaba y el diff decía «sin cambios» ante una duplicación
@@ -258,6 +266,9 @@ def main(argv):
         except ImportError:
             print(json.dumps({'error': 'Playwright not installed: pip install playwright && playwright install chromium'}))
             return 1
+        if 'error' in d:
+            print(json.dumps(d, ensure_ascii=False))
+            return 1
         print(json.dumps({'url': d['url'], 'elements': len(d['elements']),
                           'focus_steps': len(d['focus_order']), 'out': a.out},
                          ensure_ascii=False, indent=1))
@@ -266,8 +277,10 @@ def main(argv):
         ja = json.load(f)
     with open(a.b, encoding='utf-8') as f:
         jb = json.load(f)
-    print(json.dumps(diff(ja, jb), ensure_ascii=False, indent=1))
     verdict = diff(ja, jb)
+    print(json.dumps(verdict, ensure_ascii=False, indent=1))
+    if 'error' in verdict:
+        return 1
     return 0 if verdict['ok'] else 2
 
 
