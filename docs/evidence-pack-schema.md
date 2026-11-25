@@ -33,6 +33,9 @@ For report artifacts, `report_status` is `complete`, `partial`, `failed` or
 findings list. A partial crawl contributes the pages that ran. Its errors are
 retained in the artifact. Older packs can omit `report_status`. The verifier
 recomputes it from the report body and checks it separately from the seal.
+Truncated documents can be archived as `partial` and contribute no automated
+coverage. Packs predating this check can have an intact seal and an incorrect
+recorded measurement status. Rebuild those packs from complete measurements.
 Findings with `disprover_status: "not-rechecked"` remain in the embedded
 report and contribute `automated-review` to the criterion matrix.
 Rejected historical findings remain in the embedded report. The matrix

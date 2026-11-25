@@ -286,12 +286,15 @@ a11ytoolkit ledger record --url https://mysite --audit audit.json  # registra ha
 a11ytoolkit ledger gaps --url https://mysite --lang es             # criterios pendientes de revisión
 a11ytoolkit ledger recurrence --ledger a11y-ledger.json            # hallazgos recurrentes y URLs para revisar
 a11ytoolkit contrast-dom https://mysite --walk            # pase perceptual: ratios por elemento, umbrales, sugerencias
-a11ytoolkit sarif --from-audit audit.json -o a11y.sarif # GitHub code scanning
+a11ytoolkit pdf documento.pdf                           # cribado estructural de un PDF completo, hasta 30 MB
+python3 -m a11y_toolkit.a11ydocx documento.docx          # cribado DOCX por espacio de nombres XML
+a11ytoolkit vtt https://mysite/subtitulos.vtt            # comprueba sintaxis y tiempos tras una descarga completa
+a11ytoolkit sarif --from-audit audit.json -o a11y.sarif  # GitHub code scanning a partir de una auditoría completa
 a11ytoolkit badge --score 92 --out badge.svg            # SVG honesto
 a11ytoolkit contrast-dom https://mysite --selector ".hero h1"  # muestreo por píxeles
 a11ytoolkit vpat pack.json --product "Acme" -o vpat.html      # borrador VPAT 2.5 (WCAG)
 a11ytoolkit openacr pack.json --product "Acme" -o openacr.yaml # OpenACR YAML (GSA)
-a11ytoolkit earl --from-audit audit.json -o earl.json          # ACT Rules / EARL
+a11ytoolkit earl --from-audit audit.json -o earl.json          # ACT Rules / EARL a partir de una auditoría completa
 a11ytoolkit wcag3 --from-audit audit.json                      # vista previa WCAG 3 (sin score; criterios sin provisión en el borrador van a no_equivalent)
 a11ytoolkit route --goal "gate my PR"                          # qué herramientas para la tarea
 a11ytoolkit route --file page.html                             # diagnóstico: la página ordena

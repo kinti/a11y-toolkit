@@ -126,9 +126,9 @@ at sarif --from-audit audit.json -o a11y.sarif   # code scanning
 at earl --from-audit audit.json -o earl.json     # W3C EARL 1.0/ACT
 ```
 
-SARIF lands in GitHub code scanning (the Action does it for you); EARL
-traces every finding to its published ACT rule — and never asserts a
-`pass` the machine cannot know.
+SARIF lands in GitHub code scanning. EARL emits assertions for findings with
+an ACT mapping. Both exporters return exit 1 for failed or incomplete
+audits. [Document and export quality review](document-and-export-quality.md)
 
 ## 11. Use fingerprints to select representative pages
 

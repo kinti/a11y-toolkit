@@ -274,12 +274,15 @@ a11ytoolkit ledger record --url https://mysite --audit audit.json  # tracks find
 a11ytoolkit ledger gaps --url https://mysite --lang en             # remaining coverage gaps
 a11ytoolkit ledger recurrence --ledger a11y-ledger.json            # chronic signals and URLs to review
 a11ytoolkit contrast-dom https://mysite --walk            # perceptual pass: per-element ratios, thresholds, suggestions
-a11ytoolkit sarif --from-audit audit.json -o a11y.sarif # GitHub code scanning
+a11ytoolkit pdf document.pdf                            # structural screening of a complete PDF, up to 30 MB
+python3 -m a11y_toolkit.a11ydocx document.docx           # namespace-aware DOCX screening
+a11ytoolkit vtt https://mysite/captions.vtt              # checks caption syntax and timing after a complete download
+a11ytoolkit sarif --from-audit audit.json -o a11y.sarif  # GitHub code scanning from a complete audit
 a11ytoolkit badge --score 92 --out badge.svg            # honest SVG
 a11ytoolkit contrast-dom https://mysite --selector ".hero h1"  # auto-region pixel sampling
 a11ytoolkit vpat pack.json --product "Acme" -o vpat.html      # VPAT 2.5 (WCAG) draft
 a11ytoolkit openacr pack.json --product "Acme" -o openacr.yaml # OpenACR YAML (GSA) draft
-a11ytoolkit earl --from-audit audit.json -o earl.json          # ACT Rules / EARL export
+a11ytoolkit earl --from-audit audit.json -o earl.json          # ACT Rules / EARL export from a complete audit
 a11ytoolkit wcag3 --from-audit audit.json                      # WCAG 3 draft preview (no score; criteria the draft lacks go to no_equivalent)
 a11ytoolkit route --goal "gate my PR"                          # which tools for the task
 a11ytoolkit route --file page.html                             # diagnosis: the page orders the exams

@@ -69,6 +69,11 @@ def _is_page_report(report):
             and (status is None or type(status) is int and 200 <= status < 400))
 
 
+def _complete_page(report):
+    return (_is_page_report(report) and not report.get('truncated')
+            and not report.get('budget_exhausted') and not report.get('page_errors'))
+
+
 def _canon(obj):
     return json.dumps(obj, ensure_ascii=False, sort_keys=True, separators=(',', ':'))
 
@@ -164,26 +169,30 @@ def build_pack(reports, snapshot=None, reviewer=None, notes=None, verified=None,
         if isinstance(inf, dict) and inf.get('error'):
             state = 'failed'
         elif isinstance(inf, dict) and isinstance(inf.get('reports'), list):
-            usable = [normalize_report(p) for p in inf['reports'] if _is_page_report(p)]
+            usable = [normalize_report(p) for p in inf['reports'] if _complete_page(p)]
             if usable:
                 state = ('partial' if len(usable) != len(inf['reports']) or inf.get('page_errors')
-                         or inf.get('budget_exhausted') else 'complete')
+                         or inf.get('budget_exhausted') or inf.get('truncated') else 'complete')
                 modes_included.update(p.get('mode', 'static') for p in usable)
                 # The disprover puts its revised findings on the site wrapper.
                 # Only actual page reports contribute executed modes.
-                if _is_page_report(inf) and inf['findings']:
+                if state == 'complete' and _complete_page(inf) and inf['findings']:
                     inf = normalize_report(inf)
                     pages.append(inf)
                 else:
                     pages.extend(usable)
+            elif any(_is_page_report(p) for p in inf['reports']):
+                state = 'partial'
             elif inf.get('page_errors') or any(isinstance(p, dict) and p.get('error')
                                                for p in inf['reports']):
                 state = 'failed'
         elif _is_page_report(inf):
             inf = normalize_report(inf)
-            state = 'complete'
-            pages.append(inf)
-            modes_included.add(inf.get('mode', 'static'))
+            state = 'partial'
+            if _complete_page(inf):
+                state = 'complete'
+                pages.append(inf)
+                modes_included.add(inf.get('mode', 'static'))
         metadata = inf if isinstance(inf, dict) else {}
         mode = metadata.get('mode')
         report_artifacts.append({'type': f"report:{mode if isinstance(mode, str) else 'static'}",

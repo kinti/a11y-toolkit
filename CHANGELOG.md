@@ -1,6 +1,18 @@
 # Changelog
 
 ## main — pendiente
+- **Document CLI errors.** PDF, DOCX and WebVTT input failures return JSON
+  and exit 1. PDF files above the read limit and incomplete or oversized
+  caption downloads return an error before scoring.
+- **Evidence from complete inputs.** Older truncated reports remain in the
+  pack as partial artifacts and contribute no automatic coverage. The
+  independent verifier checks that the recorded status agrees with the input.
+- **Complete export sources.** SARIF and EARL return an error for failed or
+  partial source audits. The verdict names failed pages when available.
+- **Namespace-aware DOCX screening.** WordprocessingML elements and
+  attributes are read by namespace. Header checks stay with their own table.
+- **WebVTT syntax.** The checker validates the signature, timestamp fields and
+  cue order before adding a cue to the coverage and reading-speed measures.
 - **Installed npm launchers.** The MCP binary responds to initialization and
   the fallback CLI forwards its subcommand and arguments to the pinned `uvx`
   release. Node MCP instructions select the server binary explicitly. The

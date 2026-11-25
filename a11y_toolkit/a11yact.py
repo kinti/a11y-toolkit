@@ -18,7 +18,7 @@ CLI:
 import argparse
 import json
 
-from .a11yaudit import normalize_signal  # noqa: E402  (compat 5.10)
+from .a11yaudit import completed_report_pages, normalize_signal  # noqa: E402  (compat 5.10)
 import sys
 from datetime import datetime, timezone
 
@@ -96,6 +96,9 @@ def act_ids(signal):
 
 def earl(report, url=None):
     """Informe de auditoría → EARL 1.0 JSON-LD (solo hallazgos con mapeo ACT)."""
+    _, error = completed_report_pages(report)
+    if error:
+        return error
     assertions = []
     # site crawls anidan en reports[]: cada hallazgo pertenece a SU página —
     # aplanar sin más atribuía el fallo de /gallery a la PORTADA (revisión
@@ -162,15 +165,23 @@ def main(argv):
         print(json.dumps({'act_map': ACT_MAP, 'act_notes': ACT_NOTES},
                          ensure_ascii=False, indent=1))
         return 0
-    if a.from_audit:
-        report = json.load(open(a.from_audit, encoding='utf-8'))
-    elif a.url:
-        from .a11yaudit import audit_url
-        report = audit_url(a.url)
-    else:
-        ap.print_help()
-        return 2
+    try:
+        if a.from_audit:
+            with open(a.from_audit, encoding='utf-8') as f:
+                report = json.load(f)
+        elif a.url:
+            from .a11yaudit import audit_url
+            report = audit_url(a.url)
+        else:
+            ap.print_help()
+            return 2
+    except (OSError, ValueError) as error:
+        print(json.dumps({'error': str(error)}, ensure_ascii=False))
+        return 1
     res = earl(report, url=a.url)
+    if 'error' in res:
+        print(json.dumps(res, ensure_ascii=False))
+        return 1
     if a.out:
         with open(a.out, 'w', encoding='utf-8') as f:
             json.dump(res, f, ensure_ascii=False, indent=1)

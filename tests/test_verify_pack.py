@@ -207,9 +207,19 @@ _partial = _bpack([{'url': 'https://x', 'mode': 'site', 'reports': [_aud],
                     'page_errors': [{'url': 'https://x/b', 'error': 'HTTP 503'}]}])
 assert _partial['artifacts'][0]['report_status'] == 'partial'
 assert _partial['summary']['not-flagged'] > 0
+_truncated_report = {'mode': 'pdf', 'file': 'image.pdf', 'truncated': True, 'score': 88,
+                     'findings': [{'signal': 'pdf_untagged', 'criterion': '1.3.1 (PDF)',
+                                   'severity': 'high'}]}
+_truncated = _bpack([_truncated_report])
+assert _truncated['artifacts'][0]['report_status'] == 'partial'
+assert not any(_truncated['summary'][s] for s in ('automated-fail', 'not-flagged'))
+_mixed = _bpack([{'url': 'https://x', 'mode': 'site', 'reports': [_aud, _truncated_report]}])
+assert _mixed['artifacts'][0]['report_status'] == 'partial'
+assert _mixed['summary']['automated-fail'] == 0 and _mixed['summary']['not-flagged'] > 0
 with _tf.TemporaryDirectory() as _d:
     _p = _os.path.join(_d, 'p.json')
-    for _candidate, _expected in ((_invalid, 1), (_failed, 0), (_partial, 0)):
+    for _candidate, _expected in ((_invalid, 1), (_failed, 0), (_partial, 0),
+                                  (_truncated, 0), (_mixed, 0)):
         with open(_p, 'w') as f:
             _json.dump(_candidate, f)
         _r = run(_p, '--json')

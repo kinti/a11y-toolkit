@@ -97,7 +97,7 @@ try:
 except ImportError:
     ARIALIVE_JS = None  # repo checkout: read the file
 
-VERSION = '5.35.1'
+VERSION = '5.35.2'
 
 # Params renombrados a inglés en 5.11.0; se aceptan los nombres previos.
 PARAM_ALIASES = {
@@ -714,7 +714,8 @@ TOOLS = [
                         '.vtt and judges what viewers get: malformed timing lines, empty cues, '
                         'overlaps, impossible reading speed (>21 chars/second, BBC/Netflix '
                         'standard) and coverage vs the media duration when given. Pass the .vtt '
-                        'URL (same http/https guard as the audits). Not a substitute for human '
+                        'URL (same http/https guard as the audits). An invalid header or incomplete '
+                        'download returns an error. Not a substitute for human '
                         'review of accuracy or speaker identification. '
                         'Returns JSON: {mode: "vtt", cues, characters, captioned_seconds, '
                         'findings [{criterion, severity, signal, issue, remediation}], summary, limits}.'),
@@ -734,7 +735,8 @@ TOOLS = [
                         'announces; 3.3.2 inputs, 4.1.2 buttons). '
                         'Full PDF/UA conformance needs a spec validator (veraPDF); this finds '
                         'the failures that make full validation pointless. Use for enterprise '
-                        'document pipelines and PDFs linked from the audited site. '
+                        'document pipelines and PDFs linked from the audited site. Inputs over '
+                        '30 MB return an error before scoring. '
                         'Returns JSON: {mode: "pdf", pages, tagged, lang, title, images, '
                         'alt_entries, form_fields, form_labels, findings, summary, limits}.'),
         'inputSchema': {'type': 'object', 'properties': {
@@ -745,7 +747,7 @@ TOOLS = [
     {
         'name': 'a11y_docx_screen',
         'description': ('DOCX accessibility screening — the other half of enterprise paperwork. '
-                        'Zero-dep structural pass on a LOCAL .docx: images with no alt text '
+                        'Zero-dep structural pass on a LOCAL .docx with namespace-aware XML: images with no alt text '
                         '(docPr without descr), fake headings (bold+big paragraphs with no Heading '
                         'style — invisible to navigation pane and TOC), document language, tables '
                         'without marked header row. Full review needs a human; this finds what '

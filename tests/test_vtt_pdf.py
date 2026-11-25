@@ -10,6 +10,10 @@ import zipfile
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+WORD_NS = 'http://schemas.openxmlformats.org/wordprocessingml/2006/main'
+DRAWING_NS = 'http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing'
+REL_NS = 'http://schemas.openxmlformats.org/officeDocument/2006/relationships'
+PACKAGE_REL_NS = 'http://schemas.openxmlformats.org/package/2006/relationships'
 
 import a11y_toolkit.a11yaudit as audit_mod  # noqa: E402
 from a11y_toolkit.a11yvtt import vtt_check  # noqa: E402
@@ -59,9 +63,12 @@ from http.server import BaseHTTPRequestHandler, HTTPServer
 class _VTTHandler(BaseHTTPRequestHandler):
     def do_GET(self):
         body = VTT.encode('utf-8')
-        self.send_response(200)
+        status = 503 if self.path == '/unavailable.vtt' else 200
+        if self.path == '/bad-header.vtt':
+            body = b'WEBVTTX\n\n00:00.000 --> 00:03.000\nCaption\n'
+        self.send_response(status)
         self.send_header('Content-Type', 'text/vtt; charset=utf-8')
-        self.send_header('Content-Length', str(len(body)))
+        self.send_header('Content-Length', str(len(body) + (50 if self.path == '/short.vtt' else 0)))
         self.end_headers()
         self.wfile.write(body)
 
@@ -74,6 +81,13 @@ threading.Thread(target=_srv.serve_forever, daemon=True).start()
 try:
     r_http = vtt_check(f'http://127.0.0.1:{_srv.server_port}/c.vtt',
                        duration=15, lang='en')
+    for path in ('unavailable.vtt', 'bad-header.vtt', 'short.vtt'):
+        result = subprocess.run([sys.executable, '-m', 'a11y_toolkit.a11y', 'vtt',
+                                 f'http://127.0.0.1:{_srv.server_port}/{path}'],
+                                cwd=ROOT, capture_output=True, text=True, timeout=20)
+        error_body = json.loads(result.stdout)
+        assert result.returncode == 1 and 'error' in error_body and 'score' not in error_body
+        assert 'Traceback' not in result.stderr, result.stderr
 finally:
     _srv.shutdown()
 assert 'error' not in r_http, r_http.get('error')
@@ -195,10 +209,10 @@ def _docx(paras, rels=None):
     p = _os3.path.join(d, 't.docx')
     with _zf.ZipFile(p, 'w') as z:
         z.writestr('word/document.xml',
-                   '<?xml version="1.0"?><w:document xmlns:w="x" xmlns:r="y"><w:body>'
+                   f'<?xml version="1.0"?><w:document xmlns:w="{WORD_NS}" xmlns:r="{REL_NS}"><w:body>'
                    + paras + '</w:body></w:document>')
         z.writestr('word/styles.xml',
-                   '<w:styles><w:style w:styleId="T1" w:type="paragraph">'
+                   f'<w:styles xmlns:w="{WORD_NS}"><w:style w:styleId="T1" w:type="paragraph">'
                    '<w:name w:val="heading 1"/></w:style>'
                    '<w:style w:styleId="T3" w:type="paragraph">'
                    '<w:name w:val="heading 3"/></w:style></w:styles>')
@@ -211,7 +225,7 @@ def _P(text, style=None, num=False):
     return f'<w:p><w:pPr>{np_}{st}</w:pPr><w:r><w:t>{text}</w:t></w:r></w:p>'
 def _HL(text):
     return f'<w:hyperlink r:id="rId7"><w:r><w:t>{text}</w:t></w:r></w:hyperlink>'
-_RELS = ('<?xml version="1.0"?><Relationships>'
+_RELS = (f'<?xml version="1.0"?><Relationships xmlns="{PACKAGE_REL_NS}">'
          '<Relationship Id="rId7" Target="https://e.com/informe.pdf"/></Relationships>')
 _r1 = _dx_screen(_docx(_P('• una') + _P('• dos') + _P('• tres')), lang='es')
 assert 'docx_fake_list' in {h['signal'] for h in _r1['findings']}
@@ -314,7 +328,7 @@ print('14. sin forms: no acusa ✓')
 
 # ── DOCX screening (5.9-c) ──
 from a11y_toolkit.a11ydocx import docx_screen  # noqa: E402
-W_NS = 'xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"'
+W_NS = f'xmlns:w="{WORD_NS}" xmlns:wp="{DRAWING_NS}"'
 
 def docx_tmp(body, styles=None, name='t.docx'):
     path = os.path.join('/tmp', name)
@@ -328,7 +342,7 @@ def docx_tmp(body, styles=None, name='t.docx'):
 cuerpo_malo = f'<w:document {W_NS}><w:body>' \
     + '<w:p><w:r><w:rPr><w:b/><w:sz w:val="36"/></w:rPr><w:t>Sección principal</w:t></w:r></w:p>' \
     + '<w:tbl><w:tr><w:tc><w:p><w:r><w:t>a</w:t></w:r></w:p></w:tc></w:tr></w:tbl>' \
-    + '<w:p><w:r><w:drawing><wp:docPr id="1" name="Img1"/></wp:drawing></w:r></w:p>' \
+    + '<w:p><w:r><w:drawing><wp:docPr id="1" name="Img1"/></w:drawing></w:r></w:p>' \
     + '</w:body></w:document>'
 m = docx_screen(docx_tmp(cuerpo_malo, name='malo.docx'), lang='en')
 sig_m = {h['signal'] for h in m['findings']}
@@ -340,11 +354,20 @@ estilos_bien = (f'<?xml version="1.0"?><w:styles {W_NS}><w:docDefaults><w:rPrDef
 cuerpo_bien = (f'<w:document {W_NS}><w:body>'
                + '<w:p><w:pPr><w:pStyle w:val="Heading1"/></w:pPr><w:r><w:t>Sección</w:t></w:r></w:p>'
                + '<w:tbl><w:tr><w:trPr><w:tblHeader/></w:trPr><w:tc><w:p><w:r><w:t>a</w:t></w:r></w:p></w:tc></w:tr></w:tbl>'
-               + '<w:p><w:r><w:drawing><wp:docPr id="1" name="i" descr="Gráfico de ventas"/></wp:drawing></w:r></w:p>'
+               + '<w:p><w:r><w:drawing><wp:docPr id="1" name="i" descr="Gráfico de ventas"/></w:drawing></w:r></w:p>'
                + '</w:body></w:document>')
 b = docx_screen(docx_tmp(cuerpo_bien, estilos_bien, 'bien.docx'), lang='en')
 assert not b['findings'] and b['language'] == 'es-ES', (b['findings'], b['language'])
 print('12. DOCX bueno: sin señales, language detectado ✓')
+
+def alternate_prefixes(xml):
+    return (xml.replace('xmlns:w=', 'xmlns:doc=').replace('xmlns:wp=', 'xmlns:drawing=')
+            .replace('w:', 'doc:').replace('wp:', 'drawing:'))
+
+aliased = docx_screen(docx_tmp(alternate_prefixes(cuerpo_bien), alternate_prefixes(estilos_bien),
+                              'docx-prefix-alias.docx'), lang='en')
+assert {k: v for k, v in aliased.items() if k != 'file'} == {k: v for k, v in b.items() if k != 'file'}
+assert '{n}' not in next(f for f in m['findings'] if f['signal'] == 'docx_table_no_header')['issue']
 
 assert 'error' in docx_screen('/tmp', lang='en')
 print('13. no-docx rechazado ✓')
@@ -475,6 +498,11 @@ def _vtt_run(text, duration=None, lang='en'):
 r23 = _vtt_run('\ufeffWEBVTT\n\n00:00:00.000 --> 00:00:02.000\nHola\n')
 assert r23['mode'] == 'vtt' and r23['cues'] == 1, r23
 assert 'error' in _vtt_run('\ufeffhola\n')
+for timing in ('00:60.000 --> 01:04.000', '00:00,000 --> 00:04,000',
+               'prefix 00:00.000 --> 00:04.000'):
+    invalid_cue = _vtt_run(f'WEBVTT\n\n{timing}\nCaption\n')
+    assert invalid_cue['cues'] == 0 and any(h['signal'] == 'vtt_malformed'
+                                           for h in invalid_cue['findings'])
 print('23. VTT con BOM parsea; sin WEBVTT sigue siendo error ✓')
 
 # 24. cue con etiqueta de voz <v> TAMBIÉN se mide (antes: excluidas del cps)
@@ -516,7 +544,7 @@ print('26. w:b w:val="0" no es bold; <w:b/> sí ✓')
 from a11y_toolkit.a11yaudit import compute_score  # noqa: E402
 par_pdf = pdf_screen(mini_pdf(tagged=False, title=False, lang=False), lang='en')
 cuerpo_par = (f'<w:document {W_NS}><w:body>'
-              + '<w:p><w:r><w:drawing><wp:docPr id="1" name="Img1"/></wp:drawing></w:r></w:p>'
+              + '<w:p><w:r><w:drawing><wp:docPr id="1" name="Img1"/></w:drawing></w:r></w:p>'
               + '<w:tbl><w:tr><w:tc><w:p><w:r><w:t>a</w:t></w:r></w:p></w:tc></w:tr></w:tbl>'
               + '</w:body></w:document>')
 par_docx = docx_screen(docx_tmp(cuerpo_par, name='par.docx'), lang='en')
@@ -555,13 +583,13 @@ def _docx_cap(rels_txt):
     p = _os_cap.path.join(_tf_cap.mkdtemp(), 'cap.docx')
     with _zf_cap.ZipFile(p, 'w') as z:
         z.writestr('word/document.xml',
-                   '<w:document xmlns:w="x"><w:body><w:p/></w:body></w:document>')
-        z.writestr('word/styles.xml', '<w:styles/>')
+                   f'<w:document xmlns:w="{WORD_NS}"><w:body><w:p/></w:body></w:document>')
+        z.writestr('word/styles.xml', f'<w:styles xmlns:w="{WORD_NS}"/>')
         z.writestr('word/_rels/document.xml.rels', rels_txt)
     return p
 
 
-_mod_docx._MAX_MEMBER_BYTES = 100
+_mod_docx._MAX_MEMBER_BYTES = 200
 try:
     r_rels = docx_screen(_docx_cap('<Relationships>' + ' ' * 500 + '</Relationships>'), lang='en')
     r_small = docx_screen(_docx_cap('<Relationships/>'), lang='en')
@@ -574,6 +602,28 @@ import inspect as _insp_cap
 _src_cap = _insp_cap.getsource(_mod_docx)
 assert len(_mod_docx.re.findall(r'\bz\.read\(', _src_cap)) == 1, 'lectura del ZIP fuera del techo'
 assert 'def _capped_read' in _src_cap
+
+from pathlib import Path  # noqa: E402
+from unittest.mock import patch  # noqa: E402
+from a11y_toolkit import a11ypdf  # noqa: E402
+
+with _tf_cap.TemporaryDirectory() as _d:
+    _path = Path(_d)
+    _good = mini_pdf()
+    (_path / 'fixture.pdf').write_bytes(_good)
+    with patch.object(a11ypdf, '_MAX_PDF_BYTES', len(_good) - 1):
+        for oversized in (_good, _path / 'fixture.pdf'):
+            failure = pdf_screen(oversized)
+            assert failure['truncated'] and 'error' in failure and 'score' not in failure
+    (_path / 'text').write_text('Plain text', encoding='utf-8')
+    for module, args in (('a11y_toolkit.a11y', ['pdf', str(_path / 'text')]),
+                         ('a11y_toolkit.a11y', ['pdf', str(_path / 'missing.pdf')]),
+                         ('a11y_toolkit.a11ydocx', [str(_path / 'text')])):
+        failure = subprocess.run([sys.executable, '-m', module, *args], cwd=ROOT,
+                                 capture_output=True, text=True, timeout=20)
+        assert failure.returncode == 1 and 'error' in json.loads(failure.stdout), failure
+        assert 'Traceback' not in failure.stderr
+print('Document read failures return JSON and exit 1 ✓')
 print('28b. techo de ingesta ZIP: relaciones y cualquier otro miembro, por la misma puerta ✓')
 
 print('Regresiones PDF/DOCX/VTT OK ✓')

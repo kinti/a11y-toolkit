@@ -63,6 +63,11 @@ def _is_page_report(report):
             and (status is None or type(status) is int and 200 <= status < 400))
 
 
+def _complete_page(report):
+    return (_is_page_report(report) and not report.get('truncated')
+            and not report.get('budget_exhausted') and not report.get('page_errors'))
+
+
 def _report_status(body):
     if not isinstance(body, dict):
         return 'invalid'
@@ -70,15 +75,19 @@ def _report_status(body):
         return 'failed'
     pages = body.get('reports')
     if isinstance(pages, list):
-        usable = sum(_is_page_report(page) for page in pages)
+        usable = sum(_complete_page(page) for page in pages)
         if usable:
             return ('partial' if usable != len(pages) or body.get('page_errors')
-                    or body.get('budget_exhausted') else 'complete')
+                    or body.get('budget_exhausted') or body.get('truncated') else 'complete')
+        if any(_is_page_report(page) for page in pages):
+            return 'partial'
         if body.get('page_errors') or any(isinstance(page, dict) and page.get('error')
                                          for page in pages):
             return 'failed'
         return 'invalid'
-    return 'complete' if _is_page_report(body) else 'invalid'
+    if _is_page_report(body):
+        return 'complete' if _complete_page(body) else 'partial'
+    return 'invalid'
 
 
 def verify(pack):
@@ -156,10 +165,12 @@ def verify(pack):
                 recorded += 1
             if str(a.get('type', '')).startswith('report:'):
                 report_count += 1
-                measured = _report_status(a.get('body'))
+                body = a.get('body')
+                measured = _report_status(body)
                 if measured == 'invalid' or a.get('report_status', measured) != measured:
                     fail(f'report input #{i + 1}', 'invalid report or inconsistent measurement status')
-                elif measured in ('complete', 'partial'):
+                elif measured == 'complete' or (measured == 'partial' and isinstance(body.get('reports'), list)
+                                                and any(_complete_page(page) for page in body['reports'])):
                     usable_reports += 1
         if verified_bodies or recorded:
             note = f'{verified_bodies} recomputed from embedded bodies'

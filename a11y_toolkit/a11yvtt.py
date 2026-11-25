@@ -17,10 +17,14 @@ import argparse
 import json
 import re
 import sys
+from http.client import HTTPException
 from . import a11yi18n
 
 _RE_TIME = re.compile(
-    r'(?:(\d{2,}):)?(\d{2}):(\d{2})[.,](\d{3})\s*-->\s*(?:(\d{2,}):)?(\d{2}):(\d{2})[.,](\d{3})')
+    r'(?:([0-9]{2,}):)?([0-5][0-9]):([0-5][0-9])\.([0-9]{3})[ \t]+-->[ \t]+'
+    r'(?:([0-9]{2,}):)?([0-5][0-9]):([0-5][0-9])\.([0-9]{3})(?=$|[ \t])')
+_RE_HEADER = re.compile(r'WEBVTT(?:[ \t].*)?')
+_MAX_BYTES = 2_000_000
 
 # etiquetas de marcado WebVTT — <v>, <i>, <b>, <c.cls>, anclas/timestamps
 # <00:00:01.000>: no se leen en voz alta, no cuentan como caracteres de lectura
@@ -39,14 +43,30 @@ def _seconds(h, m, s, ms):
 
 def vtt_check(url, duration=None, lang='en'):
     """Descarga y juzga un .vtt — el contenido de 1.2.2, no su mera presencia."""
-    from .a11yaudit import _fetch, compute_score, CRIT
+    from .a11yaudit import _fetch, _FetchError, _t as audit_text, CRIT
     # text/vtt es EL MIME del formato (WebVTT spec): el filtro anti-no-HTML
     # del descargador lo rechazaba con err_not_html servido correctamente
     # (revisión externa, 3ª pasada — la suite no lo veía porque sustituía el
     # descargador)
-    data = _fetch(url, timeout=30, truncate_at=2_000_000, accept_ct=('text/vtt',))
+    def error(message):
+        return {'error': message, 'mode': 'vtt', 'url': url}
+
+    try:
+        data = _fetch(url, timeout=30, truncate_at=_MAX_BYTES, accept_ct=('text/vtt',),
+                      require_complete=True)
+    except _FetchError as failure:
+        if failure.key == 'err_too_big':
+            return error('WebVTT supera el límite de 2 MB' if lang == 'es'
+                         else 'WebVTT exceeds the 2 MB limit')
+        if failure.key == 'err_incomplete_html':
+            return error('Descarga de WebVTT incompleta' if lang == 'es'
+                         else 'Incomplete WebVTT download')
+        return error(audit_text(lang, failure.key).format(**failure.fmt))
+    except (OSError, HTTPException, ValueError) as failure:
+        message = 'No se pudo descargar el WebVTT' if lang == 'es' else 'Could not fetch WebVTT'
+        return error(f'{message}: {failure}')
     if isinstance(data, dict) and 'error' in data:
-        return data
+        return error(data['error'])
     if isinstance(data, bytes):
         text = data.decode('utf-8', errors='replace')
     else:
@@ -59,34 +79,36 @@ def vtt_check(url, duration=None, lang='en'):
                           'signal': key, 'issue': _t(lang, key).format(**fmt),
                           'remediation': _t(lang, key + '_rem').format(**fmt)})
 
-    # un BOM UTF-8 (U+FEFF) delante de WEBVTT es válido — lstrip() no lo quita
-    if not text.removeprefix('\ufeff').lstrip().startswith('WEBVTT'):
-        return {'error': 'does not declare WEBVTT (is it .srt or another format?)',
-                'primeros_bytes': text[:40]}
+    text = text.removeprefix('\ufeff').replace('\r\n', '\n').replace('\r', '\n')
+    header = text.partition('\n')[0]
+    if not _RE_HEADER.fullmatch(header) or '-->' in header:
+        return error('Cabecera WebVTT inválida' if lang == 'es' else 'Invalid WebVTT header')
 
     blocks = [b for b in re.split(r'\n\s*\n', text) if b.strip()]
     cues, malformed = [], []
     for b in blocks[1:]:  # el primero es la cabecera
         lines = [l for l in b.splitlines() if l.strip()]
-        m = None
-        for i, l in enumerate(lines):
-            m = _RE_TIME.search(l)
-            if m:
-                body = '\n'.join(lines[i + 1:]).strip()
-                break
+        if (lines[0] in ('NOTE', 'STYLE', 'REGION') or lines[0].startswith(('NOTE ', 'NOTE\t'))):
+            continue
+        timing = 0 if '-->' in lines[0] else 1
+        m = _RE_TIME.match(lines[timing]) if timing < len(lines) else None
         if not m:
             if '-->' in b:
                 malformed.append(lines[0][:30])
             continue
-        start = _seconds(*m.groups()[:4])
-        end = _seconds(*m.groups()[4:])
-        if end <= start:
+        try:
+            start = _seconds(*m.groups()[:4])
+            end = _seconds(*m.groups()[4:])
+        except (ValueError, OverflowError):
+            malformed.append(m.group(0)[:30])
+            continue
+        if end <= start or (cues and start < cues[-1]['start']):
             # intervalo INVÁLIDO (tiempos invertidos): cue malformada y FUERA
             # de toda medida (revisión externa, 3ª pasada — antes fabricaba
             # segundos NEGATIVOS y un «demasiado rápida» por el clamp dur=0.1)
             malformed.append(m.group(0)[:30])
             continue
-        cues.append({'start': start, 'end': end, 'text': body})
+        cues.append({'start': start, 'end': end, 'text': '\n'.join(lines[timing + 1:]).strip()})
 
     if malformed:
         add('high', 'vtt_malformed', n=len(malformed), example=', '.join(malformed[:3]))
@@ -168,14 +190,9 @@ def main(argv):
     ap.add_argument('--duration', type=float, help='media duration in seconds (coverage check)')
     ap.add_argument('--lang', default='en', choices=['en', 'es'])
     a = ap.parse_args(argv)
-    try:
-        res = vtt_check(a.url, duration=a.duration, lang=a.lang)
-    except ValueError as e:   # _FetchError incluido (descarga/scheme/HTML-size)
-        print(json.dumps({'error': str(e)}, ensure_ascii=False))
-        return 1
+    res = vtt_check(a.url, duration=a.duration, lang=a.lang)
     print(json.dumps(res, ensure_ascii=False, indent=1))
-    return 0
-    return 0
+    return 1 if 'error' in res else 0
 
 
 if __name__ == '__main__':

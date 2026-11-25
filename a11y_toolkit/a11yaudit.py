@@ -2001,8 +2001,10 @@ def audit_conditions_match(mode, previous, current):
 
 def completed_report_pages(report):
     """Return measured pages or the reason they cannot support a comparison."""
-    if not isinstance(report, dict) or report.get('error'):
+    if not isinstance(report, dict):
         return [], {'error': 'the audit failed or was not a report'}
+    if report.get('error'):
+        return [], {'error': report['error']}
     pages = report.get('reports', [report])
     if not isinstance(pages, list) or not pages:
         return [], {'error': 'the audit contains no page reports'}
@@ -2014,12 +2016,12 @@ def completed_report_pages(report):
         if not isinstance(page, dict):
             return [], {'error': 'the audit contains an invalid page report'}
         status = page.get('http_status')
-        if (page.get('error') or not isinstance(page.get('findings'), list)
+        if (page.get('error') or page.get('truncated') or not isinstance(page.get('findings'), list)
                 or status is not None and (type(status) is not int or not 200 <= status < 400)):
             failures.append(page)
-    if failures or report.get('budget_exhausted'):
+    if failures or report.get('budget_exhausted') or report.get('truncated'):
         return [], {'error': 'the audit did not complete; compare after all pages are measured',
-                    'pages_failed': [page.get('url') for page in failures]}
+                    'pages_failed': [page.get('url') or page.get('file') for page in failures]}
     return pages, None
 
 
@@ -2908,7 +2910,7 @@ class _CheckedRedirect(urllib.request.HTTPRedirectHandler):
 _OPENER = urllib.request.build_opener(_CheckedRedirect)
 
 
-def _fetch(url, timeout=30, truncate_at=None, accept_ct=(), _meta=None):
+def _fetch(url, timeout=30, truncate_at=None, accept_ct=(), _meta=None, *, require_complete=False):
     scheme = url.split(':', 1)[0].lower() if ':' in url else ''
     if scheme not in ('http', 'https'):
         # política única para TODAS las rutas de descarga (audit_url la
@@ -2926,6 +2928,7 @@ def _fetch(url, timeout=30, truncate_at=None, accept_ct=(), _meta=None):
             _meta['final_url'] = r.geturl()
             _meta['status'] = getattr(r, 'status', None)
         ceiling = truncate_at or MAX_HTML
+        complete = truncate_at is None or require_complete
         # TOTAL-CLOCK reading: the socket timeout is per-operation and a server
         # dribbling one byte per operation reset it forever. Read in chunks
         # with a global deadline. A full audit requires a complete response.
@@ -2938,16 +2941,16 @@ def _fetch(url, timeout=30, truncate_at=None, accept_ct=(), _meta=None):
         data = b''
         while len(data) < ceiling + 1:
             if time.monotonic() >= read_deadline:
-                if truncate_at is None:
+                if complete:
                     raise _FetchError('err_incomplete_html')
                 break
             chunk = r.read(min(65536, ceiling + 1 - len(data)))
             if not chunk:
                 break
             data += chunk
-        if truncate_at is None:
+        if complete:
             if len(data) > ceiling:
-                raise _FetchError('err_too_big', mb=MAX_HTML // 1000000)
+                raise _FetchError('err_too_big', mb=ceiling // 1000000)
             if getattr(r, 'length', 0):
                 raise _FetchError('err_incomplete_html')
         if (r.headers.get('Content-Encoding') or '').lower() == 'gzip' or data[:2] == b'\x1f\x8b':
@@ -2958,8 +2961,8 @@ def _fetch(url, timeout=30, truncate_at=None, accept_ct=(), _meta=None):
                     data = stream.read(ceiling + 1)
             except EOFError as err:
                 raise _FetchError('err_incomplete_html') from err
-            if truncate_at is None and len(data) > ceiling:
-                raise _FetchError('err_too_big', mb=MAX_HTML // 1000000)
+            if complete and len(data) > ceiling:
+                raise _FetchError('err_too_big', mb=ceiling // 1000000)
         if truncate_at is not None:
             data = data[:ceiling]
         ctype = (r.headers.get('Content-Type') or '').lower()

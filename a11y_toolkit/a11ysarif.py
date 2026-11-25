@@ -21,7 +21,7 @@ from .a11yact import _NOT_DEAD
 from .a11yaudit import normalize_signal  # noqa: E402  (compat 5.10)
 import sys
 
-from .a11yaudit import audit_url, audit_site, audit_html
+from .a11yaudit import audit_url, audit_site, audit_html, completed_report_pages
 
 LEVEL = {'high': 'error', 'medium': 'warning', 'low': 'note'}
 
@@ -63,13 +63,15 @@ def from_report(report, driver_version=None, standard=None, target=None):
     (con la lista 'reports'). Con standard='en301549' cada regla gana
     properties/tags con su cláusula EN 301 549 V4.1.1 (9.x web por defecto,
     10.x documents, 11.x software) — filtrable en code scanning."""
+    pages, error = completed_report_pages(report)
+    if error:
+        return error
     if driver_version is None:
         # versión del driver = fuente única (estaba congelada en '3.2.0' con el
         # motor en 5.26: GitHub mostraba una versión muerta en code scanning)
         from .server import VERSION as _V   # lazy: server importa este módulo
         driver_version = _V
     from . import a11yen301549 as _enstd
-    pages = report.get('reports') if isinstance(report.get('reports'), list) else [report]
     rules = {}
     results = []
     skipped = 0   # hallazgos truncados/hostiles: se saltan, jamás un KeyError
@@ -167,19 +169,23 @@ def main(argv):
                     default=None, help='target EN: web=9.x, documents=10.x, '
                     'software=11.x (default: según el modo del informe)')
     a = ap.parse_args(argv)
-    if a.from_audit:
-        with open(a.from_audit, encoding='utf-8') as f:
-            report = json.load(f)
-    elif a.url:
-        report = (audit_site(a.url, max_pages=a.pages, lang=a.lang)
-                   if a.pages > 1 else audit_url(a.url, lang=a.lang))
-    else:
-        with open(a.file, encoding='utf-8', errors='replace') as f:
-            report = audit_html(f.read(), a.file, lang=a.lang)
-    if 'error' in report:
-        print(json.dumps(report))
+    try:
+        if a.from_audit:
+            with open(a.from_audit, encoding='utf-8') as f:
+                report = json.load(f)
+        elif a.url:
+            report = (audit_site(a.url, max_pages=a.pages, lang=a.lang)
+                      if a.pages > 1 else audit_url(a.url, lang=a.lang))
+        else:
+            with open(a.file, encoding='utf-8', errors='replace') as f:
+                report = audit_html(f.read(), a.file, lang=a.lang)
+    except (OSError, ValueError) as error:
+        print(json.dumps({'error': str(error)}, ensure_ascii=False))
         return 1
     sarif = from_report(report, standard=a.standard, target=a.target)
+    if 'error' in sarif:
+        print(json.dumps(sarif, ensure_ascii=False))
+        return 1
     with open(a.out, 'w', encoding='utf-8') as f:
         json.dump(sarif, f, ensure_ascii=False, indent=1)
     summary = report.get('summary', {'high': 0, 'medium': 0, 'low': 0})

@@ -56,7 +56,7 @@ Deep RENDERED WCAG audit via local Playwright/Chromium: real computed text contr
 
 <sub>read-only</sub>
 
-PDF accessibility screening — the space nobody automated (axe, pa11y, Lighthouse: HTML only). Zero-dep structural first pass on a LOCAL file: tagged tree (/StructTreeRoot — the root failure), title, language, outline, /Alt entries, text layer (scanned detection), encryption, and AcroForm fields without accessible labels (/TU — what a screen reader announces; 3.3.2 inputs, 4.1.2 buttons). Full PDF/UA conformance needs a spec validator (veraPDF); this finds the failures that make full validation pointless. Use for enterprise document pipelines and PDFs linked from the audited site. Returns JSON: {mode: "pdf", pages, tagged, lang, title, images, alt_entries, form_fields, form_labels, findings, summary, limits}.
+PDF accessibility screening — the space nobody automated (axe, pa11y, Lighthouse: HTML only). Zero-dep structural first pass on a LOCAL file: tagged tree (/StructTreeRoot — the root failure), title, language, outline, /Alt entries, text layer (scanned detection), encryption, and AcroForm fields without accessible labels (/TU — what a screen reader announces; 3.3.2 inputs, 4.1.2 buttons). Full PDF/UA conformance needs a spec validator (veraPDF); this finds the failures that make full validation pointless. Use for enterprise document pipelines and PDFs linked from the audited site. Inputs over 30 MB return an error before scoring. Returns JSON: {mode: "pdf", pages, tagged, lang, title, images, alt_entries, form_fields, form_labels, findings, summary, limits}.
 
 
 **Arguments**
@@ -69,7 +69,7 @@ PDF accessibility screening — the space nobody automated (axe, pa11y, Lighthou
 
 <sub>read-only</sub>
 
-DOCX accessibility screening — the other half of enterprise paperwork. Zero-dep structural pass on a LOCAL .docx: images with no alt text (docPr without descr), fake headings (bold+big paragraphs with no Heading style — invisible to navigation pane and TOC), document language, tables without marked header row. Full review needs a human; this finds what makes it pointless. Returns JSON: {mode: "docx", language, images, tables, findings, summary, limits}.
+DOCX accessibility screening — the other half of enterprise paperwork. Zero-dep structural pass on a LOCAL .docx with namespace-aware XML: images with no alt text (docPr without descr), fake headings (bold+big paragraphs with no Heading style — invisible to navigation pane and TOC), document language, tables without marked header row. Full review needs a human; this finds what makes it pointless. Returns JSON: {mode: "docx", language, images, tables, findings, summary, limits}.
 
 
 **Arguments**
@@ -614,7 +614,7 @@ Does content survive forced-colors: active (Windows High Contrast)? Loads the pa
 
 <sub>read-only · network</sub>
 
-WebVTT caption QUALITY (1.2.2) — the substance, not the presence. Everyone stops at "<track> exists"; this downloads and parses the actual .vtt and judges what viewers get: malformed timing lines, empty cues, overlaps, impossible reading speed (>21 chars/second, BBC/Netflix standard) and coverage vs the media duration when given. Pass the .vtt URL (same http/https guard as the audits). Not a substitute for human review of accuracy or speaker identification. Returns JSON: {mode: "vtt", cues, characters, captioned_seconds, findings [{criterion, severity, signal, issue, remediation}], summary, limits}.
+WebVTT caption QUALITY (1.2.2) — the substance, not the presence. Everyone stops at "<track> exists"; this downloads and parses the actual .vtt and judges what viewers get: malformed timing lines, empty cues, overlaps, impossible reading speed (>21 chars/second, BBC/Netflix standard) and coverage vs the media duration when given. Pass the .vtt URL (same http/https guard as the audits). An invalid header or incomplete download returns an error. Not a substitute for human review of accuracy or speaker identification. Returns JSON: {mode: "vtt", cues, characters, captioned_seconds, findings [{criterion, severity, signal, issue, remediation}], summary, limits}.
 
 
 **Arguments**

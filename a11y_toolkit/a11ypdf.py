@@ -43,6 +43,7 @@ def _t(lang, key):
 # llegó hasta el techo basta para auditar — doctrina de lectura parcial).
 _STREAM_CAP = 20_000_000      # 20 MB por stream descomprimido
 _STREAM_BUDGET = 120_000_000  # 120 MB en total entre todos los streams
+_MAX_PDF_BYTES = 30_000_000
 
 
 def _decode_filters(chunk, filters_declared):
@@ -183,19 +184,25 @@ def _stream_low_contrast(text):
 
 def pdf_screen(path_or_bytes, lang='en'):
     """Cribado estructural de accesibilidad de un PDF (fichero local)."""
+    limit = _MAX_PDF_BYTES
     if isinstance(path_or_bytes, (bytes, bytearray)):
-        data = bytes(path_or_bytes)
+        data = bytes(path_or_bytes[:limit + 1])
         name = '(bytes)'
-        truncated = False
     else:
-        tam = os.path.getsize(path_or_bytes)
-        with open(path_or_bytes, 'rb') as f:
-            data = f.read(30_000_000)  # techo duro: 30 MB
-        truncated = tam > len(data)
-        name = str(path_or_bytes).rsplit('/', 1)[-1]
+        name = os.path.basename(path_or_bytes)
+        try:
+            with open(path_or_bytes, 'rb') as f:
+                data = f.read(limit + 1)
+        except OSError as error:
+            message = 'No se pudo leer el PDF' if lang == 'es' else 'Could not read PDF'
+            return {'error': f'{message}: {error}', 'mode': 'pdf', 'file': name}
 
     if not data.startswith(b'%PDF-'):
-        return {'error': 'not a PDF (no %PDF- marker)'}
+        message = 'Falta la cabecera %PDF-' if lang == 'es' else 'Missing %PDF- header'
+        return {'error': message, 'mode': 'pdf', 'file': name}
+    if len(data) > limit:
+        message = 'El PDF supera el límite de 30 MB' if lang == 'es' else 'PDF exceeds the 30 MB limit'
+        return {'error': message, 'mode': 'pdf', 'file': name, 'truncated': True}
 
     streams = _uncompressed_streams(data)
     # `todo` respeta el MISMO presupuesto acumulado: ensamblar 40 streams de
@@ -429,7 +436,7 @@ def pdf_screen(path_or_bytes, lang='en'):
         'tag_counts': {'td': n_tag_td, 'th': n_tag_th, 'h': n_tag_h},
         'ocr_layer_only': bool(_t_inv and not _t_vis),
         'form_fields': n_fields, 'form_labels': n_tu,
-        'truncated': truncated,
+        'truncated': False,
         'score': compute_score(findings),
         'findings': findings,
         'summary': {s: sum(1 for h in findings if h['severity'] == s)
@@ -446,8 +453,9 @@ def main(argv):
     ap.add_argument('pdf', help='local PDF file')
     ap.add_argument('--lang', default='en', choices=['en', 'es'])
     a = ap.parse_args(argv)
-    print(json.dumps(pdf_screen(a.pdf, lang=a.lang), ensure_ascii=False, indent=1))
-    return 0
+    result = pdf_screen(a.pdf, lang=a.lang)
+    print(json.dumps(result, ensure_ascii=False, indent=1))
+    return 1 if 'error' in result else 0
 
 
 if __name__ == '__main__':

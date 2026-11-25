@@ -65,6 +65,29 @@ vacio = earl({'url': 'https://example.com', 'findings': []})
 assert vacio['@graph'] == []
 assert 'never' in vacio['meta']['note']
 
+from pathlib import Path
+from tempfile import TemporaryDirectory
+from a11y_toolkit.a11ysarif import from_report
+
+failed = {'url': report['url'], 'error': 'HTTP 503'}
+partial = {'mode': 'site', 'url': report['url'], 'reports': [report],
+           'page_errors': [dict(failed, url=report['url'] + '/unavailable')]}
+with TemporaryDirectory() as directory:
+    for command, export in (('earl', earl), ('sarif', from_report)):
+        for source in (failed, partial):
+            verdict = export(source)
+            assert 'error' in verdict and len(verdict) <= 2
+            if source is partial:
+                assert verdict['pages_failed'] == [partial['page_errors'][0]['url']]
+            source_path = Path(directory) / 'input.json'
+            output = Path(directory) / 'output.json'
+            source_path.write_text(json.dumps(source), encoding='utf-8')
+            result = subprocess.run([sys.executable, '-m', 'a11y_toolkit.a11y', command,
+                                     '--from-audit', str(source_path), '-o', str(output)],
+                                    capture_output=True, text=True, timeout=20)
+            assert result.returncode == 1 and json.loads(result.stdout) == verdict
+            assert not output.exists(), output
+
 # 5. CLI --list funciona sin red
 out = subprocess.run([sys.executable, '-m', 'a11y_toolkit.a11yact', '--list'],
                      capture_output=True, text=True, cwd=os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
