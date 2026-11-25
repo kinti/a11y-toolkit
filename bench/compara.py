@@ -10,7 +10,7 @@ Salida: comparación por página — qué caza cada uno, solapamiento y divergen
 Este script es la prueba de que las afirmaciones del toolkit están contrastadas.
 
 CLI:  python3 bench/compara.py https://www.gov.uk [otra-url ...]
-      python3 bench/compara.py --check bench/results.json [--expect 4]
+      python3 bench/compara.py --check bench/results.json [--expect 4] [url ...]
 """
 import argparse
 import json
@@ -25,7 +25,7 @@ sys.path.insert(0, RAIZ)
 sys.path.insert(0, AQUI)
 
 import browser  # noqa: E402  (bench/browser.py: pool loan + axe-core lookup)
-from a11y_toolkit.a11yaudit import audit_url  # noqa: E402
+from a11y_toolkit.a11yaudit import audit_url, page_identity  # noqa: E402
 from a11y_toolkit.a11ydom import audit_dom_url  # noqa: E402
 
 _ENGINES = ('toolkit_static', 'toolkit_rendered', 'axe')
@@ -75,7 +75,8 @@ def compara(url, lang='en'):
         raise RuntimeError(f"renderizado falló: {informe_dom['error']}")
     static_url = _page_url(informe_estatico.get('url'))
     toolkit_url = _page_url(informe_dom.get('url'))
-    if not static_url or static_url != toolkit_url:
+    target_page = page_identity(toolkit_url)
+    if not isinstance(target_page, tuple) or page_identity(static_url) != target_page:
         raise RuntimeError(
             f'estático terminó en {static_url} y renderizado en {toolkit_url}: no es la misma página')
     # axe corre en el MISMO navegador que el pase renderizado (una página
@@ -96,16 +97,19 @@ def compara(url, lang='en'):
         # y los dos motores tienen que haber auditado la MISMA página final:
         # se comprueba antes de ejecutar axe, que no corre sobre otra página
         axe_url = _page_url(page.url)
-        if axe_url != toolkit_url:
+        if page_identity(axe_url) != target_page:
             raise RuntimeError(
                 f'axe terminó en {axe_url} y el toolkit en {toolkit_url}: no es la misma página')
         axe_bruto = axe_en_pagina(page)
     finally:
         close_page()
 
-    tk_est = {h['criterion'].split(' ')[0] for h in informe_estatico.get('findings', [])}
-    tk_dom = {h['criterion'].split(' ')[0] for h in informe_dom.get('findings', [])}
-    tk = tk_est | tk_dom
+    toolkit_findings = {}
+    for report in (informe_estatico, informe_dom):
+        for finding in report.get('findings', []):
+            code = finding['criterion'].split(' ', 1)[0]
+            toolkit_findings.setdefault(code, []).append(finding)
+    tk = set(toolkit_findings)
     axe_criteria = axe_a_criterios(axe_bruto)
     ax = set(axe_criteria)
 
@@ -131,43 +135,75 @@ def compara(url, lang='en'):
         'solo_toolkit': sorted(tk - ax),  # candidatos a falso positivo o señal extra
         'divergencias_detalle': {
             'solo_axe': {c: axe_criteria[c] for c in sorted(ax - tk)},
-            'solo_toolkit': {c: [h for h in (informe_estatico.get('findings', []) +
-                                             informe_dom.get('findings', []))
-                                 if h['criterion'].startswith(c)]
-                             for c in sorted(tk - ax)},
+            'solo_toolkit': {c: toolkit_findings[c] for c in sorted(tk - ax)},
         },
     }
 
 
-def problems(results, expected=None, min_signals=4):
-    """What invalidates a benchmark run. A row is only evidence when the THREE
-    engines produced results ON THE SAME PAGE: the old gate only checked that
-    the toolkit found something, so it went green with axe not running at all,
-    and later with axe auditing a 404 the browser had loaded without complaint."""
+def problems(results, expected=None, min_signals=4, expected_urls=()):
+    """List measurement failures and missing, substituted or repeated pages."""
+    if not isinstance(results, list):
+        return ['results must be a JSON array']
     out = []
     if expected is not None and len(results) != expected:
         out.append(f'expected {expected} results, got {len(results)}')
+    requested = {}
+    destinations = {}
     signals = 0
-    for r in results:
-        url = r.get('url', '?')
+    for index, r in enumerate(results, 1):
+        if not isinstance(r, dict):
+            out.append(f'row {index}: result must be a JSON object')
+            continue
+        url = r.get('url')
+        page = page_identity(url)
+        if not isinstance(page, tuple):
+            out.append(f'row {index}: missing or invalid requested URL')
+            continue
+        if page in requested:
+            out.append(f'{url}: duplicate requested page')
+            continue
+        requested[page] = url
         if r.get('failed') or 'error' in r:
             out.append(f'{url}: run failed: {str(r.get("error"))[:80]}')
             continue
         ran = r.get('engines') or {}
+        axe = r.get('axe') or {}
+        toolkit = r.get('toolkit') or {}
+        if not all(isinstance(part, dict) for part in (ran, axe, toolkit)):
+            out.append(f'{url}: engine results must be JSON objects')
+            continue
         for engine in _ENGINES:
             if ran.get(engine) != 'ok':
                 out.append(f'{url}: no results from {engine}')
-        axe = r.get('axe') or {}
-        if not axe.get('rules_inapplicable'):
+        inapplicable = axe.get('rules_inapplicable')
+        if type(inapplicable) is not int or inapplicable < 1:
             out.append(f'{url}: axe executed no rules')
         status = axe.get('http_status')
         if type(status) is not int or not 200 <= status < 400:
             out.append(f'{url}: axe audited HTTP {status}, not the requested page')
-        toolkit = r.get('toolkit') or {}
-        final = (toolkit.get('url_final_static'), toolkit.get('url_final'), axe.get('url_final'))
-        if not all(final) or len(set(final)) != 1:
+        final = tuple(page_identity(url) for url in (
+            toolkit.get('url_final_static'), toolkit.get('url_final'), axe.get('url_final')))
+        if not all(isinstance(value, tuple) for value in final) or len(set(final)) != 1:
             out.append(f'{url}: toolkit and axe did not audit the same final page')
-        signals += len(r.get('toolkit', {}).get('criterios', []))
+        elif final[0] in destinations:
+            out.append(f'{url}: reached the same final page as {destinations[final[0]]}')
+        else:
+            destinations[final[0]] = url
+        criteria = toolkit.get('criterios', [])
+        if not isinstance(criteria, list) or any(not isinstance(code, str) for code in criteria):
+            out.append(f'{url}: toolkit criteria must be an array of strings')
+        else:
+            signals += len(set(criteria))
+    if expected_urls:
+        targets = {page_identity(url): url for url in expected_urls}
+        if any(not isinstance(page, tuple) for page in targets):
+            out.append('expected pages must use valid HTTP(S) URLs')
+        if len(targets) != len(expected_urls):
+            out.append('expected pages must be distinct')
+        out.extend(f'missing requested page: {url}'
+                   for url in sorted(targets[page] for page in targets.keys() - requested.keys()))
+        out.extend(f'unexpected requested page: {url}'
+                   for url in sorted(requested[page] for page in requested.keys() - targets.keys()))
     if signals < min_signals:
         out.append(f'toolkit found almost nothing ({signals} criteria) '
                    'collector regression?')
@@ -176,20 +212,25 @@ def problems(results, expected=None, min_signals=4):
 
 def main(argv):
     ap = argparse.ArgumentParser(description=__doc__.split('\n')[0])
-    ap.add_argument('urls', nargs='*', help='pages to compare the engines on')
+    ap.add_argument('urls', nargs='*',
+                    help='pages to compare, or the required pages with --check')
     ap.add_argument('--check', metavar='RESULTS.json',
                     help='validate a results file instead of running (the CI gate)')
     ap.add_argument('--expect', type=int,
                     help='with --check: how many rows the file must hold')
     a = ap.parse_args(argv)
     if a.check:
-        with open(a.check, encoding='utf-8') as f:
-            results = json.load(f)
-        found = problems(results, expected=a.expect)
+        try:
+            with open(a.check, encoding='utf-8') as f:
+                results = json.load(f)
+            found = problems(results, expected=a.expect, expected_urls=a.urls)
+        except (OSError, ValueError) as e:
+            print(f'BENCH INVALID: {e}', file=sys.stderr)
+            return 1
         for line in found:
             print(f'BENCH INVALID: {line}', file=sys.stderr)
         if not found:
-            print(f'BENCH OK: {len(results)} pages, three engines each')
+            print(f'BENCH OK: {len(results)} pages, three passes each')
         return 1 if found else 0
     urls = a.urls or ['https://www.gov.uk', 'https://en.wikipedia.org/wiki/Main_Page',
                       'https://example.com']

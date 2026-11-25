@@ -224,7 +224,7 @@ with tempfile.TemporaryDirectory() as cdir:
     with contextlib.redirect_stdout(buf):
         code = a11ycorpus.main(['evaluate', '--submission', sub, cdir])
     out = json.loads(buf.getvalue())
-    assert code == 0 and out['invalid_lines']['count'] == 1, out
+    assert code == 1 and out['incomplete'] and out['invalid_lines']['count'] == 1, out
 print('16. corpus: README sellado + JSONL hostil declarado, sin crash ✓')
 
 

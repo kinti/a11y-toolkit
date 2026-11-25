@@ -297,6 +297,7 @@ a11ytoolkit scope audit.json --standard en301549 -o scope.json  # applicability 
 a11ytoolkit criteria --list --level AA --new-in 2.2            # the offline Quick Ref, filterable
 a11ytoolkit wizard --url https://client.web --lang es          # guided: 3 questions → standard, audit, scope
 a11ytoolkit corpus verify corpus                  # the frozen corpus, verified
+a11ytoolkit corpus evaluate --submission mine.jsonl corpus    # exit 1 for incomplete or invalid submissions
 ```
 
 For table findings, audit and annotate the same HTML to locate the cell with
@@ -343,13 +344,19 @@ prove it.
 
 ## Validated against real pages
 
-Benchmarked against axe-core 4.10 on real pages monthly ([methodology and
-results](bench/README.md)). Task-based agent benchmark on live sites,
-including a stratified sample of Spain's most important pages
-([method and results](docs/benchmark-agents.md)). Found a contrast finding on gov.uk that axe leaves incomplete
-(search button at 3.91:1; manual review showed the visible part is an icon that passes the 3:1 non-text threshold, so it is not a conformance failure). Drove out our own false positives
-(hidden skip links, honeypot fields, single-context generic links, image-alt accname
-— each with a regression fixture).
+The monthly axe-core 4.10 comparison checks that every page in the panel was
+measured. Differences point to cases for manual review. On GOV.UK, that
+review confirmed the search icon met the 3:1 non-text contrast threshold
+and prompted a fix to the toolkit's text contrast check.
+[Method and results](bench/README.md)
+
+The frozen corpus measures detection of injected failures and flags on
+placebo pages. A comparable submission includes one valid row per page,
+including an empty array for each page checked without findings.
+[Corpus scoring guide](docs/cookbook.md#12-score-any-engine-against-the-frozen-corpus)
+
+The task-based agent benchmark includes a stratified sample of live sites
+in Spain. [Method and results](docs/benchmark-agents.md)
 
 Also run against the official W3C ACT test cases: `scripts/act_report.py`
 regenerates the [EARL implementation report](docs/act-implementation-report.json)

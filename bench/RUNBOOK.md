@@ -25,13 +25,12 @@ the human half: publish the month's honest reading. This is that loop.
   it in `bench.yml` AND say so in the month's section.
 - **Raw JSON always lands in the repo.** The README table is a reading, not
   the evidence; `results/YYYY-MM.json` is.
-- **Every divergence gets an explanation, not a spin.** "Only toolkit" rows
-  must say WHY (review-grade signals, checks axe marks incomplete); "only
-  axe" rows must say what we intentionally don't score. The October section
-  is the format to follow.
-- **The sanity gate is CI's, the honesty gate is yours.** CI asserts the
-  toolkit still finds ≥4 signals (a benchmark that could silently go blind
-  would be worse than none); the human step is explaining, never hiding.
+- **Review divergences in both directions.** Use the raw rules and
+  findings to explain differences in scope and record any manual
+  verification. Leave unexplained differences open for review.
+- **Validate coverage in CI.** Every declared target needs a completed
+  row and a distinct final URL. CI requires at least four toolkit
+  criterion hits across the panel, counting a criterion once per page.
 - **Local mirrors for third-party engines** (house rule): axe-core's MPL
   artifact lives in the user cache (`~/.cache/a11y-bench`), never in the
   tree; no request bursts against third-party services. Extending the panel

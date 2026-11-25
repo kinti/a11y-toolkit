@@ -30,6 +30,7 @@ import sys
 import tempfile
 import threading
 from http.server import BaseHTTPRequestHandler, HTTPServer
+from unittest.mock import patch
 
 AQUI = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(AQUI)
@@ -128,9 +129,14 @@ compara.axe_en_pagina = lambda page, axe_js=None: (_seen.append(page.title()), {
     'violations': [], 'inapplicable_count': 0})[1]
 try:
     _row = compara.compara(URL)
+    _sample_findings = [{'criterion': '1.4.1 Use of Color'}, {'criterion': '1.4.10 Reflow'}]
+    with patch.object(compara, 'audit_url', return_value={'url': URL, 'findings': _sample_findings}):
+        _detail = compara.compara(URL)['divergencias_detalle']['solo_toolkit']
+    assert _detail['1.4.1'] == [_sample_findings[0]], _detail
+    assert _sample_findings[1] in _detail['1.4.10'], _detail
 finally:
     compara.axe_en_pagina = _real_axe
-assert _seen == ['Bench'], _seen
+assert _seen == ['Bench', 'Bench'], _seen
 assert _row['engines'] == {'toolkit_static': 'ok', 'toolkit_rendered': 'ok', 'axe': 'ok'}
 assert _row['toolkit']['criterios'], _row['toolkit']
 print('1. compara con el pool por defecto: página prestada, fila completa ✓')
@@ -193,8 +199,9 @@ print('2b. la carga de axe con un 404 o con otra página final: fila rechazada �
 # ── 3. el gate: una fila solo es evidencia con los tres motores, sobre la
 # misma página y con una respuesta sana en la carga de axe ────────────────────
 _PAG = 'http://u/p'
-_good = {'url': 'u', 'engines': {'toolkit_static': 'ok', 'toolkit_rendered': 'ok', 'axe': 'ok'},
-         'toolkit': {'criterios': ['1.1.1'] * 5, 'url_final_static': _PAG, 'url_final': _PAG},
+_good = {'url': 'http://u/', 'engines': {'toolkit_static': 'ok', 'toolkit_rendered': 'ok', 'axe': 'ok'},
+         'toolkit': {'criterios': ['1.1.1', '1.3.1', '1.4.10', '2.4.3'],
+                     'url_final_static': _PAG, 'url_final': _PAG},
          'axe': {'violaciones': [], 'criterios': [], 'rules_inapplicable': 60,
                  'http_status': 200, 'url_final': _PAG}}
 
@@ -205,29 +212,37 @@ def _axe(**cambios):
 
 assert compara.problems([_good], expected=1) == []
 assert compara.problems([dict(_good, engines=None)]) == [
-    'u: no results from toolkit_static', 'u: no results from toolkit_rendered',
-    'u: no results from axe']
+    'http://u/: no results from toolkit_static', 'http://u/: no results from toolkit_rendered',
+    'http://u/: no results from axe']
 # el formato anterior a esta comprobación no llevaba estado HTTP ni URL final
 assert compara.problems([dict(_good, axe={'violaciones': [], 'criterios': []})]) == [
-    'u: axe executed no rules', 'u: axe audited HTTP None, not the requested page',
-    'u: toolkit and axe did not audit the same final page']
+    'http://u/: axe executed no rules', 'http://u/: axe audited HTTP None, not the requested page',
+    'http://u/: toolkit and axe did not audit the same final page']
 assert compara.problems([dict(_good, engines={'toolkit_static': 'ok', 'axe': 'ok'})]) == [
-    'u: no results from toolkit_rendered']
-assert compara.problems([{'url': 'u', 'failed': True, 'error': 'boom'}], min_signals=0) == [
-    'u: run failed: boom']
+    'http://u/: no results from toolkit_rendered']
+assert compara.problems([{'url': 'http://u/', 'failed': True, 'error': 'boom'}], min_signals=0) == [
+    'http://u/: run failed: boom']
 assert compara.problems([_good], expected=4) == ['expected 4 results, got 1']
+assert compara.problems([_good, dict(_good, url='http://U:80#section')]) == ['http://U:80#section: duplicate requested page']
+assert compara.problems([_good, dict(_good, url='http://alias/')]) == [
+    'http://alias/: reached the same final page as http://u/']
+assert compara.problems([dict(_good, toolkit=dict(_good['toolkit'], criterios=['1.1.1'] * 5))]) == [
+    'toolkit found almost nothing (1 criteria) collector regression?']
+assert compara.problems([None], min_signals=0) == ['row 1: result must be a JSON object']
+assert compara.problems([dict(_good, axe=['invalid'])], min_signals=0) == [
+    'http://u/: engine results must be JSON objects']
 assert compara.problems([dict(_good, toolkit={'criterios': ['1.1.1']})]) == [
-    'u: toolkit and axe did not audit the same final page',
+    'http://u/: toolkit and axe did not audit the same final page',
     'toolkit found almost nothing (1 criteria) collector regression?']
 # axe sobre una respuesta de error, aunque el navegador la haya cargado bien
 for _st in (404, 500, None, '200', True):
     assert compara.problems([dict(_good, axe=_axe(http_status=_st))], min_signals=0) == [
-        'u: axe audited HTTP %s, not the requested page' % _st], _st
+        'http://u/: axe audited HTTP %s, not the requested page' % _st], _st
 # axe sobre otra página que el toolkit
 assert compara.problems([dict(_good, axe=_axe(url_final='http://u/otra'))], min_signals=0) == [
-    'u: toolkit and axe did not audit the same final page']
+    'http://u/: toolkit and axe did not audit the same final page']
 assert compara.problems([dict(_good, toolkit=dict(_good['toolkit'], url_final_static='http://u/otra'))]) == [
-    'u: toolkit and axe did not audit the same final page']
+    'http://u/: toolkit and axe did not audit the same final page']
 _tagged = {'violations': [
     {'id': 'aria-required-parent', 'nodos': 1, 'impacto': 'critical',
      'tags': ['wcag2a', 'wcag131', 'wcag1410']},
@@ -235,10 +250,14 @@ _tagged = {'violations': [
 ]}
 assert set(compara.axe_a_criterios(_tagged)) == {'1.3.1', '1.4.10'}
 assert compara.problems([dict(_good, toolkit={'criterios': ['1.1.1'] * 5})], min_signals=0) == [
-    'u: toolkit and axe did not audit the same final page']
+    'http://u/: toolkit and axe did not audit the same final page']
 # --check por CLI sobre un fichero de verdad: verde con filas completas, 1 si no
 _p_ok, _p_bad = os.path.join(_D, 'ok.json'), os.path.join(_D, 'bad.json')
-for _p, _rows in ((_p_ok, [_good] * 4), (_p_bad, [_good] * 3 + [dict(_good, engines=None)])):
+_urls = [f'http://u/{index}' for index in range(4)]
+_pages = [dict(_good, url=url,
+               toolkit=dict(_good['toolkit'], url_final=url, url_final_static=url),
+               axe=_axe(url_final=url)) for url in _urls]
+for _p, _rows in ((_p_ok, _pages), (_p_bad, _pages[:3] + [dict(_pages[-1], engines=None)])):
     with open(_p, 'w', encoding='utf-8') as _f:
         json.dump(_rows, _f)
 
@@ -250,6 +269,10 @@ def _cli(mod, *args):
 
 
 assert _cli(compara, '--check', _p_ok, '--expect', '4')[0] == 0
+assert _cli(compara, '--check', _p_ok, *_urls)[0] == 0
+_rc, _out = _cli(compara, '--check', _p_ok, *_urls[:3], 'http://u/substitute')
+assert _rc == 1 and 'missing requested page: http://u/substitute' in _out \
+    and 'unexpected requested page: http://u/3' in _out, _out
 _rc_bad, _out_bad = _cli(compara, '--check', _p_bad, '--expect', '4')
 assert _rc_bad == 1 and 'no results from axe' in _out_bad, _out_bad
 print('3. gate del benchmark: sin resultados de un motor no hay verde ✓')

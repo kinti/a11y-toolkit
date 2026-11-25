@@ -58,6 +58,8 @@ with tempfile.TemporaryDirectory() as d:
                for c in cases]
     res = a11ycorpus.evaluate(perfect, d)
     assert res['kill_rate'] == 1.0 and res['false_positives'] == []
+    assert not res['incomplete'] and res['mutant_pages_scored'] == 6
+    assert res['control_pages_scored'] == 1 and res['cases_without_submission_count'] == 0
     assert all(v['killed'] == v['expected'] for v in res['per_criterion'].values())
     res_vacia = a11ycorpus.evaluate([{'case_id': c['case_id'], 'criteria_found': []}
                                      for c in cases], d)
@@ -81,6 +83,20 @@ with tempfile.TemporaryDirectory() as d:
          {'case_id': 'm7-1', 'criteria_found': None}], d)
     assert len(res_malo['invalid_entries']) == 2 and res_malo['kill_rate'] == 0.0
     assert all('m7-' in e['case_id'] for e in res_malo['invalid_entries'])
+    # Una omisión no equivale a una página medida sin hallazgos.
+    assert res_malo['missed_detail'] == [] and res_malo['mutant_pages_scored'] == 0
+    malformed = [None, {'case_id': []}, {'case_id': 'm7-0'},
+                 {'case_id': 'm7-1', 'criteria_found': [1.1]},
+                 {'case_id': 'm7-2', 'criteria_found': ['image-alt']}]
+    res = a11ycorpus.evaluate(malformed, d)
+    assert res['incomplete'] and len(res['invalid_entries']) == len(malformed), res
+    assert not res['unknown_case_ids']
+    # Una fila repetida no se puede puntuar según cuál llegue primero.
+    duplicate = dict(perfect[0], criteria_found=[])
+    res = a11ycorpus.evaluate([duplicate] + perfect, d)
+    assert res == a11ycorpus.evaluate(perfect + [duplicate], d)
+    assert res['incomplete'] and res['duplicate_case_ids'] == [duplicate['case_id']]
+    assert res['cases_without_submission'] == [duplicate['case_id']]
     # seeds duplicados colisionan TODOS los ids → build se niega (no sella
     # un manifiesto que mienta sobre el número de casos)
     try:
@@ -143,6 +159,26 @@ with tempfile.TemporaryDirectory() as d:
                          'verify', os.path.join(d, 'c')],
                         capture_output=True, text=True, cwd=ROOT, timeout=120)
     assert r2.returncode == 0 and '"ok": true' in r2.stdout, r2.stdout + r2.stderr
+    submission = a11ycorpus.engine_submission(os.path.join(ROOT, 'corpus'))
+    path = os.path.join(d, 'submission.json')
+    cmd = [sys.executable, '-m', 'a11y_toolkit.a11y', 'corpus',
+           'evaluate', '--submission', path, os.path.join(ROOT, 'corpus')]
+    for rows, suffix, expected_controls, expected_exit in (
+        (submission, '', 3, 0),
+        ([row for row in submission if row['case_id'] not in {'p7-1', 'p7-2'}], '', 1, 1),
+        (submission + [False], '', 3, 1),
+        (submission, '\n{broken', 3, 1),
+    ):
+        with open(path, 'w', encoding='utf-8') as f:
+            if suffix:
+                f.write('\n'.join(map(json.dumps, rows)) + suffix)
+            else:
+                json.dump(rows, f)
+        run = subprocess.run(cmd, capture_output=True, text=True, cwd=ROOT, timeout=120)
+        out = json.loads(run.stdout)
+        assert run.returncode == expected_exit and out['incomplete'] == bool(expected_exit), out
+        assert out['kill_rate'] == 1.0 and out['control_pages_scored'] == expected_controls, out
+        assert out['cases_without_submission_count'] == 3 - expected_controls, out
 
 print('CORPUS OK ✓ (sello+manifiesto, contrato neutral (kill/FP/confusión), '
       'reference 1.0, determinismo ubicación-independiente, pin del corpus '

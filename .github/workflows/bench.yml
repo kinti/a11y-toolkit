@@ -1,7 +1,6 @@
 # Credibility upkeep: re-measure the toolkit vs axe-core on real pages monthly.
 # Live sites drift — that is expected; the artifact is the evidence, the gate
-# is "every page carries results from the three engines (static, rendered,
-# axe) and the toolkit still finds signals".
+# checks the declared pages, three completed passes per page and toolkit signals.
 name: axe benchmark
 on:
   schedule:
@@ -20,15 +19,16 @@ jobs:
         with:
           python-version: '3.12'
       - run: pip install playwright && playwright install chromium --with-deps
-      - name: Run benchmark (toolkit vs axe-core on real pages)
+      - name: Run and validate the benchmark on the declared pages
         run: |
-          python3 bench/compara.py \
-            https://example.com \
-            https://www.gov.uk \
-            https://es.wikipedia.org/wiki/Wikipedia:Portada \
-            https://www.jquin.net > bench/results.json
-      - name: Validate (three engines per page, signals still found)
-        run: python3 bench/compara.py --check bench/results.json --expect 4
+          urls=(
+            https://example.com
+            https://www.gov.uk
+            https://es.wikipedia.org/wiki/Wikipedia:Portada
+            https://www.jquin.net
+          )
+          python3 bench/compara.py "${urls[@]}" > bench/results.json
+          python3 bench/compara.py --check bench/results.json "${urls[@]}"
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: axe-benchmark

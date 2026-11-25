@@ -166,11 +166,24 @@ at corpus verify corpus   # every hash + the seal
 at corpus evaluate --submission mine.jsonl corpus
 ```
 
-The reference baseline ships with the dataset (`results/reference.json`:
-this engine, kill 1.0, zero false positives). A submission that flags
-nothing scores exactly 0.0 — and one that invents criteria on the placebo
-pages is exposed by construction. The contract is criterion codes, not
-tool rule ids: axe, Lighthouse or a human with a checklist can all play.
+Use one row per case with an array of WCAG criterion codes. Send
+`"criteria_found": []` after measuring a page with zero findings. Both
+JSON Lines and a single JSON array are accepted. A complete submission
+exits 0. Missing, duplicate, unknown or malformed rows produce diagnostic
+JSON with `incomplete: true` and exit 1.
+
+`mutant_pages_scored` and `control_pages_scored` report valid coverage.
+`missed_detail` lists measured mutant pages where the expected failure was
+missed. `cases_without_submission` samples the first ten unmeasured
+cases, and `cases_without_submission_count` gives the total. The
+`kill_rate` denominator is all mutants in the corpus. Compare rates and
+control findings across complete runs on the same corpus version.
+
+The published reference in `results/reference.json` detected all 18
+injected failures and flagged none of the three placebo controls. The
+remaining findings on mutant pages are available for manual review.
+These measurements cover the labelled pages and injected failures in
+this version of the corpus.
 
 ## 13. Locate a broken table header in the original HTML
 

@@ -43,6 +43,7 @@ from .a11yaudit import audit_html
 
 CORPUS_FORMAT = 'a11y-corpus/1'
 EVAL_FORMAT = 'a11y-corpus-evaluation/1'
+_CRITERION_CODE = re.compile(r'[1-4]\.[0-9]\.[1-9][0-9]?')
 
 _NOTE_README = """# a11y corpus {version}
 
@@ -60,6 +61,9 @@ One JSON line per case in your submission file:
 on that page (criterion codes, e.g. "1.4.4" — not tool-specific rule ids).
 Placebo entries accept the same shape; anything you flag on them counts as a
 false positive by construction (no violation was injected).
+
+Submit exactly one row per case, including a row with an empty
+`criteria_found` array for each page that was checked without findings.
 
 Score it (from inside this directory):
 
@@ -267,67 +271,88 @@ def evaluate(submission, directory='corpus', submission_name='submission'):
     criterio. Contrato NEUTRAL: códigos WCAG, no señales nuestras."""
     entries = _load_entries(directory)
     by_id = {}
+    seen = set()
+    duplicates = set()
     unknown = []
     invalid = []
     for entry in submission:
         if not isinstance(entry, dict):
-            unknown.append(repr(entry)[:40])
+            invalid.append({'entry': repr(entry)[:60]})
             continue
         cid = entry.get('case_id')
+        if not isinstance(cid, str) or not cid:
+            invalid.append({'case_id': repr(cid)[:60]})
+            continue
         if cid not in entries:
             unknown.append(cid)
             continue
-        found = entry.get('criteria_found', [])
-        if not isinstance(found, list):
-            # un string iteraría CARACTERES y mentiría el veredicto en
-            # silencio: se rechaza declarado, jamás se traga
+        if cid in seen:
+            duplicates.add(cid)
+            by_id.pop(cid, None)
+            continue
+        seen.add(cid)
+        found = entry.get('criteria_found')
+        if not isinstance(found, list) or any(
+            not isinstance(code, str) or not _CRITERION_CODE.fullmatch(code)
+            for code in found
+        ):
             invalid.append({'case_id': cid,
                             'criteria_found': repr(found)[:60]})
             continue
-        by_id[cid] = [str(c) for c in found]
-    killed, missed, fps, additional = [], [], [], []
+        by_id[cid] = list(dict.fromkeys(found))
+    killed = mutants = controls = mutants_scored = controls_scored = 0
+    missed, fps, additional, missing = [], [], [], []
     per_crit = {}
     for cid, case in sorted(entries.items()):
-        found = by_id.get(cid, [])
+        found = by_id.get(cid)
+        if found is None:
+            missing.append(cid)
         if case['kind'] == 'placebo':
+            controls += 1
+            controls_scored += found is not None
             if found:
                 fps.append({'case_id': cid, 'criteria_flagged': found})
             continue
+        mutants += 1
         exp = case['expected']['criterion']
-        per_crit.setdefault(exp, {'expected': 0, 'killed': 0})
-        per_crit[exp]['expected'] += 1
+        tally = per_crit.setdefault(exp, {'expected': 0, 'killed': 0})
+        tally['expected'] += 1
+        if found is None:
+            continue
+        mutants_scored += 1
+        extra = [c for c in found if c != exp]
         if exp in found:
-            killed.append(cid)
-            per_crit[exp]['killed'] += 1
+            killed += 1
+            tally['killed'] += 1
         else:
             missed.append({'case_id': cid, 'expected_criterion': exp,
                            'operator': case['expected']['operator'],
-                           'found_instead': [c for c in found if c != exp]})
-        extra = [c for c in found if c != exp]
+                           'found_instead': extra})
         if extra:
             additional.append({'case_id': cid, 'additional_criteria': extra})
-    n_mut = sum(1 for c in entries.values() if c['kind'] == 'mutant')
-    n_pla = len(entries) - n_mut
-    # (7a pasada) lo que decide es la ENTREGA, no el corpus: omitir los
-    # placebos del submission dejaba n_pla>0 (vienen del directorio) y la
-    # evaluacion se declaraba completa con un claim de FP infalsable
-    pla_scored = sum(1 for cid, c in entries.items()
-                          if c['kind'] == 'placebo' and cid in by_id)
-    out = {
+    reasons = []
+    if not controls:
+        reasons.append('corpus has no control (placebo) pages')
+    if missing:
+        reasons.append('%d cases without a valid submission' % len(missing))
+    if duplicates:
+        reasons.append('duplicate case IDs')
+    if unknown:
+        reasons.append('unknown case IDs')
+    if invalid:
+        reasons.append('invalid submission entries')
+    return {
         'format': EVAL_FORMAT,
         'submission_name': submission_name,
-        'mutants': n_mut, 'killed': len(killed),
-        'kill_rate': round(len(killed) / n_mut, 4) if n_mut else None,
+        'mutants': mutants, 'killed': killed,
+        'mutant_pages_scored': mutants_scored,
+        'kill_rate': round(killed / mutants, 4) if mutants else None,
         'missed_detail': missed,
-        'control_pages': n_pla,
+        'control_pages': controls,
         'false_positives': fps,
-        # (4ª pasada) sin páginas control, «cero falsos positivos» es
-        # infalsable — la evaluación se declara incompleta, no limpia
-        **({'incomplete': True,
-            'incomplete_reason': 'no control (placebo) pages in the submission: '
-                                 'the false-positive claim cannot be evaluated'}
-           if pla_scored == 0 else {'incomplete': False}),
-        'control_pages_scored': pla_scored,
+        'incomplete': bool(reasons),
+        **({'incomplete_reason': '; '.join(reasons)} if reasons else {}),
+        'control_pages_scored': controls_scored,
         'additional_findings_on_mutants': {'count': len(additional),
                                            'note': 'reported, not scored: only '
                                                    'placebo flags are false '
@@ -335,11 +360,11 @@ def evaluate(submission, directory='corpus', submission_name='submission'):
                                            'sample': additional[:10]},
         'per_criterion': per_crit,
         'unknown_case_ids': unknown,
+        'duplicate_case_ids': sorted(duplicates),
         'invalid_entries': invalid,
-        'cases_without_submission': [cid for cid in sorted(entries)
-                                     if cid not in by_id][:10],
+        'cases_without_submission': missing[:10],
+        'cases_without_submission_count': len(missing),
     }
-    return out
 
 
 def reference(directory='corpus'):
@@ -364,7 +389,7 @@ def _read_submission(path):
         return [], None
     if text.startswith('['):
         try:
-            return [e for e in json.loads(text) if isinstance(e, dict)], None
+            return json.loads(text), None
         except json.JSONDecodeError as e:
             return [], {'count': 1,
                         'example': 'json array: %s' % str(e)[:120]}
@@ -380,8 +405,7 @@ def _read_submission(path):
                 invalid = {'count': 0, 'example': 'line %d: %s' % (n, str(e)[:120])}
             invalid['count'] += 1
             continue
-        if isinstance(obj, dict):
-            out.append(obj)
+        out.append(obj)
     return out, invalid
 
 
@@ -418,15 +442,23 @@ def main(argv):
         print(json.dumps({'ok': ok, 'detail': detail}, ensure_ascii=False))
         return 0 if ok else 1
     if a.action == 'evaluate':
-        entries, invalid = _read_submission(a.submission)
+        try:
+            entries, invalid = _read_submission(a.submission)
+        except (OSError, UnicodeError) as exc:
+            print(json.dumps({'error': str(exc)}, ensure_ascii=False))
+            return 1
         res = evaluate(entries, a.directory,
                        submission_name=os.path.basename(a.submission))
         if invalid:
             # el grading sigue con las líneas válidas, pero las corruptas se
             # declaran — jamás un veredicto mudo sobre input roto
             res['invalid_lines'] = invalid
+            reason = res.get('incomplete_reason')
+            res['incomplete'] = True
+            res['incomplete_reason'] = (
+                reason + '; invalid JSON in submission' if reason else 'invalid JSON in submission')
         print(json.dumps(res, ensure_ascii=False, indent=1))
-        return 0
+        return 1 if res['incomplete'] else 0
     if a.action == 'reference':
         outp = os.path.join(a.directory, 'results', 'reference.json')
         manifest_path = os.path.join(a.directory, 'MANIFEST.json')

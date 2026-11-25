@@ -309,6 +309,7 @@ a11ytoolkit scope auditoria.json --standard en301549 -o alcance.json  # aplicabi
 a11ytoolkit criteria --list --level AA --new-in 2.2            # el Quick Ref offline, filtrable
 a11ytoolkit wizard --url https://client.web --lang es          # guiado: 3 preguntas → norma, auditoría, alcance
 a11ytoolkit corpus verify corpus                               # el corpus congelado, verificado
+a11ytoolkit corpus evaluate --submission entrega.jsonl corpus  # código 1 si la entrega es incompleta o inválida
 ```
 
 Para localizar una referencia `headers` rota, audita y anota el mismo HTML.
@@ -360,15 +361,19 @@ demostrarlo.
 
 ## Validado contra páginas reales
 
-Comparado mensualmente contra axe-core 4.10 en páginas reales
-([metodología y resultados](bench/README.md)). Benchmark de agentes por
-tareas en sitios en vivo, incluyendo una muestra estratificada de las páginas
-más importantes de España ([método y
-resultados](docs/benchmark-agents.md)). Encontró un hallazgo de contraste en gov.uk
-que axe deja incompleto (botón de búsqueda a 3.91:1; la revisión manual mostró que la parte visible es un icono que supera el umbral 3:1 de no-texto, así que no es un fallo de conformidad). Sacó de dentro
-nuestros propios falsos positivos (skip links ocultos, campos honeypot,
-enlaces genéricos de contexto único, accname de image-alt — cada uno con su
-fixture de regresión).
+La comparación mensual con axe-core 4.10 comprueba que se hayan medido
+todas las páginas del conjunto. Las diferencias señalan casos para revisión
+manual. En GOV.UK, esa revisión confirmó que el icono de búsqueda cumplía
+el umbral de contraste no textual de 3:1 y llevó a corregir el control de
+contraste de texto del toolkit. [Método y resultados](bench/README.md)
+
+El corpus congelado mide la detección de fallos introducidos y los avisos
+en páginas de control. Una entrega comparable incluye una fila válida por
+página, con una lista vacía por cada página revisada sin hallazgos.
+[Guía de evaluación del corpus](docs/cookbook.md#12-score-any-engine-against-the-frozen-corpus)
+
+El benchmark de agentes por tareas incluye una muestra estratificada de
+sitios web de España. [Método y resultados](docs/benchmark-agents.md)
 
 También se ejecuta contra los casos de prueba oficiales ACT del W3C:
 `scripts/act_report.py` regenera el [informe de implementación

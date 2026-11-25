@@ -1,6 +1,14 @@
 # Changelog
 
 ## main — pendiente
+- **Complete corpus submissions.** The scorer reports valid coverage of
+  mutants and placebo controls separately. Missing, repeated, unknown or
+  malformed cases make `corpus evaluate` exit 1 with diagnostic JSON. Scores
+  on complete submissions use the same frozen ground truth.
+- **Exact benchmark panel.** The axe comparison checks the configured set
+  of requested pages and requires distinct final URLs. Divergence details
+  use exact WCAG codes. Live-page counts measure engine agreement, and
+  accuracy requires independently reviewed ground truth.
 - **Document CLI errors.** PDF, DOCX and WebVTT input failures return JSON
   and exit 1. PDF files above the read limit and incomplete or oversized
   caption downloads return an error before scoring.

@@ -8,51 +8,60 @@ raw JSON in `results/` per month.
 
 ## October 2026
 
-| Page | Toolkit static | Toolkit rendered | Toolkit criteria | axe violations | axe criteria | Both | Only toolkit | Only axe |
+| Page | Toolkit static | Toolkit rendered | Toolkit criteria | axe node hits | axe criteria | Both | Only toolkit | Only axe |
 |---|---|---|---|---|---|---|---|---|
 | example.com | 88 | 86 | 3 | 9 | 2 | 2 | 1 | 0 |
 | www.gov.uk | 98 | 74 | 5 | 2 | 1 | 0 | 5 | 1 |
 | es.wikipedia.org/wiki/Wikipedia:Portada | 42 | 56 | 12 | 14 | 4 | 3 | 9 | 1 |
 | www.jquin.net | 98 | 100 | 1 | 0 | 0 | 0 | 1 | 0 |
 
-Reading it honestly:
+The table uses the historical mapping recorded in the October JSON.
+That version mapped axe's `region` rule to 2.4.1. The current comparator
+uses axe's numeric WCAG tags for criterion counts and keeps untagged
+rules in the raw violations.
 
-- **Overlap where both look** (example.com: 2/3, Wikipedia: 3/12) — the
-  core signals agree. "Only toolkit" rows are mostly review-grade signals
-  (DOM-vs-visual order, heading quality) and the rendered checks axe marks
-  *incomplete*.
-- **gov.uk is the showcase**: axe reports 1 criterion (`region`), the
-  toolkit reports 5 — including a rendered contrast finding axe's own
-  rule leaves as "incomplete" (the **3.91:1** search button). Manual
-  review corrected that finding: the button's visible content is an icon
-  that passes the 3:1 non-text threshold, and its label is visually hidden,
-  so it is not a conformance failure. The detector now distinguishes
-  visible text from visually-hidden text.
-- **Only axe** on Wikipedia: `landmark-one-main` style rules the static
-  pass intentionally does not score (it flags, not fails, partial
-  landmark coverage) — the gap list is in the raw JSON, not hidden.
+Live-page counts show agreement and suggest cases for manual review.
+For example, the toolkit raised a 3.91:1 search button on GOV.UK for text
+contrast review. The visible icon passed the 3:1 non-text threshold and
+the label was visually hidden. The detector now checks those cases
+separately. Precision and recall require independently labelled cases
+and a declared scope.
 
-The gate in CI is `python3 bench/compara.py --check bench/results.json
---expect 4`. A row only counts as evidence with results from the three
-engines (toolkit static, toolkit rendered, axe) on the same page: the check
-rejects a failed row, a row missing an engine, a row where axe executed no
-rules, a row where axe's own page load was an error response (4xx or 5xx) and
-a row where any of the three passes ended on a different final URL. It still
-requires the toolkit to find things across the pages (4 criteria or more).
-The previous gate looked at the toolkit alone, so a run could go green with
-axe not running, and later with axe auditing a 404 the browser had loaded
-without complaint. Rows record `axe.http_status`, both rendered `url_final`
-values and `toolkit.url_final_static`. Earlier result files are historical
-records and lack fields needed by `--check`. The comparison uses each axe
-rule's numeric WCAG tags. Rules without a criterion tag remain in the raw
-violations and are excluded from the WCAG divergence lists.
+## Validating a run
 
-The scripts never open a Playwright session of their own. The rendered audit
-keeps the engine's browser pool alive for the rest of the process, and a
-second sync session in the same thread fails with "Sync API inside the
-asyncio loop". `bench/browser.py` lends them a page from that same pool,
-which is why the benchmark runs with the default configuration and with
-`A11Y_BROWSER_POOL=0` alike.
+```bash
+python3 bench/compara.py --check results.json --expect 4
+python3 bench/compara.py --check results.json https://example.com https://www.gov.uk https://es.wikipedia.org/wiki/Wikipedia:Portada https://www.jquin.net
+```
+
+CI uses the second form with the same page list for capture and
+validation. Each declared URL must appear once and resolve to a distinct
+final page. A valid row contains completed toolkit static, toolkit
+rendered and axe passes, a successful axe page load and the same final
+URL in all three passes. The suite expects at least four toolkit
+criterion hits across the panel, with each criterion counted once per
+page. Rows record `axe.http_status`, both rendered `url_final` values and
+`toolkit.url_final_static`. Use current captures to exercise the gate.
+
+Both comparison scripts borrow pages from the engine's browser pool
+through `bench/browser.py`. Sharing the pool keeps Playwright's sync API
+on one driver. The same scripts work with `A11Y_BROWSER_POOL=0`.
+
+## Frozen corpus cross-check
+
+On corpus `2026.11.0`, the toolkit detected 18 of 18 injected failures.
+axe-core 4.10.3 detected the expected criterion on 9 of 18 pages. Both
+covered all three placebo controls with zero flags. To reproduce the axe
+submission, open each HTML file from `cases.jsonl` in Chromium (this run
+used 147.0.7727.15). Use `axe_en_pagina` and `axe_a_criterios` from
+`compara.py` to write one row of criterion codes per case and score it
+with `corpus evaluate`. The static toolkit reference uses that same
+scorer. [Corpus scoring guide](../docs/cookbook.md#12-score-any-engine-against-the-frozen-corpus)
+
+The corpus derives from the toolkit's mutation operators. The measured
+detection rate covers the expected criterion tags in these 18 cases.
+An independent corpus with broader coverage would support a stronger
+comparison.
 
 ## Regression flow (`pr-flow.py`)
 
