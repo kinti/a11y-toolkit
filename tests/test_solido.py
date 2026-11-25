@@ -274,12 +274,14 @@ assert not _faltan_doc, f'tools sin entry completa en docs/tools.md: {_faltan_do
 _faltan_prompts = [p2['name'] for p2 in server._PROMPTS if f'`{p2["name"]}`' not in readme]
 assert not _faltan_prompts, f'prompts sin entry en README: {_faltan_prompts}'
 assert 'of 54' not in readme and '94%' not in readme, 'quedan restos del conteo antiguo en README'
-# pack de evidencia: exactamente 55 rows, todas con esfuerzo, totales del seed
+# pack de evidencia: las 55 filas conservan su clase, el pack no ofrece duraciones
 _pack = build_pack([{'mode': 'static', 'url': 'https://t', 'score': 90, 'findings': []}])
+assert _pack['format'] == 'a11y-evidence-pack/3'
 assert len(_pack['criteria']) == 55, f'matriz del pack: {len(_pack["criteria"])} rows'
-assert all('effort' in m for m in _pack['criteria']), 'row del pack sin esfuerzo'
-assert _pack['effort_pending']['total_minutes'] == [313, 649], \
-    f"totales derivados: {_pack['effort_pending']['total_minutes']}"
+assert all(set(m['effort']) == {'class', 'why'} for m in _pack['criteria'])
+assert _pack['effort_pending']['by_class'] == {
+    'MIN': {'criteria': 23}, 'MED': {'criteria': 19}, 'MAX': {'criteria': 13}}
+assert 'total_minutes' not in _pack['effort_pending']
 
 
 # ---------- 3d. ARCHITECTURE.md: el mapa no puede derivar ----------

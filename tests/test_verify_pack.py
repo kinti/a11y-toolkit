@@ -96,6 +96,17 @@ def main():
         r = run(tampered(m))
         check(f'detects: {name}', r.returncode == 1, r.stdout + r.stderr)
 
+    section('3a. Historical v2 pack with time estimates')
+    def v2_with_durations(pack):
+        pack['format'] = 'a11y-evidence-pack/2'
+        pack['criteria'][0]['effort']['minutes'] = [1, 2]
+        pack['effort_pending']['total_minutes'] = [1, 2]
+        pack['sha256'] = hashlib.sha256(
+            _canon({k: v for k, v in pack.items() if k not in ('sha256', 'generated')})
+            .encode('utf-8')).hexdigest()
+    r = run(tampered(v2_with_durations))
+    check('sealed v2 durations remain verifiable', r.returncode == 0, r.stdout + r.stderr)
+
     section('3b. Legacy seal rule (packs emitted before v5.13.0)')
     # seal recomputed over the pack minus sha256 ONLY (clock sealed in)
     def to_legacy(pack):

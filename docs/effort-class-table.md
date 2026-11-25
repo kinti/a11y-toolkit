@@ -1,34 +1,13 @@
 # Per-criterion human-effort class table (WCAG 2.2 A/AA, all 55)
 
-Canonical pricing seed for the human half of a conformance review: what the
-**human** still does after this toolkit's best automated signal, per criterion.
-This table is data, not prose — `_EFFORT` in [`a11ycrit.py`](../a11y_toolkit/a11ycrit.py) is
-the source of truth (this document is generated from it); the evidence pack
-emits the class per matrix row and the remaining totals in `effort_pending`.
+The evidence pack assigns each applicable criterion a class for human review
+and describes the work. It counts pending criteria in `effort_pending`.
 
-An outside reviewer maps classes to their own billing; this table prices the
-remaining scope honestly, it does not set anyone's price. Provenance: seed by
-Jesús Quintana from 20 years of practice plus a monthly axe benchmark; a
-counterparty's own published table supersedes it for their engagements.
-
-| Class | Minutes | Criteria | What the human does |
-|---|---|---|---|
-| **MIN** | 1–3 | 23 | The agent verified with a measured signal; the human reads and confirms. |
-| **MED** | 5–10 | 19 | The agent prepares context; the human verifies in the browser. |
-| **MAX** | 15–30 | 13 | Real interaction, real judgment, real tooling. |
-| | | **55** | Full single-page audit: **313–649 min (≈5–11 h) of human review remaining after the machine.** |
-
-## Normative rules
-
-1. A measured `automated-fail` splits in two. Confirming the measured fail is
-   the MIN human class: the evidence is on the table, the human confirms rather
-   than recomputes. Certifying a PASS always costs the criterion's full table
-   class — on 1.4.3 that means gradients, background images and hover states
-   examined. A MIN confirmation can never become a pass.
-2. `not-flagged` on a partially-covered criterion never earns a lower class:
-   "the machine looked and found nothing" is weaker than a confirmation.
-3. The seconds trend down as the machine improves; the MAX rows stay until a
-   machine can watch, listen, and remember — i.e., until it stops being a machine.
+| Class | Criteria | Review |
+|---|---:|---|
+| MIN | 23 | Read and confirm the available evidence. |
+| MED | 19 | Verify the finding in the browser. |
+| MAX | 13 | Walk through the interaction and apply expert judgment. |
 
 ## The 55 rows
 

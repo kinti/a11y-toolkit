@@ -97,7 +97,7 @@ try:
 except ImportError:
     ARIALIVE_JS = None  # repo checkout: read the file
 
-VERSION = '5.34.1'
+VERSION = '5.35.0'
 
 # Params renombrados a inglés en 5.11.0; se aceptan los nombres previos.
 PARAM_ALIASES = {
@@ -437,8 +437,7 @@ TOOLS = [
                         'never a pass; not-flagged means an ACCEPTED report of a mode that can '
                         'signal that criterion ran and found nothing, not-run names the missing '
                         'tool, and reports carrying an error never count as coverage), '
-                        'each row priced with its human-effort class (MIN 1-3 / MED 5-10 / '
-                        'MAX 15-30 min of human review remaining) and total remaining minutes '
+                        'remaining human review by effort class, with counts per class; '
                         'every artifact SHA-256-'
                         'hashed with timestamps, an empty signature block (name, credential, '
                         'date) whose statement must reference the pack\'s own sha256, and the '
@@ -557,16 +556,11 @@ TOOLS = [
     },
     {
         'name': 'a11y_disprove',
-        'description': ('Disprover pattern (from Cloudflare\'s security-audit-skill): '
-                        're-runs the audit against the live page and marks each finding '
-                        'confirmed or rejected — rendered reports are re-verified under '
-                        'their ORIGINAL color scheme (a dark-only contrast fail must not '
-                        'look fixed under light; reports that don\'t record their scheme '
-                        'come back not-rechecked), and findings that don\'t reproduce are '
-                        'rejected with the reason. Catches false positives, race '
-                        'conditions, and page changes between audit and report. Returns '
-                        'a fresh score over confirmed findings only. — Run this before '
-                        'acting on any audit report.'),
+        'description': ('Re-audits the original live page and returns its current findings, '
+                        'score and coverage. Rendered reports are rechecked under their '
+                        'recorded color scheme. Matching findings are confirmed, disappeared '
+                        'findings are rejected, and ambiguous historical matches are kept '
+                        'for review. — Use a11y_evidence to seal the fresh measurement.'),
         'inputSchema': {'type': 'object', 'properties': {
             'url': {'type': 'string', 'description': 'URL to re-verify against'},
             'report': {'type': 'object', 'description': 'existing audit report (optional; if absent, audits first)'},
@@ -1229,10 +1223,10 @@ _RETURNS = {
     'a11y_html_validate': 'Returns JSON: Nu validator messages mapped to WCAG criteria where they overlap.',
     'a11y_hover': 'Returns JSON: {candidates, dismissed_on_escape, findings}.',
     'a11y_sr_transcript': 'Returns JSON: {url, total, announcements [{time, politeness, role, text}] — the linearized reading order}.',
-    'a11y_disprove': 'Returns JSON: {confirmed, rejected, score} — a fresh score over confirmed findings only.',
+    'a11y_disprove': 'Returns the fresh audit JSON with score_original and disprover {executed, confirmed, rejected, previous_findings} when re-audited.',
     'a11y_ledger': 'record returns the stored entry; gaps returns criteria never checked; summary returns {entries, active_signals, resolved, mean_score}.',
     'a11y_criterion': 'Returns JSON: {criterion, level, understanding, toolkit_signals, requires, typical_failures, how_to_check} — signal mode adds {signal, act_rules [{id, name, status, url}]}; {error, …} for unknown codes.',
-    'a11y_evidence': 'Returns the pack JSON (a11y-evidence-pack/2) as text content (the agent writes the file).',
+    'a11y_evidence': 'Returns the pack JSON (a11y-evidence-pack/3) as text content (the agent writes the file).',
     'a11y_journey_verdict': 'Returns JSON: {verdict pass|partial|fail|blocked, score 0-100, findings [{criterion, severity, signal, issue, remediation, step}], summary, rules} — writes a file only when output_path is given.',
     'a11y_generate_declaration': 'Returns {html, summary} — the accessible legal statement; writes a file only when output_path is given.',
     'a11y_generate_vpat': 'Returns {html, summary {level: count}, levels {code: level}, pack_sha256, draft} — the VPAT draft; writes a file only when output_path is given.',

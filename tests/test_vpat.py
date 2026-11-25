@@ -161,13 +161,10 @@ assert row_111['status'] == 'automated-review', 'sin severidad no hay fallo'
 res_h = generate_vpat(pack=pack_hostil, product='Demo', lang='en')
 assert 'error' not in res_h and res_h['levels']['1.1.1'] == 'not_evaluated'
 
-# 5) single source del precio del esfuerzo: _MIN desaparece, a11ycrit manda
-import a11y_toolkit.a11yevidence as _ev                                # noqa: E402
-from a11y_toolkit.a11ycrit import _EFFORT_MINUTES as _EM               # noqa: E402
-assert not hasattr(_ev, '_MIN'), '_MIN duplicado: el precio vive en a11ycrit'
-assert _ev._EFFORT_MINUTES is _EM
-# los totales no derivan con el refactor (pinned también en test_solido)
-assert pack['effort_pending']['total_minutes'] == [313, 649]
+# 5) los borradores siguen aceptando el pack v3 con clases sin duraciones
+assert pack['format'] == 'a11y-evidence-pack/3'
+assert 'total_minutes' not in pack['effort_pending']
+assert all('minutes' not in row['effort'] for row in pack['criteria'])
 
 # 6) statement hermana (RD 1112/EAA): la reclamación se ENLAZA y el reloj
 #    se lee UNA vez (una ejecución que cruce medianoche no puede divergir)

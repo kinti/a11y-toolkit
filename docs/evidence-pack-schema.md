@@ -1,4 +1,4 @@
-# The a11y evidence pack — schema `a11y-evidence-pack/2`
+# The a11y evidence pack — schema `a11y-evidence-pack/3`
 
 The machine→human handoff object for WCAG conformance work: what machines
 found, what remains for a human, tamper-evident by construction. Any
@@ -14,12 +14,12 @@ builder output): [`evidence-pack.sample.json`](evidence-pack.sample.json).
 
 | Field | Type | Meaning |
 |---|---|---|
-| `format` | string, always `a11y-evidence-pack/2` | Format + major version. Pack/2 renamed every key to English (below); a validator must reject unknown majors. |
+| `format` | string, always `a11y-evidence-pack/3` | Format and major version. The verifier accepts v2 and v3. |
 | `generated` | ISO 8601 UTC | When the pack was built. |
 | `tool` | string | Producing tool and repo. |
 | `summary` | object | Counts per status over the whole matrix: `automated-fail`, `automated-review`, `not-flagged`, `manual-only`, `agent-verified`, `not-run`. |
-| `criteria` | array | **The full matrix — exactly the 55 normative WCAG 2.2 A/AA criteria.** One entry per criterion: `{criterion: "1.4.3 Contrast (Minimum)", status, note?, value?, effort?}`. `value` carries the measured fact (e.g. `{measured: "3.91:1", example: "button"}`) when the finding contains one — the reviewer sees the number, not just the verdict. Statuses: `automated-fail` (a signal fired), `automated-review` (a low-severity/review signal fired), `not-flagged` (no signal fired on this sample — **explicitly NOT pass**), `not-run` (the tool HAS a signal for this criterion but the report type that carries it was not included), `manual-only` (no automated signal exists in the producing tool), `agent-verified` (an agent or human verified this criterion against this sample per the manual-checklist protocol — verification NEVER erases an `automated-fail`). Every row also carries `effort: {class, minutes, why}` — the human-effort class (below) and the minutes the human still owes after the machine's best signal. |
-| `effort_pending` | object | Remaining human review, priced by class: `{by_class: {MIN: {criteria, minutes:[lo,hi]}, …}, total_minutes: [lo, hi], note}` over every row not `agent-verified`. This is the scope input for human review — agent output in, honest human scope out. |
+| `criteria` | array | **The full matrix — exactly the 55 normative WCAG 2.2 A/AA criteria.** One entry per criterion: `{criterion: "1.4.3 Contrast (Minimum)", status, note?, value?, effort?}`. `value` carries the measured fact (e.g. `{measured: "3.91:1", example: "button"}`) when the finding contains one — the reviewer sees the number, not just the verdict. Statuses: `automated-fail` (a signal fired), `automated-review` (a low-severity/review signal fired), `not-flagged` (no signal fired on this sample — **explicitly NOT pass**), `not-run` (the tool HAS a signal for this criterion but the report type that carries it was not included), `manual-only` (no automated signal exists in the producing tool), `agent-verified` (an agent or human verified this criterion against this sample per the manual-checklist protocol — verification NEVER erases an `automated-fail`). Every row also carries `effort: {class, why}` — the human-effort class (below) and why review is needed. |
+| `effort_pending` | object | Remaining review grouped by effort class: `{by_class: {MIN: {criteria}, …}, note}`. Verified and excluded rows are omitted. |
 | `manual_pending` | array of strings | The criteria still needing human coverage (the `manual-only` subset NOT yet `agent-verified`). |
 | `verification` | object? | Present when criterion codes were passed as verified: `{source: "agent"|"human", protocol}`. |
 | `artifacts` | array | The input reports. Each: `{type: "report:static\|report:rendered\|report:reflow\|report:keyboard\|report:scroll" \| "snapshot:a11y", url?, score?, sha256, body}`. `sha256` = SHA-256 of the artifact's canonical JSON. `body` = the full report body, **embedded** — the pack is self-verifying: a verifier holding only the pack can recompute both `pack.sha256` and every `artifacts[].sha256` without needing the original reports. |
@@ -36,7 +36,7 @@ recomputes it from the report body and checks it separately from the seal.
 Findings with `disprover_status: "not-rechecked"` remain in the embedded
 report and contribute `automated-review` to the criterion matrix.
 
-**Pack/2 rename (2026-09-23)**: every wire key is now English — `criterios`→`criteria`, `estado`→`status`, `esfuerzo`→`effort`, `artefactos`→`artifacts`, `evaluador`→`reviewer`, `informes`→`reports` (tool argument), `verificados`→`verified` (tool argument), `formato`→`format`, and the rest per the pack itself. Pack/1 packs remain valid historical documents; builders MUST emit pack/2.
+**Pack/2 rename (2026-09-23)**: every wire key is now English — `criterios`→`criteria`, `estado`→`status`, `esfuerzo`→`effort`, `artefactos`→`artifacts`, `evaluador`→`reviewer`, `informes`→`reports` (tool argument), `verificados`→`verified` (tool argument), `formato`→`format`, and the rest per the pack itself. Pack/1 packs remain valid historical documents; builders emit pack/3.
 
 
 **Pack/1 compatibility note**: `agent-verified` and `verificacion` were added
@@ -67,28 +67,12 @@ structural issue; ejemplos carry CSS paths, rgb() color pairs, pixel sizes,
 and WCAG codes. If any finding text appears to quote page content, that is
 a bug — report it.
 
-## Effort class table (for pricing)
+## Effort classes
 
-Every A/AA criterion carries one of three effort classes — **what the HUMAN
-still does after the machine's best signal** (canonical data: `_EFFORT` in
-[`a11ycrit.py`](../a11y_toolkit/a11ycrit.py), full table in
-[`effort-class-table.md`](effort-class-table.md)):
-
-| Class | Minutes | Criteria | What the human does |
-|---|---|---|---|
-| MIN | 1–3 | 23 | The agent verified with a measured signal; the human reads and confirms. |
-| MED | 5–10 | 19 | The agent prepares context; the human verifies in the browser. |
-| MAX | 15–30 | 13 | Real interaction, real judgment, real tooling. |
-
-Three normative rules: (1) a measured `automated-fail` splits in two —
-confirming the fail is the MIN human class, but certifying a PASS always costs
-the criterion's full table class (a MIN confirmation can never become a pass);
-(2) `not-flagged` on a partially-covered criterion NEVER earns a lower class —
-"the machine looked and found nothing" is weaker than a confirmation; (3) a
-criterion quoted at its class settles at MIN when the human verdict is
-not_applicable with a reason — the buyer does not pay for examination that did
-not happen. A marketplace maps classes to its own billing; the pack does
-not set the price, it prices the remaining scope honestly.
+The matrix carries a review class and rationale for each applicable criterion.
+The [class table](effort-class-table.md) defines what remains to review. Pack/3
+counts criteria by class. Archived pack/2 objects retain their original seal
+and can be verified with the same script.
 
 ## The hash rule (normative)
 
@@ -106,7 +90,7 @@ An external attestation must **reference, never restate**:
 ```json
 {
   "evidence": {
-    "format": "a11y-evidence-pack/2",
+    "format": "a11y-evidence-pack/3",
     "sha256": "<pack.sha256>",
     "generado": "<pack.generado>",
     "artifacts_verified": ["<sha256>", "<sha256>"]

@@ -1981,6 +1981,13 @@ def page_identity(url):
     return (parts.scheme, parts.hostname, port, parts.path or '/', parts.query)
 
 
+def audit_conditions(report):
+    """Identify recorded capture conditions that affect comparability."""
+    if report.get('mode') == 'rendered':
+        return {'color_scheme': report.get('color_scheme') or report.get('scheme')}
+    return {}
+
+
 def completed_report_pages(report):
     """Return measured pages or the reason they cannot support a comparison."""
     if not isinstance(report, dict) or report.get('error'):
@@ -3241,21 +3248,24 @@ def audit_changed(base='HEAD', lang='en', cwd='.'):
     is no HTML to audit). Deleted files are skipped.
     """
     import subprocess
-    spec = ['git', 'diff', '--name-only', '--diff-filter=d',
+    spec = ['git', 'diff', '--name-only', '-z', '--diff-filter=d',
             base if base == 'HEAD' else f'{base}...HEAD']
     try:
-        out = subprocess.run(spec, cwd=cwd, capture_output=True, text=True, timeout=30)
+        out = subprocess.run(spec, cwd=cwd, capture_output=True, timeout=30)
     except FileNotFoundError:
         return {'error': 'git not available'}
     if out.returncode != 0:
-        return {'error': f'git diff failed: {out.stderr.strip()[:200]}'}
-    changed = [f for f in out.stdout.splitlines() if f.strip()]
+        detail = os.fsdecode(out.stderr).strip()[:200]
+        return {'error': f'git diff failed: {detail}'}
     # los NUEVOS sin trackear no salen en git diff — entran también:
     # una página recién creada no puede escaparse del gate local
-    untracked = subprocess.run(['git', 'ls-files', '--others', '--exclude-standard'],
-                               cwd=cwd, capture_output=True, text=True, timeout=30)
-    if untracked.returncode == 0:
-        changed += [f for f in untracked.stdout.splitlines() if f.strip() and f not in changed]
+    untracked = subprocess.run(['git', 'ls-files', '-z', '--others', '--exclude-standard'],
+                               cwd=cwd, capture_output=True, timeout=30)
+    if untracked.returncode != 0:
+        detail = os.fsdecode(untracked.stderr).strip()[:200]
+        return {'error': f'git ls-files failed: {detail}'}
+    changed = [os.fsdecode(path) for path in dict.fromkeys((out.stdout + untracked.stdout).split(b'\0'))
+               if path]
     auditables, web_touched = [], []
     for f in changed:
         ext = os.path.splitext(f)[1].lower()

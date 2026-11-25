@@ -240,7 +240,7 @@ product's voice.
 Install it with `pip install a11y-toolkit` (or `uv tool install a11y-toolkit`).
 
 ```bash
-a11ytoolkit audit --changed                     # ONLY what changed since HEAD (CI gate)
+a11ytoolkit audit --changed                     # changed HTML since HEAD, including Unicode paths
 a11ytoolkit audit --changed --base origin/main  # a branch's changes — exit 2 on high/medium
 a11ytoolkit audit --url https://example.com --pages 5   # sitemap-first crawl with page_errors for failed pages
 a11ytoolkit audit --file table.html  # table headers in their own table; exits 1 if the HTML exceeds the input limit
@@ -257,15 +257,15 @@ a11ytoolkit fix --file page.html -o fixed.html          # safe autofix
 a11ytoolkit declaration --entity "Acme" --url https://… --status partial --framework eaa
 a11ytoolkit snapshot https://mysite --out before.json   # before deploy
 a11ytoolkit diff before.json after.json                 # after deploy
-a11ytoolkit evidence audit.json -o pack.json            # measured coverage; findings without reverification stay in review
-a11ytoolkit disprove --url https://mysite --file audit.json  # re-verify at the original final URL
+a11ytoolkit evidence audit.json -o pack.json            # pack v3 with measured coverage and review counts
+a11ytoolkit disprove --url https://mysite --file audit.json  # re-audit the original destination, including new findings
 a11ytoolkit budget --init --audit audit.json > budget.json  # accept the measured findings by page, count and available paths
-a11ytoolkit budget --budget budget.json --audit next.json   # exit 1 incomplete, 2 on regressions proven by counts or paths
+a11ytoolkit budget --budget budget.json --audit next.json   # exit 1 if incomplete or color scheme changed, 2 on regressions
 # legacy debt does not block: adopt CI today, don't let accessibility get worse while you pay it down
 a11ytoolkit budget --init-snapshot s.json > structural.json      # structural budget: today's structure is accepted
 a11ytoolkit budget --budget structural.json --snapshot s2.json   # only NEW rendered structure blocks (exit 0/2)
 a11ytoolkit engines https://mysite                        # same page in 3 engines: behavioral divergences, pairwise
-a11ytoolkit trace https://mysite --script journey.json -o t.json  # scripted real journey, then: trace diff t_old.json t.json
+a11ytoolkit trace https://mysite --script journey.json -o t.json  # scripted journey; main-document HTTP errors fail capture
 a11ytoolkit trace https://mysite --script j.json --capture-dialog-state -o t.json  # + per-step modal state, then: trace diff a.json b.json --gate-dialog-state
 a11ytoolkit trace diff a.json b.json  # exit 1 for invalid captures, 2 for regressions
 a11ytoolkit patterns https://mysite                       # APG keyboard contracts, live: dialog / tablist / disclosure / combobox / menu / slider
@@ -283,7 +283,7 @@ a11ytoolkit wcag3 --from-audit audit.json                      # WCAG 3 draft pr
 a11ytoolkit route --goal "gate my PR"                          # which tools for the task
 a11ytoolkit route --file page.html                             # diagnosis: the page orders the exams
 a11ytoolkit mutants --seed 7 --n 12                            # the engine's sealed self-exam
-a11ytoolkit fingerprints pages/*.html -o templates.json        # twin pages → one audit per template
+a11ytoolkit fingerprints pages/*.html -o templates.json        # suggest a structural sample; review each page’s content
 a11ytoolkit audit --file page.html --standard en301549         # EN 301 549 clause on every finding
 a11ytoolkit annotate page.html --report r.json -o marked.html  # per-element marks in one pass, source text preserved
 a11ytoolkit locate --file page.html --query "Submit"           # element by accessible name → route selector
@@ -291,7 +291,7 @@ a11ytoolkit patches --file page.html -o patches.json           # sealed fix reco
 a11ytoolkit journey friction.json -o verdict.json             # blindfold journey: friction log -> scored verdict
 a11ytoolkit scope audit.json --standard en301549 -o scope.json  # applicability scope, EN clauses, human-confirmed
 a11ytoolkit criteria --list --level AA --new-in 2.2            # the offline Quick Ref, filterable
-a11ytoolkit wizard --url https://client.web --lang es          # guided: 3 questions → standard, audit, scope, annex
+a11ytoolkit wizard --url https://client.web --lang es          # guided: 3 questions → standard, audit, scope
 a11ytoolkit corpus verify corpus                  # the frozen corpus, verified
 ```
 
@@ -383,7 +383,7 @@ genuinely-human checks are counted).
 The `audit-page` prompt and the skill have the agent check what it can (keyboard,
 focus, zoom, announced errors) using [the manual
 checklist](skills/a11y-toolkit/references/wcag22-manual-checklist.md). A filter, not
-a verdict. The remaining human work is priced per criterion — MIN 23 (read and
+a verdict. The pack groups pending human review by effort class — MIN 23 (read and
 confirm), MED 19 (verify in the browser), MAX 13 (real interaction and judgment);
 [full table](docs/effort-class-table.md). And the evidence pack is the handoff object
 for the person who signs, screen reader transcript included, so the reviewer sees
@@ -420,8 +420,7 @@ Done recently: rendered audit with shadow DOM and state contrast, form error
 testing plus autofix, keyboard traps, infinite scroll, reflow, the W3C Nu
 integration, SARIF and error budgets, the evidence pack (spec published,
 self-verifying), sitemap crawling, behind-login auditing, browser
-auto-detection, the screen reader transcript, and per-criterion effort
-pricing. The full history lives in the [changelog](CHANGELOG.md).
+auto-detection, the screen reader transcript, and per-criterion review classes. The full history lives in the [changelog](CHANGELOG.md).
 
 Next, roughly in this order:
 

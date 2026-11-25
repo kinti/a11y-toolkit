@@ -30,7 +30,7 @@ from datetime import datetime, timezone
 
 import tempfile
 
-from .a11yaudit import completed_report_pages, normalize_signal, page_identity
+from .a11yaudit import audit_conditions, completed_report_pages, normalize_signal, page_identity
 
 # per-path lock: always multi-thread; multi-process on POSIX (fcntl).
 # Without it, two concurrent writes left a truncated JSON (external review
@@ -120,7 +120,7 @@ def _record(url, report, ledger=None, path='a11y-ledger.json', lang='en'):
                                   page_identity(pages[0].get('url'))}:
         return {'error': ('La URL no coincide con el informe.' if lang == 'es' else
                           'The URL does not match the audit report.')}
-    page_modes, measured = {}, {}
+    page_modes, page_conditions, measured = {}, {}, {}
     mode = report.get('mode', 'static')
     for page in pages:
         page_url = page.get('url') or (url if 'reports' not in report else None)
@@ -131,6 +131,9 @@ def _record(url, report, ledger=None, path='a11y-ledger.json', lang='en'):
                               if lang == 'es' else
                               'Every page must have a unique URL and an audit mode.')}
         page_modes[page_url] = page_mode
+        conditions = audit_conditions(page)
+        if conditions:
+            page_conditions[page_url] = conditions
         measured[identity] = page_mode
     if ledger is None:
         ledger = _load(path)
@@ -149,6 +152,13 @@ def _record(url, report, ledger=None, path='a11y-ledger.json', lang='en'):
                           'Usa un historial distinto para otro alcance.' if lang == 'es' else
                           'The audit mode changed or prior pages are missing. '
                           'Use a different ledger for a different scope.')}
+    current_conditions = {page_identity(page): value for page, value in page_conditions.items()}
+    previous_conditions = prev.get('page_conditions', {})
+    if prev and any(previous_conditions.get(page, {}) != current_conditions.get(page_identity(page), {})
+                    for page in previous_pages):
+        return {'error': ('Cambiaron las condiciones de captura o el historial antiguo no las registra.'
+                          if lang == 'es' else
+                          'Capture conditions changed or were not recorded in the old ledger.')}
 
     signals = set()
     for page in pages:
@@ -195,6 +205,7 @@ def _record(url, report, ledger=None, path='a11y-ledger.json', lang='en'):
         'resolutions': resolutions,
         'mode': mode,
         'page_modes': page_modes,
+        'page_conditions': page_conditions,
         'disprover': report.get('disprover'),
     }
 

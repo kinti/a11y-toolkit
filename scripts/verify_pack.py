@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Independent verifier for a11y-evidence-pack/2 — no engine required.
+"""Independent verifier for a11y evidence packs v2 and v3 — no engine required.
 
 Copy this single file anywhere with Python 3.9+ and verify a pack:
 
@@ -29,7 +29,7 @@ import hashlib
 import json
 import sys
 
-FORMAT = 'a11y-evidence-pack/2'
+FORMATS = ('a11y-evidence-pack/2', 'a11y-evidence-pack/3')
 # los 7 estados de build_pack: not-applicable llega cuando el pack se construye
 # con un a11y_scope con exclusiones HUMANAS confirmadas — el verificador
 # independiente jamás debe rechazar exactamente esos packs
@@ -95,9 +95,9 @@ def verify(pack):
     if not isinstance(pack, dict):
         fail('load', 'pack is not a JSON object')
         return False, checks
-    if pack.get('format') != FORMAT:
-        fail('format', f'expected {FORMAT}, got {pack.get("format")!r}'
-             + (' (pack/1 is historical; builders MUST emit pack/2)'
+    if pack.get('format') not in FORMATS:
+        fail('format', f'expected one of {FORMATS}, got {pack.get("format")!r}'
+             + (' (pack/1 is historical; builders emit pack/3)'
                 if isinstance(pack.get('format'), str) and 'pack/1' in pack.get('format', '')
                 else ''))
         return False, checks
@@ -197,7 +197,7 @@ def verify(pack):
 
 def main(argv):
     ap = argparse.ArgumentParser(
-        description='Independently verify an a11y-evidence-pack/2 (no engine needed)')
+        description='Independently verify an a11y evidence pack v2 or v3 (no engine needed)')
     ap.add_argument('pack', help="pack JSON path, or '-' for stdin")
     ap.add_argument('--json', action='store_true', help='machine-readable output')
     a = ap.parse_args(argv)

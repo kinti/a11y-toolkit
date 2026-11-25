@@ -87,6 +87,9 @@ class _H(BaseHTTPRequestHandler):
                     b'<body><a href="/outage.html">Page</a></body></html>')
         if self.path == '/outage.html':
             status = 503
+        if self.path == '/asset.html':
+            body = (b'<!doctype html><html lang="en"><head><title>Fixture</title></head>'
+                    b'<body><main><img src="/outage.html" alt="Fixture"></main></body></html>')
         if es_chromium and self.path in self._navegaciones:
             self._navegaciones[self.path] += 1
             if self._navegaciones[self.path] >= 2:       # la 2ª navegación ya es la de axe
@@ -252,6 +255,12 @@ _crawl = audit_site(f'{_base}/crawl.html', max_pages=2, from_sitemap=False)
 assert _crawl['pages'] == 1 and _crawl['page_errors'][0]['url'] == f'{_base}/outage.html', _crawl
 assert '503' in _crawl['page_errors'][0]['error'], _crawl
 assert budget_init(_crawl).get('error'), _crawl
+
+from a11y_toolkit.a11ytrace import trace, trace_diff
+_reference = trace(f'{_base}/crawl.html', steps=1)
+_outage = trace(f'{_base}/crawl.html', script=[{'kind': 'click', 'selector': 'a'}])
+assert _outage.get('http_status') == 503 and not trace_diff(_reference, _outage)['ok'], _outage
+assert 'error' not in trace(f'{_base}/asset.html', steps=1)
 
 
 # ── 4. pr-flow ────────────────────────────────────────────────────────────────

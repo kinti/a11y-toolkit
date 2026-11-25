@@ -44,7 +44,7 @@ import datetime
 import json
 from collections import Counter
 
-from .a11yaudit import completed_report_pages, normalize_signal  # noqa: E402  (compat 5.10)
+from .a11yaudit import audit_conditions, completed_report_pages, normalize_signal
 import sys
 
 # mensajes CLI bilingües (patrón _labels): el stdin de --init espera el JSON
@@ -65,6 +65,14 @@ _CLI_MSG = {
 BUDGET_FORMAT = 'a11y-budget/2'
 
 
+def _active_findings(page):
+    for finding in page['findings']:
+        if not isinstance(finding, dict):
+            raise ValueError('invalid finding')
+        if finding.get('status') != 'rejected' and finding.get('disprover_status') != 'rejected':
+            yield finding
+
+
 def _page_index(pages):
     result = {}
     for page in pages:
@@ -72,7 +80,7 @@ def _page_index(pages):
         if not isinstance(url, str) or not url or url in result:
             raise ValueError('every audited page must have a unique URL')
         findings = {}
-        for finding in page['findings']:
+        for finding in _active_findings(page):
             signal = normalize_signal(finding['signal'])
             paths = [path for path in (finding.get('paths') or []) if isinstance(path, str)]
             count = finding.get('count')
@@ -80,7 +88,8 @@ def _page_index(pages):
                 count = max(len(paths), len(finding.get('examples') or []), 1)
             findings[signal] = {'severity': finding['severity'], 'count': max(count, len(paths)),
                                 'paths': sorted(paths)}
-        result[url] = {'mode': page.get('mode', 'static'), 'findings': findings}
+        result[url] = {'mode': page.get('mode', 'static'), 'conditions': audit_conditions(page),
+                       'findings': findings}
     return result
 
 
@@ -136,6 +145,9 @@ def _compare_instances(budget, pages, blocking):
         prior = base.get(url)
         if prior and prior['mode'] != page['mode']:
             return {'error': 'the audit mode changed for a baseline page', 'url': url}
+        if prior and prior.get('conditions', {}) != page['conditions']:
+            return {'error': 'the capture conditions changed or were not recorded in the baseline',
+                    'url': url}
         old = prior['findings'] if prior else {}
         current = page['findings']
         for signal in sorted(set(old) | set(current)):
@@ -162,7 +174,7 @@ def _compare_signals(budget, pages, blocking):
     base = {normalize_signal(s) for s in budget.get('signals', [])}
     current = {}
     for pg in pages:
-        for h in pg.get('findings', []):
+        for h in _active_findings(pg):
             current.setdefault(normalize_signal(h.get('signal', '')), []).append(h['severity'])
     new = sorted(s for s in current if s not in base)
     resolved = sorted(base - set(current))
@@ -182,6 +194,7 @@ def compare(budget, audit, today=None):
     try:
         blocking = set(budget.get('blocking', ['high', 'medium']))
         max_new = int(budget.get('max_new', 0))
+        signals = {normalize_signal(h['signal']) for pg in pages for h in _active_findings(pg)}
         if budget.get('format') == BUDGET_FORMAT:
             verdict = _compare_instances(budget, _page_index(pages), blocking)
         else:
@@ -201,7 +214,7 @@ def compare(budget, audit, today=None):
         **verdict,
         'summary': {
             'baseline': len(set(budget.get('signals', []))),
-            'current': len({normalize_signal(h['signal']) for pg in pages for h in pg['findings']}),
+            'current': len(signals),
             'new': len(verdict['new']),
             'resolved': len(verdict['resolved']),
         },

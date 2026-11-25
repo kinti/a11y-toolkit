@@ -82,6 +82,20 @@ open(os.path.join(_d, 'new.html'), 'w').write('<!doctype html><html lang="en"><h
 r = run('audit', '--changed', '--lang', 'en', cwd=_d)
 assert r.returncode == 0 and json.loads(r.stdout)['blocking'] == 0, r.stdout[-300:]
 print('AUDIT --changed (CI gate: exit 2/0, untracked cubiertos, css listado) ✓')
+
+_git('add', '-A'); _git('commit', '-qm', 'clean files')
+_git('config', 'core.quotePath', 'true')
+_names = ('catálogo.html', 'página\tnueva.html')
+for _name in _names:
+    with open(os.path.join(_d, _name), 'w', encoding='utf-8') as _file:
+        _file.write('<html lang="en"><head><title>Fixture</title></head>'
+                    '<body><main><h1>Fixture</h1><img src="picture.png"></main></body></html>')
+_git('add', '--', _names[0])
+r = run('audit', '--changed', '--lang', 'en', cwd=_d)
+_unicode = json.loads(r.stdout)
+assert r.returncode == 2 and _unicode['files']['audited'] == 2, _unicode
+assert {page['url'] for page in _unicode['reports']} == set(_names), _unicode
+print('AUDIT --changed: Git staged and untracked paths with accents and tabs ✓')
 r = run('badge', '--score', '90', '--lang', 'en')
 assert r.returncode == 0 and r.stdout.startswith('<svg') and '90/100' in r.stdout
 r = run('fix', '--file', FIX_MAL, '--lang', 'es', '--title', 'T', '-o', os.path.join('/tmp', 'cli_fixed.html'))

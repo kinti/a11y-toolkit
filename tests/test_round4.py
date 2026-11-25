@@ -223,6 +223,7 @@ with tempfile.TemporaryDirectory() as _tmp:
 
 class _AuditPages(BaseHTTPRequestHandler):
     redirect_to_login = False
+    catalog_images = ''
 
     def do_GET(self):
         target = {'/alias': '/product'}.get(self.path)
@@ -234,6 +235,7 @@ class _AuditPages(BaseHTTPRequestHandler):
             self.end_headers()
             return
         contents = {'/product': BASE.format(_image + '<a href="/other">More products</a>'),
+                    '/catalog': BASE.format(self.catalog_images),
                     '/other': _normal_html, '/large': _large_html, '/gzip': _normal_html,
                     '/broken': _normal_html, '/login': BASE.format('<h1>Sign in to continue</h1>')}
         data = contents[self.path].encode('utf-8')
@@ -275,6 +277,29 @@ with ThreadingHTTPServer(('127.0.0.1', 0), _AuditPages) as _http:
         _confirmed = _disp(_root + '/alias', report=_report)
         check('una redirección estable permite confirmar el hallazgo de la URL final',
               _confirmed['disprover']['confirmed'] >= 1 and not _report['findings'][0].get('status'))
+        _catalog = _root + '/catalog'
+        _image_one = '<img src="first.png">'
+        _image_two = '<img src="second.png">'
+        _image_one_fixed = '<img src="first.png" alt="First product">'
+        _image_two_fixed = '<img src="second.png" alt="Second product">'
+        _AuditPages.catalog_images = _image_one_fixed + _image_two_fixed
+        _clean = audit_url(_catalog)
+        _AuditPages.catalog_images = _image_one + _image_two_fixed
+        _current = audit_url(_catalog)
+        _new = _disp(_catalog, report=_clean)
+        _new_matrix = build_pack([_new])['criteria']
+        check('disprove incorpora defectos nuevos en puntuación y evidencia',
+              _new['score'] == _current['score'] < _clean['score']
+              and _new['not_measured'] == _current['not_measured']
+              and _new['source_sha256'] == _current['source_sha256'] != _clean['source_sha256']
+              and any(c['criterion'].startswith('1.1.1 ') and c['status'] == 'automated-fail'
+                      for c in _new_matrix), _new)
+        _AuditPages.catalog_images = _image_one_fixed + _image_two
+        _moved = _disp(_catalog, report=_current)
+        _active, _rejected = [f for f in _moved['findings'] if f['signal'] == 'img_no_alt']
+        check('disprove distingue dos imágenes con el mismo defecto',
+              _active.get('status') != 'confirmed' and _active['paths'] != _rejected['paths']
+              and _rejected['status'] == 'rejected', _moved)
         _AuditPages.redirect_to_login = True
         _mismatch = _disp(_root + '/alias', report=_report)
         check('disprove rechaza un destino distinto y conserva el informe original',

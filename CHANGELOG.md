@@ -1,6 +1,22 @@
 # Changelog
 
 ## main — pendiente
+- **Complete re-audits.** `disprove` uses the fresh score, coverage and findings,
+  including any new signals. Matching element paths support confirmation.
+  An ambiguous prior match stays available for review.
+- **Comparable rendered captures.** Regression budgets and coverage ledgers
+  check the recorded color scheme before comparing a rendered page. Start a
+  fresh baseline or ledger entry when the previous capture lacks that metadata.
+- **Trace navigation failures.** `trace` detects HTTP errors when a click or
+  keyboard interaction navigates the main frame. Subresource errors do not
+  count as failed page navigations.
+- **Changed-file audit.** The Git gate includes staged and untracked HTML
+  paths with non-ASCII characters and other characters Git normally quotes.
+- **Evidence pack v3.** Generated packs expose human review classes and
+  criterion counts. Minute estimates are no longer emitted. The verifier
+  continues to verify sealed v2 packs.
+- **Template sampling.** The README examples describe template fingerprints
+  as a sampling aid. Pages sharing a fingerprint can have different findings.
 - **Complete static measurements.** Local HTML above the input limit and
   HTTP bodies cut short or over the size limit after decompression return an
   audit error. Crawls keep failed child pages in `page_errors` and the

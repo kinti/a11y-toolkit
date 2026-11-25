@@ -288,4 +288,17 @@ _possible_overlap = _cmp(_catalog_budget, _catalog_with_missing_alt(1))
 assert _possible_overlap['ok'] and not _possible_overlap['changes'], _possible_overlap
 print('19. budget: detecta el mínimo demostrable sin confundir rutas omitidas con regresiones ✓')
 
-print('OK test_budget_structural: 19 checks')
+_dark = dict(_image_page(1), mode='rendered', color_scheme='dark')
+_fixed_dark = dict(_image_page(0), mode='rendered', color_scheme='dark')
+_light = dict(_fixed_dark, color_scheme='light')
+_dark_budget = _init_budget(_dark)
+assert _cmp(_dark_budget, _light).get('error')
+assert _cmp(_dark_budget, _fixed_dark)['resolved'] == ['img_no_alt']
+_dark_budget['pages'][_dark['url']].pop('conditions')
+assert _cmp(_dark_budget, _fixed_dark).get('error')
+_rejected = dict(_fixed_dark, findings=[dict(_dark['findings'][0], status='rejected')])
+assert _init_budget(_rejected)['signals'] == []
+assert _cmp(_init_budget(_dark), _rejected)['summary']['current'] == 0
+print('20. budget: same color scheme required; rejected findings are historical ✓')
+
+print('OK test_budget_structural: 20 checks')

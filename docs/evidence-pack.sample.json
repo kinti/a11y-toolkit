@@ -1,5 +1,5 @@
 {
- "format": "a11y-evidence-pack/2",
+ "format": "a11y-evidence-pack/3",
  "lang": "en",
  "generated": "2026-11-22T01:05:09+00:00",
  "tool": "a11y-toolkit (github.com/kinti/a11y-toolkit)",
@@ -15,32 +15,16 @@
  "effort_pending": {
   "by_class": {
    "MAX": {
-    "criteria": 13,
-    "minutes": [
-     195,
-     390
-    ]
+    "criteria": 13
    },
    "MED": {
-    "criteria": 19,
-    "minutes": [
-     95,
-     190
-    ]
+    "criteria": 19
    },
    "MIN": {
-    "criteria": 23,
-    "minutes": [
-     23,
-     69
-    ]
+    "criteria": 23
    }
   },
-  "total_minutes": [
-   313,
-   649
-  ],
-  "note": "human review remaining after the machine, per class (MIN 1-3, MED 5-10, MAX 15-30 min per criterion)"
+  "note": "human review remaining, grouped by effort class"
  },
  "scope": null,
  "criteria": [
@@ -50,10 +34,6 @@
    "note": null,
    "effort": {
     "class": "MIN",
-    "minutes": [
-     1,
-     3
-    ],
     "why": "alt presence is measured; scan for the image the heuristic missed."
    },
    "value": {
@@ -66,10 +46,6 @@
    "note": "not-flagged ≠ pass: no automated signal fired on this sample",
    "effort": {
     "class": "MIN",
-    "minutes": [
-     1,
-     3
-    ],
     "why": "caption track presence detected; confirm the captions are real."
    }
   },
@@ -79,10 +55,6 @@
    "note": "not-flagged ≠ pass: no automated signal fired on this sample",
    "effort": {
     "class": "MAX",
-    "minutes": [
-     15,
-     30
-    ],
     "why": "watch the media and judge whether an alternative covers essential visuals."
    }
   },
@@ -92,10 +64,6 @@
    "note": "not-flagged ≠ pass: no automated signal fired on this sample",
    "effort": {
     "class": "MAX",
-    "minutes": [
-     15,
-     30
-    ],
     "why": "audio description requires watching and judging the video."
    }
   },
@@ -105,10 +73,6 @@
    "note": "not-flagged ≠ pass: no automated signal fired on this sample",
    "effort": {
     "class": "MED",
-    "minutes": [
-     5,
-     10
-    ],
     "why": "semantic structure signals (fieldsets, heading skips, lists); navigate with a screen reader."
    }
   },
@@ -118,10 +82,6 @@
    "note": "no check for this criterion ran on this sample — missing: a11y_audit_dom",
    "effort": {
     "class": "MED",
-    "minutes": [
-     5,
-     10
-    ],
     "why": "DOM vs visual order from snapshot and tab walk; spot-check layout exceptions."
    }
   },
@@ -131,10 +91,6 @@
    "note": "not-flagged ≠ pass: no automated signal fired on this sample",
    "effort": {
     "class": "MIN",
-    "minutes": [
-     1,
-     3
-    ],
     "why": "sensory-instruction phrases detected; read the instructions once."
    }
   },
@@ -144,10 +100,6 @@
    "note": "not-flagged ≠ pass: no automated signal fired on this sample",
    "effort": {
     "class": "MIN",
-    "minutes": [
-     1,
-     3
-    ],
     "why": "orientation-lock CSS/JS detected; confirm on a device."
    }
   },
@@ -157,10 +109,6 @@
    "note": "not-flagged ≠ pass: no automated signal fired on this sample",
    "effort": {
     "class": "MIN",
-    "minutes": [
-     1,
-     3
-    ],
     "why": "autocomplete token per input measured; confirm."
    }
   },
@@ -170,10 +118,6 @@
    "note": "no check for this criterion ran on this sample — missing: a11y_audit_dom",
    "effort": {
     "class": "MED",
-    "minutes": [
-     5,
-     10
-    ],
     "why": "link-vs-text color ratio computed; verify visually."
    }
   },
@@ -183,10 +127,6 @@
    "note": "no check for this criterion ran on this sample — missing: a11y_journey_verdict, a11y_reflow",
    "effort": {
     "class": "MED",
-    "minutes": [
-     5,
-     10
-    ],
     "why": "320px reflow measured with real overflow; navigate the reflowed content."
    }
   },
@@ -196,10 +136,6 @@
    "note": "no check for this criterion ran on this sample — missing: a11y_audit_dom",
    "effort": {
     "class": "MED",
-    "minutes": [
-     5,
-     10
-    ],
     "why": "focus-indicator contrast computed; verify visually."
    }
   },
@@ -209,10 +145,6 @@
    "note": "not-flagged ≠ pass: no automated signal fired on this sample",
    "effort": {
     "class": "MED",
-    "minutes": [
-     5,
-     10
-    ],
     "why": "text-spacing overrides injected, clipping counted; verify."
    }
   },
@@ -222,10 +154,6 @@
    "note": "no check for this criterion ran on this sample — missing: a11y_hover, a11y_journey_verdict",
    "effort": {
     "class": "MED",
-    "minutes": [
-     5,
-     10
-    ],
     "why": "hover + Escape dismissibility tested; verify."
    }
   },
@@ -235,10 +163,6 @@
    "note": "not-flagged ≠ pass: no automated signal fired on this sample",
    "effort": {
     "class": "MIN",
-    "minutes": [
-     1,
-     3
-    ],
     "why": "autoplay-with-audio detected; confirm."
    }
   },
@@ -248,10 +172,6 @@
    "note": "no check for this criterion ran on this sample — missing: a11y_audit_dom, a11y_forced_colors",
    "effort": {
     "class": "MAX",
-    "minutes": [
-     15,
-     30
-    ],
     "why": "computed ratios are evidence, not verdicts; gradients, images and hover states still need review."
    }
   },
@@ -261,10 +181,6 @@
    "note": "not-flagged ≠ pass: no automated signal fired on this sample",
    "effort": {
     "class": "MIN",
-    "minutes": [
-     1,
-     3
-    ],
     "why": "viewport zoom block measured; confirm."
    }
   },
@@ -274,10 +190,6 @@
    "note": "not-flagged ≠ pass: no automated signal fired on this sample",
    "effort": {
     "class": "MED",
-    "minutes": [
-     5,
-     10
-    ],
     "why": "images-of-text candidates detected; judge logo and text exceptions."
    }
   },
@@ -287,10 +199,6 @@
    "note": "not-flagged ≠ pass: no automated signal fired on this sample",
    "effort": {
     "class": "MED",
-    "minutes": [
-     5,
-     10
-    ],
     "why": "click handlers on non-interactive elements detected; Tab the page."
    }
   },
@@ -300,10 +208,6 @@
    "note": "no check for this criterion ran on this sample — missing: a11y_journey_verdict, a11y_keyboard",
    "effort": {
     "class": "MAX",
-    "minutes": [
-     15,
-     30
-    ],
     "why": "real Tab walk plus Escape test per modal and iframe."
    }
   },
@@ -313,10 +217,6 @@
    "note": "not-flagged ≠ pass: no automated signal fired on this sample",
    "effort": {
     "class": "MAX",
-    "minutes": [
-     15,
-     30
-    ],
     "why": "single-character shortcuts tested by typing in every field."
    }
   },
@@ -326,10 +226,6 @@
    "note": "not-flagged ≠ pass: no automated signal fired on this sample",
    "effort": {
     "class": "MIN",
-    "minutes": [
-     1,
-     3
-    ],
     "why": "meta refresh and timing scripts detected; confirm."
    }
   },
@@ -339,10 +235,6 @@
    "note": "not-flagged ≠ pass: no automated signal fired on this sample",
    "effort": {
     "class": "MED",
-    "minutes": [
-     5,
-     10
-    ],
     "why": "looping animations computed; verify the pause control."
    }
   },
@@ -352,10 +244,6 @@
    "note": null,
    "effort": {
     "class": "MIN",
-    "minutes": [
-     1,
-     3
-    ],
     "why": "missing main/skip detected; confirm."
    }
   },
@@ -365,10 +253,6 @@
    "note": "no check for this criterion ran on this sample — missing: a11y_audit_dom",
    "effort": {
     "class": "MED",
-    "minutes": [
-     5,
-     10
-    ],
     "why": "sticky header vs scroll-padding measured; Tab the page."
    }
   },
@@ -378,10 +262,6 @@
    "note": "not-flagged ≠ pass: no automated signal fired on this sample",
    "effort": {
     "class": "MIN",
-    "minutes": [
-     1,
-     3
-    ],
     "why": "missing or empty title detected; confirm."
    }
   },
@@ -391,10 +271,6 @@
    "note": "not-flagged ≠ pass: no automated signal fired on this sample",
    "effort": {
     "class": "MIN",
-    "minutes": [
-     1,
-     3
-    ],
     "why": "positive tabindex detected; confirm."
    }
   },
@@ -404,10 +280,6 @@
    "note": "not-flagged ≠ pass: no automated signal fired on this sample",
    "effort": {
     "class": "MIN",
-    "minutes": [
-     1,
-     3
-    ],
     "why": "generic link text detected; read the links in context."
    }
   },
@@ -417,10 +289,6 @@
    "note": "no check for this criterion ran on this sample — missing: a11ytoolkit audit --pages",
    "effort": {
     "class": "MED",
-    "minutes": [
-     5,
-     10
-    ],
     "why": "nav/sitemap/search presence from the crawl; confirm."
    }
   },
@@ -430,10 +298,6 @@
    "note": "not-flagged ≠ pass: no automated signal fired on this sample",
    "effort": {
     "class": "MED",
-    "minutes": [
-     5,
-     10
-    ],
     "why": "vague headings detected; read them in context."
    }
   },
@@ -443,10 +307,6 @@
    "note": "no check for this criterion ran on this sample — missing: a11y_audit_dom, a11y_journey_verdict",
    "effort": {
     "class": "MAX",
-    "minutes": [
-     15,
-     30
-    ],
     "why": "focus visibility measured per stop; Tab the whole site."
    }
   },
@@ -456,10 +316,6 @@
    "note": "not-flagged ≠ pass: no automated signal fired on this sample",
    "effort": {
     "class": "MED",
-    "minutes": [
-     5,
-     10
-    ],
     "why": "gesture listeners without alternatives detected; try the gesture."
    }
   },
@@ -469,10 +325,6 @@
    "note": "not-flagged ≠ pass: no automated signal fired on this sample",
    "effort": {
     "class": "MIN",
-    "minutes": [
-     1,
-     3
-    ],
     "why": "down-event-only handlers detected; confirm."
    }
   },
@@ -482,10 +334,6 @@
    "note": "not-flagged ≠ pass: no automated signal fired on this sample",
    "effort": {
     "class": "MIN",
-    "minutes": [
-     1,
-     3
-    ],
     "why": "label-in-name mismatch computed; confirm."
    }
   },
@@ -495,10 +343,6 @@
    "note": "not-flagged ≠ pass: no automated signal fired on this sample",
    "effort": {
     "class": "MIN",
-    "minutes": [
-     1,
-     3
-    ],
     "why": "motion actuation without UI detected; confirm."
    }
   },
@@ -508,10 +352,6 @@
    "note": "not-flagged ≠ pass: no automated signal fired on this sample",
    "effort": {
     "class": "MED",
-    "minutes": [
-     5,
-     10
-    ],
     "why": "drag listeners detected; try the click path."
    }
   },
@@ -521,10 +361,6 @@
    "note": "no check for this criterion ran on this sample — missing: a11y_audit_dom",
    "effort": {
     "class": "MED",
-    "minutes": [
-     5,
-     10
-    ],
     "why": "target rects measured; check the inline/equivalent exceptions."
    }
   },
@@ -534,10 +370,6 @@
    "note": "not-flagged ≠ pass: no automated signal fired on this sample",
    "effort": {
     "class": "MIN",
-    "minutes": [
-     1,
-     3
-    ],
     "why": "page lang missing or invalid, measured; confirm."
    }
   },
@@ -547,10 +379,6 @@
    "note": "not-flagged ≠ pass: no automated signal fired on this sample",
    "effort": {
     "class": "MIN",
-    "minutes": [
-     1,
-     3
-    ],
     "why": "part lang invalid, measured; confirm."
    }
   },
@@ -560,10 +388,6 @@
    "note": "no check for this criterion ran on this sample — missing: a11y_keyboard",
    "effort": {
     "class": "MIN",
-    "minutes": [
-     1,
-     3
-    ],
     "why": "focus-triggered navigation detected; confirm."
    }
   },
@@ -573,10 +397,6 @@
    "note": "no check for this criterion ran on this sample — missing: a11y_keyboard",
    "effort": {
     "class": "MIN",
-    "minutes": [
-     1,
-     3
-    ],
     "why": "select-triggered navigation detected; confirm."
    }
   },
@@ -586,10 +406,6 @@
    "note": "no check for this criterion ran on this sample — missing: a11ytoolkit audit --pages",
    "effort": {
     "class": "MED",
-    "minutes": [
-     5,
-     10
-    ],
     "why": "nav consistency compared across crawled pages; confirm the order."
    }
   },
@@ -599,10 +415,6 @@
    "note": "not-flagged ≠ pass: no automated signal fired on this sample",
    "effort": {
     "class": "MED",
-    "minutes": [
-     5,
-     10
-    ],
     "why": "consistent identification compared across pages; confirm the icons."
    }
   },
@@ -612,10 +424,6 @@
    "note": "no check for this criterion ran on this sample — missing: a11ytoolkit audit --pages",
    "effort": {
     "class": "MIN",
-    "minutes": [
-     1,
-     3
-    ],
     "why": "help presence compared across crawled pages; confirm."
    }
   },
@@ -625,10 +433,6 @@
    "note": "no check for this criterion ran on this sample — missing: a11y_forms, a11y_journey_verdict",
    "effort": {
     "class": "MAX",
-    "minutes": [
-     15,
-     30
-    ],
     "why": "invalid submissions fired and the DOM judged; verify with a screen reader."
    }
   },
@@ -638,10 +442,6 @@
    "note": null,
    "effort": {
     "class": "MIN",
-    "minutes": [
-     1,
-     3
-    ],
     "why": "placeholder-only and unlabeled required fields measured; read each label."
    },
    "value": {
@@ -654,10 +454,6 @@
    "note": "no check for this criterion ran on this sample — missing: a11y_forms, a11y_journey_verdict",
    "effort": {
     "class": "MAX",
-    "minutes": [
-     15,
-     30
-    ],
     "why": "read and judge each correction suggestion."
    }
   },
@@ -667,10 +463,6 @@
    "note": "not-flagged ≠ pass: no automated signal fired on this sample",
    "effort": {
     "class": "MAX",
-    "minutes": [
-     15,
-     30
-    ],
     "why": "reversible-transaction check requires walking the flow."
    }
   },
@@ -680,10 +472,6 @@
    "note": "not-flagged ≠ pass: no automated signal fired on this sample",
    "effort": {
     "class": "MIN",
-    "minutes": [
-     1,
-     3
-    ],
     "why": "captcha detected; confirm an alternative exists."
    }
   },
@@ -693,10 +481,6 @@
    "note": null,
    "effort": {
     "class": "MIN",
-    "minutes": [
-     1,
-     3
-    ],
     "why": "invalid roles, broken refs and missing state measured; confirm."
    }
   },
@@ -706,10 +490,6 @@
    "note": null,
    "effort": {
     "class": "MAX",
-    "minutes": [
-     15,
-     30
-    ],
     "why": "fire each status message and listen for the announcement."
    }
   },
@@ -719,10 +499,6 @@
    "note": "no automated signal exists for this criterion in this toolkit",
    "effort": {
     "class": "MED",
-    "minutes": [
-     5,
-     10
-    ],
     "why": "media tags detected; play the media and judge the alternative."
    }
   },
@@ -732,10 +508,6 @@
    "note": "no automated signal exists for this criterion in this toolkit",
    "effort": {
     "class": "MAX",
-    "minutes": [
-     15,
-     30
-    ],
     "why": "live captions must be watched and judged; no honest signal."
    }
   },
@@ -745,10 +517,6 @@
    "note": "no automated signal exists for this criterion in this toolkit",
    "effort": {
     "class": "MAX",
-    "minutes": [
-     15,
-     30
-    ],
     "why": "flash threshold needs frame-by-frame analysis; no honest signal."
    }
   },
@@ -758,10 +526,6 @@
    "note": "no automated signal exists for this criterion in this toolkit",
    "effort": {
     "class": "MAX",
-    "minutes": [
-     15,
-     30
-    ],
     "why": "redundant entry requires a remembered multi-step walk."
    }
   }
@@ -846,5 +610,5 @@
  "notes": null,
  "build": null,
  "notice": "This pack is evidence, not conformance: it says what machines found and what remains for a human. A conformance claim requires the signature block completed by a qualified person who reviewed the manual list.",
- "sha256": "285b668aa843b58401c6cd2fa1ad3db35b1576c3402eae16477f1143c2c72d16"
+ "sha256": "227558b192fdefb8dd492728dc4df894a71b1599138d15b06b8f329c9548ec0d"
 }

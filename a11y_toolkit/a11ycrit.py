@@ -748,11 +748,7 @@ _C = {
 _LEVEL = {'A': 'A', 'AA': 'AA', 'AAA': 'AAA'}
 
 # Human-effort class for every A/AA criterion — what the HUMAN still does after
-# the machine's best signal. Used for review-marketplace pricing interlocks
-# and emitted in the evidence pack matrix.
-#   MIN (1-3 min):  the agent verified with a measured signal; the human reads and confirms.
-#   MED (5-10 min): the agent prepares context; the human verifies in the browser.
-#   MAX (15-30 min): real interaction, real judgment, real tooling.
+# The public evidence pack classifies the remaining review by effort.
 # A not-flagged on a partially-covered criterion never earns a lower class:
 # "the machine looked and found nothing" is weaker than a confirmation.
 _EFFORT = {
@@ -812,8 +808,6 @@ _EFFORT = {
     '3.3.7': ('MAX', 'redundant entry requires a remembered multi-step walk.'),
     '4.1.3': ('MAX', 'fire each status message and listen for the announcement.'),
 }
-
-_EFFORT_MINUTES = {'MIN': (1, 3), 'MED': (5, 10), 'MAX': (15, 30)}
 
 # Criterios A/AA que SOLO el modo renderizado puede medir (a11y_audit_dom):
 # contraste computado, espaciado, tamaño de objetivo, foco, formularios vivos…
@@ -1110,11 +1104,11 @@ def criterion(code=None, lang='en', signal=None):
 
 
 def effort(code):
-    """Human-effort class for an A/AA criterion: {clase, porque, minutos} or None."""
+    """Human review class and rationale for an A/AA criterion."""
     if code not in _EFFORT:
         return None
     grade, why = _EFFORT[code]
-    return {'class': grade, 'why': why, 'minutes': list(_EFFORT_MINUTES[grade])}
+    return {'class': grade, 'why': why}
 
 
 def main(argv):

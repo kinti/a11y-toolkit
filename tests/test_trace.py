@@ -151,6 +151,9 @@ assert trace_diff(invalid_dialog, invalid_dialog, gate_dialog_state=True
 
 
 class _HttpTracePage(_FakeTracePage):
+    def on(self, event, listener):
+        assert event == 'response' and callable(listener)
+
     def goto(self, url, **kw):
         super().goto(url, **kw)
         return SimpleNamespace(status=404 if url.endswith('/missing') else 200)

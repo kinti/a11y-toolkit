@@ -29,7 +29,6 @@ import hashlib
 import json
 
 from .a11yaudit import normalize_report  # noqa: E402  (compat 5.10)
-from .a11ycrit import _EFFORT_MINUTES  # single source: a11ycrit prices the classes
 import sys
 from datetime import datetime, timezone
 
@@ -104,13 +103,10 @@ def apply_scope(pack, scope, lang='en'):
         criteria.append(row)
     out['criteria'] = criteria
     out['summary'] = {e: sum(1 for m in criteria if m.get('status') == e) for e in _STATES}
-    # the scope changes what REMAINS to do: effort_pending and manual_pending
-    # must describe the resulting matrix (excluded = zero pending human
-    # effort), not the pre-scope pack — otherwise the human is overcharged
-    # and criteria already not-applicable keep being named as pending
     out['effort_pending'] = _pending_effort(
         criteria, tx.get('manual_remaining')
-        or a11yi18n.pack('en')['evidence']['manual_remaining'])
+        or a11yi18n.pack('en')['evidence']['manual_remaining'],
+        legacy=pack.get('format') == 'a11y-evidence-pack/2')
     out['manual_pending'] = [m['criterion'] for m in criteria
                              if m.get('status') == 'manual-only']
     return out
@@ -120,31 +116,26 @@ def _sha256(obj):
     return hashlib.sha256(_canon(obj).encode('utf-8')).hexdigest()
 
 
-def _pending_effort(matrix, note):
-    """Remaining human review, in minutes: MIN/MED/MAX per class summed over
-    every row a human still has to touch (agent-verified excluded; rows out
-    of applicability scope carry no effort). Shared by build_pack AND
-    apply_scope — the priced scope must always describe the CURRENT matrix,
-    never the pre-scope one."""
-    pend = {}
-    for m in matrix:
-        if m.get('status') == 'agent-verified':
+def _pending_effort(matrix, note, legacy=False):
+    """Count pending review by class. Preserve supplied durations for v2."""
+    groups = {}
+    for row in matrix:
+        if row.get('status') in ('agent-verified', 'not-applicable') or not row.get('effort'):
             continue
-        ef = m.get('effort')
-        if ef:
-            lo, hi = _EFFORT_MINUTES[ef['class']]
-            pend.setdefault(ef['class'], [0, 0])
-            pend[ef['class']][0] += lo
-            pend[ef['class']][1] += hi
-    return {
-        'by_class': {k: {'criteria': sum(1 for m in matrix
-                                         if m.get('status') != 'agent-verified'
-                                         and m.get('effort', {}).get('class') == k),
-                         'minutes': v}
-                     for k, v in sorted(pend.items())},
-        'total_minutes': [sum(v[0] for v in pend.values()), sum(v[1] for v in pend.values())],
-        'note': note,
-    }
+        effort = row['effort']
+        bucket = groups.setdefault(effort['class'], {'criteria': 0})
+        bucket['criteria'] += 1
+        minutes = effort.get('minutes')
+        if legacy and isinstance(minutes, (list, tuple)) and len(minutes) == 2:
+            if all(type(value) in (int, float) for value in minutes):
+                totals = bucket.setdefault('minutes', [0, 0])
+                for index, value in enumerate(minutes):
+                    totals[index] += value
+    result = {'by_class': dict(sorted(groups.items())), 'note': note}
+    if legacy:
+        result['total_minutes'] = [sum(group.get('minutes', [0, 0])[i] for group in groups.values())
+                                   for i in range(2)]
+    return result
 
 
 def build_pack(reports, snapshot=None, reviewer=None, notes=None, verified=None,
@@ -311,10 +302,7 @@ def build_pack(reports, snapshot=None, reviewer=None, notes=None, verified=None,
                  'status': state, 'note': note}
         ef = effort(code)
         if ef:
-            # human-effort class: what the HUMAN still does after the machine's
-            # best signal (pricing input for human-review scoping)
-            entry['effort'] = {'class': ef['class'], 'minutes': ef['minutes'],
-                                   'why': ef['why']}
+            entry['effort'] = ef
         if code in values:
             entry['value'] = values[code]
         matrix.append(entry)
@@ -331,8 +319,7 @@ def build_pack(reports, snapshot=None, reviewer=None, notes=None, verified=None,
                 'note': tx['no_signal']}
         ef = effort(code)
         if ef:
-            row['effort'] = {'class': ef['class'], 'minutes': ef['minutes'],
-                                'why': ef['why']}
+            row['effort'] = ef
         matrix.append(row)
     for code in sorted(verified):
         # una exclusión confirmada gana a una verificación previa: el
@@ -346,16 +333,11 @@ def build_pack(reports, snapshot=None, reviewer=None, notes=None, verified=None,
                     'note': 'verified against this sample per the manual checklist protocol'}
             ef = effort(code)
             if ef:
-                row['effort'] = {'class': ef['class'], 'minutes': ef['minutes'],
-                                    'why': ef['why']}
+                row['effort'] = ef
             matrix.append(row)
 
     summary = {e: sum(1 for m in matrix if m['status'] == e) for e in _STATES}
 
-    # remaining human review, in minutes: MIN/MED/MAX per class summed over
-    # every row a human still has to touch (everything except agent-verified).
-    # This is the scope input for human review: agent output in,
-    # priced human scope out. The class prices live in a11ycrit (single source).
     pending_effort = _pending_effort(matrix, tx['manual_remaining'])
 
     artifacts = report_artifacts
@@ -389,7 +371,7 @@ def build_pack(reports, snapshot=None, reviewer=None, notes=None, verified=None,
         }
 
     pack = {
-        'format': 'a11y-evidence-pack/2',
+        'format': 'a11y-evidence-pack/3',
         'lang': language,
         'generated': now,
         'tool': 'a11y-toolkit (github.com/kinti/a11y-toolkit)',

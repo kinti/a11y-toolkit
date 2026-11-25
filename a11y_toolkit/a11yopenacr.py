@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """OpenACR (GSA) generator — the machine-readable ACR for public procurement.
 
-Input: an a11y-evidence-pack/2 (from a11y_evidence / the a11y_evidence MCP
+Input: an a11y evidence pack (v2 or v3) (from a11y_evidence / the a11y_evidence MCP
 tool) or raw audit reports (the pack is built here). Output: OpenACR YAML
 (the GSA open standard born from VPAT 2.4Rev 508; gsa.github.io/openacr)
 with the full 55-criterion WCAG 2.2 A/AA matrix — chapters
@@ -75,8 +75,8 @@ def _remarks(row, finding, pack_sha):
             parts.append('remediation: ' + str(finding['remediation'])[:220])
     ef = row.get('effort')
     if ef:
-        parts.append('remaining human effort: ' + str(ef.get('class'))
-                     + ' (' + str(ef.get('minutes')) + ' min)')
+        minutes = f" ({ef['minutes']} min)" if ef.get('minutes') else ''
+        parts.append(f"remaining human effort: {ef.get('class')}{minutes}")
     parts.append('evidence pack sha256 ' + pack_sha)
     return ' | '.join(p for p in parts if p)
 

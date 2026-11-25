@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """VPAT 2.5 (WCAG edition) generator — the US counterpart of the EAA declaration.
 
-Input: an a11y-evidence-pack/2 (from a11y_evidence / a11y_evidence MCP tool)
+Input: an a11y evidence pack (v2 or v3) (from a11y_evidence / a11y_evidence MCP tool)
 or raw audit reports (the pack is built here). Output: an accessible HTML
 VPAT with the full 55-criterion WCAG 2.2 A/AA table.
 
@@ -114,7 +114,8 @@ def _remarks(t, row, finding, level, pack_sha):
             parts.append(f"remediation: {finding['remediation'][:220]}")
     ef = row.get('effort')
     if ef:
-        parts.append(f"remaining human effort: {ef['class']} ({ef['minutes']} min)")
+        minutes = f" ({ef['minutes']} min)" if ef.get('minutes') else ''
+        parts.append(f"remaining human effort: {ef['class']}{minutes}")
     parts.append(f"evidence pack sha256 {pack_sha}")
     return ' | '.join(p for p in parts if p)
 

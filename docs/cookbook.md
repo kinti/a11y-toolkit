@@ -61,7 +61,7 @@ curl -sLO https://raw.githubusercontent.com/kinti/a11y-toolkit/main/scripts/veri
 python3 verify_pack.py pack.json     # 0 = the seal holds; needs no toolkit
 ```
 
-The pack is `a11y-evidence-pack/2`: the 55-criterion matrix, per-artifact
+The pack is `a11y-evidence-pack/3`: the 55-criterion matrix, per-artifact
 SHA-256, the whole-pack seal, and the priced human work that remains
 (MIN/MED/MAX minutes). Anyone re-verifies it without installing us — that
 is the point (the verifier is one standalone stdlib file).
@@ -115,9 +115,9 @@ real task perceiving only that: [journey-example.md](journey-example.md).
 at disprove --file audit.json --url $URL
 ```
 
-Re-runs every finding against the live page and marks each confirmed or
-rejected — regression between runs, stale reports and overeager scanners
-all fall here.
+Re-audits the same page and returns its current score, coverage and findings.
+It confirms matching findings, records earlier findings that disappeared and
+keeps ambiguous historical matches for review.
 
 ## 10. Machine readers: SARIF + EARL
 
@@ -130,56 +130,11 @@ SARIF lands in GitHub code scanning (the Action does it for you); EARL
 traces every finding to its published ACT rule — and never asserts a
 `pass` the machine cannot know.
 
-## 11. A full evaluation, the WCAG-EM way
+## 11. Use fingerprints to select representative pages
 
-When the question is "is the WHOLE product accessible" (a tender, an audit,
-a regulator), one page is not an answer — a sample is:
-
-```bash
-# 1) plan: scope + conformance target + sample set (you choose the sample:
-#    structured pages, random picks, complete processes)
-cat > plan.json <<'P'
-{"product": {"name": "Acme Site", "url": "https://acme.example", "scope": "whole product"},
- "conformance_target": "WCAG 2.2 AA",
- "support_baseline": ["NVDA + Chrome", "VoiceOver + Safari"],
- "sample": [
-   {"id": "home", "url": "https://acme.example/", "type": "common-view", "why": "landing"},
-   {"id": "checkout", "url": "https://acme.example/checkout", "type": "process", "why": "complete process"}]}
-P
-# 2) one sealed pack per sample (recipes 1-4)
-# 3) the aggregated WCAG-EM report, root-sealed over the pack seals
-```
-
-The report rolls every criterion up ACROSS the sample (a failure anywhere
-is a failure of the report) and prices the human work that remains — now
-with honest intervals: per-criterion prevalence (Wilson) and per-page
-effort as a declared range, never a naked point. It never claims
-conformance; that signature is a person's, not a tool's.
-
-## 12. From findings to a fix ROUTE (the plan)
-
-A list of 40 findings is an inventory; nobody answers "in what order?".
-The plan groups findings by shared cause and orders the batches with a
-declared heuristic — infrastructure first (it reprices everything else),
-design-system decisions next (one theme change kills many contrast
-findings), instances after, pages piling up signals flagged for a redesign
-pass:
-
-```bash
-# better minutes: price with the evidence pack's effort table
-```
-
-Each batch carries its minute range and the running total; grouping savings
-are a declared optimistic bound, not a promise. The order is a heuristic —
-reorder it, re-seal it, make it yours.
-
-## 13. One audit per template (don't audit 340 twins)
-
-You crawled 500 pages and the report says the same menu is broken 340
-times. WCAG-EM Step 3 says audit one page per template — but nothing told
-you which pages share a template. Fingerprints hash each page from three
-independent views (skeleton / classes / attributes), ignoring text and
-per-page noise (ids, urls, tokens), so twins stay twins:
+Fingerprints group pages by DOM structure, classes and attributes. Start
+with the suggested representatives and include relevant differences in
+content and interaction when selecting the pages to audit.
 
 ```bash
 at fingerprints --dir pages/ -o templates.json
@@ -193,11 +148,10 @@ pages: 4   templates: 2
 sample: ["pages/contact.html", "pages/product-1.html"]
 ```
 
-Audit the representatives, not the twins — and the `divergence` list tells
-you if a "twin" quietly drifted (`{page, region, view}`: header diverges in
-classes while the footer stays identical).
+The `divergence` list identifies regions that differ structurally. Pages in
+the same group can still have different labels, alternative text or findings.
 
-## 14. Score ANY engine against the frozen corpus
+## 12. Score ANY engine against the frozen corpus
 
 You want to know how another evaluator (a competitor's, a new LLM agent's,
 your own fork) behaves on KNOWN ground truth — not on pages where nobody
@@ -218,7 +172,7 @@ nothing scores exactly 0.0 — and one that invents criteria on the placebo
 pages is exposed by construction. The contract is criterion codes, not
 tool rule ids: axe, Lighthouse or a human with a checklist can all play.
 
-## 15. Locate a broken table header in the original HTML
+## 13. Locate a broken table header in the original HTML
 
 ```bash
 at audit --file table.html > table-audit.json
@@ -238,7 +192,7 @@ the CLI reports `source_mismatch: true`, writes the original HTML as the
 output, and counts the findings as unplaced. Re-audit the edited source to
 place fresh marks.
 
-## 16. Gate a keyboard journey in CI
+## 14. Gate a keyboard journey in CI
 
 Save the same actions for both runs, for example in `journey.json`.
 

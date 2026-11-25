@@ -281,11 +281,12 @@ scoped_pack = apply_scope(base_pack, {'format': 'a11y-scope/1', 'criteria': [
 ]}, lang='en')
 check('apply_scope: resumen cuenta las not-applicable',
       scoped_pack['summary']['not-applicable'] == 2)
-drop = [a - b for a, b in zip(base_pack['effort_pending']['total_minutes'],
-                              scoped_pack['effort_pending']['total_minutes'])]
-expected = [sum(_effort(c)['minutes'][i] for c in ('1.2.1', '3.3.7')) for i in (0, 1)]
-check('apply_scope: el esfuerzo cae EXACTO lo excluido', drop == expected,
-      f'drop={drop} expected={expected}')
+by_class = base_pack['effort_pending']['by_class']
+scoped_classes = scoped_pack['effort_pending']['by_class']
+for effort_class, bucket in by_class.items():
+    excluded = sum(_effort(c)['class'] == effort_class for c in ('1.2.1', '3.3.7'))
+    check(f'apply_scope: {effort_class} pierde exactamente las filas excluidas',
+          scoped_classes[effort_class]['criteria'] == bucket['criteria'] - excluded)
 check('apply_scope: manual_pending ya no nombra las excluidas',
       not [m for m in scoped_pack['manual_pending']
            if m.split(' ')[0] in ('1.2.1', '3.3.7')])

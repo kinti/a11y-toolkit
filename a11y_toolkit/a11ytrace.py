@@ -139,7 +139,7 @@ def _run_script_action(page, act):
     return f'unknown:{kind or sel}', False
 
 
-def _run_script(page, script, dialog_state=False):
+def _run_script(page, script, dialog_state=False, check_navigation=None):
     """Scripted actions → (walk, navigations). Factored out of trace() so the
     loop is testable against a fake page (no Playwright needed)."""
     walk = []
@@ -156,6 +156,8 @@ def _run_script(page, script, dialog_state=False):
             label = f'{act.get("kind", "?")}:{act.get("selector") or act.get("key") or ""}'
             label += f' (failed: {str(e)[:60]})'
         page.wait_for_timeout(200)
+        if check_navigation is not None:
+            check_navigation()
         info = page.evaluate(a11ydiff.FOCUS_KEY_JS)
         anns = page.evaluate(_DRAIN)
         if page.url != url_now:
@@ -190,7 +192,21 @@ def trace(url, steps=25, output=None, auth_state=None, timeout=45, script=None, 
     from .a11ydom import _get_browser, _pooled_page
     nav = _get_browser(preferred=browser)
     page, close_page = _pooled_page(nav, auth_state)
+    navigation_error = None
+
+    def observe_response(response):
+        nonlocal navigation_error
+        request = response.request
+        if (navigation_error is None and response.status >= 400
+                and request.is_navigation_request() and request.frame == page.main_frame):
+            navigation_error = _TraceHttpError(response.status, response.url)
+
+    def check_navigation():
+        if navigation_error is not None:
+            raise navigation_error
+
     try:
+        page.on('response', observe_response)
         try:
             _goto(page, url, timeout=timeout * 1000)
         except _TraceHttpError:
@@ -198,6 +214,7 @@ def trace(url, steps=25, output=None, auth_state=None, timeout=45, script=None, 
         except Exception as e:  # noqa: BLE001
             return {'error': f'could not load: {e}'}
         page.wait_for_timeout(400)
+        check_navigation()
         page.evaluate(_COLLECTOR)
 
         walk = []
@@ -205,16 +222,19 @@ def trace(url, steps=25, output=None, auth_state=None, timeout=45, script=None, 
         url_now = page.url
         if script:
             ended_by = 'script_done'
-            walk, navigations = _run_script(page, script, dialog_state=capture_dialog_state)
+            walk, navigations = _run_script(page, script, dialog_state=capture_dialog_state,
+                                            check_navigation=check_navigation)
         else:
             ended_by = 'step_cap'
             for i in range(steps):
                 page.keyboard.press('Tab')
+                check_navigation()
                 info = page.evaluate(a11ydiff.FOCUS_KEY_JS)
                 if info is None:
                     ended_by = 'no_more_focusables'
                     break
                 page.wait_for_timeout(150)   # let the observers flush
+                check_navigation()
                 anns = page.evaluate(_DRAIN)
                 if page.url != url_now:
                     navigations += 1
@@ -235,6 +255,7 @@ def trace(url, steps=25, output=None, auth_state=None, timeout=45, script=None, 
                 tree = tree[:60_000] + '\n… (truncated)'
         except Exception:  # noqa: BLE001
             tree = None
+        check_navigation()
     except _TraceHttpError as e:
         return {'error': str(e), 'url': e.url, 'http_status': e.status}
     finally:

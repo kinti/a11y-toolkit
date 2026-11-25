@@ -252,7 +252,7 @@ la voz del producto.
 Instálalo con `pip install a11y-toolkit` (o `uv tool install a11y-toolkit`).
 
 ```bash
-a11ytoolkit audit --changed                     # SOLO lo cambiado desde HEAD (gate de CI)
+a11ytoolkit audit --changed                     # HTML cambiado desde HEAD, incluidas rutas con tildes
 a11ytoolkit audit --changed --base origin/main  # los cambios de una rama — exit 2 en high/medium
 a11ytoolkit audit --url https://example.com --pages 5   # rastreo, sitemap primero y page_errors para páginas fallidas
 a11ytoolkit audit --file tabla.html  # encabezados dentro de su tabla y código 1 si el HTML supera el límite
@@ -269,15 +269,15 @@ a11ytoolkit fix --file page.html -o fixed.html          # autofix seguro
 a11ytoolkit declaration --entity "Acme" --url https://… --status partial --framework eaa
 a11ytoolkit snapshot https://mysite --out before.json   # antes del deploy
 a11ytoolkit diff before.json after.json                 # tras el deploy
-a11ytoolkit evidence audit.json -o pack.json            # cobertura medida y revisión para los hallazgos sin reverificar
-a11ytoolkit disprove --url https://mysite --file audit.json  # reverifica en la URL final del informe original
+a11ytoolkit evidence audit.json -o pack.json            # pack v3 con cobertura medida y recuentos de revisión
+a11ytoolkit disprove --url https://mysite --file audit.json  # reaudita el destino original, incluidos los hallazgos nuevos
 a11ytoolkit budget --init --audit audit.json > budget.json  # acepta los hallazgos medidos por página, recuento y rutas disponibles
-a11ytoolkit budget --budget budget.json --audit next.json   # código 1 si es incompleta, 2 si recuentos o rutas prueban regresión
+a11ytoolkit budget --budget budget.json --audit next.json   # código 1 si es incompleta o cambia el esquema de color, 2 si hay regresión
 # la deuda legacy no bloquea: adopta CI hoy, que la accesibilidad no empeore mientras la pagas
 a11ytoolkit budget --init-snapshot s.json > estructural.json    # presupuesto estructural: la estructura de HOY se acepta
 a11ytoolkit budget --budget estructural.json --snapshot s2.json # solo la estructura renderizada NUEVA bloquea (exit 0/2)
 a11ytoolkit engines https://mysite                        # la misma página en 3 motores: divergencias de comportamiento, por pares
-a11ytoolkit trace https://mysite --script journey.json -o t.json  # jornada real scriptada, luego: trace diff t_viejo.json t.json
+a11ytoolkit trace https://mysite --script journey.json -o t.json  # jornada scriptada; los errores HTTP del documento invalidan la captura
 a11ytoolkit trace https://mysite --script j.json --capture-dialog-state -o t.json  # + estado modal por paso, luego: trace diff a.json b.json --gate-dialog-state
 a11ytoolkit trace diff a.json b.json  # código 1 si la captura es inválida, 2 si hay regresión
 a11ytoolkit patterns https://mysite                       # contratos APG de teclado, en vivo: dialog / tablist / disclosure / combobox / menu / slider
@@ -295,7 +295,7 @@ a11ytoolkit wcag3 --from-audit audit.json                      # vista previa WC
 a11ytoolkit route --goal "gate my PR"                          # qué herramientas para la tarea
 a11ytoolkit route --file page.html                             # diagnóstico: la página ordena
 a11ytoolkit mutants --seed 7 --n 12                            # el autoexamen sellado del motor
-a11ytoolkit fingerprints pages/*.html -o templates.json        # gemelas → una auditoría por plantilla
+a11ytoolkit fingerprints pages/*.html -o templates.json        # sugiere una muestra estructural; revisa el contenido de cada página
 a11ytoolkit audit --file pagina.html --standard en301549       # cláusula EN 301 549 en cada hallazgo
 a11ytoolkit annotate pagina.html --report r.json -o copia.html # inserta las marcas en una pasada y conserva el texto de origen
 a11ytoolkit locate --file pagina.html --query "Enviar"         # elemento por nombre accesible → ruta selector
@@ -406,7 +406,7 @@ WCAG contando AAA y las comprobaciones genuinamente humanas).
 El prompt `audit-page` y la skill hacen que el agente compruebe lo que puede
 (teclado, foco, zoom, errores anunciados) usando [la checklist
 manual](skills/a11y-toolkit/references/wcag22-manual-checklist.md). Un filtro,
-no un veredicto. El trabajo humano restante está tasado por criterio — MIN 23
+no un veredicto. El pack agrupa la revisión humana pendiente por clase — MIN 23
 (leer y confirmar), MED 19 (verificar en el navegador), MAX 13 (interacción y
 juicio reales); [tabla completa](docs/effort-class-table.md). Y el pack de
 evidencia es el objeto de entrega para la persona que firma, con transcripción
@@ -447,7 +447,7 @@ estado, prueba de errores de formulario más autofix, trampas de teclado,
 scroll infinito, reflow, la integración W3C Nu, SARIF y presupuestos de
 error, el pack de evidencia (spec publicada, autoverificable), rastreo por
 sitemap, auditoría tras login, autodetección de navegador, la transcripción
-de lector de pantalla y el precio del trabajo humano por criterio. La
+de lector de pantalla y las clases de revisión humana por criterio. La
 historia completa vive en el [changelog](CHANGELOG.md).
 
 Siguiente, más o menos en este orden:

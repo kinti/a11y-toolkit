@@ -37,7 +37,7 @@
   a11ytoolkit wizard --url https://client.web --lang es     # guided: standard, audit, scope, annex
   a11ytoolkit mutants --seed 7 --n 12                       # the engine's sealed self-exam
   a11ytoolkit corpus build && a11ytoolkit corpus verify     # versioned audit corpus (dataset + baselines)
-  a11ytoolkit fingerprints page1.html page2.html --dir p/  # twin-page detection (one audit per template)
+  a11ytoolkit fingerprints page1.html page2.html --dir p/  # suggest a structural sample
   a11ytoolkit audit --url https://web --standard en301549   # EN 301 549 clause on every finding
   a11ytoolkit scope audit.json -o scope.json --standard en301549  # applicability: machine proposes, human confirms
   a11ytoolkit annotate page.html --report r.json -o copy.html  # per-element marks on a copy

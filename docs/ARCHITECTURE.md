@@ -8,9 +8,8 @@ read this. Every claim here that can be pinned by a test IS pinned by
 
 a11y-toolkit is the machine half of WCAG 2.2 conformance work: an MCP server
 (37 tools + 5 prompts) and a CLI (`a11ytoolkit`) that audit, fix, document,
-watch and hand off accessibility findings. The human half is priced, not
-guessed. Zero dependencies at the core; Playwright/Pillow optional behind
-import guards. Output es/en; wire keys English (`a11y-evidence-pack/2`).
+watch and hand off accessibility findings. The remaining human review is grouped by effort class. Zero dependencies at the core; Playwright/Pillow optional behind
+import guards. Output es/en; wire keys English (`a11y-evidence-pack/3`).
 
 ## Module map
 
@@ -21,7 +20,7 @@ import guards. Output es/en; wire keys English (`a11y-evidence-pack/2`).
 | `a11yaudit.py` | Static auditor: 50+ signals, `CRIT` name maps, weighted 0-100 score, per-table header validation, sitemap crawl (`audit_site` / `evaluate_site`). Input limits and incomplete HTTP bodies produce errors. `completed_report_pages` validates the measured sample for the budget and ledger. |
 | `a11ydom.py` | Rendered auditor (Playwright): shadow DOM, state contrast, target size, reflow, keyboard walk, forms, hover, sr_transcript; browser pool + auto-detection; `_TD` catalog. |
 | `a11yscroll.py` | Infinite-scroll audit (focus survival, announcements, feed end). |
-| `a11yevidence.py` | Evidence pack builder (`a11y-evidence-pack/2`): 55-criterion matrix, effort per row, SHA-256 chain, embedded bodies. |
+| `a11yevidence.py` | Evidence pack builder (`a11y-evidence-pack/3`): 55-criterion matrix, effort per row, SHA-256 chain, embedded bodies. |
 | `a11ycrit.py` | Knowledge catalog: `_C` (86 criteria A/AA/AAA, es/en), `_EFFORT` (55 A/AA effort classes), `effort()`. |
 | `a11yvpat.py` | VPAT 2.5 (WCAG edition) generator: pack → accessible HTML VPAT, machine fills Remarks, human sets levels (overrides), signature references pack sha256. |
 | `a11yfingerprints.py` | Multi-hash template fingerprints (twin-page detection): three independent views per region (structure / classes / attributes, text always excluded, id-referencing volatile attrs excluded by design), template = the structure view, localized divergence {page, region, view} against the representative, one-representative-per-template sample suggestion (WCAG-EM Step 3 helper) — deterministic hashlib-only, CLI + suite, not a tool. |
@@ -103,12 +102,11 @@ PyPI `a11y-toolkit` · GitHub releases · official MCP registry
 - **D6 — English wire keys, pack/2 (v5.0.0).** The frozen Spanish keys were
   the format's origin showing. Coordinated with the exchange pre-hardening.
 - **D7 — Effort classes are data** (`_EFFORT`), emitted per pack row plus
-  `effort_pending` totals. The marketplace prices; we state remaining scope.
-- **D8 — Two-sided automated-fail rule + NA settlement** (4.0.1): confirming
-  a measured fail = MIN; certifying pass = full class; not_applicable with
-  reason settles at MIN. Buyer never pays for examination that didn't happen.
+  counts by class in `effort_pending`.
+- **D8 — Review classes in evidence packs**. Pack/3 records classes and
+  counts. The v2 verifier remains available for archived evidence.
 - **D9 — Normative counts pinned** (test_solido): 55 A/AA set, per-criterion
-  levels, effort distribution 23/19/13, pack totals 313-649. Drift = red.
+  levels, effort distribution 23/19/13, and pack counts by class. Drift = red.
 - **D10 — Disprover + ledger** (from Cloudflare's security-audit-skill):
   re-verify findings against the live page; accumulate coverage across runs.
 - **D11 — Package layout (v4.0.0)**: `a11y_toolkit/` + `tests/`; console
@@ -168,9 +166,8 @@ PyPI `a11y-toolkit` · GitHub releases · official MCP registry
   split a template. The template IS the structure view (a declared rule,
   not fuzzy similarity); the views that diverge against the representative
   localize the change ({page, region, view} — "header diverges in classes,
-  footer identical"), and the audit budget collapses to one representative
-  per template (WCAG-EM Step 3). Cross-industry translation: multi-hash
-  identification from industrial recommender systems.
+  footer identical"). The output suggests one representative per template.
+  Sample selection also considers relevant differences in content and interaction.
 
 - **D22 — Frozen beats regenerated (a published corpus version is never
   edited)**: the mutant generator evolves with the engine; a benchmark

@@ -8,8 +8,8 @@ accessibility findings:
 
   1. Take an audit report
   2. For each finding, re-check the signal against the live page
-  3. Findings that reproduce → estado: confirmed
-  4. Findings that don't → estado: rejected + reject_reason
+  3. Findings that reproduce → status: confirmed
+  4. Findings that don't → status: rejected + reject_reason
 
 This catches:
   - False positives (the element changed, was fixed, or never existed)
@@ -29,42 +29,68 @@ import sys
 from .a11yaudit import audit_url, normalize_signal, page_identity
 
 
-def _recheck(url, expected_url, findings, timeout, lang, color_scheme=None):
-    """Compare findings only after a successful visit to the same page."""
+def _recheck(url, expected_url, timeout, lang, color_scheme=None):
+    """Obtain a successful measurement of the same page."""
     if color_scheme is None:
         fresh = audit_url(url, timeout=timeout, lang=lang)
     else:
         from .a11ydom import audit_dom_url
         fresh = audit_dom_url(url, timeout=timeout, lang=lang, color_scheme=color_scheme)
     if 'error' in fresh:
-        return findings, fresh['error']
+        return None, fresh['error']
     if page_identity(fresh.get('url')) != page_identity(expected_url):
-        return findings, ('La reauditoría terminó en una URL distinta de la del informe original.'
-                          if lang == 'es' else
-                          'The re-audit ended at a different URL from the original report.')
+        return None, ('La reauditoría terminó en una URL distinta de la del informe original.'
+                      if lang == 'es' else
+                      'The re-audit ended at a different URL from the original report.')
+    return fresh, None
 
-    signals = {h['signal'] for h in fresh['findings']}
-    rejected = ('La señal {signal!r} ya no aparece en la nueva auditoría de la página.'
+
+def _finding_key(finding):
+    return (normalize_signal(finding.get('signal', '')),
+            (finding.get('criterion') or '').split(' ', 1)[0])
+
+
+def _location_evidence(finding):
+    paths = tuple(sorted(set(finding.get('paths') or [])))
+    if paths:
+        count = finding.get('count')
+        return paths, count == len(paths) if count is not None else len(paths) < 5
+    return (), False
+
+
+def _classify_findings(previous, current, lang):
+    current = [dict(finding) for finding in current]
+    by_key = {}
+    for finding in current:
+        by_key.setdefault(_finding_key(finding), []).append(finding)
+    historical = []
+    rejected = ('El hallazgo anterior ya no aparece en la nueva auditoría de la página.'
                 if lang == 'es' else
-                'Signal {signal!r} no longer fires in the new audit of the page.')
-    verified = []
-    for finding in findings:
-        checked = dict(finding)
-        checked.pop('disprover_status', None)
-        checked.pop('reject_reason', None)
-        if normalize_signal(checked.get('signal', '')) in signals:
-            checked['status'] = 'confirmed'
+                'The earlier finding no longer appears in the new audit of the page.')
+    for old in previous:
+        if old.get('status') == 'rejected' or old.get('disprover_status') == 'rejected':
+            continue
+        key = _finding_key(old)
+        candidates = by_key.get(key, [])
+        paths, complete = _location_evidence(old)
+        locations = [_location_evidence(row) for row in candidates]
+        if not candidates or (complete and all(known and not set(paths).intersection(new_paths)
+                                                for new_paths, known in locations)):
+            historical.append(dict(old, status='rejected', reject_reason=rejected))
+        elif len(candidates) == 1 and ((complete and locations[0] == (paths, True))
+                                       or (not paths and not locations[0][0]
+                                           and old.get('examples') == candidates[0].get('examples')
+                                           and old.get('count') == candidates[0].get('count'))):
+            candidates[0]['status'] = 'confirmed'
         else:
-            checked['status'] = 'rejected'
-            checked['reject_reason'] = rejected.format(signal=checked.get('signal', '?'))
-        verified.append(checked)
-    return verified, None
+            historical.append(dict(old, disprover_status='not-rechecked'))
+    return current, historical
 
 
 def disprove(url, report=None, timeout=30, lang='en'):
     """Audit a URL and disprove findings, or verify an existing report.
 
-    Returns a report with each finding marked confirmed/rejected."""
+    Return the fresh measurement and the outcomes of prior findings."""
     if report is None:
         report = audit_url(url, timeout=timeout, lang=lang)
     if report.get('error'):
@@ -90,7 +116,7 @@ def disprove(url, report=None, timeout=30, lang='en'):
         return res
 
     if mode_name == 'static':
-        verified, err = _recheck(url, expected_url, findings, timeout, lang)
+        fresh, err = _recheck(url, expected_url, timeout, lang)
     elif mode_name == 'rendered':
         # condición necesaria: el esquema de color bajo el que se auditó. Sin
         # él no se reverifica (rechazar un contrast_fail de dark mode tras
@@ -108,7 +134,7 @@ def disprove(url, report=None, timeout=30, lang='en'):
                            'under light); re-audit with a11y_audit_dom and disprove '
                            'THAT report')}
             return res
-        verified, err = _recheck(url, expected_url, findings, timeout, lang, color_scheme=scheme)
+        fresh, err = _recheck(url, expected_url, timeout, lang, color_scheme=scheme)
     else:
         # no re-verifier for this mode: report not-rechecked, never a proxy
         # audit (a keyboard finding must not vanish just because the wrong
@@ -123,26 +149,19 @@ def disprove(url, report=None, timeout=30, lang='en'):
     if err:
         return dict(report, error=err, disprover={'executed': False, 'reason': err})
 
-    result = dict(report)
-    result['findings'] = verified
+    current, historical = _classify_findings(findings, fresh['findings'], lang)
+    rejected = [h for h in historical if h.get('status') == 'rejected']
+    result = dict(fresh, findings=current + rejected, score_original=report.get('score'))
     result['disprover'] = {
         'executed': True,
-        'confirmed': sum(1 for h in verified if h.get('status') == 'confirmed'),
-        'rejected': sum(1 for h in verified if h.get('status') == 'rejected'),
-        'note': ('Each finding was re-checked against the live page. '
-                 'Rejected findings include the reason they did not reproduce. '
-                 'Confirmed findings survived a fresh verification pass.'),
-    }
-
-    # recalcular score sobre los confirmed
-    from .a11yaudit import compute_score
-    solo_confirmed = [h for h in verified if h.get('status') == 'confirmed']
-    result['score_original'] = report.get('score')
-    result['score'] = compute_score(solo_confirmed)
-    result['summary'] = {
-        'high': sum(1 for h in solo_confirmed if h['severity'] == 'high'),
-        'medium': sum(1 for h in solo_confirmed if h['severity'] == 'medium'),
-        'low': sum(1 for h in solo_confirmed if h['severity'] == 'low'),
+        'confirmed': sum(h.get('status') == 'confirmed' for h in current),
+        'rejected': len(rejected),
+        'previous_findings': historical,
+        'note': ('La puntuación y la cobertura corresponden a la nueva auditoría. '
+                 'Se conservan los descartes y las coincidencias dudosas para su revisión.'
+                 if lang == 'es' else
+                 'Score and coverage describe the fresh audit. Rejected findings '
+                 'and ambiguous historical matches are retained for review.'),
     }
     return result
 

@@ -10,8 +10,7 @@ change — verify with counsel before a contract or award.
 
 Served by: `a11ytoolkit audit --url … --standard en301549 --target …`
 and `a11ytoolkit scope --standard en301549` (clause per finding,
-applicability scope, families 5–13 declared, tender annex via
-`--solicitation`).
+applicability scope, and families 5–13 declared).
 
 | Market | Law | Notes |
 |---|---|---|
