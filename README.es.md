@@ -1,47 +1,13 @@
-# a11y-toolkit — la capa de accesibilidad para agentes de código con IA
+# a11y-toolkit
 
-<p align="center">🌐 <strong>Español</strong> · <a href="README.md">English</a></p>
+**Comprobaciones de accesibilidad WCAG 2.2 para agentes de programación, equipos de desarrollo y CI.**
 
-> WCAG 2.2 para tu agente de código — auditar, corregir, documentar y vigilar.
-> Cero dependencias, salida es/en.
+Audita un archivo HTML o una página web, averigua cómo corregir cada
+hallazgo y comprueba qué ha cambiado antes de publicar. Cuando una persona
+tenga que revisar el resultado, exporta un paquete de evidencias
+verificable con los hallazgos y las comprobaciones pendientes.
 
-<p align="center">
-  <img src="docs/demo.gif" alt="a11y-toolkit en acción: auditoría (nota 64), color aprobatorio más cercano, re-auditoría (94) — salida real de la herramienta" width="720">
-</p>
-
-37 herramientas MCP, 5 prompts y una skill que cubren todo el ciclo WCAG 2.2:
-auditar, corregir, documentar, vigilar y entregar — y ahora también pruebas de
-usabilidad «a ciegas», donde el agente intenta tareas reales percibiendo solo lo
-que expone un lector de pantalla. 48 de los 55 criterios A/AA llevan al menos una señal
-automatizada (87%), cada hallazgo viaja con una remediación concreta que tu
-agente puede aplicar, y las herramientas renderizadas corren en el navegador
-que tengas — Chromium, Firefox, WebKit, Chrome o Edge.
-
-El Acto Europeo de Accesibilidad está en vigor desde junio de 2025, las demandas
-ADA siguen llegando, y los agentes de IA escriben ya la mayor parte de la web.
-Un escaneo no es una defensa: **la máquina encuentra, la persona firma**.
-
-<p align="center">
-  <a href="https://madebyhuman.iamjarl.com"><img src="https://madebyhuman.iamjarl.com/badges/loop-white.svg" alt="Human in the Loop — las personas guían y curan el proceso; cada artefacto de conformidad lo firma una persona" height="34"></a>
-</p>
-
-## Arranque rápido
-
-```bash
-# MCP — una línea, cualquier cliente MCP (Claude, Cursor, Codex, Windsurf, …)
-claude mcp add a11y-toolkit -- uvx --from a11y-toolkit a11y-toolkit-mcp
-
-# CLI — el mismo motor, un comando
-pip install a11y-toolkit
-a11ytoolkit audit --url https://example.com
-a11ytoolkit pair "#1f2328" "#fbfaf7"
-```
-
-Las auditorías estáticas, el cálculo de contraste, el cribado de PDF/DOCX y el
-pack de evidencia corren con **cero dependencias**. Las herramientas renderizadas
-(contraste real sobre imágenes, trampas de teclado, reflow, formularios) necesitan
-además Playwright:
-`pip install playwright && playwright install chromium`.
+[English](README.md) · [Español](README.es.md)
 
 [![CI](https://github.com/kinti/a11y-toolkit/actions/workflows/ci.yml/badge.svg)](https://github.com/kinti/a11y-toolkit/actions/workflows/ci.yml)
 [![PyPI](https://img.shields.io/pypi/v/a11y-toolkit)](https://pypi.org/project/a11y-toolkit/)
@@ -59,452 +25,277 @@ además Playwright:
 [![Python Versions](https://img.shields.io/pypi/pyversions/a11y-toolkit)](https://pypi.org/project/a11y-toolkit/)
 [![GitHub Release](https://img.shields.io/github/v/release/kinti/a11y-toolkit)](https://github.com/kinti/a11y-toolkit/releases)
 
-## Capacidades
+<p align="center">
+  <a href="https://madebyhuman.iamjarl.com"><img src="https://madebyhuman.iamjarl.com/badges/loop-white.svg" alt="Human in the Loop — revisión humana" height="34"></a>
+</p>
 
-axe-core es el motor de referencia para la detección automática de reglas, y
-este toolkit no intenta ganarle en reglas. Compite en el ciclo que el conjunto
-de referencia deja abierto: auditar en local, recibir el elemento exacto,
-reproducir la regresión y entregar evidencia que una persona puede firmar. La
-tabla lista capacidades que al conjunto de referencia le faltan, y cada fila
-es reproducible desde este repositorio (el método y los resultados crudos
-viven en `bench/`).
+Python 3.9+ · Cero dependencias en el núcleo · Cero telemetría · Resultados en español e inglés
 
-| Capacidad | axe-core / Lighthouse / pa11y | a11y-toolkit |
-|---|---|---|
-| Contraste de texto sobre imágenes y degradados (muestreo por píxeles del fondo real) | No | Sí |
-| Borrador VPAT 2.5 (WCAG) desde el pack de evidencia — contraparte US/ADA de la declaración EAA | No | Sí |
-| Prueba de errores de formulario: rellena datos inválidos, envía de verdad, juzga qué pasa | No | Sí |
-| Trampas de teclado: paseo real con Tab + test de salida con Escape, y navegación disparada por foco/input | No | Sí |
-| Auditoría de scroll infinito: supervivencia del foco, anuncios, fin del feed | No | Sí |
-| Reflow a 320px y el text-spacing de WCAG, medidos | No | Sí |
-| Transcripción de lector de pantalla: lo que oye una persona ciega, linealizado | No | Sí |
-| Tooltips que ignoran Escape cazados hovereando de verdad (1.4.13) | No | Sí |
-| Declaraciones legales EAA / RD 1112/2018, en español y en inglés | No | Sí |
-| Un pack de evidencia que una persona puede firmar — hashes, matriz, bloque de firma vacío | No | Sí |
-| Interop ACT Rules: export EARL + informe de consistencia por regla contra los casos oficiales del W3C | No | Sí |
-| Vista previa del borrador WCAG 3 — reagrupa hallazgos 2.2 según sus outcomes, sin score inventado; los criterios sin provisión equivalente en el borrador se listan aparte | No | Sí |
-| El motor se examina a sí mismo: banco de mutantes WCAG con semilla — examen regenerable, kill rate + falsos positivos vía placebos | No | Sí |
-| Diagnóstico secuencial: pasa una URL y la evidencia de la página ordena los exámenes (la severidad solo desempata) | No | Sí |
-| Cero dependencias en el núcleo, habla es/en, cualquier navegador que tengas | Runtimes pesados | Cero dependencias |
+## Inicio rápido
+
+### Prueba la CLI
+
+Mide el contraste entre dos colores con `uvx`. La relación esperada es
+**4,54:1**. [Guía de uv](https://docs.astral.sh/uv/guides/tools/)
+
+```sh
+uvx --from a11y-toolkit a11ytoolkit pair "#767676" "#ffffff"
+```
+
+Instala la CLI con `uv tool install a11y-toolkit` o ejecuta
+`python -m pip install a11y-toolkit` en el entorno Python de tu proyecto.
+Después, audita una página pública o añade `--file page.html` para auditar
+un archivo HTML local. Usa `--lang es` para recibir el informe en español.
+
+```sh
+a11ytoolkit audit --url https://example.com
+```
+
+Cada hallazgo incluye el criterio WCAG, la gravedad y cómo corregirlo.
+Consulta `not_measured` para ver qué criterios quedan pendientes en esta
+auditoría. Ejecuta `a11ytoolkit route --url https://example.com` para ver
+qué comprobaciones conviene hacer después.
+
+<details>
+<summary>Ver una auditoría, una corrección de contraste y la comprobación final</summary>
+
+![La auditoría detecta un fallo de contraste. El toolkit propone un color más oscuro y verifica la mejora.](docs/demo.gif)
+
+</details>
+
+### Conecta tu agente de programación
+
+> mcp-name: io.github.kinti/a11y-toolkit
+
+Registra un servidor MCP por **stdio** con el comando y los argumentos
+indicados. Usa el formato de configuración de tu cliente. [Guía de instalación por cliente](docs/clients.md)
+
+```text
+command: uvx
+args: --from a11y-toolkit a11y-toolkit-mcp
+```
+
+Para usar el lanzador de npm, ejecuta
+`npx -y -p @kinti/a11y-toolkit a11y-toolkit-mcp`. Incluye el motor y
+utiliza un intérprete local de Python 3.9+. [Opciones de instalación](llms-install.md)
+
+Una vez conectado, pide al agente que llame a `a11y_contrast_pair` con
+`#767676` sobre `#ffffff`. La relación de contraste esperada es **4,54:1**.
+
+### Activa las comprobaciones con navegador
+
+Usa el mismo entorno Python para Playwright y para la CLI o el servidor
+MCP. Instala Chromium para las pruebas con navegador y Pillow para
+decodificar imágenes al medir el contraste por píxeles.
+
+```sh
+python -m pip install a11y-toolkit playwright pillow
+python -m playwright install chromium
+a11ytoolkit dom https://example.com --browser chromium
+```
+
+Si tu cliente MCP usa un entorno aislado de `uvx`, configúralo para que
+ejecute `a11y-toolkit-mcp` desde el entorno donde instalaste Playwright.
+Las comprobaciones con navegador también funcionan con Firefox, WebKit,
+Chrome y Edge si están instalados.
+
+## Del hallazgo a la corrección verificada
+
+### Localiza el problema y vuelve a comprobarlo
+
+Ejecuta estos comandos sobre el mismo archivo HTML. La copia anotada
+marca los elementos que el informe puede localizar en el código original.
+
+```sh
+a11ytoolkit audit --file page.html > audit.json
+a11ytoolkit annotate page.html --report audit.json -o annotated.html
+```
+
+Aplica la corrección en `page.html` y repite la auditoría. El comando
+`a11ytoolkit pair "#767676" "#ffffff"` mide el contraste entre ambos
+colores e indica los umbrales aplicables. Usa el navegador para comprobar
+texto sobre imágenes o degradados.
+
+### Bloquea regresiones en CI
+
+Audita la página que quieres vigilar. El presupuesto registra los
+hallazgos que ya has aceptado. Guárdalo en Git para que CI pueda usarlo
+como referencia.
+
+```sh
+a11ytoolkit budget --init --audit audit.json > budget.json
+```
+
+Después de un cambio, audita de nuevo el **mismo** archivo y compara el
+resultado con el presupuesto guardado.
+
+```sh
+a11ytoolkit audit --file page.html > next.json
+a11ytoolkit budget --budget budget.json --audit next.json
+```
+
+| Código de salida | Resultado |
+| --- | --- |
+| `0` | Los cambios medidos están dentro del presupuesto. |
+| `1` | Falló la captura o los informes no se pudieron comparar. |
+| `2` | Al menos un hallazgo superó el presupuesto. |
+
+Para comparar capturas web, mantén el mismo navegador, esquema de color
+y tipo de sesión. Para revisar el HTML que cambió en una rama de Git,
+usa `a11ytoolkit audit --changed --base origin/main`. Para comparar el
+orden del foco en un recorrido con guion, usa `trace`. [Ejemplos de CI y teclado](docs/cookbook.md)
+
+### Entrega la evidencia para revisión
+
+```sh
+a11ytoolkit evidence next.json -o evidence-pack.json
+```
+
+El paquete incluye los informes originales, una matriz de 55 criterios y
+las comprobaciones que quedan pendientes en la muestra. Desde una copia
+local del repositorio, ejecuta
+`python3 scripts/verify_pack.py /path/to/evidence-pack.json` para comprobar
+el sello SHA-256 y los informes incluidos. La persona que audita puede
+revisar el paquete y emitir el dictamen de conformidad. [Formato y verificador](docs/evidence-pack-schema.md)
+
+## Elige la comprobación adecuada
+
+| Si necesitas… | Empieza por… |
+| --- | --- |
+| Auditar una página, un HTML local o un sitio pequeño | `audit --url`, `audit --file` o `audit --url … --pages 5` |
+| Comprobar contraste, foco o tamaño de elementos interactivos en el navegador | `dom` o `contrast-dom` |
+| Recorrer la página con el teclado o comprobar la redistribución a 320 píxeles CSS | `kbd`, `trace` o `reflow` |
+| Observar cómo se anuncian los errores, qué aparece al pasar el puntero o cómo funciona el desplazamiento infinito | `forms`, `hover`, `scroll` o `patterns` |
+| Inspeccionar qué expone el navegador a las tecnologías de apoyo | Herramienta MCP `a11y_sr_transcript` o prompt `blindfold-task` |
+| Revisar la estructura de documentos o los subtítulos | `pdf`, `python -m a11y_toolkit.a11ydocx` o `vtt` |
+| Preparar una revisión humana o exportar resultados a otras herramientas | `evidence`, `scope`, `sarif`, `earl`, `vpat` u `openacr` |
+
+Las pruebas de formularios pueden enviar datos. Ejecútalas en un sitio
+de pruebas o en un entorno preparado para recibir esos envíos.
+[Ejemplos y opciones de los comandos](docs/cookbook.md)
+
+## Cobertura y validación
+
+**48 de los 55 criterios A/AA de WCAG 2.2 cuentan con al menos una señal
+automatizada (87 %)** en los modos de comprobación disponibles. Una señal
+cubre una condición concreta dentro de un criterio. La muestra, las
+pruebas ejecutadas y la revisión manual determinan qué puede concluir
+quien evalúa la conformidad. El paquete de evidencias lo detalla criterio
+por criterio. [Lista de comprobación manual](skills/a11y-toolkit/references/wcag22-manual-checklist.md) · [Estándares y correspondencias](docs/standards-coverage.md)
+
+| Evidencia | Qué mide |
+| --- | --- |
+| [Informe de implementación ACT](docs/act-report-summary.md) | Se detectaron los 134 fallos esperados en 355 casos de 20 reglas. Coincidieron exactamente 273 de los 355 resultados (77 %). El resto difirió entre `passed` e `inapplicable`. |
+| [Corpus congelado](corpus/README.md) | El toolkit detectó los 18 fallos introducidos y evaluó los tres controles sin alertas. Los casos proceden de su propio banco de mutaciones. Otros motores pueden enviar sus resultados al mismo evaluador. |
+| [Comparación con axe-core en páginas reales](bench/README.md) | Se comparan cuatro páginas públicas mediante una auditoría estática, una renderizada y una pasada de axe. Las diferencias señalan casos para revisión manual. Los resultados originales y el método de validación son públicos. |
+
+La transcripción se obtiene del árbol de accesibilidad del navegador.
+Comprueba la salida hablada con un lector de pantalla.
+[Comprobación con lectores de pantalla](docs/sr-crosscheck.md)
+
+## Herramientas MCP y prompts
+
+El proyecto incluye 37 herramientas MCP, 5 prompts y una skill para
+repetir auditorías y revisiones. La CLI incluye además comandos para
+comprobar regresiones y evaluar entregas sobre el corpus.
+[Skill para agentes](skills/a11y-toolkit/SKILL.md) · [Índice de documentación para agentes](llms.txt)
+
+<details>
+<summary>Consultar el catálogo de 37 herramientas</summary>
 
 <!-- TOOLS:BEGIN -->
 ## Las herramientas (37)
 
-Referencia completa — descripciones, argumentos, formas de retorno y
-comportamiento — en [docs/tools.md](docs/tools.md). Todas las herramientas
-aceptan `lang` (`en`|`es`) salvo indicación; la salida es JSON salvo
-indicación. Generada desde `server.TOOLS` por `scripts/gen_readme.py`; esta
-traducción puede ir a la zaga del inglés, que es la fuente canónica.
+La referencia completa incluye las descripciones, los argumentos y el
+formato de respuesta. Salvo que se indique lo contrario, las herramientas
+aceptan `lang` (`en` o `es`) y devuelven JSON. [Referencia MCP](docs/tools.md)
 
 | Herramienta | Categoría | Qué hace |
 |---|---|---|
 | [`a11y_audit_url`](docs/tools.md#a11y_audit_url) | Auditoría | Auditoría WCAG exprés |
 | [`a11y_audit_dom`](docs/tools.md#a11y_audit_dom) | Auditoría | Auditoría WCAG renderizada |
-| [`a11y_audit_pdf`](docs/tools.md#a11y_audit_pdf) | Auditoría | Cribado de accesibilidad PDF |
-| [`a11y_docx_screen`](docs/tools.md#a11y_docx_screen) | Auditoría | Cribado de accesibilidad DOCX |
+| [`a11y_audit_pdf`](docs/tools.md#a11y_audit_pdf) | Auditoría | Revisión estructural de PDF |
+| [`a11y_docx_screen`](docs/tools.md#a11y_docx_screen) | Auditoría | Revisión estructural de DOCX |
 | [`a11y_locate`](docs/tools.md#a11y_locate) | Localizar | Localiza un elemento por su nombre accesible |
-| [`a11y_journey_verdict`](docs/tools.md#a11y_journey_verdict) | Pruebas a ciegas | Veredicto de journey a ciegas |
-| [`a11y_autofix`](docs/tools.md#a11y_autofix) | Arreglo y contraste | Autocorrecciones seguras y deterministas |
-| [`a11y_patches`](docs/tools.md#a11y_patches) | Arreglo y contraste | Patch-set sellado de correcciones (por SHA) |
-| [`a11y_contrast_pair`](docs/tools.md#a11y_contrast_pair) | Arreglo y contraste | Ratio de contraste + veredictos |
-| [`a11y_contrast_image`](docs/tools.md#a11y_contrast_image) | Arreglo y contraste | Contraste de texto sobre imagen |
-| [`a11y_contrast_dom`](docs/tools.md#a11y_contrast_dom) | Arreglo y contraste | Muestreo de contraste en elemento vivo |
-| [`a11y_suggest_color`](docs/tools.md#a11y_suggest_color) | Arreglo y contraste | Color aprobatorio más cercano |
-| [`a11y_generate_declaration`](docs/tools.md#a11y_generate_declaration) | Documentar | Declaración de accesibilidad (EAA/RD 1112) |
-| [`a11y_generate_vpat`](docs/tools.md#a11y_generate_vpat) | Documentar | Informe VPAT 2.5 (WCAG) |
-| [`a11y_generate_openacr`](docs/tools.md#a11y_generate_openacr) | Documentar | Informe OpenACR YAML (GSA) |
-| [`a11y_badge`](docs/tools.md#a11y_badge) | Documentar | Insignia SVG honesta |
-| [`a11y_snapshot`](docs/tools.md#a11y_snapshot) | Vigilar (regresiones) | Snapshot de accesibilidad + orden de tab |
-| [`a11y_diff`](docs/tools.md#a11y_diff) | Vigilar (regresiones) | Diff de regresión entre snapshots |
-| [`a11y_diff_urls`](docs/tools.md#a11y_diff_urls) | Vigilar (regresiones) | Diff staging vs producción |
-| [`a11y_aria_live_snippet`](docs/tools.md#a11y_aria_live_snippet) | Vigilar (regresiones) | Snippet monitor aria-live |
-| [`a11y_criterion`](docs/tools.md#a11y_criterion) | Conocimiento y contexto | Criterio WCAG explicado |
-| [`a11y_html_validate`](docs/tools.md#a11y_html_validate) | Conocimiento y contexto | Validación W3C Nu |
-| [`a11y_keyboard`](docs/tools.md#a11y_keyboard) | Interacciones | Trampas de teclado + aterrizaje de skip links |
+| [`a11y_journey_verdict`](docs/tools.md#a11y_journey_verdict) | Pruebas a ciegas | Evalúa las dificultades de un recorrido sin visión |
+| [`a11y_autofix`](docs/tools.md#a11y_autofix) | Corrección y contraste | Autocorrecciones seguras y deterministas |
+| [`a11y_patches`](docs/tools.md#a11y_patches) | Corrección y contraste | Registro de correcciones sellado con SHA-256 |
+| [`a11y_contrast_pair`](docs/tools.md#a11y_contrast_pair) | Corrección y contraste | Relación de contraste y resultado por criterio |
+| [`a11y_contrast_image`](docs/tools.md#a11y_contrast_image) | Corrección y contraste | Contraste de texto sobre imagen |
+| [`a11y_contrast_dom`](docs/tools.md#a11y_contrast_dom) | Corrección y contraste | Mide el contraste del elemento renderizado |
+| [`a11y_suggest_color`](docs/tools.md#a11y_suggest_color) | Corrección y contraste | Color más cercano que cumple el contraste |
+| [`a11y_generate_declaration`](docs/tools.md#a11y_generate_declaration) | Documentar | Borrador de declaración de accesibilidad |
+| [`a11y_generate_vpat`](docs/tools.md#a11y_generate_vpat) | Documentar | Borrador de informe VPAT 2.5 (WCAG) |
+| [`a11y_generate_openacr`](docs/tools.md#a11y_generate_openacr) | Documentar | Borrador de informe OpenACR en YAML |
+| [`a11y_badge`](docs/tools.md#a11y_badge) | Documentar | Insignia SVG con la puntuación y su alcance |
+| [`a11y_snapshot`](docs/tools.md#a11y_snapshot) | Regresiones | Captura de accesibilidad y orden de tabulación |
+| [`a11y_diff`](docs/tools.md#a11y_diff) | Regresiones | Compara dos capturas de accesibilidad |
+| [`a11y_diff_urls`](docs/tools.md#a11y_diff_urls) | Regresiones | Compara la accesibilidad de dos URL |
+| [`a11y_aria_live_snippet`](docs/tools.md#a11y_aria_live_snippet) | Regresiones | Script de seguimiento de mensajes `aria-live` |
+| [`a11y_criterion`](docs/tools.md#a11y_criterion) | Referencia y validación | Criterio WCAG explicado |
+| [`a11y_html_validate`](docs/tools.md#a11y_html_validate) | Referencia y validación | Validación W3C Nu |
+| [`a11y_keyboard`](docs/tools.md#a11y_keyboard) | Interacciones | Trampas de teclado y destino de los enlaces de salto |
 | [`a11y_forms`](docs/tools.md#a11y_forms) | Interacciones | Prueba de errores de formulario |
-| [`a11y_hover`](docs/tools.md#a11y_hover) | Interacciones | Descartabilidad de tooltips (1.4.13) |
-| [`a11y_reflow`](docs/tools.md#a11y_reflow) | Interacciones | Comprobación de reflow a 320px |
-| [`a11y_scroll`](docs/tools.md#a11y_scroll) | Interacciones | Auditoría de scroll infinito |
-| [`a11y_sr_transcript`](docs/tools.md#a11y_sr_transcript) | Interacciones | Transcripción de lector de pantalla |
-| [`a11y_reduced_motion`](docs/tools.md#a11y_reduced_motion) | Interacciones | ¿Respeta prefers-reduced-motion? |
-| [`a11y_forced_colors`](docs/tools.md#a11y_forced_colors) | Interacciones | Heurística de supervivencia forced-colors |
+| [`a11y_hover`](docs/tools.md#a11y_hover) | Interacciones | Comprueba si los mensajes emergentes se pueden cerrar (1.4.13) |
+| [`a11y_reflow`](docs/tools.md#a11y_reflow) | Interacciones | Comprueba la redistribución a 320 píxeles CSS |
+| [`a11y_scroll`](docs/tools.md#a11y_scroll) | Interacciones | Auditoría de desplazamiento infinito |
+| [`a11y_sr_transcript`](docs/tools.md#a11y_sr_transcript) | Interacciones | Transcripción del árbol de accesibilidad del navegador |
+| [`a11y_reduced_motion`](docs/tools.md#a11y_reduced_motion) | Interacciones | Comprueba la preferencia `prefers-reduced-motion` |
+| [`a11y_forced_colors`](docs/tools.md#a11y_forced_colors) | Interacciones | Detecta posibles problemas con los colores forzados |
 | [`a11y_vtt_check`](docs/tools.md#a11y_vtt_check) | Interacciones | Calidad de subtítulos WebVTT |
-| [`a11y_evidence`](docs/tools.md#a11y_evidence) | Cobertura y evidencia | Pack de evidencia (entrega verificable) |
-| [`a11y_disprove`](docs/tools.md#a11y_disprove) | Cobertura y evidencia | Refutador: re-verifica hallazgos |
-| [`a11y_ledger`](docs/tools.md#a11y_ledger) | Cobertura y evidencia | Libro de cobertura (persistente) |
-| [`a11y_wcag3_preview`](docs/tools.md#a11y_wcag3_preview) | Cobertura y evidencia | Vista previa borrador WCAG 3 (sin score) |
-| [`a11y_scope`](docs/tools.md#a11y_scope) | Cobertura y evidencia | Alcance de aplicabilidad (semiautomático) |
-| [`a11y_route`](docs/tools.md#a11y_route) | Enrutado | Router de herramientas (objetivo o página → pasos) |
+| [`a11y_evidence`](docs/tools.md#a11y_evidence) | Cobertura y evidencia | Paquete de evidencias verificable |
+| [`a11y_disprove`](docs/tools.md#a11y_disprove) | Cobertura y evidencia | Vuelve a comprobar los hallazgos de una auditoría |
+| [`a11y_ledger`](docs/tools.md#a11y_ledger) | Cobertura y evidencia | Mantiene un registro de cobertura entre auditorías |
+| [`a11y_wcag3_preview`](docs/tools.md#a11y_wcag3_preview) | Cobertura y evidencia | Vista previa del borrador WCAG 3 |
+| [`a11y_scope`](docs/tools.md#a11y_scope) | Cobertura y evidencia | Propone el alcance y la aplicabilidad para revisión |
+| [`a11y_route`](docs/tools.md#a11y_route) | Diagnóstico | Propone comprobaciones según el objetivo o la página |
 <!-- TOOLS:END -->
 
-## Los 5 prompts
-
-- **`audit-page`** (`url*`, `language`): Flujo completo de auditoría de accesibilidad para una URL: herramientas automáticas + qué verificar a mano (teclado, lector de pantalla, zoom). Cada prompt existe en español y en inglés.
-
-- **`fix-contrast`** (`fg*`, `bg*`, `context`): Arreglo de contraste guiado: verifica el par (o la región de texto sobre imagen), obtén el color aprobatorio más cercano, aplícalo al código. Cada prompt existe en español y en inglés.
-
-- **`pre-deploy-check`** (`url*`, `baseline`): Chequeo de regresión pre-deploy: auditoría exprés de la URL más diff de snapshot contra una línea base. Cada prompt existe en español y en inglés.
-
-- **`declaration-eaa`** (`entity*`, `url*`, `status`): Genera una declaración de accesibilidad EAA / RD 1112/2018, pidiendo los campos legales que falten. Cada prompt existe en español y en inglés.
-
-
-- **`blindfold-task`** (`url*`, `goal*`, `kind`, `language`): Prueba de usabilidad a ciegas — el agente intenta una tarea real percibiendo SOLO el árbol de accesibilidad y actuando solo por nombre accesible y teclado, registrando la fricción por paso; cierra con a11y_journey_verdict. La capacidad que ninguna otra herramienta de accesibilidad tiene: testing no visual por tareas donde el agente ES la persona usuaria del lector de pantalla. Cada prompt existe en español y en inglés.
-
-
-## Instalación
-
-> mcp-name: io.github.kinti/a11y-toolkit · PyPI: [a11y-toolkit](https://pypi.org/project/a11y-toolkit/) · DOI Zenodo: `10.5281/zenodo.22843722`
-
-Funciona con **cualquier cliente con MCP** — Claude Code/Desktop, Cursor,
-Windsurf, VS Code, Codex CLI, OpenCode, ZCode, Zed, Cline, Continue, Kimi
-Code… ¿Ecosistema Node? `npx -y -p @kinti/a11y-toolkit a11y-toolkit-mcp` ejecuta
-el mismo motor ([npm/](npm/)). Los formatos de configuración
-verificados de cada cliente, en [docs/clients.md](docs/clients.md). Cómo se
-compone con los servidores populares (Playwright, GitHub, Filesystem,
-Fetch…) — [docs/interop.md](docs/interop.md). Recetas de principio a fin
-(auditar → arreglar → sellar → CI):
-[docs/cookbook.md](docs/cookbook.md).
-
-```bash
-claude mcp add a11y-toolkit -- uvx --from a11y-toolkit a11y-toolkit-mcp
-```
-
-**Agentes que prefieren configuraciones listas para pegar** (Cline y
-similares): [`llms-install.md`](llms-install.md) trae las dos vías de
-instalación verificadas de punta a punta.
-
-O con configuración JSON:
-
-```json
-{
-  "mcpServers": {
-    "a11y-toolkit": {
-      "command": "uvx",
-      "args": ["--from", "a11y-toolkit", "a11y-toolkit-mcp"],
-      "timeoutMs": 60000
-    }
-  }
-}
-```
-
-Las herramientas renderizadas usan Playwright **si está presente** y aceptan un
-parámetro `browser` (`auto`, `chromium`, `firefox`, `webkit`, `chrome`, `msedge`
-— autodetecta el primero disponible). Aceptan `auth_state` (ruta al
-storage_state de Playwright) para auditar tras login. Todo lo demás funciona
-con cero dependencias.
-
-### La skill
-
-```bash
-git clone https://github.com/kinti/a11y-toolkit && cd a11y-toolkit
-./skills/install-skill.sh     # → ~/.zcode/skills y ~/.claude/skills
-```
-
-## Hook de agente — `a11ytoolkit init`
-
-Los agentes que leen `AGENTS.md` por su cuenta reciben la regla que importa —
-*tras cualquier cambio de UI, re-audita antes de dar el trabajo por hecho* —
-con los comandos exactos:
-
-```bash
-cd tu-proyecto
-uvx --from a11y-toolkit a11ytoolkit init     # escribe/fusiona el hook en AGENTS.md (idempotente)
-uvx --from a11y-toolkit a11ytoolkit guard --file pagina.html  # puerta de escritura: lo NUEVO alto/medio rechaza el guardado
-```
-
-También imprime el bloque de configuración MCP y el paso opcional de la skill.
-`--check` informa de si el hook está presente (exit 1 si no — apto para CI).
-
-
-**La puerta**: `init` también instala un guardián de escritura (hook
-PreToolUse de Claude Code). Cada guardado de un fichero user-facing se
-audita contra git HEAD: **los hallazgos nuevos de severidad alta o media
-rechazan el guardado** con el remedio delante, así el asistente que sostiene
-el bolígrafo los arregla en el mismo segundo en que el fallo iba a nacer.
-La severidad baja y lo que ya estaba en HEAD avisan. `A11Y_GATE=off`
-desactiva; `--no-gate` salta la instalación; el rechazo lleva la línea de
-honestidad: la puerta audita lo que el motor ve, un filtro, no un veredicto.
-
-![La puerta rechazando un guardado con hallazgos nuevos, el asistente
-arreglándolos, el guardado permitido](docs/gate-demo.gif)
-## Idiomas — paquetes de locale comunitarios
-
-Todos los mensajes de usuario (hallazgos, remediaciones, textos legales) viven
-en [paquetes de locale](a11y_toolkit/locales/) — un JSON por idioma; hoy salen
-`es` y `en`. **Añadir un idioma es un PR de un solo fichero**: copia
-[`_template.json`](a11y_toolkit/locales/_template.json), traduce conservando los
-`{placeholders}`, y `python3 tests/test_locales.py` lo valida mecánicamente
-(claves, placeholders, regla de plural, completitud). El mismo modelo comunitario
-que los locales de axe-core — con una validación que axe-core no tiene. Guía:
-[docs/i18n.md](docs/i18n.md). Los productos derivados pueden superponer su voz
-de marca vía overlays sin hacer fork.
-
-**Reclama un idioma abierto:** francés, portugués de Brasil y alemán tienen
-issues sembradas con [`good first issue`](https://github.com/kinti/a11y-toolkit/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22)
-— un JSON, validación mecánica, crédito en este README y en las notas de cada
-release. Cualquier otro idioma: usa la
-[plantilla «Añade un idioma»](https://github.com/kinti/a11y-toolkit/issues/new?template=new_locale.yml).
-Solo traducción humana — la traducción automática se rechaza; el catálogo ES
-la voz del producto.
-
-## CLI — el mismo motor, un comando
-
-Instálalo con `pip install a11y-toolkit` (o `uv tool install a11y-toolkit`).
-
-```bash
-a11ytoolkit audit --changed                     # HTML cambiado desde HEAD, incluidas rutas con tildes
-a11ytoolkit audit --changed --base origin/main  # los cambios de una rama — exit 2 en high/medium
-a11ytoolkit audit --url https://example.com --pages 5   # sitemap primero, con rastreo recursivo de enlaces si falta
-a11ytoolkit audit --file tabla.html  # encabezados dentro de su tabla y código 1 si el HTML supera el límite
-a11ytoolkit pair "#1f2328" "#fbfaf7"                    # contraste
-a11ytoolkit image hero.jpg --text "#fff" --region 120,40,420,90
-a11ytoolkit forms https://mysite/contact                # errores de formulario
-a11ytoolkit kbd https://mysite                          # trampas de teclado + 3.2.1/3.2.2
-a11ytoolkit reflow https://mysite                       # reflow 320px (detrás de login: --auth-state session.json)
-a11ytoolkit scroll https://medium.com/feed              # scroll infinito
-a11ytoolkit validate --url https://example.com          # W3C Nu
-a11ytoolkit hover https://mysite                        # descartabilidad de tooltips
-a11ytoolkit dom https://mysite                          # auditoría renderizada (contraste, 2.5.8, foco; exit 1 + error en HTTP 4xx/5xx)
-a11ytoolkit fix --file page.html -o fixed.html          # autofix seguro
-a11ytoolkit declaration --entity "Acme" --url https://… --status partial --framework eaa
-a11ytoolkit snapshot https://mysite --out before.json   # antes del deploy
-a11ytoolkit diff before.json after.json                 # tras el deploy
-a11ytoolkit evidence audit.json -o pack.json            # pack v3 con cobertura medida y recuentos de revisión
-a11ytoolkit disprove --url https://mysite --file audit.json  # reaudita el destino con las condiciones de captura originales
-a11ytoolkit disprove --url https://mysite --file dom.json --auth-state sesion.json  # reutiliza la sesión local original
-a11ytoolkit budget --init --audit audit.json > budget.json  # acepta los hallazgos medidos por página, recuento y rutas disponibles
-a11ytoolkit budget --budget budget.json --audit next.json   # código 1 si las capturas son incompletas o incompatibles, 2 ante regresión
-# la deuda legacy no bloquea: adopta CI hoy, que la accesibilidad no empeore mientras la pagas
-a11ytoolkit budget --init-snapshot s.json > estructural.json    # presupuesto estructural: la estructura de HOY se acepta
-a11ytoolkit budget --budget estructural.json --snapshot s2.json # solo la estructura renderizada NUEVA bloquea (exit 0/2)
-a11ytoolkit engines https://mysite                        # la misma página en 3 motores: divergencias de comportamiento, por pares
-a11ytoolkit trace https://mysite --script journey.json -o t.json  # jornada scriptada; los errores HTTP del documento invalidan la captura
-a11ytoolkit trace https://mysite --script j.json --capture-dialog-state -o t.json  # + estado modal por paso, luego: trace diff a.json b.json --gate-dialog-state
-a11ytoolkit trace diff a.json b.json  # código 1 si la captura es inválida o falla una acción, 2 ante regresión
-a11ytoolkit patterns https://mysite                       # contratos APG de teclado, en vivo: dialog / tablist / disclosure / combobox / menu / slider
-a11ytoolkit ledger record --url https://mysite --audit audit.json  # registra hallazgos entre auditorías comparables
-a11ytoolkit ledger gaps --url https://mysite --lang es             # criterios pendientes de revisión
-a11ytoolkit ledger recurrence --ledger a11y-ledger.json            # hallazgos recurrentes y URLs para revisar
-a11ytoolkit contrast-dom https://mysite --walk            # pase perceptual: ratios por elemento, umbrales, sugerencias
-a11ytoolkit pdf documento.pdf                           # cribado estructural de un PDF completo, hasta 30 MB
-python3 -m a11y_toolkit.a11ydocx documento.docx          # cribado DOCX por espacio de nombres XML
-a11ytoolkit vtt https://mysite/subtitulos.vtt            # comprueba sintaxis y tiempos tras una descarga completa
-a11ytoolkit sarif --from-audit audit.json -o a11y.sarif  # GitHub code scanning a partir de una auditoría completa
-a11ytoolkit badge --score 92 --out badge.svg            # SVG honesto
-a11ytoolkit contrast-dom https://mysite --selector ".hero h1"  # muestreo por píxeles
-a11ytoolkit vpat pack.json --product "Acme" -o vpat.html      # borrador VPAT 2.5 (WCAG)
-a11ytoolkit openacr pack.json --product "Acme" -o openacr.yaml # OpenACR YAML (GSA)
-a11ytoolkit earl --from-audit audit.json -o earl.json          # ACT Rules / EARL a partir de una auditoría completa
-a11ytoolkit wcag3 --from-audit audit.json                      # vista previa WCAG 3 (sin score; criterios sin provisión en el borrador van a no_equivalent)
-a11ytoolkit route --goal "gate my PR"                          # qué herramientas para la tarea
-a11ytoolkit route --file page.html                             # diagnóstico: la página ordena
-a11ytoolkit mutants --seed 7 --n 12                            # el autoexamen sellado del motor
-a11ytoolkit fingerprints pages/*.html -o templates.json        # sugiere una muestra estructural; revisa el contenido de cada página
-a11ytoolkit audit --file pagina.html --standard en301549       # cláusula EN 301 549 en cada hallazgo
-a11ytoolkit annotate pagina.html --report r.json -o copia.html # inserta las marcas en una pasada y conserva el texto de origen
-a11ytoolkit locate --file pagina.html --query "Enviar"         # elemento por nombre accesible → ruta selector
-a11ytoolkit patches --file pagina.html -o patches.json         # registro sellado de arreglos (verificar con --verify)
-a11ytoolkit journey friccion.json -o veredicto.json           # journey a ciegas: registro de friccion -> veredicto puntuable
-a11ytoolkit scope auditoria.json --standard en301549 -o alcance.json  # aplicabilidad con clausulas EN, confirmado por una persona
-a11ytoolkit criteria --list --level AA --new-in 2.2            # el Quick Ref offline, filtrable
-a11ytoolkit wizard --url https://client.web --lang es          # guiado: 3 preguntas → norma, auditoría, alcance
-a11ytoolkit corpus verify corpus                               # el corpus congelado, verificado
-a11ytoolkit corpus evaluate --submission entrega.jsonl corpus  # código 1 si la entrega es incompleta o inválida
-```
-
-Para localizar una referencia `headers` rota, audita y anota el mismo HTML.
-Para comprobar regresiones de teclado, captura ambas ejecuciones con el mismo
-guion. Si activas la comparación de diálogos, consulta `dialog_gate.status`
-junto al código de salida. [Ejemplos completos](docs/cookbook.md#13-locate-a-broken-table-header-in-the-original-html)
-
-Las comparaciones renderizadas requieren el mismo navegador, esquema de color
-y tipo de sesión. Usa la misma cuenta para las capturas autenticadas y conserva
-su archivo de sesión en local. Si los informes anteriores carecen de estos
-datos, crea una nueva línea base o un nuevo historial.
-
-## Cobertura de estándares
-
-Qué ley de cada mercado sirve cada comando: [docs/standards-coverage.md](docs/standards-coverage.md)
-— EN 301 549 (UE-27 + EEE + Canadá), Section 508 (EE.UU. federal), RGAA 4.1
-(Francia), WCAG directo (Latam y la práctica ADA) — un motor, la norma de más de 27 países.
-
-
-
-## Cobertura: 48 de 55 criterios WCAG 2.2 A/AA (87%)
-
-| Con señal automatizada | Manual-only (genuinamente humano) |
-|---|---|
-| 1.1.1, 1.2.2, 1.2.3, 1.3.1–1.3.5, 1.4.1–1.4.5, 1.4.10, 1.4.12, 1.4.13, 2.1.1, 2.1.2, 2.1.4, 2.2.1, 2.2.2, 2.4.1–2.4.7, 2.4.11, 2.5.1–2.5.4, 2.5.7, 2.5.8, 3.1.1, 3.1.2, 3.2.1–3.2.3, 3.2.6, 3.3.1–3.3.4, 3.3.8, 4.1.2, 4.1.3 | 1.2.1 (transcripciones de audio), 1.2.4 (subtítulos en directo), 1.2.5 (audiodescripción), 1.4.11 (contraste no textual — heurística renderizada), 2.3.1 (detección de destellos), 3.2.4 (identificación coherente), 3.3.7 (entrada redundante) |
-
-La columna solo-manual se deriva de las señales que cada modo emite de
-verdad (revisión externa, 4ª pasada: 1.2.5, 1.4.11 y 3.2.4 se reclamaban sin
-señal mapeada — el aviso de audiodescripción dispara bajo 1.2.3, y 1.4.11 y
-3.2.4 solo tienen cobertura heurística). Cada uno tiene su entrada de
-conocimiento (`a11y_criterion`) con cómo verificarlo a mano. La frontera se
-imprime en cada informe.
-
-## El motor detrás de a11y.es
-
-[a11y.es](https://a11y.es) es un servicio de accesibilidad para el mercado
-español que ejecuta este motor. El servicio es un código aparte; este
-repositorio es el motor.
-
-¿Y la monitorización? Con este motor te la puedes montar tú: un cron con
-`a11ytoolkit audit` más `budget` y `diff` es una vía legítima — y
-deliberada, es lo que promete la licencia MIT. [a11y.es](https://a11y.es)
-existe para quien prefiera no mantenerla: auditorías programadas con
-navegador real, aviso de lo que se rompe entre versiones, una bóveda de
-evidencia sellada que cualquiera puede verificar dentro de años, y
-portafolio para agencias — empieza gratis con 3 sitios. Y lo que ningún
-script puede dar: un auditor humano que firma cuando tienes que
-demostrarlo.
-
-## Validado contra páginas reales
-
-La comparación mensual con axe-core 4.10 comprueba que se hayan medido
-todas las páginas del conjunto. Las diferencias señalan casos para revisión
-manual. En GOV.UK, esa revisión confirmó que el icono de búsqueda cumplía
-el umbral de contraste no textual de 3:1 y llevó a corregir el control de
-contraste de texto del toolkit. [Método y resultados](bench/README.md)
-
-El corpus congelado mide la detección de fallos introducidos y los avisos
-en páginas de control. Una entrega comparable incluye una fila válida por
-página, con una lista vacía por cada página revisada sin hallazgos.
-[Guía de evaluación del corpus](docs/cookbook.md#12-score-any-engine-against-the-frozen-corpus)
-
-El benchmark de agentes por tareas incluye una muestra estratificada de
-sitios web de España. [Método y resultados](docs/benchmark-agents.md)
-
-También se ejecuta contra los casos de prueba oficiales ACT del W3C:
-`scripts/act_report.py` regenera el [informe de implementación
-EARL](docs/act-implementation-report.json) — **los 134 casos con fallo
-esperado se detectan TODOS (cero fallos perdidos) y 273 de 355 outcomes
-(77%) coinciden exactamente con el oráculo** (las 82 restantes son
-divergencias passed↔inapplicable en 16 reglas — casos límite de
-aplicabilidad, jamás un fallo perdido; desglose por regla en
-[docs/act-report-summary.md](docs/act-report-summary.md), verificado contra
-el repositorio w3c/wcag-act-rules). El catálogo WCAG
-2.2 (86 criterios, A/AA/AAA) y el registro de outcomes WCAG 3 se verifican
-igualmente contra sus fuentes canónicas de w3.org
-(`scripts/wcag22_ingest.py`, `scripts/wcag3_ingest.py`). La calibración
-corre también contra implementaciones de componentes conocidas-buenas: la
-[librería de componentes accesibles de TetraLogical](https://github.com/TetraLogical/accessible-components-library)
-(ISC, pineada por commit en [`bench/tetra-acl/`](bench/tetra-acl/README.md)):
-16 páginas de ejemplo auditadas sin un solo hallazgo de markup de componente
-y con teclado y reflow a 320px limpios en todas.
-
-## Por qué lo construí
-
-Llevo auditando webs desde 2003. En veinte años las herramientas se hicieron
-más rápidas y los fallos siguieron siendo los mismos: el mismo alt ausente,
-las mismas trampas de teclado, los mismos formularios que se tragan tu
-trabajo. Cuando los agentes de IA empezaron a escribir la mayor parte de la
-web, la brecha de auditoría dejó de ser un problema de plantillas y pasó a ser
-uno de infraestructura.
-
-Así que construí la herramienta que siempre quise al lado en una auditoría.
-No otro escáner — escáneres hay. Un juego de herramientas que hace la mitad
-del trabajo, dice exactamente dónde se para, y empaqueta el resto para la
-persona que firma. El hallazgo de gov.uk que has leído arriba no es un caso de
-benchmark sintético: este motor lo encontró, y la revisión manual es lo que
-cazó el falso positivo antes de que saliera como afirmación.
-
-Si te ahorra una tarde, deja una estrella — ayuda de verdad a que el próximo
-auditor lo encuentre. Si no, abre un issue y dime qué falta.
-
-## Honestidad, de fábrica
-
-Cada auditoría dice: **48 de los 55 criterios A/AA (87%) llevan al menos una señal
-automatizada, y el resto necesita una persona** (aproximadamente un tercio de todo
-WCAG contando AAA y las comprobaciones genuinamente humanas).
-El prompt `audit-page` y la skill hacen que el agente compruebe lo que puede
-(teclado, foco, zoom, errores anunciados) usando [la checklist
-manual](skills/a11y-toolkit/references/wcag22-manual-checklist.md). Un filtro,
-no un veredicto. El pack agrupa la revisión humana pendiente por clase — MIN 23
-(leer y confirmar), MED 19 (verificar en el navegador), MAX 13 (interacción y
-juicio reales); [tabla completa](docs/effort-class-table.md). Y el pack de
-evidencia es el objeto de entrega para la persona que firma, con transcripción
-de lector de pantalla incluida, para que quien revisa vea lo que oye una
-persona ciega.
-
-## Seguridad y alcance
-
-Una herramienta **local**: corre en tu máquina como tu usuario.
-`a11y_audit_url` acepta solo http/https (nada de `file://` — usa
-`--file`/`html` para HTML local). `a11y_html_validate` en modo html envía el
-contenido por POST al servicio del W3C (en modo url solo comparte la URL;
-vnu autoalojado soportado). `path`/`output_path` leen/escriben rutas locales —
-úsalo en clientes MCP en los que confíes.
-
-## Desarrollo
-
-```bash
-make test   # TODAS las suites por descubrimiento
-```
-
-`tests/test_dom.py` se auto-omite sin Playwright. `tests/test_solido.py`
-obliga a los invariantes de diseño (paridad de catálogos, alineación de
-versiones, cobertura de conteos, fuzz de HTML hostil). Releases:
-`make release V=X.Y.Z` — bump, gates, tag y push atómicos.
-
-Superficies generadas — no editar a mano: la tabla de herramientas de este
-README y [docs/tools.md](docs/tools.md) salen de `server.TOOLS`
-(`scripts/gen_readme.py`), y [llms.txt](llms.txt) — el índice de este repo
-para agentes, convención llmstxt.org — de la misma fuente
-(`scripts/gen_llms.py`). Ambas con `--check` en los gates del Makefile: añadir
-una herramienta y olvidarlas tinta la suite.
-
-## Hoja de ruta
-
-Hecho recientemente: auditoría renderizada con shadow DOM y contraste por
-estado, prueba de errores de formulario más autofix, trampas de teclado,
-scroll infinito, reflow, la integración W3C Nu, SARIF y presupuestos de
-error, el pack de evidencia (spec publicada, autoverificable), rastreo por
-sitemap, auditoría tras login, autodetección de navegador, la transcripción
-de lector de pantalla y las clases de revisión humana por criterio. La
-historia completa vive en el [changelog](CHANGELOG.md).
-
-Siguiente, más o menos en este orden:
-
-- [ ] Interlock de atestación: que la firma de un auditor externo referencie el pack de evidencia por hash (su esquema, mi lado se adapta)
-- [ ] Publicar los resultados mensuales del benchmark axe-core desde CI, sobre páginas reales
-- [ ] Contrastes de la transcripción de lector contra la salida de NVDA y VoiceOver
-- [ ] Más configuraciones de cliente verificadas (JetBrains AI, Gemini CLI), mismo tratamiento que [docs/clients.md](docs/clients.md)
-
-## Comunidad
-
-- **Preguntas, ideas, show & tell** → [Discussions](https://github.com/kinti/a11y-toolkit/discussions)
-- **Primera contribución** → la cola de [`good first issue`](https://github.com/kinti/a11y-toolkit/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22) — las traducciones son la puerta de entrada diseñada: sin código, un fichero, validación mecánica ([guía](docs/i18n.md))
-- **Bugs y features** → las [plantillas de issue](https://github.com/kinti/a11y-toolkit/issues/new/choose)
-
-Una escalera práctica: **traducir → docs → bug → feature**. Todo lo que
-aportes sale acreditado abajo y en las notas de la release.
-
-## Contribuidores
-
-| Contribuidor | Contribuciones |
-|---|---|
-| [@kinti](https://github.com/kinti) | Motor, tests, docs, auditorías — todo lo habido |
-
-El próximo nombre aquí seguramente es de un traductor: reclama una issue de
-locale abierta y tu idioma sale en la próxima release con tu nombre puesto.
-
-## Autor
-
-**Jesús Quintana Fernández** ([jquin.net](https://jquin.net/)) — consultor
-SEO/GEO y profesional de accesibilidad web desde 2003. MIT © 2026.
-
-## Licencia y nombre
-
-El código es [MIT](LICENSE): úsalo, véndelo, inclúyelo en productos
-cerrados, hazle fork. Lo que el MIT no cubre: **el nombre**. "a11y-toolkit",
-el logo y las marcas del proyecto están reservados y no forman parte de la
-licencia MIT — un fork o redistribución que modifica el código publica con
-su propio nombre, no con el nuestro. El mismo juego que Debian o Firefox:
-código permisivo, marca protegida.
-
-¿Has construido algo con a11y-toolkit? [Cuéntanoslo](https://github.com/kinti/a11y-toolkit/discussions) —
-las herramientas públicas se destacan y se acreditan.
-
-*Esta traducción acompaña al README en inglés, que es la versión canónica y
-la que verifica la suite.*
+</details>
+
+### Los 5 prompts
+
+| Prompt | Para qué sirve |
+| --- | --- |
+| `audit-page` | Audita una página y planifica las pruebas con teclado, lector de pantalla y zoom. |
+| `fix-contrast` | Encuentra y aplica un color de texto que cumple el contraste sobre el fondo medido. |
+| `pre-deploy-check` | Audita una URL y la compara con una captura de accesibilidad guardada. |
+| `declaration-eaa` | Prepara un borrador de declaración de accesibilidad para revisión humana. |
+| `blindfold-task` | Intenta completar una tarea con nombres accesibles y acciones de teclado, y registra las dificultades de cada paso. |
+
+## Datos y seguridad
+
+El toolkit se ejecuta con los permisos de tu usuario. Los argumentos de
+archivo permiten leer o escribir en las rutas a las que tiene acceso ese
+usuario. Las comprobaciones de URL y las del navegador se conectan a las
+páginas que indiques. La validación HTML opcional con Nu envía la URL o
+el HTML al validador configurado. Guarda en local los archivos de sesión
+del navegador que contienen datos de autenticación.
+[Política de seguridad y canal privado](SECURITY.md)
+
+## Contribuye
+
+Ejecuta `make test` desde la raíz del repositorio. Instala Playwright y
+Chromium para ejecutar las pruebas con navegador. El catálogo de
+herramientas y el índice para agentes se generan a partir de las
+definiciones MCP. CI comprueba que estén sincronizados.
+[Arquitectura](docs/ARCHITECTURE.md) · [Historial de cambios](CHANGELOG.md)
+
+Puedes corregir un fallo, mejorar un ejemplo o añadir un idioma.
+Comprueba los paquetes de traducción con `python3 tests/test_locales.py`.
+[Guía de traducción](docs/i18n.md) ·
+[Tareas para empezar](https://github.com/kinti/a11y-toolkit/issues?q=is%3Aissue+is%3Aopen+label%3A%22good%20first%20issue%22) ·
+[Debates](https://github.com/kinti/a11y-toolkit/discussions)
+
+## Sobre el proyecto
+
+Audito webs desde 2003. Construí este toolkit para que quien corrige un
+problema pueda encontrarlo y quien revisa la corrección pueda comprobar
+la evidencia. Si algún resultado te sorprende, comparte la página más
+sencilla que permita reproducirlo. [Jesús Quintana Fernández](https://jquin.net/) ·
+[Comunicar un problema](https://github.com/kinti/a11y-toolkit/issues/new/choose)
+
+a11y.es usa este motor en su servicio de monitorización de accesibilidad. [a11y.es](https://a11y.es)
+
+El código se distribuye bajo licencia MIT. Las distribuciones modificadas
+usan nombre e identidad propios. [Licencia](LICENSE)

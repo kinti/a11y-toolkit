@@ -1,45 +1,13 @@
-# a11y-toolkit — the accessibility layer for AI coding agents
+# a11y-toolkit
 
-<p align="center">🌐 <strong>English</strong> · <a href="README.es.md">Español</a></p>
+**WCAG 2.2 accessibility checks for coding agents, developers and CI.**
 
-> WCAG 2.2 for your coding agent — audit, fix, document and watch. Zero dependencies, es/en.
+Audit an HTML file or a live page, find out how to fix each issue, and check
+what changed before you ship. When a human needs to review the result,
+export a verifiable evidence pack with the findings and the checks that
+still need attention.
 
-<p align="center">
-  <img src="docs/demo.gif" alt="a11y-toolkit in action: audit (score 64), nearest passing color, re-audit (94) — real tool output" width="720">
-</p>
-
-37 MCP tools, 5 prompts and a skill covering the whole WCAG 2.2 loop: audit, fix,
-document, watch, hand off — and now blindfold usability testing, where the agent
-attempts real tasks perceiving only what a screen reader exposes. 48 of 55 A/AA criteria carry at least one automated signal (87%), every
-finding ships with a concrete remediation your agent can apply, and the rendered tools
-run on whichever browser you have — Chromium, Firefox, WebKit, Chrome or Edge.
-
-The European Accessibility Act is in force since June 2025, ADA suits keep landing,
-and AI agents now write most of the web. A scan is not a defence: the machine finds,
-the human signs.
-
-<p align="center">
-  <a href="https://madebyhuman.iamjarl.com"><img src="https://madebyhuman.iamjarl.com/badges/loop-white.svg" alt="Human in the Loop — humans guide and curate the process; every conformance artifact is signed by a person" height="34"></a>
-</p>
-
-## Quickstart
-
-```bash
-# MCP — one line, any MCP client (Claude, Cursor, Codex, Windsurf, …)
-claude mcp add a11y-toolkit -- uvx --from a11y-toolkit a11y-toolkit-mcp
-
-# CLI — same engine, one command
-pip install a11y-toolkit
-a11ytoolkit audit --url https://example.com
-a11ytoolkit pair "#1f2328" "#fbfaf7"
-```
-
-**Agents that prefer copy-paste configs** (Cline and similar): [`llms-install.md`](llms-install.md) carries both install paths, verified end to end.
-
-Static audits, contrast math, PDF/DOCX screening and the evidence pack run with
-**zero dependencies**. The rendered tools (real contrast over images, keyboard
-traps, reflow, forms) additionally need Playwright:
-`pip install playwright && playwright install chromium`.
+[English](README.md) · [Español](README.es.md)
 
 [![CI](https://github.com/kinti/a11y-toolkit/actions/workflows/ci.yml/badge.svg)](https://github.com/kinti/a11y-toolkit/actions/workflows/ci.yml)
 [![PyPI](https://img.shields.io/pypi/v/a11y-toolkit)](https://pypi.org/project/a11y-toolkit/)
@@ -57,32 +25,173 @@ traps, reflow, forms) additionally need Playwright:
 [![Python Versions](https://img.shields.io/pypi/pyversions/a11y-toolkit)](https://pypi.org/project/a11y-toolkit/)
 [![GitHub Release](https://img.shields.io/github/v/release/kinti/a11y-toolkit)](https://github.com/kinti/a11y-toolkit/releases)
 
-## Features
+<p align="center">
+  <a href="https://madebyhuman.iamjarl.com"><img src="https://madebyhuman.iamjarl.com/badges/loop-white.svg" alt="Human in the Loop" height="34"></a>
+</p>
 
-axe-core is the reference engine for automated rule detection, and this
-toolkit does not try to out-rule it. It competes on the loop the reference
-set leaves open: audit locally, get the exact element, reproduce the
-regression, and hand over evidence a human can sign. The table below lists
-capabilities the reference set lacks, and every row is reproducible from
-this repository (the method and the raw results live in `bench/`).
+Python 3.9+ · Zero dependencies at the core · Zero telemetry · English and Spanish output
 
-| Capability | axe-core / Lighthouse / pa11y | a11y-toolkit |
-|---|---|---|
-| Text contrast over images and gradients (pixel sampling of the real background) | No | Yes |
-| VPAT 2.5 (WCAG) draft from the evidence pack — US/ADA counterpart of the EAA statement | No | Yes |
-| Form error testing: fills invalid data, really submits, judges what happens | No | Yes |
-| Keyboard traps: real Tab walk + Escape-release test, plus focus/input-triggered navigation | No | Yes |
-| Infinite-scroll audit: focus survival, announcements, feed end | No | Yes |
-| Reflow at 320px and the WCAG text-spacing override, measured | No | Yes |
-| Screen reader transcript: what a blind user hears, linearized | No | Yes |
-| Tooltips that ignore Escape caught by actually hovering (1.4.13) | No | Yes |
-| Legal statements for the EAA / RD 1112/2018, in Spanish and English | No | Yes |
-| An evidence pack a human can sign — hashes, matrix, empty signature block | No | Yes |
-| ACT Rules interop: EARL export + per-rule consistency report against official W3C test cases | No | Yes |
-| WCAG 3 draft preview — regroup 2.2 findings under the draft's outcomes, no fake score; criteria the draft has no provision for are listed apart | No | Yes |
-| The engine examines itself: seeded WCAG mutant bank — regenerable exam, kill rate + false positives via placebos | No | Yes |
-| Sequential diagnosis: pass a URL and the page's own evidence orders the exams (severity only breaks ties) | No | Yes |
-| Runs with zero dependencies at core, speaks es/en, any browser you have | Heavy runtimes | Zero dependencies |
+## Quickstart
+
+### Try the CLI
+
+Run a local contrast check with `uvx`. The expected ratio is **4.54:1**.
+[uv tool guide](https://docs.astral.sh/uv/guides/tools/)
+
+```sh
+uvx --from a11y-toolkit a11ytoolkit pair "#767676" "#ffffff"
+```
+
+Install the CLI with `uv tool install a11y-toolkit` or run
+`python -m pip install a11y-toolkit` in your project's Python environment.
+Then audit a public page or pass `--file page.html` to audit local HTML.
+
+```sh
+a11ytoolkit audit --url https://example.com
+```
+
+Each finding includes a WCAG criterion, severity and remediation. Check
+`not_measured` for the criteria that this audit did not measure. Run
+`a11ytoolkit route --url https://example.com` to see what to check next.
+
+<details>
+<summary>Watch an audit, a contrast fix and a re-audit</summary>
+
+![An audit flags a text contrast failure. The toolkit suggests a darker text color and the re-audit shows the improvement.](docs/demo.gif)
+
+</details>
+
+### Connect your coding agent
+
+> mcp-name: io.github.kinti/a11y-toolkit
+
+Register a **stdio** MCP server with the command and arguments below. Use
+the configuration format supported by your client. [Client setup guide](docs/clients.md)
+
+```text
+command: uvx
+args: --from a11y-toolkit a11y-toolkit-mcp
+```
+
+For the npm launcher, use `npx -y -p @kinti/a11y-toolkit a11y-toolkit-mcp`.
+It bundles the engine and uses a local Python 3.9+ interpreter. [Install options](llms-install.md)
+
+Once connected, ask your agent to call `a11y_contrast_pair` for `#767676` on
+`#ffffff`. The expected contrast ratio is **4.54:1**.
+
+### Enable browser checks
+
+Use the same Python environment for Playwright and the CLI or MCP server.
+Install Chromium for browser checks and Pillow for image decoding in
+pixel-based contrast checks.
+
+```sh
+python -m pip install a11y-toolkit playwright pillow
+python -m playwright install chromium
+a11ytoolkit dom https://example.com --browser chromium
+```
+
+If your MCP client uses an isolated `uvx` environment, launch it from the
+browser-enabled environment instead. Set its command to that environment's
+`a11y-toolkit-mcp` executable. Rendered checks also support installed Firefox,
+WebKit, Chrome and Edge.
+
+## From a finding to a verified fix
+
+### Locate the issue and recheck it
+
+Run these commands on the same local HTML file. The annotated copy marks
+the elements the report can locate in the original source.
+
+```sh
+a11ytoolkit audit --file page.html > audit.json
+a11ytoolkit annotate page.html --report audit.json -o annotated.html
+```
+
+Apply the remediation in `page.html`, then repeat the audit. For text contrast,
+`a11ytoolkit pair "#767676" "#ffffff"` measures the color pair and reports the
+thresholds. Use a rendered check for text over images and gradients.
+
+### Block regressions in CI
+
+Start with an audit of the page you want to track. The budget records the
+findings you have already accepted. Commit the budget so CI can use it as a
+baseline.
+
+```sh
+a11ytoolkit budget --init --audit audit.json > budget.json
+```
+
+After the next change, audit the **same** file again and compare it with the saved budget.
+
+```sh
+a11ytoolkit audit --file page.html > next.json
+a11ytoolkit budget --budget budget.json --audit next.json
+```
+
+| Exit | Result |
+| --- | --- |
+| `0` | The measured changes are within budget. |
+| `1` | The capture failed or the reports could not be compared. |
+| `2` | At least one finding exceeded the budget. |
+
+Keep browser, color scheme and session type consistent when comparing live
+captures. To check changed HTML in a Git branch, use
+`a11ytoolkit audit --changed --base origin/main`. To compare focus order in a
+scripted journey, use `trace`. [CI and keyboard recipes](docs/cookbook.md)
+
+### Hand off the evidence
+
+```sh
+a11ytoolkit evidence next.json -o evidence-pack.json
+```
+
+An evidence pack includes the source reports, a 55-criterion matrix and the
+review still required on the sample. From a checkout of this repository,
+run `python3 scripts/verify_pack.py /path/to/evidence-pack.json` to check
+the SHA-256 seal and embedded reports. An auditor can review the pack and take
+responsibility for the conformance decision. [Pack format and verifier](docs/evidence-pack-schema.md)
+
+## Choose the right check
+
+| If you need to… | Start with… |
+| --- | --- |
+| Scan a page, local HTML or a small site | `audit --url`, `audit --file` or `audit --url … --pages 5` |
+| Check rendered contrast, focus or small targets | `dom` or `contrast-dom` |
+| Walk a keyboard route or check a layout at 320 CSS pixels | `kbd`, `trace` or `reflow` |
+| Check interactive behavior such as errors, hover or infinite scroll | `forms`, `hover`, `scroll` or `patterns` |
+| Inspect what a browser exposes to assistive technology | MCP tool `a11y_sr_transcript` or prompt `blindfold-task` |
+| Screen documents or captions | `pdf`, `python -m a11y_toolkit.a11ydocx` or `vtt` |
+| Prepare a human review or an interoperability export | `evidence`, `scope`, `sarif`, `earl`, `vpat` or `openacr` |
+
+Form checks can submit test data. Run them against a test site or an
+environment where submissions are expected. [Examples and command options](docs/cookbook.md)
+
+## Coverage and validation
+
+**48 of 55 A/AA criteria carry at least one automated signal (87%)** in
+the supported WCAG 2.2 check modes. A signal covers a specific condition
+within a criterion. The sample, the selected checks and the manual review
+determine what a reviewer can conclude about conformance. The evidence pack
+shows those distinctions criterion by criterion. [Manual review checklist](skills/a11y-toolkit/references/wcag22-manual-checklist.md) · [Standards and mappings](docs/standards-coverage.md)
+
+| Evidence | What it measures |
+| --- | --- |
+| [ACT implementation report](docs/act-report-summary.md) | 134 of 134 expected failures were detected across 355 cases and 20 rules. Exact outcome agreement was 273 of 355 (77%). The other outcomes differed between `passed` and `inapplicable`. |
+| [Frozen corpus](corpus/README.md) | The toolkit detected all 18 injected faults and flagged none of the three controls. These cases come from the toolkit's own mutation bank. Other engines can submit results to the same scorer. |
+| [Live axe-core benchmark](bench/README.md) | Four public pages compared across static, rendered and axe passes. Differences identify cases for manual review. Raw results and the validation procedure are public. |
+
+For browser-based transcripts, the browser's accessibility tree is the
+source. Use a real screen reader for spoken-output verification. [Screen-reader cross-check](docs/sr-crosscheck.md)
+
+## MCP tools and prompts
+
+The project ships 37 MCP tools, 5 prompts and a skill for repeatable
+audits and review. The CLI also includes regression and corpus commands.
+[Agent skill](skills/a11y-toolkit/SKILL.md) · [Agent documentation index](llms.txt)
+
+<details>
+<summary>Browse the 37-tool catalog</summary>
 
 <!-- TOOLS:BEGIN -->
 ## The tools (37)
@@ -130,352 +239,47 @@ Full reference — descriptions, arguments, return shapes and behavior — in [d
 | [`a11y_route`](docs/tools.md#a11y_route) | Routing | Tool router (goal or page to steps) |
 <!-- TOOLS:END -->
 
-## The 5 prompts
+</details>
 
-- **`audit-page`** (`url*`, `language`): Full accessibility audit workflow for a URL: automated tools + what to verify manually (keyboard, screen reader, zoom). Every prompt exists in English and Spanish.
+### The 5 prompts
 
-- **`fix-contrast`** (`fg*`, `bg*`, `context`): Guided contrast fix: verify the pair (or the text-over-image region), get the nearest passing color, apply it to the code. Every prompt exists in English and Spanish.
+| Prompt | Use it to… |
+| --- | --- |
+| `audit-page` | Audit a page and plan keyboard, screen-reader and zoom checks. |
+| `fix-contrast` | Find and apply a passing text color for the measured background. |
+| `pre-deploy-check` | Audit a URL and compare it with a saved accessibility snapshot. |
+| `declaration-eaa` | Draft an accessibility statement for human review. |
+| `blindfold-task` | Attempt a task using accessible names and keyboard actions, then record the friction. |
 
-- **`pre-deploy-check`** (`url*`, `baseline`): Pre-deploy regression check: express audit of the URL plus snapshot diff against a baseline snapshot. Every prompt exists in English and Spanish.
+## Data and security
 
-- **`declaration-eaa`** (`entity*`, `url*`, `status`): Generate a European Accessibility Act / RD 1112/2018 accessibility statement, collecting any missing legal fields from the user. Every prompt exists in English and Spanish.
+The toolkit runs as your local user. Local file arguments can read or write
+files that user can access. URL and browser checks contact the pages you
+specify. The optional Nu HTML validation tool sends the selected URL or
+HTML to its configured validator. Keep authenticated browser session
+files local. [Security policy and private reporting](SECURITY.md)
 
+## Contribute
 
-- **`blindfold-task`** (`url*`, `goal*`, `kind`, `language`): Blindfold usability test — the agent attempts a real task perceiving ONLY the accessibility tree and acting only by accessible name and keyboard, logging friction per step; closes with a11y_journey_verdict. The capability no other accessibility tool has: task-based non-visual testing where the agent IS the screen-reader user. Every prompt exists in English and Spanish.
+Run `make test` from the repository root. Install Playwright and Chromium
+to exercise the browser suites. The tool inventory and agent index derive
+from the MCP definitions, and CI checks that they stay in sync.
+[Architecture](docs/ARCHITECTURE.md) · [Changelog](CHANGELOG.md)
 
+Fix a bug, improve a recipe or add a locale. Locale packs can be validated
+with `python3 tests/test_locales.py`. [Translation guide](docs/i18n.md) ·
+[Good first issues](https://github.com/kinti/a11y-toolkit/issues?q=is%3Aissue+is%3Aopen+label%3A%22good%20first%20issue%22) ·
+[Discussions](https://github.com/kinti/a11y-toolkit/discussions)
 
-## Install
+## About
 
-> mcp-name: io.github.kinti/a11y-toolkit · PyPI: [a11y-toolkit](https://pypi.org/project/a11y-toolkit/) · Zenodo DOI: `10.5281/zenodo.22843722`
+I have been auditing websites for accessibility since 2003. I built this
+toolkit so the person fixing an issue can find it and the person reviewing
+the fix can check the evidence. If a result surprises you, share the smallest
+page that reproduces it. [Jesús Quintana Fernández](https://jquin.net/) ·
+[Report an issue](https://github.com/kinti/a11y-toolkit/issues/new/choose)
 
-Works with **any MCP-capable client** — Claude Code/Desktop, Cursor, Windsurf, VS Code,
-Codex CLI, OpenCode, ZCode, Zed, Cline, Continue, Kimi Code… See
-[docs/clients.md](docs/clients.md) for every verified config format.
-Node-native? `npx -y -p @kinti/a11y-toolkit a11y-toolkit-mcp` runs the
-same engine ([npm/](npm/)). Composing it
-with the popular servers (Playwright, GitHub, Filesystem, Fetch…) —
-[docs/interop.md](docs/interop.md).
-Start-to-finish recipes (audit → fix → seal → CI):
-[docs/cookbook.md](docs/cookbook.md).
+The toolkit is used by a11y.es for hosted accessibility monitoring. [a11y.es](https://a11y.es)
 
-```bash
-claude mcp add a11y-toolkit -- uvx --from a11y-toolkit a11y-toolkit-mcp
-```
-
-Or with JSON config:
-
-```json
-{
-  "mcpServers": {
-    "a11y-toolkit": {
-      "command": "uvx",
-      "args": ["--from", "a11y-toolkit", "a11y-toolkit-mcp"],
-      "timeoutMs": 60000
-    }
-  }
-}
-```
-
-Rendered tools use Playwright **if present** and accept a `browser` parameter
-(`auto`, `chromium`, `firefox`, `webkit`, `chrome`, `msedge` — auto-detects the first
-available). Accept `auth_state` (Playwright storage_state path) to audit behind login.
-Everything else works with zero dependencies.
-
-### The skill
-
-```bash
-git clone https://github.com/kinti/a11y-toolkit && cd a11y-toolkit
-./skills/install-skill.sh     # → ~/.zcode/skills and ~/.claude/skills
-```
-
-## Agent hook — `a11ytoolkit init`
-
-Agents that read `AGENTS.md` on their own get the
-rule that matters — *after any UI change, re-audit before calling the work
-done* — with the exact commands:
-
-```bash
-cd your-project
-uvx --from a11y-toolkit a11ytoolkit init     # writes/merges the AGENTS.md hook (idempotent)
-uvx --from a11y-toolkit a11ytoolkit guard --file index.html   # write-time gate: NEW high/medium refuse the save
-```
-
-It also prints the MCP config block and the optional skill install step.
-`--check` reports whether the hook is present (exit 1 if not — CI-friendly).
-
-
-**The gate**: `init` also installs a write-time guard (Claude Code
-PreToolUse hook). Every save of a user-facing file is audited against git
-HEAD — **new high/medium findings refuse the save** with the remediation
-right there, so the AI holding the pen fixes them in the same second the
-failure would have been born. Low severity and findings already in HEAD
-warn. `A11Y_GATE=off` disables; `--no-gate` skips install; the refusal
-carries the honesty line: the gate audits what the engine sees — a filter,
-not a verdict.
-
-![The gate refusing a save with new findings, the AI fixing them, the save
-allowed](docs/gate-demo.gif)
-## Languages — community locale packs
-
-All user-facing messages (findings, remediations, legal wording) live in
-[locale packs](a11y_toolkit/locales/) — one JSON per language, `es` and `en`
-ship today. **Adding a language is a single-file PR**: copy
-[`_template.json`](a11y_toolkit/locales/_template.json), translate keeping the
-`{placeholders}`, and `python3 tests/test_locales.py` validates it mechanically
-(keys, placeholders, plural rule, completeness). Same community model as
-axe-core's locales — with validation axe-core doesn't have. Guide:
-[docs/i18n.md](docs/i18n.md). Downstream products can layer brand wording via
-overlays without forking.
-
-**Claim an open language:** French, Brazilian Portuguese and German have seeded
-issues under [`good first issue`](https://github.com/kinti/a11y-toolkit/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22)
-— one JSON file, mechanical validation, credit in the README and in the release
-notes. Any other language: use the
-[Add a language template](https://github.com/kinti/a11y-toolkit/issues/new?template=new_locale.yml).
-Human translation only — machine translation is rejected; the catalog IS the
-product's voice.
-
-## CLI — same engine, one command
-
-Install it with `pip install a11y-toolkit` (or `uv tool install a11y-toolkit`).
-
-```bash
-a11ytoolkit audit --changed                     # changed HTML since HEAD, including Unicode paths
-a11ytoolkit audit --changed --base origin/main  # a branch's changes — exit 2 on high/medium
-a11ytoolkit audit --url https://example.com --pages 5   # sitemap first, then recursive link discovery if unavailable
-a11ytoolkit audit --file table.html  # table headers in their own table; exits 1 if the HTML exceeds the input limit
-a11ytoolkit pair "#1f2328" "#fbfaf7"                    # contrast
-a11ytoolkit image hero.jpg --text "#fff" --region 120,40,420,90
-a11ytoolkit forms https://mysite/contact                # form errors
-a11ytoolkit kbd https://mysite                          # keyboard traps + 3.2.1/3.2.2
-a11ytoolkit reflow https://mysite                       # 320px reflow (behind login: --auth-state session.json)
-a11ytoolkit scroll https://medium.com/feed              # infinite scroll
-a11ytoolkit validate --url https://example.com          # W3C Nu
-a11ytoolkit hover https://mysite                        # tooltip dismissibility
-a11ytoolkit dom https://mysite                          # rendered audit (contrast, 2.5.8, focus; exit 1 + error on HTTP 4xx/5xx)
-a11ytoolkit fix --file page.html -o fixed.html          # safe autofix
-a11ytoolkit declaration --entity "Acme" --url https://… --status partial --framework eaa
-a11ytoolkit snapshot https://mysite --out before.json   # before deploy
-a11ytoolkit diff before.json after.json                 # after deploy
-a11ytoolkit evidence audit.json -o pack.json            # pack v3 with measured coverage and review counts
-a11ytoolkit disprove --url https://mysite --file audit.json  # re-audit the original destination and capture conditions
-a11ytoolkit disprove --url https://mysite --file dom.json --auth-state session.json  # reuse the original local session
-a11ytoolkit budget --init --audit audit.json > budget.json  # accept the measured findings by page, count and available paths
-a11ytoolkit budget --budget budget.json --audit next.json   # exit 1 for incomplete or incompatible captures, 2 on regressions
-# legacy debt does not block: adopt CI today, don't let accessibility get worse while you pay it down
-a11ytoolkit budget --init-snapshot s.json > structural.json      # structural budget: today's structure is accepted
-a11ytoolkit budget --budget structural.json --snapshot s2.json   # only NEW rendered structure blocks (exit 0/2)
-a11ytoolkit engines https://mysite                        # same page in 3 engines: behavioral divergences, pairwise
-a11ytoolkit trace https://mysite --script journey.json -o t.json  # scripted journey; main-document HTTP errors fail capture
-a11ytoolkit trace https://mysite --script j.json --capture-dialog-state -o t.json  # + per-step modal state, then: trace diff a.json b.json --gate-dialog-state
-a11ytoolkit trace diff a.json b.json  # exit 1 for invalid captures or failed actions, 2 for regressions
-a11ytoolkit patterns https://mysite                       # APG keyboard contracts, live: dialog / tablist / disclosure / combobox / menu / slider
-a11ytoolkit ledger record --url https://mysite --audit audit.json  # tracks findings across comparable runs
-a11ytoolkit ledger gaps --url https://mysite --lang en             # remaining coverage gaps
-a11ytoolkit ledger recurrence --ledger a11y-ledger.json            # chronic signals and URLs to review
-a11ytoolkit contrast-dom https://mysite --walk            # perceptual pass: per-element ratios, thresholds, suggestions
-a11ytoolkit pdf document.pdf                            # structural screening of a complete PDF, up to 30 MB
-python3 -m a11y_toolkit.a11ydocx document.docx           # namespace-aware DOCX screening
-a11ytoolkit vtt https://mysite/captions.vtt              # checks caption syntax and timing after a complete download
-a11ytoolkit sarif --from-audit audit.json -o a11y.sarif  # GitHub code scanning from a complete audit
-a11ytoolkit badge --score 92 --out badge.svg            # honest SVG
-a11ytoolkit contrast-dom https://mysite --selector ".hero h1"  # auto-region pixel sampling
-a11ytoolkit vpat pack.json --product "Acme" -o vpat.html      # VPAT 2.5 (WCAG) draft
-a11ytoolkit openacr pack.json --product "Acme" -o openacr.yaml # OpenACR YAML (GSA) draft
-a11ytoolkit earl --from-audit audit.json -o earl.json          # ACT Rules / EARL export from a complete audit
-a11ytoolkit wcag3 --from-audit audit.json                      # WCAG 3 draft preview (no score; criteria the draft lacks go to no_equivalent)
-a11ytoolkit route --goal "gate my PR"                          # which tools for the task
-a11ytoolkit route --file page.html                             # diagnosis: the page orders the exams
-a11ytoolkit mutants --seed 7 --n 12                            # the engine's sealed self-exam
-a11ytoolkit fingerprints pages/*.html -o templates.json        # suggest a structural sample; review each page’s content
-a11ytoolkit audit --file page.html --standard en301549         # EN 301 549 clause on every finding
-a11ytoolkit annotate page.html --report r.json -o marked.html  # per-element marks in one pass, source text preserved
-a11ytoolkit locate --file page.html --query "Submit"           # element by accessible name → route selector
-a11ytoolkit patches --file page.html -o patches.json           # sealed fix record (verify with --verify)
-a11ytoolkit journey friction.json -o verdict.json             # blindfold journey: friction log -> scored verdict
-a11ytoolkit scope audit.json --standard en301549 -o scope.json  # applicability scope, EN clauses, human-confirmed
-a11ytoolkit criteria --list --level AA --new-in 2.2            # the offline Quick Ref, filterable
-a11ytoolkit wizard --url https://client.web --lang es          # guided: 3 questions → standard, audit, scope
-a11ytoolkit corpus verify corpus                  # the frozen corpus, verified
-a11ytoolkit corpus evaluate --submission mine.jsonl corpus    # exit 1 for incomplete or invalid submissions
-```
-
-For table findings, audit and annotate the same HTML to locate the cell with
-a broken `headers` reference. For keyboard regression checks, capture both
-runs with the same script. With the optional dialog gate, inspect
-`dialog_gate.status` alongside the exit code. [Worked examples](docs/cookbook.md#13-locate-a-broken-table-header-in-the-original-html)
-
-Rendered comparisons require the same browser, color scheme and session type.
-Use the same account for authenticated runs and keep its session file local.
-Rebuild rendered budgets or start a new ledger when earlier captures lack
-these fields.
-
-## Standards coverage
-
-Which market's law each command serves: [docs/standards-coverage.md](docs/standards-coverage.md)
-— EN 301 549 (EU-27 + EEA + Canada), Section 508 (US federal), RGAA 4.1
-(France), WCAG-direct (Latin America and most ADA practice) — one engine,
-the standard of 27+ countries.
-
-
-
-
-## Coverage: 48 of 55 WCAG 2.2 A/AA criteria (87%)
-
-| With automated signal | Manual-only (genuinely human) |
-|---|---|
-| 1.1.1, 1.2.2, 1.2.3, 1.3.1–1.3.5, 1.4.1–1.4.5, 1.4.10, 1.4.12, 1.4.13, 2.1.1, 2.1.2, 2.1.4, 2.2.1, 2.2.2, 2.4.1–2.4.7, 2.4.11, 2.5.1–2.5.4, 2.5.7, 2.5.8, 3.1.1, 3.1.2, 3.2.1–3.2.3, 3.2.6, 3.3.1–3.3.4, 3.3.8, 4.1.2, 4.1.3 | 1.2.1 (audio transcripts), 1.2.4 (live captions), 1.2.5 (audio description), 1.4.11 (non-text contrast — rendered heuristic), 2.3.1 (flash detection), 3.2.4 (consistent identification), 3.3.7 (redundant entry) |
-
-The manual-only column is derived from the signals each mode actually emits (external review, round 4: 1.2.5, 1.4.11 and 3.2.4 were claimed without a mapped signal — the audio-description absence signal fires under 1.2.3, and 1.4.11/3.2.4 carry heuristic-only coverage). The 7 manual-only criteria each have a knowledge entry (`a11y_criterion`) telling the agent exactly how to verify them by hand. The boundary is printed on every report.
-
-## The engine behind a11y.es
-
-[a11y.es](https://a11y.es) is a Spanish-market accessibility service that runs
-this engine. The service is a separate codebase; this repository is the engine.
-
-Monitoring? You can absolutely build it yourself with this engine: a cron
-running `a11ytoolkit audit` plus `budget` and `diff` is a legitimate path —
-deliberately so, that is what the MIT license promises. [a11y.es](https://a11y.es)
-exists for those who would rather not maintain it: scheduled audits with a real
-browser, alerts on what breaks between releases, a sealed evidence vault anyone
-can verify years later, and an agency portfolio — start free with 3 sites. And
-the one thing no script can give: a human auditor's signature when you have to
-prove it.
-
-## Validated against real pages
-
-The monthly axe-core 4.10 comparison checks that every page in the panel was
-measured. Differences point to cases for manual review. On GOV.UK, that
-review confirmed the search icon met the 3:1 non-text contrast threshold
-and prompted a fix to the toolkit's text contrast check.
-[Method and results](bench/README.md)
-
-The frozen corpus measures detection of injected failures and flags on
-placebo pages. A comparable submission includes one valid row per page,
-including an empty array for each page checked without findings.
-[Corpus scoring guide](docs/cookbook.md#12-score-any-engine-against-the-frozen-corpus)
-
-The task-based agent benchmark includes a stratified sample of live sites
-in Spain. [Method and results](docs/benchmark-agents.md)
-
-Also run against the official W3C ACT test cases: `scripts/act_report.py`
-regenerates the [EARL implementation report](docs/act-implementation-report.json)
-— **every one of the 134 expected-failure cases is detected (zero missed
-failures), and 273 of 355 outcomes (77%) match the oracle exactly** (the
-remaining 82 are passed↔inapplicable divergences across 16 rules —
-applicability edge cases, never a missed failure; per-rule breakdown in
-[docs/act-report-summary.md](docs/act-report-summary.md), verified against the
-w3c/wcag-act-rules repository). The WCAG 2.2 catalog
-(86 criteria, A/AA/AAA) and the WCAG 3 outcome registry are likewise verified
-against their canonical w3.org sources (`scripts/wcag22_ingest.py`,
-`scripts/wcag3_ingest.py`). Calibration also runs against known-good component
-implementations: the [TetraLogical accessible-components-library](https://github.com/TetraLogical/accessible-components-library)
-(ISC, commit-pinned under [`bench/tetra-acl/`](bench/tetra-acl/README.md)):
-16 example pages audited with zero component-markup findings and clean rendered
-keyboard + 320px reflow on all of them.
-
-## Why I built this
-
-I have been auditing websites for accessibility since 2003. In twenty years the
-tools got faster and the failures stayed the same: the same missing alt text, the
-same keyboard traps, the same forms that swallow your work. When AI agents started
-writing most of the web, the audit gap stopped being a staffing problem and became
-an infrastructure one.
-
-So I built the tool I always wanted next to me on an audit. Not another scanner —
-scanners exist. A toolkit that does half the work, says exactly where it stops, and
-packages the rest for the person who signs. The gov.uk finding you read about above
-is not a synthetic benchmark case: this engine found it, and the manual review is what
-caught the false positive before it shipped as a claim.
-
-If it saves you an afternoon, leave a star — it genuinely helps the next auditor
-find it. If it doesn't, open an issue and tell me what is missing.
-
-## Honesty, built in
-
-Every audit says: **48 of the 55 A/AA criteria (87%) carry at least one automated
-signal, and the rest needs a human** (roughly a third of all WCAG once AAA and the
-genuinely-human checks are counted).
-The `audit-page` prompt and the skill have the agent check what it can (keyboard,
-focus, zoom, announced errors) using [the manual
-checklist](skills/a11y-toolkit/references/wcag22-manual-checklist.md). A filter, not
-a verdict. The pack groups pending human review by effort class — MIN 23 (read and
-confirm), MED 19 (verify in the browser), MAX 13 (real interaction and judgment);
-[full table](docs/effort-class-table.md). And the evidence pack is the handoff object
-for the person who signs, screen reader transcript included, so the reviewer sees
-what a blind user hears.
-
-## Security & scope
-
-A **local** tool: runs on your machine as your user. `a11y_audit_url` accepts
-http/https only (no `file://` — use `--file`/`html` for local HTML). `a11y_html_validate`
-in html mode POSTs content to the W3C service (url mode shares only the URL;
-self-hosted vnu supported). `path`/`output_path` read/write local paths — use it in
-MCP clients you trust.
-
-## Development
-
-```bash
-make test   # every suite by discovery
-```
-
-`tests/test_dom.py` self-skips without Playwright. `tests/test_solido.py` enforces the design
-invariants (catalog parity, version alignment, count coverage, hostile-HTML fuzz).
-Releases: `make release V=X.Y.Z` — bumps, gates, tags and pushes atomically.
-
-Generated surfaces — never edit by hand: this README's tool table and
-[docs/tools.md](docs/tools.md) come from `server.TOOLS`
-(`scripts/gen_readme.py`), and [llms.txt](llms.txt) — this repo's index for
-agents, llmstxt.org convention — from the same source
-(`scripts/gen_llms.py`). Both `--check` in the Makefile gates: adding a
-tool and forgetting them fails the suite.
-
-## Roadmap
-
-Done recently: rendered audit with shadow DOM and state contrast, form error
-testing plus autofix, keyboard traps, infinite scroll, reflow, the W3C Nu
-integration, SARIF and error budgets, the evidence pack (spec published,
-self-verifying), sitemap crawling, behind-login auditing, browser
-auto-detection, the screen reader transcript, and per-criterion review classes. The full history lives in the [changelog](CHANGELOG.md).
-
-Next, roughly in this order:
-
-- [ ] Attestation interlock: let an external auditor's signature reference the evidence pack by hash (their schema, my side adapts)
-- [ ] Publish the monthly axe-core benchmark results from CI, run over real pages
-- [ ] Screen-reader transcript cross-checks against NVDA and VoiceOver output
-- [ ] More verified client configs (JetBrains AI, Gemini CLI), same treatment as [docs/clients.md](docs/clients.md)
-
-## Community
-
-- **Questions, ideas, show & tell** → [Discussions](https://github.com/kinti/a11y-toolkit/discussions)
-- **First contribution** → the [`good first issue` queue](https://github.com/kinti/a11y-toolkit/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22) — translations are the designed entry point: no code, one file, validated mechanically ([guide](docs/i18n.md))
-- **Bugs and features** → the [issue templates](https://github.com/kinti/a11y-toolkit/issues/new/choose)
-
-A practical ladder: **translate → docs → bug → feature**. Everything you ship
-is credited below and in the release notes.
-
-## Contributors
-
-| Contributor | Contributions |
-|---|---|
-| [@kinti](https://github.com/kinti) | Engine, tests, docs, audits — everything so far |
-
-The next name here is probably a translator's: claim an open locale issue and
-your language ships in the next release with your name on it.
-
-## Author
-
-**Jesús Quintana Fernández** ([jquin.net](https://jquin.net/)) — SEO/GEO consultant and
-web-accessibility practitioner since 2003. MIT © 2026.
-
-## License & name
-
-The code is [MIT](LICENSE) — use it, sell it, embed it, fork it, including
-in closed-source products. One thing MIT does not cover: **the name**.
-"a11y-toolkit", the logo and the project marks are reserved and are not
-part of the MIT grant — a fork or redistribution that modifies the code
-ships under its own name, not ours. Same playbook as Debian and Firefox:
-permissive code, protected brand.
-
-Built something with a11y-toolkit? [Tell us](https://github.com/kinti/a11y-toolkit/discussions) —
-public tools get featured and credited.
+The code is MIT-licensed. Modified distributions use their own name and
+branding. [License](LICENSE)

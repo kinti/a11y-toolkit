@@ -1,6 +1,9 @@
 # Changelog
 
 ## main — pendiente
+- **Bilingual README.** Both editions start with a working CLI example
+  and follow a finding through repair, regression checks and evidence.
+  Coverage and benchmark figures link to their methods and results.
 - **Complete corpus submissions.** The scorer reports valid coverage of
   mutants and placebo controls separately. Missing, repeated, unknown or
   malformed cases make `corpus evaluate` exit 1 with diagnostic JSON. Scores

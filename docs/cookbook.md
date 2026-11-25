@@ -37,8 +37,10 @@ at reflow $URL         > reflow.json     # 320px sideways scroll (1.4.10)
 at forms $URL/contact  > forms.json      # error identification (3.3.1/3.3.3)
 ```
 
-The same pass catches the failures axe marks *incomplete*: e.g. gov.uk's
-3.91:1 search button, criterion 1.4.3.
+Rendered measurements can flag cases for review. On GOV.UK, manual review
+confirmed that the search icon met the 3:1 non-text contrast threshold.
+That review led to a correction in the toolkit's text contrast check.
+[Benchmark notes](../bench/README.md#october-2026)
 
 ## 3. Fixing a contrast failure the honest way
 
