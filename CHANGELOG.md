@@ -1,6 +1,8 @@
 # Changelog
 
 ## main — pendiente
+
+## 5.35.4 — 2026-11-25
 - **Closed menus without false positives.** The accessible name of a link,
   button or field no longer depends on layout. Chromium keeps layout boxes
   for the content of a closed `<details>` without painting it, so every
