@@ -2,6 +2,8 @@
 
 ## main — pendiente
 
+## 5.35.5 — 2026-11-26
+
 - **The CLI writes UTF-8 on every platform (Windows fix).** `a11ytoolkit`
   printed its reports with `ensure_ascii=False` through whatever encoding the
   process had inherited. On Windows, a pipe or a redirected file inherits the
