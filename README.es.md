@@ -54,7 +54,9 @@ a11ytoolkit audit --url https://example.com
 Cada hallazgo incluye el criterio WCAG, la gravedad y cómo corregirlo.
 Consulta `not_measured` para ver qué criterios quedan pendientes en esta
 auditoría. Ejecuta `a11ytoolkit route --url https://example.com` para ver
-qué comprobaciones conviene hacer después.
+qué comprobaciones conviene hacer después. El CLI escribe en UTF-8 en todas
+las plataformas, así que un informe enviado a un archivo o a otro comando
+(`> informe.json`) sigue siendo válido en Windows.
 
 <details>
 <summary>Ver una auditoría, una corrección de contraste y la comprobación final</summary>
@@ -155,6 +157,15 @@ Para comparar capturas web, mantén el mismo navegador, esquema de color
 y tipo de sesión. Para revisar el HTML que cambió en una rama de Git,
 usa `a11ytoolkit audit --changed --base origin/main`. Para comparar el
 orden del foco en un recorrido con guion, usa `trace`. [Ejemplos de CI y teclado](docs/cookbook.md)
+
+```sh
+a11ytoolkit trace https://mysite --script journey.json --capture-dialog-state -o after.json
+a11ytoolkit trace diff before.json after.json --gate-dialog-state
+```
+
+`--capture-dialog-state` registra, después de cada paso, si hay un diálogo
+abierto y si el foco está dentro. `trace diff --gate-dialog-state` compara ese
+estado cuando ambos recorridos lo llevan.
 
 El presupuesto empareja instancias por `stable_paths` (id, `data-testid`,
 nombre ARIA) antes que por rutas posicionales. En un rastreo, las URLs

@@ -46,6 +46,7 @@
   a11ytoolkit guard --file page.html                       # write-time gate: NEW high/medium refuse the save
 """
 
+import os
 import sys
 
 from . import a11yaudit
@@ -135,7 +136,27 @@ SUBCOMMANDS = {
 }
 
 
+def _utf8_stdio():
+    # El CLI imprime informes con ensure_ascii=False. En Windows una tubería o
+    # un `> informe.json` heredan la página de códigos antigua del sistema
+    # (cp949, cp1252) y el primer carácter que no pueda codificar mataba la
+    # ejecución a mitad del informe (discusión #1: el signo menos de
+    # score_note). El mismo guard que server.main(); la consola directa ya era
+    # UTF-8. Un PYTHONIOENCODING explícito es decisión del usuario: se respeta
+    # su codificación y solo se evita que el carácter sea fatal.
+    kw = {} if 'PYTHONIOENCODING' in os.environ else {'encoding': 'utf-8'}
+    for _stream, _extra in ((sys.stdin, {'errors': 'replace'}),
+                            (sys.stdout, {'errors': 'backslashreplace'}),
+                            (sys.stderr, {'errors': 'backslashreplace'})):
+        if hasattr(_stream, 'reconfigure'):
+            try:
+                _stream.reconfigure(**kw, **_extra)
+            except (ValueError, OSError, AttributeError):
+                pass  # consolas exóticas o cerradas: conservan su codificación
+
+
 def main(argv=None):
+    _utf8_stdio()
     argv = list(sys.argv[1:] if argv is None else argv)
     if not argv or argv[0] in ('-h', '--help'):
         print(__doc__)

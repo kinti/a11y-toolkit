@@ -279,3 +279,38 @@ for _th, _c in _PAL:
     _r = _ct.pair(_c, '#ffffff')['ratio']
     assert _r >= 4.5, f'badge color {_c} (≥{_th}) no pasa AA con texto blanco: {_r}'
 print('badge: paleta por defecto AA (4.5:1 con blanco) ✓')
+
+# ── 5.35.5: el CLI escribe siempre UTF-8 (discusión #1: Windows redirigido) ──
+# En Windows una tubería o un `> informe.json` heredan la página de códigos
+# antigua del sistema (cp949, cp1252): el signo menos de score_note mataba la
+# ejecución a mitad del informe. Se simula la condición REAL: las tres
+# corrientes son tuberías cp949 y el proceso NO lleva PYTHONIOENCODING.
+_LEGACY = (
+    "import io, sys\n"
+    "sys.stdin = io.TextIOWrapper(sys.stdin.detach(), encoding='cp949')\n"
+    "sys.stdout = io.TextIOWrapper(sys.stdout.detach(), encoding='cp949')\n"
+    "sys.stderr = io.TextIOWrapper(sys.stderr.detach(), encoding='cp949')\n"
+    "from a11y_toolkit import a11y\n"
+    "sys.exit(a11y.main(sys.argv[1:]))\n")
+_sin_io = {k: v for k, v in os.environ.items() if k != 'PYTHONIOENCODING'}
+r = subprocess.run([sys.executable, '-c', _LEGACY, 'audit', '--file', FIX], cwd=ROOT,
+                   capture_output=True, timeout=180, env=_sin_io)
+assert r.returncode == 0, (r.returncode, r.stderr.decode('utf-8', 'replace')[-400:])
+_bytes_utf8 = r.stdout                                   # antes: UnicodeEncodeError '\u2212'
+assert '\u2212' in json.loads(_bytes_utf8.decode('utf-8'))['score_note']
+
+# la entrada estándar también: `audit | wcag3 --from-audit -` leía bytes UTF-8
+# como cp949 y moría en la lectura
+r = subprocess.run([sys.executable, '-c', _LEGACY, 'wcag3', '--from-audit', '-'], cwd=ROOT,
+                   input=_bytes_utf8, capture_output=True, timeout=180, env=_sin_io)
+assert r.returncode == 0, (r.returncode, r.stderr.decode('utf-8', 'replace')[-400:])
+
+# PYTHONIOENCODING explícito es decisión del usuario: se respeta su codificación
+# y un carácter sin codificar sale escapado en vez de matar la ejecución
+r = subprocess.run([sys.executable, '-m', 'a11y_toolkit.a11y', 'audit', '--file', FIX],
+                   cwd=ROOT, capture_output=True, timeout=180,
+                   env=dict(os.environ, PYTHONIOENCODING='cp949'))
+assert r.returncode == 0, r.stderr.decode('utf-8', 'replace')[-400:]
+_explicito = r.stdout.decode('cp949')                   # sigue siendo cp949
+assert '\\u2212' in _explicito and '\u2212' not in _explicito
+print('CLI UTF-8: pipe cp949 sin PYTHONIOENCODING sale en UTF-8; explícito se respeta y no es fatal ✓')

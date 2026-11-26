@@ -53,6 +53,8 @@ a11ytoolkit audit --url https://example.com
 Each finding includes a WCAG criterion, severity and remediation. Check
 `not_measured` for the criteria that this audit did not measure. Run
 `a11ytoolkit route --url https://example.com` to see what to check next.
+The CLI writes UTF-8 on every platform, so a report sent to a file or a pipe
+(`> report.json`) is a valid file on Windows too.
 
 <details>
 <summary>Watch an audit, a contrast fix and a re-audit</summary>
@@ -150,6 +152,15 @@ Keep browser, color scheme and session type consistent when comparing live
 captures. To check changed HTML in a Git branch, use
 `a11ytoolkit audit --changed --base origin/main`. To compare focus order in a
 scripted journey, use `trace`. [CI and keyboard recipes](docs/cookbook.md)
+
+```sh
+a11ytoolkit trace https://mysite --script journey.json --capture-dialog-state -o after.json
+a11ytoolkit trace diff before.json after.json --gate-dialog-state
+```
+
+`--capture-dialog-state` records, after each step, whether a dialog is open
+and whether focus is inside it. `trace diff --gate-dialog-state` compares that
+state when both traces carry it.
 
 Budgets match instances by `stable_paths` (id, `data-testid`, ARIA name)
 before positional paths. In a crawl, failed URLs do not spend the page

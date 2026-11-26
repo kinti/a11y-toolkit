@@ -2,6 +2,26 @@
 
 ## main — pendiente
 
+- **The CLI writes UTF-8 on every platform (Windows fix).** `a11ytoolkit`
+  printed its reports with `ensure_ascii=False` through whatever encoding the
+  process had inherited. On Windows, a pipe or a redirected file inherits the
+  legacy ANSI code page (cp949 on a Korean system, cp1252 on a Western one),
+  and the first character that page cannot encode raised
+  `UnicodeEncodeError` and killed the run mid-report. Every `audit` report
+  carries the minus sign of `score_note` (U+2212), so every redirected run
+  died there at the latest. The same happened in reverse on stdin: piping a
+  report into `wcag3 --from-audit -`, `budget --init` or `guard --hook` died
+  reading UTF-8 bytes as cp949. Before dispatching any subcommand, the CLI
+  now sets stdin, stdout and stderr to UTF-8, the guard `server.py` already
+  had, and a character that cannot be encoded is escaped (`\u2212`) instead
+  of being fatal. Reported with a repro in discussion #1. What it does NOT
+  do: no flag and no report content change; a direct Windows console was
+  already UTF-8; an explicit `PYTHONIOENCODING` is still honored, only
+  without the crash. `PYTHONUTF8=1` is no longer needed.
+- **README example for `--capture-dialog-state` restored.** The README
+  refresh of 5.35.x dropped the example that issue #16 shipped in 5.32.0.
+  Both READMEs carry the two commands again. No code change.
+
 ## 5.35.4 — 2026-11-25
 - **Closed menus without false positives.** The accessible name of a link,
   button or field no longer depends on layout. Chromium keeps layout boxes
