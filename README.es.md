@@ -2,10 +2,17 @@
 
 **Comprobaciones de accesibilidad WCAG 2.2 para agentes de programación, equipos de desarrollo y CI.**
 
-Audita un archivo HTML o una página web, averigua cómo corregir cada
-hallazgo y comprueba qué ha cambiado antes de publicar. Cuando una persona
-tenga que revisar el resultado, exporta un paquete de evidencias
-verificable con los hallazgos y las comprobaciones pendientes.
+Un chequeo automático encuentra una parte de los problemas de accesibilidad y
+ahí se queda. a11y-toolkit sigue: audita un archivo HTML o una página web,
+averigua cómo corregir cada hallazgo y comprueba qué ha cambiado antes de
+publicar. Cuando una persona tenga que revisar el resultado, exporta un
+paquete de evidencias verificable con los hallazgos y las comprobaciones
+pendientes.
+
+Gratis para usarlo por tu cuenta bajo licencia MIT. Lo construyó [Jesús
+Quintana Fernández](https://jquin.net/), que audita webs desde 2003, y
+[a11y.es](https://a11y.es) lo usa en su servicio de monitorización de
+accesibilidad.
 
 [English](README.md) · [Español](README.es.md)
 
@@ -21,7 +28,7 @@ verificable con los hallazgos y las comprobaciones pendientes.
 [![OpenSSF Best Practices](https://www.bestpractices.dev/projects/16107/badge)](https://www.bestpractices.dev/en/projects/16107)
 [![ACT Rules](https://img.shields.io/badge/ACT%20Rules-134%2F134%20fallos%20detectados-brightgreen)](https://github.com/kinti/a11y-toolkit/blob/main/docs/act-report-summary.md)
 [![Releases](https://img.shields.io/badge/releases-OIDC%20provenance%20signed-blue)](.github/workflows/publish.yml)
-[![Dependencies](https://img.shields.io/badge/dependencies-zero-blue)](pyproject.toml)
+[![Dependencies](https://img.shields.io/badge/core%20dependencies-zero-blue)](pyproject.toml)
 [![Python Versions](https://img.shields.io/pypi/pyversions/a11y-toolkit)](https://pypi.org/project/a11y-toolkit/)
 [![GitHub Release](https://img.shields.io/github/v/release/kinti/a11y-toolkit)](https://github.com/kinti/a11y-toolkit/releases)
 
@@ -61,7 +68,7 @@ las plataformas, así que un informe enviado a un archivo o a otro comando
 <details>
 <summary>Ver una auditoría, una corrección de contraste y la comprobación final</summary>
 
-![La auditoría detecta un fallo de contraste. El toolkit propone un color más oscuro y verifica la mejora.](docs/demo.gif)
+![La auditoría detecta una imagen sin texto alternativo y un campo sin etiqueta. El chequeo de contraste propone un color más oscuro y la nueva auditoría, ya con las correcciones, muestra la mejora.](docs/demo.gif)
 
 </details>
 
@@ -196,6 +203,40 @@ local del repositorio, ejecuta
 el sello SHA-256 y los informes incluidos. La persona que audita puede
 revisar el paquete y emitir el dictamen de conformidad. [Formato y verificador](docs/evidence-pack-schema.md)
 
+## Prueba una tarea real a ciegas
+
+Los escáneres comprueban de qué está hecha una página. Esto comprueba qué
+puede hacer una persona con ella. Tu agente de programación intenta una tarea
+real («suscribirse al boletín», «restablecer la contraseña») percibiendo solo
+el árbol de accesibilidad, que es lo que expone un lector de pantalla, y
+actuando solo por nombre accesible y teclado. Cada dificultad que encuentra se
+registra contra un criterio WCAG.
+
+<details>
+<summary>Ver cómo un agente intenta suscribirse a un boletín y desiste</summary>
+
+![Un agente de programación intenta suscribirse a un boletín percibiendo solo el árbol de accesibilidad, anota una dificultad en cada obstáculo y a11y_journey_verdict devuelve un veredicto de tarea bloqueada con cada hallazgo, su criterio y su corrección.](docs/blindfold.gif)
+
+</details>
+
+La página de demostración está hecha para fallar, y el veredicto que se ve es
+salida real de ese recorrido.
+
+Pide a tu agente que ejecute el prompt `blindfold-task` con una URL y la
+tarea. Al terminar, cierra con `a11y_journey_verdict`, que convierte el
+registro de dificultades en un veredicto determinista: `pass`, `partial`,
+`fail` o `blocked`, con una puntuación y cada hallazgo con su criterio y su
+corrección. Para puntuar un registro a mano, ejecuta
+`python3 -m a11y_toolkit.a11yjourney friction.json`. El veredicto es un
+informe como las auditorías, así que `a11y_evidence` lo acepta y la lista de
+dificultades llega a quien revisa.
+
+Un `pass` significa que una tarea se pudo completar sin vista, por un agente
+de IA, en una página. Es evidencia de usabilidad. No es una declaración de
+conformidad ni sustituye la prueba con una persona usuaria de lector de
+pantalla. El [ejemplo desarrollado](docs/journey-example.md) muestra el ciclo
+completo, sobre una página de prueba con fallos y sobre dos sitios reales.
+
 ## Elige la comprobación adecuada
 
 | Si necesitas… | Empieza por… |
@@ -204,6 +245,7 @@ revisar el paquete y emitir el dictamen de conformidad. [Formato y verificador](
 | Comprobar contraste, foco o tamaño de elementos interactivos en el navegador | `dom` o `contrast-dom` |
 | Recorrer la página con el teclado o comprobar la redistribución a 320 píxeles CSS | `kbd`, `trace` o `reflow` |
 | Observar cómo se anuncian los errores, qué aparece al pasar el puntero o cómo funciona el desplazamiento infinito | `forms`, `hover`, `scroll` o `patterns` |
+| Saber si una tarea se puede completar sin ver la página | prompt `blindfold-task` y después `a11y_journey_verdict` |
 | Inspeccionar qué expone el navegador a las tecnologías de apoyo | Herramienta MCP `a11y_sr_transcript` o prompt `blindfold-task` |
 | Revisar la estructura de documentos o los subtítulos | `pdf`, `python -m a11y_toolkit.a11ydocx` o `vtt` |
 | Preparar una revisión humana o exportar resultados a otras herramientas | `evidence`, `scope`, `sarif`, `earl`, `vpat` u `openacr` |

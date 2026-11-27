@@ -21,7 +21,7 @@ fast:            ## suites rápidas (lo que guarda el pre-push; wcagem/plan → 
 hooks:           ## activa el guardián de push (una vez por clon)
 	git config core.hooksPath .githooks
 
-visual:          ## regenera GIF e imagen social (tras cambiar tools/contajes)
+visual:          ## regenera los GIF y la imagen social (obligatorio tras cambiar tools o prompts)
 	python3 docs/gen-visuals.py
 
 release:         ## VERSIONA = make release V=3.9.5 (bump atómico + suites + tag + push)

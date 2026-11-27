@@ -2,6 +2,38 @@
 
 ## main — pendiente
 
+## 5.35.6 — 2026-11-27
+
+- **README: what problem it solves, who is behind it, and a section for
+  blindfold testing.** Above the badges, a first-time visitor now reads one
+  sentence on the problem (an automated check finds some of the issues and
+  stops there), the license and the author (MIT; auditing websites for
+  accessibility since 2003), and that a11y.es uses the toolkit for hosted
+  monitoring. The `blindfold-task` prompt gets its own section with the new
+  `docs/blindfold.gif`, and the "Choose the right check" table gains a row
+  for task-based testing. The dependencies badge now reads "core
+  dependencies: zero", which is what the tagline already said: the engine is
+  stdlib-only, the browser checks need Playwright and Pillow. The alt text
+  of the demo GIF now describes what the GIF shows: an audit flags an image
+  without alt text and a field without a label; the contrast check suggests
+  the darker color. Both READMEs, English and Spanish. What it does NOT do:
+  no engine change, no score change, no new tool.
+- **Visuals regenerated, with three generator fixes.** `docs/demo.gif` was
+  last generated on 2026-11-01 and still said "35 tools · 6 prompts" and
+  58/100; it now shows the current real output (37 tools, 5 prompts, 64/100
+  before the fix). The social preview carried a hand-typed "23 MCP tools";
+  the count now comes from `server.TOOLS` and test_solido rejects a typed
+  one. The social preview was also captured at the GIF width (1024 px)
+  instead of its own 1280 px, so the right fifth of the card was cut off; it
+  is now captured whole, and carries a "blindfold testing" chip.
+  `docs/blindfold.gif` comes from `docs/gen-visuals.py`: the log of a real
+  blindfold run on a demo page authored to fail, priced on every `make
+  visual` by `a11yjourney.verdict()`, never stored. GIF frames are quantized
+  to 64 colors (the demo GIF goes from 488 KB to 432 KB). The drift itself is
+  now guarded: the generator records the counts in `docs/visuals.json`, and
+  test_solido fails when they differ from `server.TOOLS`, so adding a tool
+  without `make visual` turns the suite red.
+
 ## 5.35.5 — 2026-11-26
 
 - **The CLI writes UTF-8 on every platform (Windows fix).** `a11ytoolkit`

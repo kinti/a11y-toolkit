@@ -201,6 +201,19 @@ vis = open(os.path.join(ROOT, 'docs', 'gen-visuals.py'), encoding='utf-8').read(
 # la derivación misma, no el número — un literal aquí volvería a caducar
 assert '{len(_server.TOOLS)} tools · {len(_server._PROMPTS)} prompts' in vis, \
     'el banner del GIF debe derivarse de server.TOOLS/_PROMPTS en docs/gen-visuals.py'
+# la imagen social lleva el mismo conteo: nada tecleado a mano (convivió un
+# «23 MCP tools» fijo con un GIF que ya derivaba el número)
+assert not re.search(r'<b>\d+</b> (MCP tools|prompts)', vis), \
+    'docs/gen-visuals.py: el conteo de la imagen social debe salir de server.TOOLS/_PROMPTS'
+# y los visuales GENERADOS tienen que estar al día: `make visual` deja el
+# conteo en docs/visuals.json. Derivar el número no bastó: el GIF siguió
+# diciendo «35 tools · 6 prompts» semanas después de haber 37 y 5.
+with open(os.path.join(ROOT, 'docs', 'visuals.json'), encoding='utf-8') as _vf:
+    _vis = json.load(_vf)
+assert (_vis['tools'], _vis['prompts']) == (len(server.TOOLS), len(server._PROMPTS)), \
+    f'docs/demo.gif y docs/social-preview.png están viejos (generados con ' \
+    f'{_vis["tools"]} tools · {_vis["prompts"]} prompts, hay ' \
+    f'{len(server.TOOLS)} · {len(server._PROMPTS)}): corre `make visual`'
 doc_server = server.__doc__
 assert all(t['name'] in doc_server for t in server.TOOLS), 'docstring del server incompleto'
 

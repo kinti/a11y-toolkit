@@ -2,10 +2,16 @@
 
 **WCAG 2.2 accessibility checks for coding agents, developers and CI.**
 
-Audit an HTML file or a live page, find out how to fix each issue, and check
-what changed before you ship. When a human needs to review the result,
-export a verifiable evidence pack with the findings and the checks that
-still need attention.
+An automated check finds some of the accessibility problems and stops there.
+a11y-toolkit keeps going: audit an HTML file or a live page, find out how to
+fix each issue, and check what changed before you ship. When a human needs to
+review the result, export a verifiable evidence pack with the findings and
+the checks that still need attention.
+
+Free to run yourself under the MIT license. Built by [Jesús Quintana
+Fernández](https://jquin.net/), who has been auditing websites for
+accessibility since 2003, and used by [a11y.es](https://a11y.es) for hosted
+monitoring.
 
 [English](README.md) · [Español](README.es.md)
 
@@ -21,7 +27,7 @@ still need attention.
 [![OpenSSF Best Practices](https://www.bestpractices.dev/projects/16107/badge)](https://www.bestpractices.dev/en/projects/16107)
 [![ACT Rules](https://img.shields.io/badge/ACT%20Rules-134%2F134%20failures%20detected-brightgreen)](https://github.com/kinti/a11y-toolkit/blob/main/docs/act-report-summary.md)
 [![Releases](https://img.shields.io/badge/releases-OIDC%20provenance%20signed-blue)](.github/workflows/publish.yml)
-[![Dependencies](https://img.shields.io/badge/dependencies-zero-blue)](pyproject.toml)
+[![Dependencies](https://img.shields.io/badge/core%20dependencies-zero-blue)](pyproject.toml)
 [![Python Versions](https://img.shields.io/pypi/pyversions/a11y-toolkit)](https://pypi.org/project/a11y-toolkit/)
 [![GitHub Release](https://img.shields.io/github/v/release/kinti/a11y-toolkit)](https://github.com/kinti/a11y-toolkit/releases)
 
@@ -59,7 +65,7 @@ The CLI writes UTF-8 on every platform, so a report sent to a file or a pipe
 <details>
 <summary>Watch an audit, a contrast fix and a re-audit</summary>
 
-![An audit flags a text contrast failure. The toolkit suggests a darker text color and the re-audit shows the improvement.](docs/demo.gif)
+![An audit flags an image without alt text and a form field without a label. A contrast check suggests a darker text color, and the re-audit after the fixes shows the improvement.](docs/demo.gif)
 
 </details>
 
@@ -188,6 +194,38 @@ run `python3 scripts/verify_pack.py /path/to/evidence-pack.json` to check
 the SHA-256 seal and embedded reports. An auditor can review the pack and take
 responsibility for the conformance decision. [Pack format and verifier](docs/evidence-pack-schema.md)
 
+## Test a real task blindfolded
+
+Scanners check what a page is made of. This checks what a person can do with
+it. Your coding agent attempts a real task ("subscribe to the newsletter",
+"reset the password") perceiving only the accessibility tree, which is what a
+screen reader exposes, and acting only by accessible name and keyboard. Every
+point of friction it meets is logged against a WCAG criterion.
+
+<details>
+<summary>Watch an agent try to subscribe to a newsletter and give up</summary>
+
+![A coding agent tries to subscribe to a newsletter perceiving only the accessibility tree, logs a friction point at each obstacle, and a11y_journey_verdict returns a blocked verdict with every finding, its criterion and remediation.](docs/blindfold.gif)
+
+</details>
+
+The demo page is authored to fail, and the verdict shown is real output for
+that walk.
+
+Ask your agent to run the `blindfold-task` prompt with a URL and the task.
+When it finishes, it closes with `a11y_journey_verdict`, which turns the
+friction log into a deterministic verdict: `pass`, `partial`, `fail` or
+`blocked`, a score, and each finding with its criterion and remediation. To
+price a log by hand, run `python3 -m a11y_toolkit.a11yjourney friction.json`.
+The verdict is a report like the audits, so `a11y_evidence` accepts it and the
+friction list reaches the person who reviews.
+
+A pass means one task was completable non-visually by an AI agent on one
+page. That is usability evidence. It is not a conformance claim and it does
+not replace testing with a human screen-reader user. The
+[worked example](docs/journey-example.md) shows the whole loop, on a failing
+fixture and on two live sites.
+
 ## Choose the right check
 
 | If you need to… | Start with… |
@@ -196,6 +234,7 @@ responsibility for the conformance decision. [Pack format and verifier](docs/evi
 | Check rendered contrast, focus or small targets | `dom` or `contrast-dom` |
 | Walk a keyboard route or check a layout at 320 CSS pixels | `kbd`, `trace` or `reflow` |
 | Check interactive behavior such as errors, hover or infinite scroll | `forms`, `hover`, `scroll` or `patterns` |
+| Find out whether a task can be completed without seeing the page | Prompt `blindfold-task`, then `a11y_journey_verdict` |
 | Inspect what a browser exposes to assistive technology | MCP tool `a11y_sr_transcript` or prompt `blindfold-task` |
 | Screen documents or captions | `pdf`, `python -m a11y_toolkit.a11ydocx` or `vtt` |
 | Prepare a human review or an interoperability export | `evidence`, `scope`, `sarif`, `earl`, `vpat` or `openacr` |
